@@ -9,20 +9,25 @@ import (
 )
 
 type SQLTripModel struct {
-	ID            string
-	TripNumber    string
-	BookingID     sql.NullString
-	DriverID      sql.NullString
-	VehicleID     sql.NullString
-	RouteID       string
-	DepartureTime time.Time
-	ArrivalTime   sql.NullTime
-	Status        string
-	Remarks       sql.NullString
-	TenantID      string
-	Version       int64
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	ID              string         `json:"id"`
+	TripNumber      string         `json:"trip_number"`
+	BookingID       sql.NullString `json:"booking_id"`
+	DriverID        sql.NullString `json:"driver_id"`
+	VehicleID       sql.NullString `json:"vehicle_id"`
+	RouteID         string         `json:"route_id"`
+	DepartureTime   time.Time      `json:"departure_time"`
+	ArrivalTime     sql.NullTime   `json:"arrival_time"`
+	Status          string         `json:"status"`
+	Remarks         sql.NullString `json:"remarks"`
+	TenantID        string         `json:"tenant_id"`
+	Version         int64          `json:"version"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+	StartedAt       sql.NullTime   `json:"started_at"`
+	ReachedPickupAt sql.NullTime   `json:"reached_pickup_at"`
+	InTransitAt     sql.NullTime   `json:"in_transit_at"`
+	DeliveredAt     sql.NullTime   `json:"delivered_at"`
+	CompletedAt     sql.NullTime   `json:"completed_at"`
 }
 
 func MapToAggregate(m SQLTripModel) *aggregate.TripAggregate {
@@ -55,6 +60,36 @@ func MapToAggregate(m SQLTripModel) *aggregate.TripAggregate {
 		remarks = m.Remarks.String
 	}
 
+	var startedAt *time.Time
+	if m.StartedAt.Valid {
+		val := m.StartedAt.Time
+		startedAt = &val
+	}
+
+	var reachedPickupAt *time.Time
+	if m.ReachedPickupAt.Valid {
+		val := m.ReachedPickupAt.Time
+		reachedPickupAt = &val
+	}
+
+	var inTransitAt *time.Time
+	if m.InTransitAt.Valid {
+		val := m.InTransitAt.Time
+		inTransitAt = &val
+	}
+
+	var deliveredAt *time.Time
+	if m.DeliveredAt.Valid {
+		val := m.DeliveredAt.Time
+		deliveredAt = &val
+	}
+
+	var completedAt *time.Time
+	if m.CompletedAt.Valid {
+		val := m.CompletedAt.Time
+		completedAt = &val
+	}
+
 	return &aggregate.TripAggregate{
 		ID:            aggregate.TripID(m.ID),
 		TenantID:      shared.TenantID(m.TenantID),
@@ -67,6 +102,11 @@ func MapToAggregate(m SQLTripModel) *aggregate.TripAggregate {
 		ArrivalTime:   arrivalTime,
 		Status:        aggregate.TripStatus(m.Status),
 		Remarks:       remarks,
+		StartedAt:     startedAt,
+		ReachedPickupAt: reachedPickupAt,
+		InTransitAt:   inTransitAt,
+		DeliveredAt:   deliveredAt,
+		CompletedAt:   completedAt,
 		CreatedAt:     m.CreatedAt,
 		UpdatedAt:     m.UpdatedAt,
 		Version:       m.Version,
@@ -99,20 +139,50 @@ func MapToPersistence(agg *aggregate.TripAggregate) SQLTripModel {
 		remarks = sql.NullString{String: agg.Remarks, Valid: true}
 	}
 
+	var startedAt sql.NullTime
+	if agg.StartedAt != nil {
+		startedAt = sql.NullTime{Time: *agg.StartedAt, Valid: true}
+	}
+
+	var reachedPickupAt sql.NullTime
+	if agg.ReachedPickupAt != nil {
+		reachedPickupAt = sql.NullTime{Time: *agg.ReachedPickupAt, Valid: true}
+	}
+
+	var inTransitAt sql.NullTime
+	if agg.InTransitAt != nil {
+		inTransitAt = sql.NullTime{Time: *agg.InTransitAt, Valid: true}
+	}
+
+	var deliveredAt sql.NullTime
+	if agg.DeliveredAt != nil {
+		deliveredAt = sql.NullTime{Time: *agg.DeliveredAt, Valid: true}
+	}
+
+	var completedAt sql.NullTime
+	if agg.CompletedAt != nil {
+		completedAt = sql.NullTime{Time: *agg.CompletedAt, Valid: true}
+	}
+
 	return SQLTripModel{
-		ID:            string(agg.ID),
-		TripNumber:    agg.TripNumber,
-		BookingID:     bookingID,
-		DriverID:      driverID,
-		VehicleID:     vehicleID,
-		RouteID:       agg.RouteID,
-		DepartureTime: agg.DepartureTime,
-		ArrivalTime:   arrivalTime,
-		Status:        string(agg.Status),
-		Remarks:       remarks,
-		TenantID:      string(agg.TenantID),
-		Version:       agg.Version,
-		CreatedAt:     agg.CreatedAt,
-		UpdatedAt:     agg.UpdatedAt,
+		ID:              string(agg.ID),
+		TripNumber:      agg.TripNumber,
+		BookingID:       bookingID,
+		DriverID:        driverID,
+		VehicleID:       vehicleID,
+		RouteID:         agg.RouteID,
+		DepartureTime:   agg.DepartureTime,
+		ArrivalTime:     arrivalTime,
+		Status:          string(agg.Status),
+		Remarks:         remarks,
+		TenantID:        string(agg.TenantID),
+		Version:         agg.Version,
+		CreatedAt:       agg.CreatedAt,
+		UpdatedAt:       agg.UpdatedAt,
+		StartedAt:       startedAt,
+		ReachedPickupAt: reachedPickupAt,
+		InTransitAt:     inTransitAt,
+		DeliveredAt:     deliveredAt,
+		CompletedAt:     completedAt,
 	}
 }

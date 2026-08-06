@@ -1,13 +1,13 @@
 <div>
     <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-semibold text-gray-800">Vehicles</h2>
+        <h2 class="text-2xl font-bold text-gray-900">Vehicles</h2>
         <a href="/vehicles/new" class="px-4 py-2 min-h-[44px] bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-blue-800">New Vehicle</a>
     </div>
 
     <form method="GET" action="/vehicles" class="mb-4 flex gap-2">
         <input type="text" name="q" value="{{.Query}}" placeholder="Search vehicles..."
-            class="flex-1 text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-        <select name="status" class="text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            class="flex-1 text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+        <select name="status" class="text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
             <option value="">All Status</option>
             <option value="available" {{if eq .StatusFilter "available"}}selected{{end}}>Available</option>
             <option value="running" {{if eq .StatusFilter "running"}}selected{{end}}>Running</option>
@@ -21,29 +21,29 @@
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Reg. Number</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Vehicle No</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Capacity</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Fuel</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    <th class="th-cell">Reg. Number</th>
+                    <th class="th-cell">Vehicle No</th>
+                    <th class="th-cell">Type</th>
+                    <th class="th-cell">Capacity</th>
+                    <th class="th-cell">Fuel</th>
+                    <th class="th-cell">Status</th>
+                    <th class="th-cell-right">Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
                 {{range .Vehicles}}
                 <tr>
-                    <td class="px-4 py-2 text-sm">{{.RegistrationNumber}}</td>
-                    <td class="px-4 py-2 text-sm">{{.VehicleNumber}}</td>
-                    <td class="px-4 py-2 text-sm">{{.VehicleType}}</td>
-                    <td class="px-4 py-2 text-sm">{{.Capacity}}</td>
-                    <td class="px-4 py-2 text-sm">{{.FuelType}}</td>
-                    <td class="px-4 py-2 text-sm">
-                        <span class="px-2 py-1 text-xs rounded-full {{statusBadge .Status}}">{{.Status}}</span>
+                    <td class="td-cell">{{.RegistrationNumber}}</td>
+                    <td class="td-cell">{{.VehicleNumber}}</td>
+                    <td class="td-cell">{{.VehicleType}}</td>
+                    <td class="td-cell">{{.Capacity}}</td>
+                    <td class="td-cell">{{.FuelType}}</td>
+                    <td class="td-cell">
+                        <span class="status-badge {{statusBadge .Status}}">{{.Status}}</span>
                     </td>
-                    <td class="px-4 py-2 text-right text-sm space-x-1">
-                        <a href="/vehicles/{{.ID}}" class="text-blue-600 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded">View</a>
-                        <a href="/vehicles/{{.ID}}/edit" class="text-green-600 hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 rounded">Edit</a>
+                    <td class="td-cell-actions">
+                        <a href="/vehicles/{{.ID}}" class="action-view">View</a>
+                        <a href="/vehicles/{{.ID}}/edit" class="action-edit">Edit</a>
                     </td>
                 </tr>
                 {{end}}
@@ -51,12 +51,5 @@
         </table>
     </div>
 
-    {{if .Pagination.HasPrev}}
-    <a href="/vehicles?page={{sub .Pagination.Page 1}}&q={{.Query}}"
-        class="inline-block px-3 py-1 min-h-[44px] flex items-center justify-center bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 active:bg-gray-300">Prev</a>
-    {{end}}
-    {{if .Pagination.HasNext}}
-    <a href="/vehicles?page={{add .Pagination.Page 1}}&q={{.Query}}"
-        class="inline-block px-3 py-1 min-h-[44px] flex items-center justify-center bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 active:bg-gray-300">Next</a>
-    {{end}}
+    {{template "pagination.html" .}}
 </div>

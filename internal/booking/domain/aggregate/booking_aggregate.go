@@ -101,6 +101,23 @@ func (b *BookingAggregate) Confirm(now time.Time) error {
 	return nil
 }
 
+// Complete transitions a confirmed booking to completed.
+func (b *BookingAggregate) Complete(now time.Time) error {
+	if b.Status != BookingConfirmed {
+		return errors.New("only confirmed bookings can be completed")
+	}
+
+	b.Status = BookingCompleted
+	b.UpdatedAt = now
+
+	b.RecordEvent(BookingCompletedEvent{
+		BookingID:  b.ID,
+		TenantID:   b.TenantID,
+		OccurredAt: now,
+	})
+	return nil
+}
+
 // Cancel transition validation.
 func (b *BookingAggregate) Cancel(now time.Time) error {
 	if b.Status == BookingCompleted {
@@ -188,6 +205,12 @@ type BookingCancelledEvent struct {
 }
 
 type BookingUpdatedEvent struct {
+	BookingID  BookingID
+	TenantID   shared.TenantID
+	OccurredAt time.Time
+}
+
+type BookingCompletedEvent struct {
 	BookingID  BookingID
 	TenantID   shared.TenantID
 	OccurredAt time.Time

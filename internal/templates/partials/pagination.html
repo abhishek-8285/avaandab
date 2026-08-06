@@ -1,0 +1,8 @@
+{{if .Pagination}}
+{{if .Pagination.HasPrev}}
+<a href="{{.Pagination.BasePath}}?page={{sub .Pagination.Page 1}}{{if .Query}}&q={{.Query}}{{end}}" class="pagination-btn">Prev</a>
+{{end}}
+{{if .Pagination.HasNext}}
+<a href="{{.Pagination.BasePath}}?page={{add .Pagination.Page 1}}{{if .Query}}&q={{.Query}}{{end}}" class="pagination-btn">Next</a>
+{{end}}
+{{end}}

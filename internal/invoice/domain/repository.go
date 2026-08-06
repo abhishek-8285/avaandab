@@ -12,10 +12,14 @@ import (
 type InvoiceReadModel struct {
 	ID            string
 	InvoiceNumber string
-	BookingID     string
-	CustomerID    string
-	TripID        *string
-	Subtotal      float64
+	BookingID       string
+	BookingNumber   string
+	CustomerID      string
+	CustomerName    string
+	CustomerCompany string
+	TripID          *string
+	TripNumber      string
+	Subtotal        float64
 	Tax           float64
 	Discount      float64
 	Total         float64

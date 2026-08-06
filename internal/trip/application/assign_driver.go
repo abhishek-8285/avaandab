@@ -26,6 +26,9 @@ func NewAssignDriverUseCase(uow ports.UnitOfWork, clock ports.Clock) *AssignDriv
 }
 
 func (uc *AssignDriverUseCase) Execute(ctx context.Context, cmd AssignDriverCommand) error {
+	if cmd.DriverID == "" {
+		return errors.New("driver ID is required")
+	}
 	return uc.uow.Execute(ctx, func(txCtx ports.TxContext) error {
 		repo, ok := txCtx.Repositories().Trips().(domain.TripRepository)
 		if !ok {

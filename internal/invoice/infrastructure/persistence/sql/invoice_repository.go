@@ -129,23 +129,28 @@ func (r *invoiceRepository) GetReadModel(ctx context.Context, id aggregate.Invoi
 	if err != nil {
 		return domain.InvoiceReadModel{}, err
 	}
-	tripID := sql.NullString{String: row.TripID.String, Valid: row.TripID.Valid}
-	inv := db.Invoice{
-		ID:            row.ID,
-		InvoiceNumber: row.InvoiceNumber,
-		BookingID:     row.BookingID,
-		CustomerID:    row.CustomerID,
-		TripID:        tripID,
-		Subtotal:      row.Subtotal,
-		Tax:           row.Tax,
-		Discount:      row.Discount,
-		Total:         row.Total,
-		PaymentStatus: row.PaymentStatus,
-		TenantID:      row.TenantID,
-		CreatedAt:     row.CreatedAt,
-		UpdatedAt:     row.UpdatedAt,
+	var tripID *string
+	if row.TripID.Valid {
+		tripID = &row.TripID.String
 	}
-	return converters.ToReadModel(inv), nil
+	return domain.InvoiceReadModel{
+		ID:              row.ID,
+		InvoiceNumber:   row.InvoiceNumber,
+		BookingID:       row.BookingID,
+		BookingNumber:   row.BookingNumber.String,
+		CustomerID:      row.CustomerID,
+		CustomerName:    row.CustomerName,
+		CustomerCompany: row.CustomerCompany.String,
+		TripID:          tripID,
+		TripNumber:      row.TripNumber.String,
+		Subtotal:        row.Subtotal,
+		Tax:             row.Tax,
+		Discount:        row.Discount,
+		Total:           row.Total,
+		PaymentStatus:   row.PaymentStatus,
+		CreatedAt:       row.CreatedAt,
+		UpdatedAt:       row.UpdatedAt,
+	}, nil
 }
 
 func (r *invoiceRepository) SearchReadModels(ctx context.Context, tenantID shared.TenantID, query string, status string, limit int, offset int) ([]domain.InvoiceReadModel, int64, error) {
@@ -175,23 +180,28 @@ func (r *invoiceRepository) SearchReadModels(ctx context.Context, tenantID share
 
 	readModels := make([]domain.InvoiceReadModel, len(rows))
 	for i, row := range rows {
-		tripID := sql.NullString{String: row.TripID.String, Valid: row.TripID.Valid}
-		inv := db.Invoice{
-			ID:            row.ID,
-			InvoiceNumber: row.InvoiceNumber,
-			BookingID:     row.BookingID,
-			CustomerID:    row.CustomerID,
-			TripID:        tripID,
-			Subtotal:      row.Subtotal,
-			Tax:           row.Tax,
-			Discount:      row.Discount,
-			Total:         row.Total,
-			PaymentStatus: row.PaymentStatus,
-			TenantID:      row.TenantID,
-			CreatedAt:     row.CreatedAt,
-			UpdatedAt:     row.UpdatedAt,
+		var tripID *string
+		if row.TripID.Valid {
+			tripID = &row.TripID.String
 		}
-		readModels[i] = converters.ToReadModel(inv)
+		readModels[i] = domain.InvoiceReadModel{
+			ID:              row.ID,
+			InvoiceNumber:   row.InvoiceNumber,
+			BookingID:       row.BookingID,
+			BookingNumber:   row.BookingNumber.String,
+			CustomerID:      row.CustomerID,
+			CustomerName:    row.CustomerName,
+			CustomerCompany: row.CustomerCompany.String,
+			TripID:          tripID,
+			TripNumber:      row.TripNumber.String,
+			Subtotal:        row.Subtotal,
+			Tax:             row.Tax,
+			Discount:        row.Discount,
+			Total:           row.Total,
+			PaymentStatus:   row.PaymentStatus,
+			CreatedAt:       row.CreatedAt,
+			UpdatedAt:       row.UpdatedAt,
+		}
 	}
 
 	return readModels, total, nil

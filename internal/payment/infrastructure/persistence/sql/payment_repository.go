@@ -110,19 +110,25 @@ func (r *paymentRepository) GetReadModel(ctx context.Context, id aggregate.Payme
 	if err != nil {
 		return domain.PaymentReadModel{}, err
 	}
-	p := db.Payment{
-		ID:          row.ID,
-		InvoiceID:   row.InvoiceID,
-		PaymentDate: row.PaymentDate,
-		Amount:      row.Amount,
-		Method:      row.Method,
-		Reference:   row.Reference,
-		Remarks:     row.Remarks,
-		TenantID:    row.TenantID,
-		CreatedAt:   row.CreatedAt,
-		UpdatedAt:   row.UpdatedAt,
+	var ref, rem *string
+	if row.Reference.Valid {
+		ref = &row.Reference.String
 	}
-	return converters.ToReadModel(p), nil
+	if row.Remarks.Valid {
+		rem = &row.Remarks.String
+	}
+	return domain.PaymentReadModel{
+		ID:            row.ID,
+		InvoiceID:     row.InvoiceID,
+		InvoiceNumber: row.InvoiceNumber,
+		PaymentDate:   row.PaymentDate,
+		Amount:        row.Amount,
+		Method:        row.Method,
+		Reference:     ref,
+		Remarks:       rem,
+		CreatedAt:     row.CreatedAt,
+		UpdatedAt:     row.UpdatedAt,
+	}, nil
 }
 
 func (r *paymentRepository) GetPaymentsByInvoice(ctx context.Context, invoiceID string, tenantID shared.TenantID) ([]domain.PaymentReadModel, error) {
@@ -136,19 +142,25 @@ func (r *paymentRepository) GetPaymentsByInvoice(ctx context.Context, invoiceID 
 
 	readModels := make([]domain.PaymentReadModel, len(rows))
 	for i, row := range rows {
-		p := db.Payment{
-			ID:          row.ID,
-			InvoiceID:   row.InvoiceID,
-			PaymentDate: row.PaymentDate,
-			Amount:      row.Amount,
-			Method:      row.Method,
-			Reference:   row.Reference,
-			Remarks:     row.Remarks,
-			TenantID:    row.TenantID,
-			CreatedAt:   row.CreatedAt,
-			UpdatedAt:   row.UpdatedAt,
+		var ref, rem *string
+		if row.Reference.Valid {
+			ref = &row.Reference.String
 		}
-		readModels[i] = converters.ToReadModel(p)
+		if row.Remarks.Valid {
+			rem = &row.Remarks.String
+		}
+		readModels[i] = domain.PaymentReadModel{
+			ID:            row.ID,
+			InvoiceID:     row.InvoiceID,
+			InvoiceNumber: row.InvoiceNumber,
+			PaymentDate:   row.PaymentDate,
+			Amount:        row.Amount,
+			Method:        row.Method,
+			Reference:     ref,
+			Remarks:       rem,
+			CreatedAt:     row.CreatedAt,
+			UpdatedAt:     row.UpdatedAt,
+		}
 	}
 
 	return readModels, nil
@@ -177,19 +189,25 @@ func (r *paymentRepository) SearchReadModels(ctx context.Context, tenantID share
 
 	readModels := make([]domain.PaymentReadModel, len(rows))
 	for i, row := range rows {
-		p := db.Payment{
-			ID:          row.ID,
-			InvoiceID:   row.InvoiceID,
-			PaymentDate: row.PaymentDate,
-			Amount:      row.Amount,
-			Method:      row.Method,
-			Reference:   row.Reference,
-			Remarks:     row.Remarks,
-			TenantID:    row.TenantID,
-			CreatedAt:   row.CreatedAt,
-			UpdatedAt:   row.UpdatedAt,
+		var ref, rem *string
+		if row.Reference.Valid {
+			ref = &row.Reference.String
 		}
-		readModels[i] = converters.ToReadModel(p)
+		if row.Remarks.Valid {
+			rem = &row.Remarks.String
+		}
+		readModels[i] = domain.PaymentReadModel{
+			ID:            row.ID,
+			InvoiceID:     row.InvoiceID,
+			InvoiceNumber: row.InvoiceNumber,
+			PaymentDate:   row.PaymentDate,
+			Amount:        row.Amount,
+			Method:        row.Method,
+			Reference:     ref,
+			Remarks:       rem,
+			CreatedAt:     row.CreatedAt,
+			UpdatedAt:     row.UpdatedAt,
+		}
 	}
 
 	return readModels, total, nil

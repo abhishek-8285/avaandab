@@ -55,12 +55,16 @@ func (uc *ListInvoicesUseCase) Execute(ctx context.Context, q ListInvoicesQuery)
 		dtos := make([]InvoiceResponseDTO, len(rows))
 		for i, inv := range rows {
 			dtos[i] = InvoiceResponseDTO{
-				ID:            inv.ID,
-				InvoiceNumber: inv.InvoiceNumber,
-				BookingID:     inv.BookingID,
-				CustomerID:    inv.CustomerID,
-				TripID:        inv.TripID,
-				Subtotal:      inv.Subtotal,
+				ID:              inv.ID,
+				InvoiceNumber:   inv.InvoiceNumber,
+				BookingID:       inv.BookingID,
+				BookingNumber:   inv.BookingNumber,
+				CustomerID:      inv.CustomerID,
+				CustomerName:    inv.CustomerName,
+				CustomerCompany: inv.CustomerCompany,
+				TripID:          inv.TripID,
+				TripNumber:      inv.TripNumber,
+				Subtotal:        inv.Subtotal,
 				Tax:           inv.Tax,
 				Discount:      inv.Discount,
 				Total:         inv.Total,

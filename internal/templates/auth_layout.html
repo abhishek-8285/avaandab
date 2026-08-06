@@ -3,13 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>{{.Title}} - MVTMS</title>
+    <link rel="icon" href="/static/img/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/static/css/material-icons.css">
     <script type="module" src="/static/js/datastar.js" defer></script>
-    <script src="https://cdn.tailwindcss.com" defer></script>
     <script src="/static/js/router.js" defer></script>
+    <link rel="stylesheet" href="/static/css/tailwind.css">
     <link rel="stylesheet" href="/static/css/app.css">
     <style>
         html { opacity: 0; transition: opacity 0.15s ease-in; }
+        body {
+            font-size: 1rem;
+            line-height: 1.5;
+        }
     </style>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
@@ -23,14 +30,32 @@
     </div>
 
     {{if .FlashError}}
-    <div class="fixed bottom-4 right-4 safe-bottom safe-right bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-lg">
-        {{.FlashError}}
+    <div class="fixed bottom-4 right-4 safe-bottom safe-right max-w-md w-full bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-lg flex items-start justify-between">
+        <span class="flex-1">{{.FlashError}}</span>
+        <button type="button" class="flash-dismiss ml-2 text-red-600 hover:text-red-800 active:text-red-900 focus:outline-none focus:ring-2 focus:ring-red-400 rounded min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label="Dismiss error">
+            <span class="material-icons text-sm">close</span>
+        </button>
     </div>
     {{end}}
     {{if .FlashSuccess}}
-    <div class="fixed bottom-4 right-4 safe-bottom safe-right bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-lg">
-        {{.FlashSuccess}}
+    <div class="fixed bottom-4 right-4 safe-bottom safe-right max-w-md w-full bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-lg flex items-start justify-between">
+        <span class="flex-1">{{.FlashSuccess}}</span>
+        <button type="button" class="flash-dismiss ml-2 text-green-600 hover:text-green-800 active:text-green-900 focus:outline-none focus:ring-2 focus:ring-green-400 rounded min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label="Dismiss message">
+            <span class="material-icons text-sm">close</span>
+        </button>
     </div>
     {{end}}
+    <script>
+        document.addEventListener('click', function(e) {
+            var btn = e.target.closest('.flash-dismiss');
+            if (btn) {
+                var msg = btn.closest('[class*="fixed bottom-4"]');
+                if (msg) {
+                    msg.classList.add('flash-exit');
+                    setTimeout(function() { msg.remove(); }, 200);
+                }
+            }
+        });
+    </script>
 </body>
 </html>

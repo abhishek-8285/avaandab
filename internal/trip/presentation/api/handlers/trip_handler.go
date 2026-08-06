@@ -18,6 +18,7 @@ type APITripHandler struct {
 	createUC        *application.CreateTripUseCase
 	assignDriverUC  *application.AssignDriverUseCase
 	assignVehicleUC *application.AssignVehicleUseCase
+	scheduleUC      *application.ScheduleTripUseCase
 	startUC         *application.StartTripUseCase
 	completeUC      *application.CompleteTripUseCase
 	cancelUC        *application.CancelTripUseCase
@@ -30,6 +31,7 @@ func NewAPITripHandler(
 	createUC *application.CreateTripUseCase,
 	assignDriverUC *application.AssignDriverUseCase,
 	assignVehicleUC *application.AssignVehicleUseCase,
+	scheduleUC *application.ScheduleTripUseCase,
 	startUC *application.StartTripUseCase,
 	completeUC *application.CompleteTripUseCase,
 	cancelUC *application.CancelTripUseCase,
@@ -40,6 +42,7 @@ func NewAPITripHandler(
 		createUC:        createUC,
 		assignDriverUC:  assignDriverUC,
 		assignVehicleUC: assignVehicleUC,
+		scheduleUC:      scheduleUC,
 		startUC:         startUC,
 		completeUC:      completeUC,
 		cancelUC:        cancelUC,
@@ -56,15 +59,11 @@ func (h *APITripHandler) Register(r chi.Router) {
 		r.Get("/{id}", h.Get)
 		r.Post("/{id}/assign-driver", h.AssignDriver)
 		r.Post("/{id}/assign-vehicle", h.AssignVehicle)
+		r.Post("/{id}/schedule", h.Schedule)
 		r.Post("/{id}/start", h.Start)
 		r.Post("/{id}/complete", h.Complete)
 		r.Post("/{id}/cancel", h.Cancel)
 	})
-}
-
-func tenantID(r *http.Request) shared.TenantID {
-	// TODO: extract from JWT/session when auth is wired
-	return "1"
 }
 
 func (h *APITripHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -86,7 +85,7 @@ func (h *APITripHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id, err := h.createUC.Execute(r.Context(), application.CreateTripCommand{
-		TenantID:      tenantID(r),
+		TenantID:      shared.TenantIDFromContext(r.Context()),
 		BookingID:     req.BookingID,
 		RouteID:       req.RouteID,
 		DepartureTime: depTime,
@@ -106,7 +105,7 @@ func (h *APITripHandler) List(w http.ResponseWriter, r *http.Request) {
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 
 	res, err := h.listUC.Execute(r.Context(), application.ListTripsQuery{
-		TenantID: tenantID(r),
+		TenantID: shared.TenantIDFromContext(r.Context()),
 		Page:     page,
 		Limit:    limit,
 		Search:   r.URL.Query().Get("search"),
@@ -123,7 +122,7 @@ func (h *APITripHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	res, err := h.getUC.Execute(r.Context(), application.GetTripQuery{
 		TripID:   aggregate.TripID(id),
-		TenantID: tenantID(r),
+		TenantID: shared.TenantIDFromContext(r.Context()),
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -144,7 +143,7 @@ func (h *APITripHandler) AssignDriver(w http.ResponseWriter, r *http.Request) {
 	if err := h.assignDriverUC.Execute(r.Context(), application.AssignDriverCommand{
 		TripID:   aggregate.TripID(id),
 		DriverID: req.DriverID,
-		TenantID: tenantID(r),
+		TenantID: shared.TenantIDFromContext(r.Context()),
 	}); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -165,7 +164,7 @@ func (h *APITripHandler) AssignVehicle(w http.ResponseWriter, r *http.Request) {
 	if err := h.assignVehicleUC.Execute(r.Context(), application.AssignVehicleCommand{
 		TripID:    aggregate.TripID(id),
 		VehicleID: req.VehicleID,
-		TenantID:  tenantID(r),
+		TenantID:  shared.TenantIDFromContext(r.Context()),
 	}); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -174,11 +173,24 @@ func (h *APITripHandler) AssignVehicle(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "vehicle_assigned"})
 }
 
+func (h *APITripHandler) Schedule(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if err := h.scheduleUC.Execute(r.Context(), application.ScheduleTripCommand{
+		TripID:   aggregate.TripID(id),
+		TenantID: shared.TenantIDFromContext(r.Context()),
+	}); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "scheduled"})
+}
+
 func (h *APITripHandler) Start(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if err := h.startUC.Execute(r.Context(), application.StartTripCommand{
 		TripID:   aggregate.TripID(id),
-		TenantID: tenantID(r),
+		TenantID: shared.TenantIDFromContext(r.Context()),
 	}); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -191,7 +203,7 @@ func (h *APITripHandler) Complete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if err := h.completeUC.Execute(r.Context(), application.CompleteTripCommand{
 		TripID:   aggregate.TripID(id),
-		TenantID: tenantID(r),
+		TenantID: shared.TenantIDFromContext(r.Context()),
 	}); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -204,7 +216,7 @@ func (h *APITripHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if err := h.cancelUC.Execute(r.Context(), application.CancelTripCommand{
 		TripID:   aggregate.TripID(id),
-		TenantID: tenantID(r),
+		TenantID: shared.TenantIDFromContext(r.Context()),
 	}); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

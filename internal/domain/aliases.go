@@ -8,6 +8,7 @@ import (
 	"transport-app/internal/domain/booking"
 	"transport-app/internal/domain/company"
 	"transport-app/internal/domain/customer"
+	"transport-app/internal/domain/dispatch"
 	"transport-app/internal/domain/driver"
 	"transport-app/internal/domain/invoice"
 	"transport-app/internal/domain/payment"
@@ -60,10 +61,14 @@ type (
 	Booking      = booking.Booking
 	BookingStatus = booking.BookingStatus
 
+	Dispatch       = dispatch.Dispatch
+	DispatchStatus = dispatch.DispatchStatus
+
 	Trip       = trip.Trip
 	TripStatus = trip.TripStatus
 
 	Invoice         = invoice.Invoice
+	InvoiceStatus   = invoice.InvoiceStatus
 	PaymentStatus   = invoice.PaymentStatus
 
 	Payment       = payment.Payment
@@ -119,6 +124,12 @@ const (
 	BookingCancelled = booking.BookingCancelled
 	BookingCompleted = booking.BookingCompleted
 
+	// dispatch
+	DispatchDraft     = dispatch.DispatchDraft
+	DispatchAssigned  = dispatch.DispatchAssigned
+	DispatchConverted = dispatch.DispatchConverted
+	DispatchCancelled = dispatch.DispatchCancelled
+
 	// trip
 	TripDraft     = trip.TripDraft
 	TripScheduled = trip.TripScheduled
@@ -128,6 +139,12 @@ const (
 	TripCancelled = trip.TripCancelled
 
 	// invoice
+	InvoiceDraft       = invoice.InvoiceDraft
+	InvoiceIssued      = invoice.InvoiceIssued
+	InvoiceOutstanding = invoice.InvoiceOutstanding
+	InvoicePaid        = invoice.InvoicePaid
+	InvoiceCancelled   = invoice.InvoiceCancelled
+
 	PaymentStatusPending       = invoice.PaymentStatusPending
 	PaymentStatusPaid          = invoice.PaymentStatusPaid
 	PaymentStatusPartiallyPaid = invoice.PaymentStatusPartiallyPaid
@@ -164,6 +181,7 @@ var (
 	ErrCustomerNotFound   = customer.ErrCustomerNotFound
 	ErrRouteNotFound      = route.ErrRouteNotFound
 	ErrBookingNotFound    = booking.ErrBookingNotFound
+	ErrDispatchNotFound   = dispatch.ErrDispatchNotFound
 	ErrTripNotFound       = trip.ErrTripNotFound
 	ErrInvoiceNotFound    = invoice.ErrInvoiceNotFound
 	ErrPaymentNotFound    = payment.ErrPaymentNotFound

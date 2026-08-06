@@ -10,9 +10,10 @@ import (
 
 // PaymentReadModel optimized for read queries.
 type PaymentReadModel struct {
-	ID          string
-	InvoiceID   string
-	PaymentDate time.Time
+	ID            string
+	InvoiceID     string
+	InvoiceNumber string
+	PaymentDate   time.Time
 	Amount      float64
 	Method      string
 	Reference   *string

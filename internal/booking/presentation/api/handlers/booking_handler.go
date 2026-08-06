@@ -7,42 +7,60 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"transport-app/internal/auth"
 	"transport-app/internal/booking/application"
 	"transport-app/internal/booking/domain/aggregate"
 	"transport-app/internal/booking/presentation/api/dto"
+	"transport-app/internal/middleware"
+	"transport-app/internal/shared"
 )
 
 type APIBookingHandler struct {
-	createUC  *application.CreateBookingUseCase
-	confirmUC *application.ConfirmBookingUseCase
-	cancelUC  *application.CancelBookingUseCase
-	getUC     *application.GetBookingUseCase
-	listUC    *application.ListBookingsUseCase
+	createUC    *application.CreateBookingUseCase
+	confirmUC   *application.ConfirmBookingUseCase
+	cancelUC    *application.CancelBookingUseCase
+	updateUC    *application.UpdateBookingUseCase
+	completeUC  *application.CompleteBookingUseCase
+	deleteUC    *application.DeleteBookingUseCase
+	getUC       *application.GetBookingUseCase
+	listUC      *application.ListBookingsUseCase
+	authSrv     auth.AuthorizationService
 }
 
 func NewAPIBookingHandler(
 	createUC *application.CreateBookingUseCase,
 	confirmUC *application.ConfirmBookingUseCase,
 	cancelUC *application.CancelBookingUseCase,
+	updateUC *application.UpdateBookingUseCase,
+	completeUC *application.CompleteBookingUseCase,
+	deleteUC *application.DeleteBookingUseCase,
 	getUC *application.GetBookingUseCase,
 	listUC *application.ListBookingsUseCase,
+	authSrv auth.AuthorizationService,
 ) *APIBookingHandler {
 	return &APIBookingHandler{
-		createUC:  createUC,
-		confirmUC: confirmUC,
-		cancelUC:  cancelUC,
-		getUC:     getUC,
-		listUC:    listUC,
+		createUC:   createUC,
+		confirmUC:  confirmUC,
+		cancelUC:   cancelUC,
+		updateUC:   updateUC,
+		completeUC: completeUC,
+		deleteUC:   deleteUC,
+		getUC:      getUC,
+		listUC:     listUC,
+		authSrv:    authSrv,
 	}
 }
 
 func (h *APIBookingHandler) Register(r chi.Router) {
 	r.Route("/api/v1/bookings", func(r chi.Router) {
-		r.Post("/", h.Create)
-		r.Get("/", h.List)
-		r.Get("/{id}", h.Get)
-		r.Post("/{id}/confirm", h.Confirm)
-		r.Post("/{id}/cancel", h.Cancel)
+		r.With(middleware.RequirePermission(h.authSrv, "bookings", "create")).Post("/", h.Create)
+		r.With(middleware.RequirePermission(h.authSrv, "bookings", "read")).Get("/", h.List)
+		r.With(middleware.RequirePermission(h.authSrv, "bookings", "read")).Get("/{id}", h.Get)
+		r.With(middleware.RequirePermission(h.authSrv, "bookings", "update")).Put("/{id}", h.Update)
+		r.With(middleware.RequirePermission(h.authSrv, "bookings", "approve")).Post("/{id}/confirm", h.Confirm)
+		r.With(middleware.RequirePermission(h.authSrv, "bookings", "cancel")).Post("/{id}/cancel", h.Cancel)
+		r.With(middleware.RequirePermission(h.authSrv, "bookings", "update")).Post("/{id}/complete", h.Complete)
+		r.With(middleware.RequirePermission(h.authSrv, "bookings", "delete")).Delete("/{id}", h.Delete)
 	})
 }
 
@@ -64,7 +82,7 @@ func (h *APIBookingHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cmd := application.CreateBookingCommand{
-		TenantID:    "1", // Default Tenant ID
+		TenantID:    shared.TenantIDFromContext(r.Context()),
 		CustomerID:  req.CustomerID,
 		RouteID:     req.RouteID,
 		PickupDate:  req.PickupDate,
@@ -92,7 +110,7 @@ func (h *APIBookingHandler) List(w http.ResponseWriter, r *http.Request) {
 	status := r.URL.Query().Get("status")
 
 	res, err := h.listUC.Execute(r.Context(), application.ListBookingsQuery{
-		TenantID: "1",
+		TenantID: shared.TenantIDFromContext(r.Context()),
 		Page:     page,
 		Limit:    limit,
 		Search:   search,
@@ -132,7 +150,7 @@ func (h *APIBookingHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	res, err := h.getUC.Execute(r.Context(), application.GetBookingQuery{
 		BookingID: aggregate.BookingID(id),
-		TenantID:  "1",
+		TenantID:  shared.TenantIDFromContext(r.Context()),
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -160,7 +178,7 @@ func (h *APIBookingHandler) Confirm(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	err := h.confirmUC.Execute(r.Context(), application.ConfirmBookingCommand{
 		BookingID: aggregate.BookingID(id),
-		TenantID:  "1",
+		TenantID:  shared.TenantIDFromContext(r.Context()),
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -175,7 +193,7 @@ func (h *APIBookingHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	err := h.cancelUC.Execute(r.Context(), application.CancelBookingCommand{
 		BookingID: aggregate.BookingID(id),
-		TenantID:  "1",
+		TenantID:  shared.TenantIDFromContext(r.Context()),
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -184,4 +202,71 @@ func (h *APIBookingHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "cancelled"})
+}
+
+func (h *APIBookingHandler) Update(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		CustomerID  string   `json:"customer_id"`
+		RouteID     string   `json:"route_id"`
+		PickupDate  string   `json:"pickup_date"`
+		VehicleType string   `json:"vehicle_type"`
+		Passengers  int64    `json:"passengers"`
+		CargoWeight *float64 `json:"cargo_weight"`
+		Price       float64  `json:"price"`
+		Notes       string   `json:"notes"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	cmd := application.UpdateBookingCommand{
+		BookingID:   aggregate.BookingID(chi.URLParam(r, "id")),
+		TenantID:    shared.TenantIDFromContext(r.Context()),
+		CustomerID:  req.CustomerID,
+		RouteID:     req.RouteID,
+		PickupDate:  req.PickupDate,
+		VehicleType: req.VehicleType,
+		Passengers:  req.Passengers,
+		CargoWeight: req.CargoWeight,
+		Price:       req.Price,
+		Notes:       req.Notes,
+	}
+
+	if err := h.updateUC.Execute(r.Context(), cmd); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "updated"})
+}
+
+func (h *APIBookingHandler) Complete(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	err := h.completeUC.Execute(r.Context(), application.CompleteBookingCommand{
+		BookingID: aggregate.BookingID(id),
+		TenantID:  shared.TenantIDFromContext(r.Context()),
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "completed"})
+}
+
+func (h *APIBookingHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	err := h.deleteUC.Execute(r.Context(), application.DeleteBookingCommand{
+		BookingID: aggregate.BookingID(id),
+		TenantID:  shared.TenantIDFromContext(r.Context()),
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

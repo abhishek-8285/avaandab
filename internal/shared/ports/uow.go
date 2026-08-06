@@ -14,6 +14,7 @@ type RepositoryProvider interface {
 	Vehicles() any
 	Invoices() any
 	Payments() any
+	AuditLogs() any
 }
 
 // TxContext represents a transactional context execution environment.

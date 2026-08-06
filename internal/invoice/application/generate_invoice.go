@@ -36,6 +36,16 @@ func NewGenerateInvoiceUseCase(uow ports.UnitOfWork, idGen ports.IDGenerator, cl
 
 // Execute performs the generation and transaction commit.
 func (uc *GenerateInvoiceUseCase) Execute(ctx context.Context, cmd GenerateInvoiceCommand) (aggregate.InvoiceID, error) {
+	if cmd.BookingID == "" {
+		return "", errors.New("booking ID is required")
+	}
+	if cmd.CustomerID == "" {
+		return "", errors.New("customer ID is required")
+	}
+	if cmd.Total < 0 {
+		return "", errors.New("total cannot be negative")
+	}
+
 	var existingID aggregate.InvoiceID
 
 	err := uc.uow.Execute(ctx, func(txCtx ports.TxContext) error {

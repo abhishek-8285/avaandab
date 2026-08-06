@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design Review: Booking Module — MVTMS</title>
+<style>
+body { font-family: -apple-frame, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; padding: 2rem; max-width: 900px; margin: 0 auto; }
+h1 { font-size: 1.75rem; color: #f8fafc; margin-bottom: 0.25rem; }
+h2 { font-size: 1.25rem; color: #cbd5e1; margin-top: 1.5rem; border-bottom: 1px solid #334159; padding-bottom: 0.25rem; }
+h3 { font-size: 1.1rem; color: #f1f5f9; margin-top: 1rem; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+th, td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid #334159; }
+th { background: #1e293b; color: #94a3b8; font-weight: 600; }
+tr:hover { background: #1e293b; }
+code { background: #1e293b; padding: 0.1rem 0.35rem; border-radius: 3px; font-size: 0.85em; color: #4fc3f7; }
+.score { font-size: 2rem; font-weight: 700; }
+.score.neutral { color: #fbbf24; }
+.score.critical { color: #f87171; }
+.score.high { color: #fb923c; }
+.score.medium { color: #fbbf24; }
+.score.low { color: #86efac; }
+.metric { display: inline-block; margin-right: 1.5rem; }
+.metric .num { font-size: 1.75rem; font-weight: 700; }
+.metric .label { font-size: 0.8rem; color: #94a3b8; text-transform: uppercase; }
+</style>
+</head>
+<body>
+
+<h1>Design Review: Booking Module — MVTMS</h1>
+
+<p><strong>Scope:</strong> Booking module web UI (server-rendered templates) + REST API handlers.</p>
+<p><strong>Surface inspected:</strong> <code>internal/templates/booking_list.html</code>, <code>booking_view.html</code>, <code>booking_edit.html</code>, <code>layout.html</code>, <code>internal/handlers/bookings.go</code>, <code>internal/booking/presentation/api/handlers/booking_handler.go</code></p>
+
+<div class="score neutral">27 / 50</div>
+
+<h2>Heuristics</h2>
+
+<table>
+<tr><th>Lens</th><th>Score</th><th>Notes</th></tr>
+<tr><td>First impression</td><td>4/10</td><td>Clear sidebar nav, but generic Tailwind gray/blue palette — no visual distinction.</td></tr>
+<tr><td>Hierarchy</td><td>5/10</td><td>Status badges and table structure are good, but heading sizes are flat.</td></tr>
+<tr><td>Color voice</td><td>4/10</td><td>Relies on Tailwind defaults only. No brand hue or tinted neutrals.</td></tr>
+<tr><td>Type voice</td><td>5/10</td><td>System sans, no custom type scale. Readable but no deliberate hierarchy.</td></tr>
+<tr><td>Interaction feel</td><td>9/10</td><td>Good focus rings, 44px touch targets, hover states on buttons and rows.</td></tr>
+</table>
+
+<h2>Evidence — Screens Attached &amp; Wired</h2>
+
+<table>
+<tr><th>Screen</th><th>Route</th><th>Template</th><th>Status</th></tr>
+<tr><td>Booking List</td><td><code>GET /bookings</code></td><td><code>booking_list.html</code></td><td>Attached</td></tr>
+<tr><td>New Booking</td><td><code>GET /bookings/new</code></td><td><code>booking_edit.html</code></td><td>Attached</td></tr>
+<tr><td>View Booking</td><td><code>GET /bookings/{id}</code></td><td><code>booking_view.html</code></td><td>Attached</td></tr>
+<tr><td>Edit Booking</td><td><code>GET /bookings/{id}/edit</code></td><td><code>booking_edit.html</code></td><td>Attached</td></tr>
+<tr><td>Confirm</td><td><code>POST /bookings/{id}/confirm</code></td><td>— (redirect)</td><td>Attached</td></tr>
+<tr><td>Cancel</td><td><code>POST /bookings/{id}/cancel</code></td><td>— (redirect)</td><td>Attached</td></tr>
+<tr><td>Complete</td><td>—</td><td>—</td><td><span style="color:#f87171">Missing in web UI</span></td></tr>
+<tr><td>Delete</td><td><code>POST /bookings/{id}/delete</code></td><td>— (redirect)</td><td>Attached</td></tr>
+</table>
+
+<h2>Findings</h2>
+
+<h3 class="critical">1. BLOCKER — Missing Datastar fragment template</h3>
+<p><code>internal/handlers/bookings.go:80</code> renders <code>booking_list_table.html</code> for AJAX/Datastar requests. That template file does not exist on disk — any table refresh will crash with a 500.</p>
+
+<h3 class="critical">2. BLOCKER — "Complete" action missing from web UI</h3>
+<p>The <code>BookingHandlers</code> struct has <code>completeUC</code> wired but <code>Routes()</code> does not register a <code>/complete</code> route. The REST API supports <code>POST /api/v1/bookings/{id}/complete</code> but the web form has no path to complete a confirmed booking.</p>
+
+<h3 class="high">3. CRITICAL — External CSS/JS dependencies</h3>
+<p>Layout loads <code>cdn.tailwindcss.com</code> (dev-only CDN build, 300KB+ runtime compilation) and Google Material Icons from an external domain. No offline fallback.</p>
+
+<h3 class="high">4. HIGH — Generic color palette</h3>
+<p>Uses Tailwind defaults exclusively: <code>bg-gray-50</code>, <code>blue-600</code> buttons, <code>red-600</code>/<code>green-600</code> badges. No brand hue, no tinted neutrals — indistinguishable from generic SaaS.</p>
+
+<h3 class="medium">5. MEDIUM — No dark mode</h3>
+<p>Layout hardcodes light-mode colors with no <code>dark:</code> variants or <code>prefers-color-scheme</code> support.</p>
+
+<h3 class="low">6. LOW — No SEO meta tags</h3>
+<p><code>layout.html</code> has no <code>&lt;meta name="description"&gt;</code> beyond <code>{{.Title}} - MVTMS</code>.</p>
+
+<h2>Recommendations</h2>
+
+<table>
+<tr><th>Priority</th><th>Recommendation</th><th>Mode</th></tr>
+<tr><td class="critical">Blocker</td><td>Create <code>booking_list_table.html</code> fragment with matching table structure</td><td><code>surface</code></td></tr>
+<tr><td class="critical">Blocker</td><td>Add <code>POST /bookings/{id}/complete</code> route + Complete button on booking view</td><td><code>surface</code></td></tr>
+<tr><td class="high">High</td><td>Replace Tailwind CDN with CLI-built CSS and add a brand color to <code>tailwind.config.js</code></td><td><code>redesign</code></td></tr>
+<tr><td class="high">High</td><td>Define color system with tinted neutrals and semantic accent</td><td><code>recolor</code></td></tr>
+<tr><td class="medium">Medium</td><td>Add <code>dark:</code> variants and theme toggle</td><td><code>responsive</code></td></tr>
+<tr><td class="low">Low</td><td>Add SEO meta tags to <code>layout.html</code></td><td><code>voice</code></td></tr>
+</table>
+
+</body>
+</html>

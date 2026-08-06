@@ -11,6 +11,7 @@ import (
 
 	"transport-app/internal/auth"
 	"transport-app/internal/config"
+	"transport-app/internal/domain"
 	"transport-app/internal/service"
 )
 
@@ -144,6 +145,14 @@ func parseTemplates(authSrv auth.AuthorizationService) *template.Template {
 		_, err2 := tmpl.ParseGlob("internal/templates/*.html")
 		if err2 != nil {
 			panic(fmt.Sprintf("failed to parse templates: %v, %v", err, err2))
+		}
+	}
+	// Parse partial templates from subdirectories
+	_, err = tmpl.ParseGlob("internal/templates/partials/*.html")
+	if err != nil {
+		_, err2 := tmpl.ParseGlob("internal/templates/partials/*.html")
+		if err2 != nil {
+			panic(fmt.Sprintf("failed to parse partial templates: %v, %v", err, err2))
 		}
 	}
 	return tmpl
@@ -293,7 +302,7 @@ func (a *App) renderPage(w http.ResponseWriter, name string, data PageData) {
 
 	contentTmpl := a.Templates.Lookup(name)
 	if contentTmpl == nil {
-		http.Error(w, fmt.Sprintf("template %q not found", name), http.StatusInternalServerError)
+		a.renderError(w, http.StatusNotFound, "Page Not Found", fmt.Sprintf("Template %q could not be located.", name), data.User)
 		return
 	}
 
@@ -301,7 +310,7 @@ func (a *App) renderPage(w http.ResponseWriter, name string, data PageData) {
 
 	var buf strings.Builder
 	if err := contentTmpl.Execute(&buf, templateData); err != nil {
-		http.Error(w, fmt.Sprintf("content template error: %v", err), http.StatusInternalServerError)
+		a.renderError(w, http.StatusInternalServerError, "Template Execution Error", err.Error(), data.User)
 		return
 	}
 
@@ -416,5 +425,54 @@ func (a *App) Marketing(w http.ResponseWriter, r *http.Request) {
 	if err := tmpl.Execute(w, nil); err != nil {
 		http.Error(w, fmt.Sprintf("template error: %v", err), http.StatusInternalServerError)
 	}
+}
+
+// DownloadFile serves an uploaded file by ID.
+func (a *App) DownloadFile(w http.ResponseWriter, r *http.Request) {
+	id := filepath.Base(r.URL.Path)
+	file, err := a.Services.Files.GetFile(r.Context(), domain.FileID(id))
+	if err != nil {
+		a.renderError(w, http.StatusNotFound, "File Not Found", "The requested document or file does not exist.", nil)
+		return
+	}
+	filePath := filepath.Join(a.Config.UploadDir, file.Path)
+	http.ServeFile(w, r, filePath)
+}
+
+// renderError renders a friendly user-facing error screen using error.html and layout.html.
+func (a *App) renderError(w http.ResponseWriter, statusCode int, title string, message string, user *auth.SessionData) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(statusCode)
+
+	errTmpl := a.Templates.Lookup("error.html")
+	if errTmpl == nil {
+		http.Error(w, fmt.Sprintf("%d - %s: %s", statusCode, title, message), statusCode)
+		return
+	}
+
+	var buf strings.Builder
+	_ = errTmpl.Execute(&buf, map[string]interface{}{
+		"StatusCode": statusCode,
+		"Title":      title,
+		"Message":    message,
+	})
+
+	layout := a.Templates.Lookup("layout.html")
+	if layout == nil {
+		w.Write([]byte(buf.String()))
+		return
+	}
+
+	_ = layout.Execute(w, struct {
+		Title        string
+		Content      template.HTML
+		User         *auth.SessionData
+		FlashError   string
+		FlashSuccess string
+	}{
+		Title:   title,
+		Content: template.HTML(buf.String()),
+		User:    user,
+	})
 }
 

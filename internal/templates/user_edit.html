@@ -1,5 +1,5 @@
 <div class="max-w-2xl mx-auto">
-    <h2 class="text-xl font-semibold mb-4">{{if .UserDetail}}Edit User{{else}}New User{{end}}</h2>
+    <h2 class="text-2xl font-bold mb-4 text-gray-900">{{if .UserDetail}}Edit User{{else}}New User{{end}}</h2>
 
     {{if .FlashError}}
     <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">{{.FlashError}}</div>
@@ -11,24 +11,24 @@
         <div>
             <label class="block text-sm font-medium text-gray-700">Email *</label>
             <input type="email" name="email" value="{{if $u}}{{$u.Email}}{{end}}" required
-                class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700">Name *</label>
             <input type="text" name="name" value="{{if $u}}{{$u.Name}}{{end}}" required
-                class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700">Phone</label>
             <input type="tel" name="phone" value="{{if $u}}{{nullString $u.Phone}}{{end}}"
-                class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700">Role *</label>
-            <select name="role_id" class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            <select name="role_id" class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                 {{range .Roles}}
                 <option value="{{.ID}}" {{if and $u (eq .ID $u.Role.ID)}}selected{{end}}>{{.Name}}</option>
                 {{end}}
@@ -37,7 +37,7 @@
 
         <div>
             <label class="block text-sm font-medium text-gray-700">Status</label>
-            <select name="status" class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            <select name="status" class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                 <option value="active" {{if and $u (eq $u.Status "active")}}selected{{end}}>Active</option>
                 <option value="inactive" {{if and $u (eq $u.Status "inactive")}}selected{{end}}>Inactive</option>
                 <option value="suspended" {{if and $u (eq $u.Status "suspended")}}selected{{end}}>Suspended</option>
@@ -45,7 +45,7 @@
         </div>
 
         <div class="flex justify-end space-x-3 pt-4">
-            <a href="/users" class="px-4 py-2 min-h-[44px] flex items-center justify-center border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 active:bg-gray-100>Cancel</a>
+            <a href="/users" class="px-4 py-2 min-h-[44px] flex items-center justify-center border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 active:bg-gray-100">Cancel</a>
             <button type="submit" class="px-4 py-2 min-h-[44px] bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-blue-800">Save User</button>
         </div>
     </form>

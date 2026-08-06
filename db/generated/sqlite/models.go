@@ -56,6 +56,7 @@ type CompanySetting struct {
 	Phone         sql.NullString `json:"phone"`
 	Email         sql.NullString `json:"email"`
 	GstNumber     sql.NullString `json:"gst_number"`
+	FinancialYear sql.NullString `json:"financial_year"`
 }
 
 type Customer struct {
@@ -188,20 +189,25 @@ type Session struct {
 }
 
 type Trip struct {
-	ID            string         `json:"id"`
-	TripNumber    string         `json:"trip_number"`
-	BookingID     sql.NullString `json:"booking_id"`
-	DriverID      sql.NullString `json:"driver_id"`
-	VehicleID     sql.NullString `json:"vehicle_id"`
-	RouteID       string         `json:"route_id"`
-	DepartureTime time.Time      `json:"departure_time"`
-	ArrivalTime   sql.NullTime   `json:"arrival_time"`
-	Status        string         `json:"status"`
-	Remarks       sql.NullString `json:"remarks"`
-	CreatedAt     time.Time      `json:"created_at"`
-	UpdatedAt     time.Time      `json:"updated_at"`
-	TenantID      string         `json:"tenant_id"`
-	Version       int64          `json:"version"`
+	ID              string         `json:"id"`
+	TripNumber      string         `json:"trip_number"`
+	BookingID       sql.NullString `json:"booking_id"`
+	DriverID        sql.NullString `json:"driver_id"`
+	VehicleID       sql.NullString `json:"vehicle_id"`
+	RouteID         string         `json:"route_id"`
+	DepartureTime   time.Time      `json:"departure_time"`
+	ArrivalTime     sql.NullTime   `json:"arrival_time"`
+	Status          string         `json:"status"`
+	Remarks         sql.NullString `json:"remarks"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+	TenantID        string         `json:"tenant_id"`
+	Version         int64          `json:"version"`
+	StartedAt       sql.NullTime   `json:"started_at"`
+	ReachedPickupAt sql.NullTime   `json:"reached_pickup_at"`
+	InTransitAt     sql.NullTime   `json:"in_transit_at"`
+	DeliveredAt     sql.NullTime   `json:"delivered_at"`
+	CompletedAt     sql.NullTime   `json:"completed_at"`
 }
 
 type User struct {

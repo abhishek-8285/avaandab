@@ -48,18 +48,23 @@ func (r *tripRepository) Save(ctx context.Context, t *aggregate.TripAggregate) e
 
 	if exists {
 		_, err = r.Q(ctx).UpdateTrip(ctx, db.UpdateTripParams{
-			TripNumber:    p.TripNumber,
-			BookingID:     p.BookingID,
-			DriverID:      p.DriverID,
-			VehicleID:     p.VehicleID,
-			RouteID:       p.RouteID,
-			DepartureTime: p.DepartureTime,
-			ArrivalTime:   p.ArrivalTime,
-			Status:        p.Status,
-			Remarks:       p.Remarks,
-			ID:            p.ID,
-			TenantID:      p.TenantID,
-			Version:       p.Version,
+			TripNumber:      p.TripNumber,
+			BookingID:       p.BookingID,
+			DriverID:        p.DriverID,
+			VehicleID:       p.VehicleID,
+			RouteID:         p.RouteID,
+			DepartureTime:   p.DepartureTime,
+			ArrivalTime:     p.ArrivalTime,
+			Status:          p.Status,
+			Remarks:         p.Remarks,
+			StartedAt:       p.StartedAt,
+			ReachedPickupAt: p.ReachedPickupAt,
+			InTransitAt:     p.InTransitAt,
+			DeliveredAt:     p.DeliveredAt,
+			CompletedAt:     p.CompletedAt,
+			ID:              p.ID,
+			TenantID:        p.TenantID,
+			Version:         p.Version,
 		})
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
@@ -70,17 +75,22 @@ func (r *tripRepository) Save(ctx context.Context, t *aggregate.TripAggregate) e
 		t.Version++
 	} else {
 		_, err = r.Q(ctx).CreateTrip(ctx, db.CreateTripParams{
-			ID:            p.ID,
-			TripNumber:    p.TripNumber,
-			BookingID:     p.BookingID,
-			DriverID:      p.DriverID,
-			VehicleID:     p.VehicleID,
-			RouteID:       p.RouteID,
-			DepartureTime: p.DepartureTime,
-			ArrivalTime:   p.ArrivalTime,
-			Status:        p.Status,
-			Remarks:       p.Remarks,
-			TenantID:      p.TenantID,
+			ID:              p.ID,
+			TripNumber:      p.TripNumber,
+			BookingID:       p.BookingID,
+			DriverID:        p.DriverID,
+			VehicleID:       p.VehicleID,
+			RouteID:         p.RouteID,
+			DepartureTime:   p.DepartureTime,
+			ArrivalTime:     p.ArrivalTime,
+			Status:          p.Status,
+			Remarks:         p.Remarks,
+			TenantID:        p.TenantID,
+			StartedAt:       p.StartedAt,
+			ReachedPickupAt: p.ReachedPickupAt,
+			InTransitAt:     p.InTransitAt,
+			DeliveredAt:     p.DeliveredAt,
+			CompletedAt:     p.CompletedAt,
 		})
 		if err != nil {
 			return err
@@ -108,20 +118,25 @@ func (r *tripRepository) Find(ctx context.Context, id aggregate.TripID, tenantID
 	}
 
 	m := converters.SQLTripModel{
-		ID:            row.ID,
-		TripNumber:    row.TripNumber,
-		BookingID:     row.BookingID,
-		DriverID:      row.DriverID,
-		VehicleID:     row.VehicleID,
-		RouteID:       row.RouteID,
-		DepartureTime: row.DepartureTime,
-		ArrivalTime:   row.ArrivalTime,
-		Status:        row.Status,
-		Remarks:       row.Remarks,
-		TenantID:      row.TenantID,
-		Version:       row.Version,
-		CreatedAt:     row.CreatedAt,
-		UpdatedAt:     row.UpdatedAt,
+		ID:              row.ID,
+		TripNumber:      row.TripNumber,
+		BookingID:       row.BookingID,
+		DriverID:        row.DriverID,
+		VehicleID:       row.VehicleID,
+		RouteID:         row.RouteID,
+		DepartureTime:   row.DepartureTime,
+		ArrivalTime:     row.ArrivalTime,
+		Status:          row.Status,
+		Remarks:         row.Remarks,
+		TenantID:        row.TenantID,
+		Version:         row.Version,
+		CreatedAt:       row.CreatedAt,
+		UpdatedAt:       row.UpdatedAt,
+		StartedAt:       row.StartedAt,
+		ReachedPickupAt: row.ReachedPickupAt,
+		InTransitAt:     row.InTransitAt,
+		DeliveredAt:     row.DeliveredAt,
+		CompletedAt:     row.CompletedAt,
 	}
 	return converters.MapToAggregate(m), nil
 }
@@ -139,20 +154,25 @@ func (r *tripRepository) FindByNumber(ctx context.Context, number string, tenant
 	}
 
 	m := converters.SQLTripModel{
-		ID:            row.ID,
-		TripNumber:    row.TripNumber,
-		BookingID:     row.BookingID,
-		DriverID:      row.DriverID,
-		VehicleID:     row.VehicleID,
-		RouteID:       row.RouteID,
-		DepartureTime: row.DepartureTime,
-		ArrivalTime:   row.ArrivalTime,
-		Status:        row.Status,
-		Remarks:       row.Remarks,
-		TenantID:      row.TenantID,
-		Version:       row.Version,
-		CreatedAt:     row.CreatedAt,
-		UpdatedAt:     row.UpdatedAt,
+		ID:              row.ID,
+		TripNumber:      row.TripNumber,
+		BookingID:       row.BookingID,
+		DriverID:        row.DriverID,
+		VehicleID:       row.VehicleID,
+		RouteID:         row.RouteID,
+		DepartureTime:   row.DepartureTime,
+		ArrivalTime:     row.ArrivalTime,
+		Status:          row.Status,
+		Remarks:         row.Remarks,
+		TenantID:        row.TenantID,
+		Version:         row.Version,
+		CreatedAt:       row.CreatedAt,
+		UpdatedAt:       row.UpdatedAt,
+		StartedAt:       row.StartedAt,
+		ReachedPickupAt: row.ReachedPickupAt,
+		InTransitAt:     row.InTransitAt,
+		DeliveredAt:     row.DeliveredAt,
+		CompletedAt:     row.CompletedAt,
 	}
 	return converters.MapToAggregate(m), nil
 }
@@ -204,6 +224,27 @@ func (r *tripRepository) GetReadModel(ctx context.Context, id aggregate.TripID, 
 		remarks = row.Remarks.String
 	}
 
+	var startedAt *time.Time
+	if row.StartedAt.Valid {
+		startedAt = &row.StartedAt.Time
+	}
+	var reachedPickupAt *time.Time
+	if row.ReachedPickupAt.Valid {
+		reachedPickupAt = &row.ReachedPickupAt.Time
+	}
+	var inTransitAt *time.Time
+	if row.InTransitAt.Valid {
+		inTransitAt = &row.InTransitAt.Time
+	}
+	var deliveredAt *time.Time
+	if row.DeliveredAt.Valid {
+		deliveredAt = &row.DeliveredAt.Time
+	}
+	var completedAt *time.Time
+	if row.CompletedAt.Valid {
+		completedAt = &row.CompletedAt.Time
+	}
+
 	return domain.TripReadModel{
 		ID:                        row.ID,
 		TripNumber:                row.TripNumber,
@@ -224,6 +265,11 @@ func (r *tripRepository) GetReadModel(ctx context.Context, id aggregate.TripID, 
 		Remarks:                   remarks,
 		CreatedAt:                 row.CreatedAt,
 		UpdatedAt:                 row.UpdatedAt,
+		StartedAt:                 startedAt,
+		ReachedPickupAt:           reachedPickupAt,
+		InTransitAt:               inTransitAt,
+		DeliveredAt:               deliveredAt,
+		CompletedAt:               completedAt,
 	}, nil
 }
 
@@ -283,6 +329,27 @@ func (r *tripRepository) SearchReadModels(ctx context.Context, tenantID shared.T
 			remarks = row.Remarks.String
 		}
 
+		var startedAt *time.Time
+		if row.StartedAt.Valid {
+			startedAt = &row.StartedAt.Time
+		}
+		var reachedPickupAt *time.Time
+		if row.ReachedPickupAt.Valid {
+			reachedPickupAt = &row.ReachedPickupAt.Time
+		}
+		var inTransitAt *time.Time
+		if row.InTransitAt.Valid {
+			inTransitAt = &row.InTransitAt.Time
+		}
+		var deliveredAt *time.Time
+		if row.DeliveredAt.Valid {
+			deliveredAt = &row.DeliveredAt.Time
+		}
+		var completedAt *time.Time
+		if row.CompletedAt.Valid {
+			completedAt = &row.CompletedAt.Time
+		}
+
 		readModels[i] = domain.TripReadModel{
 			ID:                        row.ID,
 			TripNumber:                row.TripNumber,
@@ -303,6 +370,11 @@ func (r *tripRepository) SearchReadModels(ctx context.Context, tenantID shared.T
 			Remarks:                   remarks,
 			CreatedAt:                 row.CreatedAt,
 			UpdatedAt:                 row.UpdatedAt,
+			StartedAt:                 startedAt,
+			ReachedPickupAt:           reachedPickupAt,
+			InTransitAt:               inTransitAt,
+			DeliveredAt:               deliveredAt,
+			CompletedAt:               completedAt,
 		}
 	}
 

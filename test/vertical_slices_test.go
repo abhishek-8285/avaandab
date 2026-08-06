@@ -34,11 +34,13 @@ func TestSprint1_CreateBooking(t *testing.T) {
 	svc := NewTestServices(t, db)
 	route, err := svc.Routes.CreateRoute(ctx, "Mumbai", "Delhi", 1400, 24, 15000, "")
 	require.NoError(t, err)
+	customer, err := svc.Customers.CreateCustomer(ctx, "TestCo", "TC", "555-0001", "tc@example.com", "", "", "")
+	require.NoError(t, err)
 
 	createUC := bookingApp.NewCreateBookingUseCase(sqlUoW, idGen, realClock)
-	id, err := createUC.Execute(ctx, bookingApp.CreateBookingCommand{
+	bID, err := createUC.Execute(ctx, bookingApp.CreateBookingCommand{
 		TenantID:    "1",
-		CustomerID:  "cust-1",
+		CustomerID:  string(customer.ID),
 		RouteID:     string(route.ID),
 		PickupDate:  time.Now().Add(24 * time.Hour).Format(time.RFC3339),
 		VehicleType: "Truck",
@@ -47,7 +49,7 @@ func TestSprint1_CreateBooking(t *testing.T) {
 		Notes:       "fragile",
 	})
 	require.NoError(t, err)
-	assert.NotEmpty(t, id)
+	assert.NotEmpty(t, bID)
 }
 
 func TestSprint1_ConfirmAndCancelBooking(t *testing.T) {
@@ -59,6 +61,8 @@ func TestSprint1_ConfirmAndCancelBooking(t *testing.T) {
 
 	svc := NewTestServices(t, db)
 	route, _ := svc.Routes.CreateRoute(ctx, "A", "B", 100, 2, 5000, "")
+	customer, err := svc.Customers.CreateCustomer(ctx, "Confirm Co", "CC", "555-0002", "cc@example.com", "", "", "")
+	require.NoError(t, err)
 
 	createUC := bookingApp.NewCreateBookingUseCase(sqlUoW, idGen, realClock)
 	confirmUC := bookingApp.NewConfirmBookingUseCase(sqlUoW, realClock)
@@ -67,7 +71,7 @@ func TestSprint1_ConfirmAndCancelBooking(t *testing.T) {
 
 	bookingID, err := createUC.Execute(ctx, bookingApp.CreateBookingCommand{
 		TenantID:    "1",
-		CustomerID:  "cust-1",
+		CustomerID:  string(customer.ID),
 		RouteID:     string(route.ID),
 		PickupDate:  time.Now().Add(24 * time.Hour).Format(time.RFC3339),
 		VehicleType: "Van",
@@ -106,6 +110,8 @@ func TestSprint1_ListBookings(t *testing.T) {
 
 	svc := NewTestServices(t, db)
 	route, _ := svc.Routes.CreateRoute(ctx, "X", "Y", 200, 3, 8000, "")
+	customer, err := svc.Customers.CreateCustomer(ctx, "List Co", "LC", "555-0003", "lc@example.com", "", "", "")
+	require.NoError(t, err)
 
 	createUC := bookingApp.NewCreateBookingUseCase(sqlUoW, idGen, realClock)
 	listUC := bookingApp.NewListBookingsUseCase(sqlUoW)
@@ -113,7 +119,7 @@ func TestSprint1_ListBookings(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		_, err := createUC.Execute(ctx, bookingApp.CreateBookingCommand{
 			TenantID:    "1",
-			CustomerID:  "cust-x",
+			CustomerID:  string(customer.ID),
 			RouteID:     string(route.ID),
 			PickupDate:  time.Now().Add(24 * time.Hour).Format(time.RFC3339),
 			VehicleType: "Bus",
@@ -126,6 +132,103 @@ func TestSprint1_ListBookings(t *testing.T) {
 	res, err := listUC.Execute(ctx, bookingApp.ListBookingsQuery{TenantID: "1", Page: 1, Limit: 10})
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, res.Total, int64(3))
+}
+
+func TestSprint1_UpdateBooking(t *testing.T) {
+	db := NewTestDB(t)
+	sqlUoW := uow.NewSQLUnitOfWork(db)
+	idGen := id.NewUUIDGenerator()
+	realClock := clock.NewRealClock()
+	ctx := context.Background()
+
+	svc := NewTestServices(t, db)
+	route, _ := svc.Routes.CreateRoute(ctx, "A", "B", 100, 2, 5000, "")
+	customer, err := svc.Customers.CreateCustomer(ctx, "Update Co", "UC", "555-0004", "uc@example.com", "", "", "")
+	require.NoError(t, err)
+
+	createUC := bookingApp.NewCreateBookingUseCase(sqlUoW, idGen, realClock)
+	updateUC := bookingApp.NewUpdateBookingUseCase(sqlUoW)
+	getUC := bookingApp.NewGetBookingUseCase(sqlUoW)
+
+	bookingID, err := createUC.Execute(ctx, bookingApp.CreateBookingCommand{
+		TenantID:    "1",
+		CustomerID:  string(customer.ID),
+		RouteID:     string(route.ID),
+		PickupDate:  time.Now().Add(24 * time.Hour).Format(time.RFC3339),
+		VehicleType: "Truck",
+		Passengers:  2,
+		Price:       5000,
+	})
+	require.NoError(t, err)
+
+	err = updateUC.Execute(ctx, bookingApp.UpdateBookingCommand{
+		BookingID:   bookingID,
+		TenantID:    "1",
+		CustomerID:  string(customer.ID),
+		RouteID:     string(route.ID),
+		PickupDate:  time.Now().Add(48 * time.Hour).Format(time.RFC3339),
+		VehicleType: "Van",
+		Passengers:  4,
+		Price:       6000,
+	})
+	require.NoError(t, err)
+
+	res, err := getUC.Execute(ctx, bookingApp.GetBookingQuery{BookingID: bookingID, TenantID: "1"})
+	require.NoError(t, err)
+	assert.Equal(t, "Van", res.VehicleType)
+	assert.Equal(t, int64(4), res.Passengers)
+}
+
+func TestSprint1_CompleteBooking(t *testing.T) {
+	db := NewTestDB(t)
+	sqlUoW := uow.NewSQLUnitOfWork(db)
+	idGen := id.NewUUIDGenerator()
+	realClock := clock.NewRealClock()
+	ctx := context.Background()
+
+	svc := NewTestServices(t, db)
+	route, _ := svc.Routes.CreateRoute(ctx, "A", "B", 100, 2, 5000, "")
+	customer, err := svc.Customers.CreateCustomer(ctx, "Complete Co", "CC", "555-0005", "cc@example.com", "", "", "")
+	require.NoError(t, err)
+
+	createUC := bookingApp.NewCreateBookingUseCase(sqlUoW, idGen, realClock)
+	confirmUC := bookingApp.NewConfirmBookingUseCase(sqlUoW, realClock)
+	completeUC := bookingApp.NewCompleteBookingUseCase(sqlUoW, realClock)
+	getUC := bookingApp.NewGetBookingUseCase(sqlUoW)
+
+	bookingID, err := createUC.Execute(ctx, bookingApp.CreateBookingCommand{
+		TenantID:    "1",
+		CustomerID:  string(customer.ID),
+		RouteID:     string(route.ID),
+		PickupDate:  time.Now().Add(24 * time.Hour).Format(time.RFC3339),
+		VehicleType: "Truck",
+		Passengers:  2,
+		Price:       5000,
+	})
+	require.NoError(t, err)
+
+	// Cannot complete a pending booking
+	err = completeUC.Execute(ctx, bookingApp.CompleteBookingCommand{
+		BookingID: bookingID,
+		TenantID:  "1",
+	})
+	require.Error(t, err)
+
+	// Confirm first
+	require.NoError(t, confirmUC.Execute(ctx, bookingApp.ConfirmBookingCommand{
+		BookingID: bookingID,
+		TenantID:  "1",
+	}))
+
+	// Now complete
+	require.NoError(t, completeUC.Execute(ctx, bookingApp.CompleteBookingCommand{
+		BookingID: bookingID,
+		TenantID:  "1",
+	}))
+
+	res, err := getUC.Execute(ctx, bookingApp.GetBookingQuery{BookingID: bookingID, TenantID: "1"})
+	require.NoError(t, err)
+	assert.Equal(t, "completed", res.Status)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -142,7 +245,8 @@ func TestSprint2_CreateTripAndLifecycle(t *testing.T) {
 	svc := NewTestServices(t, db)
 	route, _ := svc.Routes.CreateRoute(ctx, "Mumbai", "Pune", 150, 3, 3000, "")
 	driver, _ := svc.Drivers.CreateDriver(ctx, "Ali", "Khan", "111", "", "", "LIC999", "2027-01-01", 3, nil, nil, nil)
-	vehicle, _ := svc.Vehicles.CreateVehicle(ctx, "MH-01-XX-1234", "V200", "Truck", 15, "Diesel", "2027-01-01", "2027-01-01", "2027-01-01", "0")
+	vehicle, err := svc.Vehicles.CreateVehicle(ctx, "MH-01-XX-1234", "V200", "truck", 15, "diesel", "2027-01-01", "2027-01-01", "2027-01-01", "0")
+	require.NoError(t, err)
 
 	createUC := tripApp.NewCreateTripUseCase(sqlUoW, idGen, realClock)
 	assignDriverUC := tripApp.NewAssignDriverUseCase(sqlUoW, realClock)
@@ -211,6 +315,38 @@ func TestSprint2_CancelTrip(t *testing.T) {
 	trip, err := getUC.Execute(ctx, tripApp.GetTripQuery{TripID: tripID, TenantID: "1"})
 	require.NoError(t, err)
 	assert.Equal(t, "cancelled", trip.Status)
+}
+
+func TestSprint2_ScheduleTrip(t *testing.T) {
+	db := NewTestDB(t)
+	sqlUoW := uow.NewSQLUnitOfWork(db)
+	idGen := id.NewUUIDGenerator()
+	realClock := clock.NewRealClock()
+	ctx := context.Background()
+
+	svc := NewTestServices(t, db)
+	route, _ := svc.Routes.CreateRoute(ctx, "E", "F", 120, 3, 2500, "")
+
+	createUC := tripApp.NewCreateTripUseCase(sqlUoW, idGen, realClock)
+	scheduleUC := tripApp.NewScheduleTripUseCase(sqlUoW, realClock)
+	getUC := tripApp.NewGetTripUseCase(sqlUoW)
+
+	tripID, err := createUC.Execute(ctx, tripApp.CreateTripCommand{
+		TenantID:      "1",
+		RouteID:       string(route.ID),
+		DepartureTime: time.Now().Add(3 * time.Hour),
+	})
+	require.NoError(t, err)
+
+	// Cannot start a draft trip; schedule first
+	require.NoError(t, scheduleUC.Execute(ctx, tripApp.ScheduleTripCommand{
+		TripID:   tripID,
+		TenantID: "1",
+	}))
+
+	trip, err := getUC.Execute(ctx, tripApp.GetTripQuery{TripID: tripID, TenantID: "1"})
+	require.NoError(t, err)
+	assert.Equal(t, "scheduled", trip.Status)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -282,6 +418,35 @@ func TestSprint3_GenerateInvoice_Idempotent(t *testing.T) {
 	assert.Equal(t, id1, id2)
 }
 
+func TestSprint3_GenerateInvoice_InvalidInput(t *testing.T) {
+	db := NewTestDB(t)
+	sqlUoW := uow.NewSQLUnitOfWork(db)
+	idGen := id.NewUUIDGenerator()
+	realClock := clock.NewRealClock()
+	ctx := context.Background()
+
+	generateUC := invoiceApp.NewGenerateInvoiceUseCase(sqlUoW, idGen, realClock)
+
+	// Missing booking ID
+	_, err := generateUC.Execute(ctx, invoiceApp.GenerateInvoiceCommand{
+		TenantID:  "1",
+		CustomerID: "cust-1",
+		Total:     100,
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "booking ID is required")
+
+	// Negative total
+	_, err = generateUC.Execute(ctx, invoiceApp.GenerateInvoiceCommand{
+		TenantID:   "1",
+		BookingID:  "bk-1",
+		CustomerID:  "cust-1",
+		Total:     -100,
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "total cannot be negative")
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Sprint 4: Payment
 // ─────────────────────────────────────────────────────────────────────────────
@@ -296,11 +461,12 @@ func TestSprint4_RecordPaymentAndGet(t *testing.T) {
 	// First generate an invoice to have a valid invoice ID
 	genUC := invoiceApp.NewGenerateInvoiceUseCase(sqlUoW, idGen, realClock)
 	invID, err := genUC.Execute(ctx, invoiceApp.GenerateInvoiceCommand{
-		TenantID:  "1",
-		BookingID: "bk-pay",
-		Subtotal:  8000,
-		Tax:       1440,
-		Total:     9440,
+		TenantID:   "1",
+		BookingID:  "bk-pay",
+		CustomerID: "cust-99",
+		Subtotal:   8000,
+		Tax:        1440,
+		Total:      9440,
 	})
 	require.NoError(t, err)
 

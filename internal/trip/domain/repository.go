@@ -29,6 +29,11 @@ type TripReadModel struct {
 	Remarks                   string
 	CreatedAt                 time.Time
 	UpdatedAt                 time.Time
+	StartedAt                 *time.Time
+	ReachedPickupAt           *time.Time
+	InTransitAt               *time.Time
+	DeliveredAt               *time.Time
+	CompletedAt               *time.Time
 }
 
 // TripRepository defines the contract for persisting and retrieving TripAggregates and Read Models.

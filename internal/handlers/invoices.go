@@ -6,7 +6,10 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"transport-app/internal/domain"
+	"transport-app/internal/domain/invoice"
+	"transport-app/internal/domain/types"
 	"transport-app/internal/middleware"
+	pdfgen "transport-app/internal/pdf"
 	invoiceapp "transport-app/internal/invoice/application"
 	invoiceagg "transport-app/internal/invoice/domain/aggregate"
 	clock "transport-app/internal/shared/clock"
@@ -37,6 +40,7 @@ func (h *InvoiceHandlers) init() {
 func (h *InvoiceHandlers) Routes(r chi.Router) {
 	r.With(middleware.ResourcePermission(h.AuthSrv, "invoices", "read")).Get("/", h.List)
 	r.With(middleware.ResourcePermission(h.AuthSrv, "invoices", "read")).Get("/{id}", h.View)
+	r.With(middleware.ResourcePermission(h.AuthSrv, "invoices", "read")).Get("/{id}/pdf", h.DownloadPDF)
 	r.With(middleware.ResourcePermission(h.AuthSrv, "invoices", "delete")).Post("/{id}/delete", h.Delete)
 	r.With(middleware.ResourcePermission(h.AuthSrv, "invoices", "read")).Get("/number/{number}", h.ViewByNumber)
 }
@@ -123,4 +127,42 @@ func (h *InvoiceHandlers) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/invoices", http.StatusSeeOther)
+}
+
+func (h *InvoiceHandlers) DownloadPDF(w http.ResponseWriter, r *http.Request) {
+	h.init()
+	idParam := chi.URLParam(r, "id")
+	invDTO, err := h.getUC.Execute(r.Context(), invoiceapp.GetInvoiceQuery{
+		ID:       invoiceagg.InvoiceID(idParam),
+		TenantID: "1",
+	})
+	if err != nil {
+		http.Error(w, "Invoice not found", http.StatusNotFound)
+		return
+	}
+
+	invEntity := invoice.Invoice{
+		ID:            types.InvoiceID(invDTO.ID),
+		InvoiceNumber: invDTO.InvoiceNumber,
+		BookingID:     types.BookingID(invDTO.BookingID),
+		CustomerID:    types.CustomerID(invDTO.CustomerID),
+		Subtotal:      invDTO.Subtotal,
+		Tax:           invDTO.Tax,
+		Discount:      invDTO.Discount,
+		Total:         invDTO.Total,
+		PaidAmount:    0,
+		Status:        invoice.InvoiceStatus(invDTO.PaymentStatus),
+		CreatedAt:     invDTO.CreatedAt,
+	}
+
+	pdfBytes, err := pdfgen.GenerateInvoicePDF(invEntity, "Apex Transport Ltd")
+	if err != nil {
+		http.Error(w, "Failed to generate PDF: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", "attachment; filename="+invDTO.InvoiceNumber+".pdf")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(pdfBytes)
 }

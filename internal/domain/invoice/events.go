@@ -15,8 +15,8 @@ type InvoiceGenerated struct {
 	OccurredAt    time.Time
 }
 
-// InvoicePaid is emitted when an invoice payment status changes to paid.
-type InvoicePaid struct {
+// InvoicePaidEvent is emitted when an invoice payment status changes to paid.
+type InvoicePaidEvent struct {
 	InvoiceID   types.InvoiceID
 	Amount      float64
 	OccurredAt  time.Time

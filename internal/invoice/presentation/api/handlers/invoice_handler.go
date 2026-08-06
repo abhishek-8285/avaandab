@@ -37,10 +37,6 @@ func (h *APIInvoiceHandler) Register(r chi.Router) {
 	})
 }
 
-func invoiceTenantID(r *http.Request) shared.TenantID {
-	return "1"
-}
-
 func (h *APIInvoiceHandler) Generate(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		BookingID  string  `json:"booking_id"`
@@ -57,7 +53,7 @@ func (h *APIInvoiceHandler) Generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id, err := h.generateUC.Execute(r.Context(), application.GenerateInvoiceCommand{
-		TenantID:   invoiceTenantID(r),
+		TenantID:   shared.TenantIDFromContext(r.Context()),
 		BookingID:  req.BookingID,
 		CustomerID: req.CustomerID,
 		TripID:     req.TripID,
@@ -80,7 +76,7 @@ func (h *APIInvoiceHandler) List(w http.ResponseWriter, r *http.Request) {
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 
 	res, err := h.listUC.Execute(r.Context(), application.ListInvoicesQuery{
-		TenantID: invoiceTenantID(r),
+		TenantID: shared.TenantIDFromContext(r.Context()),
 		Page:     page,
 		Limit:    limit,
 		Search:   r.URL.Query().Get("search"),
@@ -97,7 +93,7 @@ func (h *APIInvoiceHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	res, err := h.getUC.Execute(r.Context(), application.GetInvoiceQuery{
 		ID:       aggregate.InvoiceID(id),
-		TenantID: invoiceTenantID(r),
+		TenantID: shared.TenantIDFromContext(r.Context()),
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)

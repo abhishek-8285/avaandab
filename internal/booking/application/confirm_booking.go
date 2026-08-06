@@ -43,6 +43,10 @@ func (uc *ConfirmBookingUseCase) Execute(ctx context.Context, cmd ConfirmBooking
 			return err
 		}
 
-		return repo.Save(txCtx, booking)
+		if err := repo.Save(txCtx, booking); err != nil {
+			return err
+		}
+		logAudit(txCtx, ActionConfirm, string(booking.ID), nil, nil)
+		return nil
 	})
 }

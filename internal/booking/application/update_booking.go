@@ -39,6 +39,15 @@ func (uc *UpdateBookingUseCase) Execute(ctx context.Context, cmd UpdateBookingCo
 	if cmd.RouteID == "" {
 		return errors.New("route ID is required")
 	}
+	if cmd.VehicleType == "" {
+		return errors.New("vehicle type is required")
+	}
+	if cmd.Passengers < 1 {
+		return errors.New("passengers must be at least 1")
+	}
+	if cmd.Price < 0 {
+		return errors.New("price cannot be negative")
+	}
 
 	pickupDate, err := time.Parse("2006-01-02", cmd.PickupDate)
 	if err != nil {
@@ -67,7 +76,7 @@ func (uc *UpdateBookingUseCase) Execute(ctx context.Context, cmd UpdateBookingCo
 			return err
 		}
 
-		err = b.Update(
+		if err := b.Update(
 			cmd.CustomerID,
 			cmd.RouteID,
 			pickupDate,
@@ -77,11 +86,14 @@ func (uc *UpdateBookingUseCase) Execute(ctx context.Context, cmd UpdateBookingCo
 			priceMoney,
 			cmd.Notes,
 			time.Now(),
-		)
-		if err != nil {
+		); err != nil {
 			return err
 		}
 
-		return repo.Save(txCtx, b)
+		if err := repo.Save(txCtx, b); err != nil {
+			return err
+		}
+		logAudit(txCtx, ActionUpdate, string(b.ID), nil, nil)
+		return nil
 	})
 }

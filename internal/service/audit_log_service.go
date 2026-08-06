@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"transport-app/internal/auth"
 	"transport-app/internal/domain"
 	"transport-app/internal/repository"
 )
@@ -50,10 +51,8 @@ func (s *AuditLogService) LogAction(ctx context.Context, userID *domain.UserID, 
 
 // getUserIP extracts the user IP from the request context.
 func getUserIP(ctx context.Context) *string {
-	if ip := ctx.Value("ip_address"); ip != nil {
-		if s, ok := ip.(string); ok {
-			return &s
-		}
+	if ip, ok := ctx.Value(auth.ContextIP).(string); ok && ip != "" {
+		return &ip
 	}
 	return nil
 }

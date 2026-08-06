@@ -10,6 +10,7 @@ type CustomerID string
 type RouteID string
 type BookingID string
 type TripID string
+type DispatchID string
 type InvoiceID string
 type PaymentID string
 type FileID string
@@ -23,10 +24,21 @@ func (id CustomerID) String() string { return string(id) }
 func (id RouteID) String() string    { return string(id) }
 func (id BookingID) String() string  { return string(id) }
 func (id TripID) String() string     { return string(id) }
+func (id DispatchID) String() string { return string(id) }
 func (id InvoiceID) String() string  { return string(id) }
 func (id PaymentID) String() string  { return string(id) }
 func (id FileID) String() string    { return string(id) }
 func (id SessionID) String() string { return string(id) }
+
+type FileCategory string
+
+const (
+	FileCategoryDriverLicense FileCategory = "driver_license"
+	FileCategoryInsurance     FileCategory = "insurance"
+	FileCategoryPermit        FileCategory = "permit"
+	FileCategoryCompanyLogo   FileCategory = "company_logo"
+	FileCategoryGeneral       FileCategory = "general"
+)
 
 // File represents an uploaded file.
 type File struct {
@@ -36,6 +48,7 @@ type File struct {
 	Path           string
 	Size           int64
 	MimeType       string
+	Category       FileCategory
 	UploadableType string
 	UploadableID   *string
 	CreatedAt      time.Time

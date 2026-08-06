@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -25,6 +26,7 @@ type BookingHandlers struct {
 	listUC    *bookingapp.ListBookingsUseCase
 	updateUC  *bookingapp.UpdateBookingUseCase
 	deleteUC  *bookingapp.DeleteBookingUseCase
+	completeUC *bookingapp.CompleteBookingUseCase
 }
 
 func (h *BookingHandlers) init() {
@@ -40,6 +42,7 @@ func (h *BookingHandlers) init() {
 		h.listUC = bookingapp.NewListBookingsUseCase(uowImpl)
 		h.updateUC = bookingapp.NewUpdateBookingUseCase(uowImpl)
 		h.deleteUC = bookingapp.NewDeleteBookingUseCase(uowImpl)
+		h.completeUC = bookingapp.NewCompleteBookingUseCase(uowImpl, clockImpl)
 	}
 }
 
@@ -53,6 +56,7 @@ func (h *BookingHandlers) Routes(r chi.Router) {
 	r.With(middleware.ResourcePermission(h.AuthSrv, "bookings", "delete")).Post("/{id}/delete", h.Delete)
 	r.With(middleware.ResourcePermission(h.AuthSrv, "bookings", "approve")).Post("/{id}/confirm", h.Confirm)
 	r.With(middleware.ResourcePermission(h.AuthSrv, "bookings", "cancel")).Post("/{id}/cancel", h.Cancel)
+	r.With(middleware.ResourcePermission(h.AuthSrv, "bookings", "update")).Post("/{id}/complete", h.Complete)
 }
 
 func (h *BookingHandlers) List(w http.ResponseWriter, r *http.Request) {
@@ -139,6 +143,7 @@ func (h *BookingHandlers) Create(w http.ResponseWriter, r *http.Request) {
 
 func (h *BookingHandlers) View(w http.ResponseWriter, r *http.Request) {
 	h.init()
+	session, _ := h.getUserFromContext(r)
 	id := chi.URLParam(r, "id")
 	tenantID := shared.TenantIDFromContext(r.Context())
 
@@ -147,12 +152,13 @@ func (h *BookingHandlers) View(w http.ResponseWriter, r *http.Request) {
 		TenantID:  tenantID,
 	})
 	if err != nil {
-		http.Error(w, "Booking not found", http.StatusNotFound)
+		h.renderError(w, http.StatusNotFound, "Booking Not Found", fmt.Sprintf("No booking found with ID %q.", id), session)
 		return
 	}
 
 	h.renderPage(w, "booking_view.html", PageData{
 		Title: "View Booking",
+		User:  session,
 		Extra: map[string]interface{}{"Booking": booking},
 	})
 }
@@ -168,7 +174,7 @@ func (h *BookingHandlers) Edit(w http.ResponseWriter, r *http.Request) {
 		TenantID:  tenantID,
 	})
 	if err != nil {
-		http.Error(w, "Booking not found", http.StatusNotFound)
+		h.renderError(w, http.StatusNotFound, "Booking Not Found", fmt.Sprintf("No booking found with ID %q.", id), session)
 		return
 	}
 	customers, _, _ := h.Services.Customers.ListCustomers(r.Context(), "", 1000, 0)
@@ -206,6 +212,32 @@ func (h *BookingHandlers) Update(w http.ResponseWriter, r *http.Request) {
 		CargoWeight: &cargoWeight,
 		Price:       price,
 		Notes:       r.PostFormValue("notes"),
+	})
+	if err != nil {
+		booking, _ := h.getUC.Execute(r.Context(), bookingapp.GetBookingQuery{
+			BookingID: bookingagg.BookingID(id),
+			TenantID:  tenantID,
+		})
+		customers, _, _ := h.Services.Customers.ListCustomers(r.Context(), "", 1000, 0)
+		routes, _, _ := h.Services.Routes.ListRoutes(r.Context(), "", 1000, 0)
+		h.renderForm(w, r, "booking_edit.html", PageData{
+			Title:      "Edit Booking",
+			FlashError: err.Error(),
+			Extra:      map[string]interface{}{"Booking": booking, "Customers": customers, "Routes": routes},
+		})
+		return
+	}
+	http.Redirect(w, r, "/bookings/"+id, http.StatusSeeOther)
+}
+
+func (h *BookingHandlers) Complete(w http.ResponseWriter, r *http.Request) {
+	h.init()
+	id := chi.URLParam(r, "id")
+	tenantID := shared.TenantIDFromContext(r.Context())
+
+	err := h.completeUC.Execute(r.Context(), bookingapp.CompleteBookingCommand{
+		BookingID: bookingagg.BookingID(id),
+		TenantID:  tenantID,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

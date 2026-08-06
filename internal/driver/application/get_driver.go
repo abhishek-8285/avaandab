@@ -30,6 +30,11 @@ type DriverResponseDTO struct {
 	UpdatedAt             time.Time `json:"updated_at"`
 }
 
+// DriverID returns DriverDisplayID for template compatibility.
+func (d DriverResponseDTO) DriverID() string {
+	return d.DriverDisplayID
+}
+
 type GetDriverQuery struct {
 	ID       aggregate.DriverID
 	TenantID shared.TenantID

@@ -38,10 +38,6 @@ func (h *APIPaymentHandler) Register(r chi.Router) {
 	})
 }
 
-func paymentTenantID(r *http.Request) shared.TenantID {
-	return "1"
-}
-
 func (h *APIPaymentHandler) Record(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		InvoiceID   string  `json:"invoice_id"`
@@ -63,7 +59,7 @@ func (h *APIPaymentHandler) Record(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id, err := h.recordUC.Execute(r.Context(), application.RecordPaymentCommand{
-		TenantID:    paymentTenantID(r),
+		TenantID:    shared.TenantIDFromContext(r.Context()),
 		InvoiceID:   req.InvoiceID,
 		PaymentDate: payDate,
 		Amount:      req.Amount,
@@ -85,7 +81,7 @@ func (h *APIPaymentHandler) List(w http.ResponseWriter, r *http.Request) {
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 
 	res, err := h.listUC.Execute(r.Context(), application.ListPaymentsQuery{
-		TenantID: paymentTenantID(r),
+		TenantID: shared.TenantIDFromContext(r.Context()),
 		Page:     page,
 		Limit:    limit,
 		Method:   r.URL.Query().Get("method"),
@@ -101,7 +97,7 @@ func (h *APIPaymentHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	res, err := h.getUC.Execute(r.Context(), application.GetPaymentQuery{
 		ID:       aggregate.PaymentID(id),
-		TenantID: paymentTenantID(r),
+		TenantID: shared.TenantIDFromContext(r.Context()),
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)

@@ -43,6 +43,10 @@ func (uc *CancelBookingUseCase) Execute(ctx context.Context, cmd CancelBookingCo
 			return err
 		}
 
-		return repo.Save(txCtx, booking)
+		if err := repo.Save(txCtx, booking); err != nil {
+			return err
+		}
+		logAudit(txCtx, ActionCancel, string(booking.ID), nil, nil)
+		return nil
 	})
 }

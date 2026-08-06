@@ -33,6 +33,9 @@ func (uc *CreateTripUseCase) Execute(ctx context.Context, cmd CreateTripCommand)
 	if cmd.RouteID == "" {
 		return "", errors.New("route ID is required")
 	}
+	if cmd.DepartureTime.IsZero() {
+		return "", errors.New("departure time is required")
+	}
 
 	tripID := aggregate.TripID(uc.idGen.GenerateUUID())
 	tripNumber := uc.idGen.GenerateDisplayID("TR")
@@ -53,7 +56,11 @@ func (uc *CreateTripUseCase) Execute(ctx context.Context, cmd CreateTripCommand)
 		if !ok {
 			return errors.New("failed to retrieve trip repository")
 		}
-		return repo.Save(txCtx, trip)
+		if err := repo.Save(txCtx, trip); err != nil {
+			return err
+		}
+		logAudit(txCtx, ActionCreate, string(trip.ID), nil, nil)
+		return nil
 	})
 
 	if err != nil {

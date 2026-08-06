@@ -97,6 +97,7 @@ func (h *PaymentHandlers) New(w http.ResponseWriter, r *http.Request) {
 			"InvoiceID": invoiceID,
 			"Invoice":   invoice,
 			"Balance":   balance,
+			"Now":       time.Now(),
 		},
 	})
 }

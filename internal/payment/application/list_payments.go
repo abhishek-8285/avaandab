@@ -54,9 +54,10 @@ func (uc *ListPaymentsUseCase) Execute(ctx context.Context, q ListPaymentsQuery)
 		dtos := make([]PaymentResponseDTO, len(rows))
 		for i, p := range rows {
 			dtos[i] = PaymentResponseDTO{
-				ID:          p.ID,
-				InvoiceID:   p.InvoiceID,
-				PaymentDate: p.PaymentDate,
+				ID:            p.ID,
+				InvoiceID:     p.InvoiceID,
+				InvoiceNumber: p.InvoiceNumber,
+				PaymentDate:   p.PaymentDate,
 				Amount:      p.Amount,
 				Method:      p.Method,
 				Reference:   p.Reference,

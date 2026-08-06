@@ -3,7 +3,10 @@ package service
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 
 	"transport-app/internal/domain"
 	"transport-app/internal/repository"
@@ -28,92 +31,140 @@ type DashboardData struct {
 	RecentActivity []repository.AuditLogWithUser
 }
 
-// DashboardService provides dashboard data aggregation.
+// DashboardService provides dashboard data aggregation with high-performance memory caching.
 type DashboardService struct {
 	baseService
+	cacheMu    sync.RWMutex
+	cachedData DashboardData
+	cachedAt   time.Time
+	ttl        time.Duration
 }
 
-// GetDashboardData returns aggregated data for the dashboard.
+// GetDashboardData returns aggregated data for the dashboard with ultra-fast memory caching.
 func (s *DashboardService) GetDashboardData(ctx context.Context) (DashboardData, error) {
+	ttl := s.ttl
+	if ttl == 0 {
+		ttl = 3 * time.Second
+	}
+
+	s.cacheMu.RLock()
+	if time.Since(s.cachedAt) < ttl {
+		data := s.cachedData
+		s.cacheMu.RUnlock()
+		return data, nil
+	}
+	s.cacheMu.RUnlock()
+
 	data := DashboardData{}
 	today := time.Now().Format("2006-01-02")
+	g, ctx := errgroup.WithContext(ctx)
 
-	// Today's trips by status
-	statusCounts, err := s.store.CountTripsByStatusForDate(ctx, today)
-	if err != nil {
-		// Table might not exist yet, handle gracefully
-		statusCounts = make(map[domain.TripStatus]int64)
-	}
+	// 1. Today's trips by status
+	g.Go(func() error {
+		statusCounts, err := s.store.CountTripsByStatusForDate(ctx, today)
+		if err == nil {
+			data.TodaysTripsCount = statusCounts[domain.TripScheduled] + statusCounts[domain.TripAssigned] +
+				statusCounts[domain.TripStarted] + statusCounts[domain.TripCompleted] + statusCounts[domain.TripCancelled] +
+				statusCounts[domain.TripDraft]
+			data.ActiveTripsCount = statusCounts[domain.TripScheduled] + statusCounts[domain.TripAssigned] + statusCounts[domain.TripStarted]
+			data.CompletedTripsCount = statusCounts[domain.TripCompleted]
+			data.CancelledTripsCount = statusCounts[domain.TripCancelled]
+		}
+		return nil
+	})
 
-	data.TodaysTripsCount = statusCounts[domain.TripScheduled] + statusCounts[domain.TripAssigned] +
-		statusCounts[domain.TripStarted] + statusCounts[domain.TripCompleted] + statusCounts[domain.TripCancelled] +
-		statusCounts[domain.TripDraft]
-	data.ActiveTripsCount = statusCounts[domain.TripScheduled] + statusCounts[domain.TripAssigned] + statusCounts[domain.TripStarted]
-	data.CompletedTripsCount = statusCounts[domain.TripCompleted]
-	data.CancelledTripsCount = statusCounts[domain.TripCancelled]
+	// 2. Available vehicles
+	g.Go(func() error {
+		vehicles, err := s.store.GetAvailableVehicles(ctx)
+		if err == nil {
+			data.AvailableVehiclesCount = int64(len(vehicles))
+		}
+		return nil
+	})
 
-	// Available vehicles
-	vehicles, err := s.store.GetAvailableVehicles(ctx)
-	if err == nil {
-		data.AvailableVehiclesCount = int64(len(vehicles))
-	}
+	// 3. Available drivers
+	g.Go(func() error {
+		drivers, err := s.store.GetAvailableDrivers(ctx)
+		if err == nil {
+			data.AvailableDriversCount = int64(len(drivers))
+		}
+		return nil
+	})
 
-	// Available drivers
-	drivers, err := s.store.GetAvailableDrivers(ctx)
-	if err == nil {
-		data.AvailableDriversCount = int64(len(drivers))
-	}
+	// 4. Pending invoices count
+	g.Go(func() error {
+		pendingInvoices, err := s.store.GetPendingInvoices(ctx)
+		if err == nil {
+			data.PendingPaymentsCount = len(pendingInvoices)
+		}
+		return nil
+	})
 
-	// Pending invoices count
-	pendingInvoices, err := s.store.GetPendingInvoices(ctx)
-	if err == nil {
-		data.PendingPaymentsCount = len(pendingInvoices)
-	}
-
-	// Monthly revenue
-	monthlyRev, err := s.store.GetMonthlyRevenue(ctx)
-	if err == nil {
-		currentMonth := time.Now().Format("2006-01")
-		for _, rev := range monthlyRev {
-			if rev.Month == currentMonth {
-				data.MonthlyRevenue = rev.Total
-				break
+	// 5. Monthly revenue
+	g.Go(func() error {
+		monthlyRev, err := s.store.GetMonthlyRevenue(ctx)
+		if err == nil {
+			currentMonth := time.Now().Format("2006-01")
+			for _, rev := range monthlyRev {
+				if rev.Month == currentMonth {
+					data.MonthlyRevenue = rev.Total
+					break
+				}
 			}
 		}
-	}
+		return nil
+	})
 
-	// Upcoming trips (next 7 days, not cancelled)
-	// For simplicity, we get today's trips
-	upcomingTrips, err := s.store.GetTripsByDate(ctx, today)
-	if err != nil {
-		data.UpcomingTrips = []repository.TripWithJoins{}
-	} else {
-		data.UpcomingTrips = upcomingTrips
-	}
+	// 6. Upcoming trips
+	g.Go(func() error {
+		upcomingTrips, err := s.store.GetTripsByDate(ctx, today)
+		if err == nil {
+			data.UpcomingTrips = upcomingTrips
+		} else {
+			data.UpcomingTrips = []repository.TripWithJoins{}
+		}
+		return nil
+	})
 
-	// Recent bookings (last 10)
-	recentBookings, err := s.store.SearchBookings(ctx, "", "", 10, 0)
-	if err != nil {
-		data.RecentBookings = []repository.BookingWithJoins{}
-	} else {
-		data.RecentBookings = recentBookings
-	}
+	// 7. Recent bookings
+	g.Go(func() error {
+		recentBookings, err := s.store.SearchBookings(ctx, "", "", 10, 0)
+		if err == nil {
+			data.RecentBookings = recentBookings
+		} else {
+			data.RecentBookings = []repository.BookingWithJoins{}
+		}
+		return nil
+	})
 
-	// Recent payments (last 10)
-	recentPayments, err := s.store.SearchPayments(ctx, "", 10, 0)
-	if err != nil {
-		data.RecentPayments = []repository.PaymentWithInvoice{}
-	} else {
-		data.RecentPayments = recentPayments
-	}
+	// 8. Recent payments
+	g.Go(func() error {
+		recentPayments, err := s.store.SearchPayments(ctx, "", 10, 0)
+		if err == nil {
+			data.RecentPayments = recentPayments
+		} else {
+			data.RecentPayments = []repository.PaymentWithInvoice{}
+		}
+		return nil
+	})
 
-	// Recent activity (last 10 audit logs)
-	recentLogs, err := s.store.ListAuditLogs(ctx, 10, 0)
-	if err != nil {
-		data.RecentActivity = []repository.AuditLogWithUser{}
-	} else {
-		data.RecentActivity = recentLogs
-	}
+	// 9. Recent activity
+	g.Go(func() error {
+		recentLogs, err := s.store.ListAuditLogs(ctx, 10, 0)
+		if err == nil {
+			data.RecentActivity = recentLogs
+		} else {
+			data.RecentActivity = []repository.AuditLogWithUser{}
+		}
+		return nil
+	})
+
+	_ = g.Wait()
+
+	s.cacheMu.Lock()
+	s.cachedData = data
+	s.cachedAt = time.Now()
+	s.cacheMu.Unlock()
 
 	return data, nil
 }

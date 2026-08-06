@@ -15,10 +15,14 @@ import (
 type InvoiceResponseDTO struct {
 	ID            string    `json:"id"`
 	InvoiceNumber string    `json:"invoice_number"`
-	BookingID     string    `json:"booking_id"`
-	CustomerID    string    `json:"customer_id"`
-	TripID        *string   `json:"trip_id"`
-	Subtotal      float64   `json:"subtotal"`
+	BookingID       string    `json:"booking_id"`
+	BookingNumber   string    `json:"booking_number"`
+	CustomerID      string    `json:"customer_id"`
+	CustomerName    string    `json:"customer_name"`
+	CustomerCompany string    `json:"customer_company"`
+	TripID          *string   `json:"trip_id"`
+	TripNumber      string    `json:"trip_number"`
+	Subtotal        float64   `json:"subtotal"`
 	Tax           float64   `json:"tax"`
 	Discount      float64   `json:"discount"`
 	Total         float64   `json:"total"`
@@ -58,18 +62,22 @@ func (uc *GetInvoiceUseCase) Execute(ctx context.Context, q GetInvoiceQuery) (In
 		}
 
 		dto = InvoiceResponseDTO{
-			ID:            inv.ID,
-			InvoiceNumber: inv.InvoiceNumber,
-			BookingID:     inv.BookingID,
-			CustomerID:    inv.CustomerID,
-			TripID:        inv.TripID,
-			Subtotal:      inv.Subtotal,
-			Tax:           inv.Tax,
-			Discount:      inv.Discount,
-			Total:         inv.Total,
-			PaymentStatus: inv.PaymentStatus,
-			CreatedAt:     inv.CreatedAt,
-			UpdatedAt:     inv.UpdatedAt,
+			ID:              inv.ID,
+			InvoiceNumber:   inv.InvoiceNumber,
+			BookingID:       inv.BookingID,
+			BookingNumber:   inv.BookingNumber,
+			CustomerID:      inv.CustomerID,
+			CustomerName:    inv.CustomerName,
+			CustomerCompany: inv.CustomerCompany,
+			TripID:          inv.TripID,
+			TripNumber:      inv.TripNumber,
+			Subtotal:        inv.Subtotal,
+			Tax:             inv.Tax,
+			Discount:        inv.Discount,
+			Total:           inv.Total,
+			PaymentStatus:   inv.PaymentStatus,
+			CreatedAt:       inv.CreatedAt,
+			UpdatedAt:       inv.UpdatedAt,
 		}
 		return nil
 	})

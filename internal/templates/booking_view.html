@@ -2,13 +2,13 @@
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex justify-between items-start mb-4">
             <div>
-                <h2 class="text-xl font-semibold">{{.Booking.BookingNumber}}</h2>
+                <h2 class="text-2xl font-bold text-gray-900">{{.Booking.BookingNumber}}</h2>
                 <span class="px-2 py-1 text-xs rounded-full {{statusBadge .Booking.Status}}">{{.Booking.Status}}</span>
             </div>
-            <div class="flex space-x-2">
+            <div class="flex flex-wrap gap-2 items-start mt-2 sm:mt-0">
                 {{if eq .Booking.Status "pending"}}
                 <form method="POST" action="/bookings/{{.Booking.ID}}/confirm" class="inline">
-                    <button type="submit" class="px-3 py-1 min-h-[44px] flex items-center justify-center bg-blue-600 text-white rounded-md hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-blue-900">Confirm</button>
+                    <button type="submit" class="px-3 py-1 min-h-[44px] flex items-center justify-center bg-brand-600 text-white rounded-md hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:bg-brand-800">Confirm</button>
                 </form>
                 {{end}}
                 {{if or (eq .Booking.Status "pending") (eq .Booking.Status "confirmed")}}
@@ -18,6 +18,9 @@
                 <a href="/bookings/{{.Booking.ID}}/edit" class="px-3 py-1 min-h-[44px] flex items-center justify-center bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 active:bg-green-700">Edit</a>
                 {{end}}
                 {{if eq .Booking.Status "confirmed"}}
+                <form method="POST" action="/bookings/{{.Booking.ID}}/complete" class="inline">
+                    <button type="submit" class="px-3 py-1 min-h-[44px] flex items-center justify-center bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 active:bg-indigo-800">Complete</button>
+                </form>
                 <a href="/trips/new?booking={{.Booking.ID}}" class="px-3 py-1 min-h-[44px] flex items-center justify-center bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 active:bg-purple-700">Create Trip</a>
                 {{end}}
             </div>
@@ -25,43 +28,43 @@
 
         <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <div>
-                <dt class="text-sm text-gray-500">Customer</dt>
-                <dd class="text-sm font-medium">{{.Booking.CustomerName}}</dd>
+                <dt class="field-label text-gray-500">Customer</dt>
+                <dd class="text-sm font-medium text-gray-900">{{.Booking.CustomerName}}</dd>
             </div>
             <div>
-                <dt class="text-sm text-gray-500">Route</dt>
-                <dd class="text-sm font-medium">{{.Booking.RouteSource}} → {{.Booking.RouteDestination}}</dd>
+                <dt class="field-label text-gray-500">Route</dt>
+                <dd class="text-sm font-medium text-gray-900">{{.Booking.RouteSource}} → {{.Booking.RouteDestination}}</dd>
             </div>
             <div>
-                <dt class="text-sm text-gray-500">Pickup Date</dt>
-                <dd class="text-sm font-medium">{{datetime .Booking.PickupDate}}</dd>
+                <dt class="field-label text-gray-500">Pickup Date</dt>
+                <dd class="text-sm font-medium text-gray-900">{{datetime .Booking.PickupDate}}</dd>
             </div>
             <div>
-                <dt class="text-sm text-gray-500">Vehicle Type</dt>
-                <dd class="text-sm font-medium">{{.Booking.VehicleType}}</dd>
+                <dt class="field-label text-gray-500">Vehicle Type</dt>
+                <dd class="text-sm font-medium text-gray-900">{{.Booking.VehicleType}}</dd>
             </div>
             <div>
-                <dt class="text-sm text-gray-500">Passengers</dt>
-                <dd class="text-sm font-medium">{{.Booking.Passengers}}</dd>
+                <dt class="field-label text-gray-500">Passengers</dt>
+                <dd class="text-sm font-medium text-gray-900">{{.Booking.Passengers}}</dd>
             </div>
             <div>
-                <dt class="text-sm text-gray-500">Cargo Weight</dt>
-                <dd class="text-sm font-medium">{{if .Booking.CargoWeight}}{{.Booking.CargoWeight}}{{end}}</dd>
+                <dt class="field-label text-gray-500">Cargo Weight</dt>
+                <dd class="text-sm font-medium text-gray-900" data-numeric>{{if .Booking.CargoWeight}}{{.Booking.CargoWeight}}{{end}}</dd>
             </div>
             <div>
-                <dt class="text-sm text-gray-500">Price</dt>
-                <dd class="text-sm font-medium">{{printf "%.2f" .Booking.Price}}</dd>
+                <dt class="field-label text-gray-500">Price</dt>
+                <dd class="text-sm font-medium text-gray-900" data-numeric>{{printf "%.2f" .Booking.Price}}</dd>
             </div>
             <div>
-                <dt class="text-sm text-gray-500">Created</dt>
-                <dd class="text-sm font-medium">{{datetime .Booking.CreatedAt}}</dd>
+                <dt class="field-label text-gray-500">Created</dt>
+                <dd class="text-sm font-medium text-gray-900">{{datetime .Booking.CreatedAt}}</dd>
             </div>
         </dl>
 
         {{if .Booking.Notes}}
         <div class="mt-4">
-            <dt class="text-sm text-gray-500">Notes</dt>
-            <dd class="text-sm font-medium">{{nullString .Booking.Notes}}</dd>
+            <dt class="field-label text-gray-500">Notes</dt>
+            <dd class="text-sm font-medium text-gray-900">{{nullString .Booking.Notes}}</dd>
         </div>
         {{end}}
     </div>

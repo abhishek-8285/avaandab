@@ -17,7 +17,7 @@ func (s *CompanySettingsService) GetSettings(ctx context.Context) (domain.Compan
 }
 
 // UpdateSettings updates the company settings.
-func (s *CompanySettingsService) UpdateSettings(ctx context.Context, companyName, currency, timezone string, gstEnabled bool, gstRate float64, bookingPrefix, tripPrefix, invoicePrefix string, address, phone, email, gstNumber string) (domain.CompanySettings, error) {
+func (s *CompanySettingsService) UpdateSettings(ctx context.Context, companyName, currency, timezone string, gstEnabled bool, gstRate float64, bookingPrefix, tripPrefix, invoicePrefix, financialYear string, address, phone, email, gstNumber string, logoPath *string) (domain.CompanySettings, error) {
 	settings := domain.CompanySettings{
 		CompanyName:   companyName,
 		Currency:      currency,
@@ -27,10 +27,12 @@ func (s *CompanySettingsService) UpdateSettings(ctx context.Context, companyName
 		BookingPrefix: bookingPrefix,
 		TripPrefix:    tripPrefix,
 		InvoicePrefix: invoicePrefix,
+		FinancialYear: strPtr(financialYear),
 		Address:       &address,
 		Phone:         &phone,
 		Email:         &email,
 		GSTNumber:     &gstNumber,
+		LogoPath:      logoPath,
 	}
 
 	updated, err := s.store.UpdateCompanySettings(ctx, settings)

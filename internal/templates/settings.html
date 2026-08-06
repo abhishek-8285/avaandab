@@ -1,31 +1,43 @@
 <div class="max-w-2xl mx-auto">
-    <h2 class="text-xl font-semibold mb-4">Company Settings</h2>
+    <h2 class="text-2xl font-bold mb-4 text-gray-900">Company Settings</h2>
 
     {{if .FlashError}}
     <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">{{.FlashError}}</div>
     {{end}}
 
-    <form method="POST" action="/settings/update" class="space-y-4">
+    <form method="POST" action="/settings/update" enctype="multipart/form-data" class="space-y-4">
         <div>
             <label class="block text-sm font-medium text-gray-700">Company Name</label>
             <input type="text" name="company_name" value="{{if .Settings}}{{.Settings.CompanyName}}{{end}}"
-                class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Logo</label>
+            {{if .Settings.LogoPath}}
+            <div class="mb-2">
+                <img src="/uploads/{{.Settings.LogoPath}}" alt="Company Logo" class="max-h-24 rounded border border-gray-300">
+            </div>
+            {{end}}
+            <input type="file" name="logo" accept="image/*"
+                class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            <p class="text-xs text-gray-500 mt-1">Leave empty to keep the current logo.</p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700">Currency</label>
                 <input type="text" name="currency" value="{{if .Settings}}{{.Settings.Currency}}{{end}}"
-                    class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Timezone</label>
                 <input type="text" name="timezone" value="{{if .Settings}}{{.Settings.Timezone}}{{end}}"
-                    class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">GST Enabled</label>
-                <select name="gst_enabled" class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                <select name="gst_enabled" class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                     <option value="1" {{if .Settings.GSTEnabled}}selected{{end}}>Yes</option>
                     <option value="0" {{if not .Settings.GSTEnabled}}selected{{end}}>No</option>
                 </select>
@@ -35,50 +47,57 @@
         <div>
             <label class="block text-sm font-medium text-gray-700">GST Rate (%)</label>
             <input type="number" step="0.01" name="gst_rate" value="{{if .Settings}}{{.Settings.GSTRate}}{{end}}"
-                class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700">GST Registration Number</label>
             <input type="text" name="gst_number" value="{{if .Settings}}{{nullString .Settings.GSTNumber}}{{end}}"
-                class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700">Phone</label>
                 <input type="text" name="phone" value="{{if .Settings}}{{nullString .Settings.Phone}}{{end}}"
-                    class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Email</label>
                 <input type="email" name="email" value="{{if .Settings}}{{nullString .Settings.Email}}{{end}}"
-                    class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
             </div>
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700">Address</label>
             <textarea name="address" rows="3"
-                class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">{{if .Settings}}{{nullString .Settings.Address}}{{end}}</textarea>
+                class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">{{if .Settings}}{{nullString .Settings.Address}}{{end}}</textarea>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700">Booking Prefix</label>
                 <input type="text" name="booking_prefix" value="{{if .Settings}}{{.Settings.BookingPrefix}}{{end}}"
-                    class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Trip Prefix</label>
                 <input type="text" name="trip_prefix" value="{{if .Settings}}{{.Settings.TripPrefix}}{{end}}"
-                    class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Invoice Prefix</label>
                 <input type="text" name="invoice_prefix" value="{{if .Settings}}{{.Settings.InvoicePrefix}}{{end}}"
-                    class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
             </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Financial Year</label>
+            <input type="text" name="financial_year" value="{{if .Settings}}{{nullString .Settings.FinancialYear}}{{end}}"
+                placeholder="e.g. 2024-2025"
+                class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
         </div>
 
         <div class="flex justify-end space-x-3 pt-4">

@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gorilla/securecookie"
@@ -18,6 +19,7 @@ const (
 	ContextUser  ContextKey = "user"
 	ContextRole  ContextKey = "role"
 	ContextReqID ContextKey = "request_id"
+	ContextIP    ContextKey = "ip_address"
 )
 
 // SessionStore manages secure cookie-based sessions.
@@ -108,6 +110,21 @@ func GenerateSecureToken() (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(b), nil
+}
+
+// ClientIP extracts the client IP from the request, checking
+// X-Forwarded-For first (for reverse proxies) and falling back to RemoteAddr.
+func ClientIP(r *http.Request) string {
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		if idx := strings.LastIndex(xff, ","); idx >= 0 {
+			return strings.TrimSpace(xff[idx+1:])
+		}
+		return strings.TrimSpace(xff)
+	}
+	if ip := strings.TrimSpace(r.RemoteAddr); ip != "" {
+		return ip
+	}
+	return ""
 }
 
 // HashToken hashes a session token for storage.

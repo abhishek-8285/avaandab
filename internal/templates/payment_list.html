@@ -1,12 +1,12 @@
 <div>
     <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-semibold text-gray-800">Payments</h2>
+        <h2 class="text-2xl font-bold text-gray-900">Payments</h2>
     </div>
 
     <form method="GET" action="/payments" class="mb-4 flex gap-2">
         <input type="text" name="q" placeholder="Search payments..."
-            class="flex-1 text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-        <select name="method" class="text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            class="flex-1 text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+        <select name="method" class="text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
             <option value="">All Methods</option>
             <option value="cash" {{if eq .Method "cash"}}selected{{end}}>Cash</option>
             <option value="upi" {{if eq .Method "upi"}}selected{{end}}>UPI</option>
@@ -20,24 +20,24 @@
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Invoice</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Method</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Reference</th>
-                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    <th class="th-cell">Invoice</th>
+                    <th class="th-cell">Date</th>
+                    <th class="th-cell">Amount</th>
+                    <th class="th-cell">Method</th>
+                    <th class="th-cell">Reference</th>
+                    <th class="th-cell-right">Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
                 {{range .Payments}}
                 <tr>
-                    <td class="px-4 py-2 text-sm">{{.InvoiceNumber}}</td>
-                    <td class="px-4 py-2 text-sm">{{datetime .PaymentDate}}</td>
-                    <td class="px-4 py-2 text-sm">{{printf "%.2f" .Amount}}</td>
-                    <td class="px-4 py-2 text-sm">{{.Method}}</td>
-                    <td class="px-4 py-2 text-sm">{{nullString .Reference}}</td>
-                    <td class="px-4 py-2 text-right text-sm space-x-1">
-                        <a href="/payments/{{.ID}}" class="text-blue-600 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded">View</a>
+                    <td class="td-cell">{{.InvoiceNumber}}</td>
+                    <td class="td-cell">{{datetime .PaymentDate}}</td>
+                    <td class="td-cell">{{printf "%.2f" .Amount}}</td>
+                    <td class="td-cell">{{.Method}}</td>
+                    <td class="td-cell">{{nullString .Reference}}</td>
+                    <td class="td-cell-actions">
+                        <a href="/payments/{{.ID}}" class="action-view">View</a>
                     </td>
                 </tr>
                 {{end}}
@@ -45,11 +45,5 @@
         </table>
     </div>
 
-    {{$pd := .Pagination}}
-    {{if $pd.HasPrev}}
-    <a href="/payments?page={{sub $pd.Page 1}}" class="inline-block px-3 py-1 min-h-[44px] flex items-center justify-center bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 active:bg-gray-300">Prev</a>
-    {{end}}
-    {{if $pd.HasNext}}
-    <a href="/payments?page={{add $pd.Page 1}}" class="inline-block px-3 py-1 min-h-[44px] flex items-center justify-center bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 active:bg-gray-300">Next</a>
-    {{end}}
+    {{template "pagination.html" .}}
 </div>

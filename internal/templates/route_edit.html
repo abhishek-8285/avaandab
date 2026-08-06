@@ -1,5 +1,5 @@
 <div class="max-w-2xl mx-auto">
-    <h2 class="text-xl font-semibold mb-4">{{if .Route}}Edit Route{{else}}New Route{{end}}</h2>
+    <h2 class="text-2xl font-bold mb-4 text-gray-900">{{if .Route}}Edit Route{{else}}New Route{{end}}</h2>
 
     {{if .FlashError}}
     <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">{{.FlashError}}</div>
@@ -12,12 +12,12 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700">Source *</label>
                 <input type="text" name="source" value="{{if $route}}{{$route.Source}}{{end}}" required
-                    class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Destination *</label>
                 <input type="text" name="destination" value="{{if $route}}{{$route.Destination}}{{end}}" required
-                    class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
             </div>
         </div>
 
@@ -25,28 +25,28 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700">Distance (km)</label>
                 <input type="number" step="0.1" name="distance" value="{{if $route}}{{$route.Distance}}{{end}}"
-                    class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Est. Hours</label>
                 <input type="number" step="0.1" name="estimated_hours" value="{{if $route}}{{$route.EstimatedHours}}{{end}}"
-                    class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Standard Fare</label>
                 <input type="number" step="0.01" name="standard_fare" value="{{if $route}}{{$route.StandardFare}}{{end}}"
-                    class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
             </div>
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700">Remarks</label>
             <textarea name="remarks" rows="2"
-                class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">{{if $route}}{{nullString $route.Remarks}}{{end}}</textarea>
+                class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">{{if $route}}{{nullString $route.Remarks}}{{end}}</textarea>
         </div>
 
         <div class="flex justify-end space-x-3 pt-4">
-            <a href="/routes" class="px-4 py-2 min-h-[44px] flex items-center justify-center border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 active:bg-gray-100>Cancel</a>
+            <a href="/routes" class="px-4 py-2 min-h-[44px] flex items-center justify-center border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 active:bg-gray-100">Cancel</a>
             <button type="submit"
                 class="px-4 py-2 min-h-[44px] bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-blue-800">Save Route</button>
         </div>

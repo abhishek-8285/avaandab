@@ -34,6 +34,11 @@ type TripResponseDTO struct {
 	UpdatedAt                 time.Time  `json:"updated_at"`
 }
 
+// VehicleRegistration returns VehicleRegistrationNumber for template compatibility.
+func (t TripResponseDTO) VehicleRegistration() string {
+	return t.VehicleRegistrationNumber
+}
+
 // GetTripQuery parameters.
 type GetTripQuery struct {
 	TripID   aggregate.TripID

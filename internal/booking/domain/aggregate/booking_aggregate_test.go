@@ -100,3 +100,47 @@ func TestBookingAggregate_Cancel(t *testing.T) {
 	err = agg.Confirm(now)
 	assert.Error(t, err)
 }
+
+func TestBookingAggregate_Complete(t *testing.T) {
+	now := time.Now()
+	tenantID := shared.TenantID("1")
+	price, _ := shared.NewMoney(15000, "USD")
+
+	agg := NewBookingAggregate(
+		"bk-123",
+		tenantID,
+		"BK-0001",
+		"cust-123",
+		"route-123",
+		now.Add(24*time.Hour),
+		"Truck",
+		2,
+		nil,
+		price,
+		"",
+		now,
+	)
+
+	// Cannot complete pending booking
+	err := agg.Complete(now)
+	assert.Error(t, err)
+
+	// Confirm first
+	agg.ClearEvents()
+	err = agg.Confirm(now)
+	assert.NoError(t, err)
+
+	// Now can complete
+	agg.ClearEvents()
+	err = agg.Complete(now)
+	assert.NoError(t, err)
+	assert.Equal(t, BookingCompleted, agg.Status)
+	assert.Len(t, agg.Events(), 1)
+
+	_, ok := agg.Events()[0].(BookingCompletedEvent)
+	assert.True(t, ok)
+
+	// Cannot complete twice
+	err = agg.Complete(now)
+	assert.Error(t, err)
+}

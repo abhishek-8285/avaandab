@@ -11,9 +11,9 @@ import (
 )
 
 const ensureCompanySettings = `-- name: EnsureCompanySettings :one
-INSERT OR IGNORE INTO company_settings (id, company_name, currency, timezone, gst_enabled, gst_rate, booking_prefix, trip_prefix, invoice_prefix)
-VALUES (1, 'Transport Company', 'INR', 'Asia/Kolkata', 0, 0.0, 'BK', 'TR', 'INV')
-RETURNING id, company_name, logo_path, currency, timezone, gst_enabled, gst_rate, booking_prefix, trip_prefix, invoice_prefix, created_at, updated_at, address, phone, email, gst_number
+INSERT OR IGNORE INTO company_settings (id, company_name, currency, timezone, gst_enabled, gst_rate, booking_prefix, trip_prefix, invoice_prefix, financial_year)
+VALUES (1, 'Transport Company', 'INR', 'Asia/Kolkata', 0, 0.0, 'BK', 'TR', 'INV', NULL)
+RETURNING id, company_name, logo_path, currency, timezone, gst_enabled, gst_rate, booking_prefix, trip_prefix, invoice_prefix, created_at, updated_at, address, phone, email, gst_number, financial_year
 `
 
 func (q *Queries) EnsureCompanySettings(ctx context.Context) (CompanySetting, error) {
@@ -36,12 +36,13 @@ func (q *Queries) EnsureCompanySettings(ctx context.Context) (CompanySetting, er
 		&i.Phone,
 		&i.Email,
 		&i.GstNumber,
+		&i.FinancialYear,
 	)
 	return i, err
 }
 
 const getCompanySettings = `-- name: GetCompanySettings :one
-SELECT id, company_name, logo_path, currency, timezone, gst_enabled, gst_rate, booking_prefix, trip_prefix, invoice_prefix, created_at, updated_at, address, phone, email, gst_number FROM company_settings WHERE id = 1
+SELECT id, company_name, logo_path, currency, timezone, gst_enabled, gst_rate, booking_prefix, trip_prefix, invoice_prefix, created_at, updated_at, address, phone, email, gst_number, financial_year FROM company_settings WHERE id = 1
 `
 
 func (q *Queries) GetCompanySettings(ctx context.Context) (CompanySetting, error) {
@@ -64,6 +65,7 @@ func (q *Queries) GetCompanySettings(ctx context.Context) (CompanySetting, error
 		&i.Phone,
 		&i.Email,
 		&i.GstNumber,
+		&i.FinancialYear,
 	)
 	return i, err
 }
@@ -72,10 +74,11 @@ const updateCompanySettings = `-- name: UpdateCompanySettings :one
 UPDATE company_settings
 SET company_name = ?, logo_path = ?, currency = ?, timezone = ?,
     gst_enabled = ?, gst_rate = ?, booking_prefix = ?, trip_prefix = ?, invoice_prefix = ?,
+    financial_year = ?,
     address = ?, phone = ?, email = ?, gst_number = ?,
     updated_at = datetime('now')
 WHERE id = 1
-RETURNING id, company_name, logo_path, currency, timezone, gst_enabled, gst_rate, booking_prefix, trip_prefix, invoice_prefix, created_at, updated_at, address, phone, email, gst_number
+RETURNING id, company_name, logo_path, currency, timezone, gst_enabled, gst_rate, booking_prefix, trip_prefix, invoice_prefix, created_at, updated_at, address, phone, email, gst_number, financial_year
 `
 
 type UpdateCompanySettingsParams struct {
@@ -88,6 +91,7 @@ type UpdateCompanySettingsParams struct {
 	BookingPrefix string         `json:"booking_prefix"`
 	TripPrefix    string         `json:"trip_prefix"`
 	InvoicePrefix string         `json:"invoice_prefix"`
+	FinancialYear sql.NullString `json:"financial_year"`
 	Address       sql.NullString `json:"address"`
 	Phone         sql.NullString `json:"phone"`
 	Email         sql.NullString `json:"email"`
@@ -105,6 +109,7 @@ func (q *Queries) UpdateCompanySettings(ctx context.Context, arg UpdateCompanySe
 		arg.BookingPrefix,
 		arg.TripPrefix,
 		arg.InvoicePrefix,
+		arg.FinancialYear,
 		arg.Address,
 		arg.Phone,
 		arg.Email,
@@ -128,6 +133,7 @@ func (q *Queries) UpdateCompanySettings(ctx context.Context, arg UpdateCompanySe
 		&i.Phone,
 		&i.Email,
 		&i.GstNumber,
+		&i.FinancialYear,
 	)
 	return i, err
 }

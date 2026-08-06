@@ -11,12 +11,15 @@ type TripID string
 type TripStatus string
 
 const (
-	TripDraft     TripStatus = "draft"
-	TripScheduled TripStatus = "scheduled"
-	TripAssigned  TripStatus = "assigned"
-	TripStarted   TripStatus = "started"
-	TripCompleted TripStatus = "completed"
-	TripCancelled TripStatus = "cancelled"
+	TripDraft          TripStatus = "draft"
+	TripScheduled      TripStatus = "scheduled"
+	TripAssigned       TripStatus = "assigned"
+	TripStarted        TripStatus = "started"
+	TripReachedPickup  TripStatus = "reached_pickup"
+	TripInTransit      TripStatus = "in_transit"
+	TripDelivered      TripStatus = "delivered"
+	TripCompleted      TripStatus = "completed"
+	TripCancelled      TripStatus = "cancelled"
 )
 
 // TripAggregate represents the consistency boundary for a single transport Trip.
@@ -32,9 +35,17 @@ type TripAggregate struct {
 	ArrivalTime   *time.Time
 	Status        TripStatus
 	Remarks       string
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
-	Version       int64
+
+	// Timeline timestamps
+	StartedAt       *time.Time
+	ReachedPickupAt *time.Time
+	InTransitAt     *time.Time
+	DeliveredAt     *time.Time
+	CompletedAt     *time.Time
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Version   int64
 
 	events []any
 }
@@ -94,7 +105,9 @@ func (t *TripAggregate) AssignDriver(driverID string, now time.Time) error {
 		return errors.New("cannot assign driver to completed or cancelled trip")
 	}
 	t.DriverID = &driverID
-	t.Status = TripAssigned
+	if t.Status == TripScheduled {
+		t.Status = TripAssigned
+	}
 	t.UpdatedAt = now
 	t.RecordEvent(TripAssignedEvent{
 		TripID:     t.ID,
@@ -121,8 +134,57 @@ func (t *TripAggregate) Start(now time.Time) error {
 		return errors.New("trip must be scheduled or assigned to start")
 	}
 	t.Status = TripStarted
+	t.StartedAt = &now
 	t.UpdatedAt = now
 	t.RecordEvent(TripStartedEvent{
+		TripID:     t.ID,
+		TenantID:   t.TenantID,
+		OccurredAt: now,
+	})
+	return nil
+}
+
+// ReachPickup moves status to reached_pickup.
+func (t *TripAggregate) ReachPickup(now time.Time) error {
+	if t.Status != TripStarted {
+		return errors.New("trip must be started before reaching pickup")
+	}
+	t.Status = TripReachedPickup
+	t.ReachedPickupAt = &now
+	t.UpdatedAt = now
+	t.RecordEvent(TripReachedPickupEvent{
+		TripID:        t.ID,
+		TenantID:      t.TenantID,
+		OccurredAt:    now,
+	})
+	return nil
+}
+
+// StartTransit moves status to in_transit.
+func (t *TripAggregate) StartTransit(now time.Time) error {
+	if t.Status != TripReachedPickup {
+		return errors.New("trip must have reached pickup before going in transit")
+	}
+	t.Status = TripInTransit
+	t.InTransitAt = &now
+	t.UpdatedAt = now
+	t.RecordEvent(TripInTransitEvent{
+		TripID:     t.ID,
+		TenantID:   t.TenantID,
+		OccurredAt: now,
+	})
+	return nil
+}
+
+// Deliver moves status to delivered.
+func (t *TripAggregate) Deliver(now time.Time) error {
+	if t.Status != TripInTransit {
+		return errors.New("trip must be in transit before being delivered")
+	}
+	t.Status = TripDelivered
+	t.DeliveredAt = &now
+	t.UpdatedAt = now
+	t.RecordEvent(TripDeliveredEvent{
 		TripID:     t.ID,
 		TenantID:   t.TenantID,
 		OccurredAt: now,
@@ -135,10 +197,11 @@ func (t *TripAggregate) Complete(now time.Time) error {
 	if t.Status == TripCompleted {
 		return nil
 	}
-	if t.Status != TripStarted {
-		return errors.New("only started trips can be completed")
+	if t.Status != TripDelivered {
+		return errors.New("only delivered trips can be completed")
 	}
 	t.Status = TripCompleted
+	t.CompletedAt = &now
 	t.ArrivalTime = &now
 	t.UpdatedAt = now
 	t.RecordEvent(TripCompletedEvent{
@@ -201,6 +264,24 @@ type TripAssignedEvent struct {
 }
 
 type TripStartedEvent struct {
+	TripID     TripID
+	TenantID   shared.TenantID
+	OccurredAt time.Time
+}
+
+type TripReachedPickupEvent struct {
+	TripID     TripID
+	TenantID   shared.TenantID
+	OccurredAt time.Time
+}
+
+type TripInTransitEvent struct {
+	TripID     TripID
+	TenantID   shared.TenantID
+	OccurredAt time.Time
+}
+
+type TripDeliveredEvent struct {
 	TripID     TripID
 	TenantID   shared.TenantID
 	OccurredAt time.Time

@@ -1,4 +1,8 @@
-.PHONY: build run test test-race lint fmt vet generate migrate-up migrate-down clean docker dev
+.PHONY: build run test test-race lint fmt vet generate migrate-up migrate-down clean docker dev build-css
+
+## Build CSS from Tailwind source
+build-css:
+	npx @tailwindcss/cli -i src/input.css -o internal/static/css/tailwind.css --minify
 
 ## Build the server binary
 build:

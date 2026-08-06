@@ -109,6 +109,7 @@ func AuthRequired(store *auth.SessionStore, loginPath string) func(http.Handler)
 			}
 
 			ctx := context.WithValue(r.Context(), auth.ContextUser, data)
+			ctx = context.WithValue(ctx, auth.ContextIP, auth.ClientIP(r))
 			ctx = shared.ContextWithTenantID(ctx, "1")
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

@@ -26,6 +26,9 @@ func NewAssignVehicleUseCase(uow ports.UnitOfWork, clock ports.Clock) *AssignVeh
 }
 
 func (uc *AssignVehicleUseCase) Execute(ctx context.Context, cmd AssignVehicleCommand) error {
+	if cmd.VehicleID == "" {
+		return errors.New("vehicle ID is required")
+	}
 	return uc.uow.Execute(ctx, func(txCtx ports.TxContext) error {
 		repo, ok := txCtx.Repositories().Trips().(domain.TripRepository)
 		if !ok {

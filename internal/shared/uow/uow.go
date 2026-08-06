@@ -43,6 +43,10 @@ func (p *repositoryProvider) Payments() any {
 	return paymentsql.NewPaymentRepository(p.dbConn)
 }
 
+func (p *repositoryProvider) AuditLogs() any {
+	return sqlite.NewRepository(p.dbConn)
+}
+
 type txContext struct {
 	context.Context
 	provider ports.RepositoryProvider

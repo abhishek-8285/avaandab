@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -84,7 +85,7 @@ func (h *TripHandlers) List(w http.ResponseWriter, r *http.Request) {
 	pd := newPaginationData(pp, res.Total, "/trips")
 
 	if isDatastarRequest(r) {
-		h.renderFragment(w, "trip_list_table.html", map[string]interface{}{
+		h.renderFragment(w, "trip_list.html", map[string]interface{}{
 			"Trips":        res.Trips,
 			"Pagination":   pd,
 			"Query":        pp.Query,
@@ -166,13 +167,14 @@ func (h *TripHandlers) Create(w http.ResponseWriter, r *http.Request) {
 
 func (h *TripHandlers) View(w http.ResponseWriter, r *http.Request) {
 	h.init()
+	session, _ := h.getUserFromContext(r)
 	id := chi.URLParam(r, "id")
 	trip, err := h.getUC.Execute(r.Context(), tripapp.GetTripQuery{
 		TripID:   tripagg.TripID(id),
 		TenantID: "1",
 	})
 	if err != nil {
-		http.Error(w, "Trip not found", http.StatusNotFound)
+		h.renderError(w, http.StatusNotFound, "Trip Not Found", fmt.Sprintf("No trip found with ID %q.", id), session)
 		return
 	}
 

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -143,28 +144,30 @@ func (h *DriverHandlers) Create(w http.ResponseWriter, r *http.Request) {
 
 func (h *DriverHandlers) View(w http.ResponseWriter, r *http.Request) {
 	h.init()
+	session, _ := h.getUserFromContext(r)
 	id := chi.URLParam(r, "id")
 	driver, err := h.getUC.Execute(r.Context(), driverapp.GetDriverQuery{
 		ID:       driveragg.DriverID(id),
 		TenantID: "1",
 	})
 	if err != nil {
-		http.Error(w, "Driver not found", http.StatusNotFound)
+		h.renderError(w, http.StatusNotFound, "Driver Not Found", fmt.Sprintf("No driver found with ID %q.", id), session)
 		return
 	}
 	files, _ := h.Services.Files.GetFilesByEntity(r.Context(), "driver_license", id)
-	h.renderPage(w, "driver_view.html", PageData{Title: "View Driver", Extra: map[string]interface{}{"Driver": driver, "Files": files}})
+	h.renderPage(w, "driver_view.html", PageData{Title: "View Driver", User: session, Extra: map[string]interface{}{"Driver": driver, "Files": files}})
 }
 
 func (h *DriverHandlers) Edit(w http.ResponseWriter, r *http.Request) {
 	h.init()
+	session, _ := h.getUserFromContext(r)
 	id := chi.URLParam(r, "id")
 	driver, err := h.getUC.Execute(r.Context(), driverapp.GetDriverQuery{
 		ID:       driveragg.DriverID(id),
 		TenantID: "1",
 	})
 	if err != nil {
-		http.Error(w, "Driver not found", http.StatusNotFound)
+		h.renderError(w, http.StatusNotFound, "Driver Not Found", fmt.Sprintf("No driver found with ID %q.", id), session)
 		return
 	}
 	h.renderForm(w, r, "driver_edit.html", PageData{Title: "Edit Driver", Extra: map[string]interface{}{"Driver": driver}})

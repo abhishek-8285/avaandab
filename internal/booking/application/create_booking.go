@@ -44,6 +44,15 @@ func (uc *CreateBookingUseCase) Execute(ctx context.Context, cmd CreateBookingCo
 	if cmd.RouteID == "" {
 		return "", errors.New("route ID is required")
 	}
+	if cmd.VehicleType == "" {
+		return "", errors.New("vehicle type is required")
+	}
+	if cmd.Passengers < 1 {
+		return "", errors.New("passengers must be at least 1")
+	}
+	if cmd.Price < 0 {
+		return "", errors.New("price cannot be negative")
+	}
 
 	pickupDate, err := time.Parse("2006-01-02", cmd.PickupDate)
 	if err != nil {
@@ -83,7 +92,11 @@ func (uc *CreateBookingUseCase) Execute(ctx context.Context, cmd CreateBookingCo
 		if !ok {
 			return errors.New("failed to retrieve booking repository")
 		}
-		return repo.Save(txCtx, booking)
+		if err := repo.Save(txCtx, booking); err != nil {
+			return err
+		}
+		logAudit(txCtx, ActionCreate, string(booking.ID), nil, nil)
+		return nil
 	})
 
 	if err != nil {

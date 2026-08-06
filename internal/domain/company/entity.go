@@ -18,6 +18,7 @@ type CompanySettings struct {
 	Phone         *string
 	Email         *string
 	GSTNumber     *string
+	FinancialYear *string
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 }

@@ -2,35 +2,35 @@
     <!-- Summary Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div class="bg-white rounded-lg shadow p-4 text-center">
-            <div class="text-2xl font-bold text-blue-600">{{.Stats.TodaysTripsCount}}</div>
+            <div class="text-stat text-blue-600 tabular-nums">{{.Stats.TodaysTripsCount}}</div>
             <div class="text-sm text-gray-600">Today's Trips</div>
         </div>
         <div class="bg-white rounded-lg shadow p-4 text-center">
-            <div class="text-2xl font-bold text-orange-600">{{.Stats.ActiveTripsCount}}</div>
+            <div class="text-stat text-orange-600 tabular-nums">{{.Stats.ActiveTripsCount}}</div>
             <div class="text-sm text-gray-600">Active Trips</div>
         </div>
         <div class="bg-white rounded-lg shadow p-4 text-center">
-            <div class="text-2xl font-bold text-green-600">{{.Stats.CompletedTripsCount}}</div>
+            <div class="text-stat text-green-600 tabular-nums">{{.Stats.CompletedTripsCount}}</div>
             <div class="text-sm text-gray-600">Completed Trips</div>
         </div>
         <div class="bg-white rounded-lg shadow p-4 text-center">
-            <div class="text-2xl font-bold text-red-600">{{.Stats.CancelledTripsCount}}</div>
+            <div class="text-stat text-red-600 tabular-nums">{{.Stats.CancelledTripsCount}}</div>
             <div class="text-sm text-gray-600">Cancelled Trips</div>
         </div>
         <div class="bg-white rounded-lg shadow p-4 text-center">
-            <div class="text-2xl font-bold text-purple-600">{{.Stats.AvailableVehiclesCount}}</div>
+            <div class="text-stat text-purple-600 tabular-nums">{{.Stats.AvailableVehiclesCount}}</div>
             <div class="text-sm text-gray-600">Available Vehicles</div>
         </div>
         <div class="bg-white rounded-lg shadow p-4 text-center">
-            <div class="text-2xl font-bold text-indigo-600">{{.Stats.AvailableDriversCount}}</div>
+            <div class="text-stat text-indigo-600 tabular-nums">{{.Stats.AvailableDriversCount}}</div>
             <div class="text-sm text-gray-600">Available Drivers</div>
         </div>
         <div class="bg-white rounded-lg shadow p-4 text-center">
-            <div class="text-2xl font-bold text-yellow-600">{{.Stats.PendingPaymentsCount}}</div>
+            <div class="text-stat text-yellow-600 tabular-nums">{{.Stats.PendingPaymentsCount}}</div>
             <div class="text-sm text-gray-600">Pending Payments</div>
         </div>
         <div class="bg-white rounded-lg shadow p-4 text-center">
-            <div class="text-2xl font-bold text-teal-600">{{printf "%.2f" .Stats.MonthlyRevenue}}</div>
+            <div class="text-stat text-teal-600 tabular-nums">{{printf "%.2f" .Stats.MonthlyRevenue}}</div>
             <div class="text-sm text-gray-600">Monthly Revenue</div>
         </div>
     </div>
@@ -38,7 +38,7 @@
     <!-- Upcoming Trips -->
     <div class="bg-white rounded-lg shadow">
         <div class="px-4 py-3 border-b flex justify-between items-center">
-            <h3 class="font-semibold text-gray-800">Upcoming Trips</h3>
+            <h3 class="text-subsection text-gray-800">Upcoming Trips</h3>
             <a href="/trips" class="text-sm text-blue-600 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded">View All</a>
         </div>
         <div class="overflow-x-auto">
@@ -75,7 +75,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="bg-white rounded-lg shadow">
             <div class="px-4 py-3 border-b">
-                <h3 class="font-semibold text-gray-800">Recent Bookings</h3>
+                <h3 class="text-subsection text-gray-800">Recent Bookings</h3>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
@@ -93,7 +93,7 @@
                             <td class="px-4 py-2 text-sm">{{.BookingNumber}}</td>
                             <td class="px-4 py-2 text-sm">{{.CustomerName}}</td>
                             <td class="px-4 py-2 text-sm">{{datetime .PickupDate}}</td>
-                            <td class="px-4 py-2 text-sm">{{printf "%.2f" .Price}}</td>
+                            <td class="px-4 py-2 text-sm tabular-nums">{{printf "%.2f" .Price}}</td>
                         </tr>
                         {{end}}
                     </tbody>
@@ -103,7 +103,7 @@
 
         <div class="bg-white rounded-lg shadow">
             <div class="px-4 py-3 border-b">
-                <h3 class="font-semibold text-gray-800">Recent Payments</h3>
+                <h3 class="text-subsection text-gray-800">Recent Payments</h3>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
@@ -119,7 +119,7 @@
                         {{range .Stats.RecentPayments}}
                         <tr>
                             <td class="px-4 py-2 text-sm">{{.InvoiceNumber}}</td>
-                            <td class="px-4 py-2 text-sm">{{printf "%.2f" .Amount}}</td>
+                            <td class="px-4 py-2 text-sm tabular-nums">{{printf "%.2f" .Amount}}</td>
                             <td class="px-4 py-2 text-sm">{{.Method}}</td>
                             <td class="px-4 py-2 text-sm">{{datetime .PaymentDate}}</td>
                         </tr>
@@ -133,7 +133,7 @@
     <!-- Recent Activity -->
     <div class="bg-white rounded-lg shadow">
         <div class="px-4 py-3 border-b">
-            <h3 class="font-semibold text-gray-800">Recent Activity</h3>
+            <h3 class="text-subsection text-gray-800">Recent Activity</h3>
         </div>
         <div class="p-4">
             <ul class="space-y-3">

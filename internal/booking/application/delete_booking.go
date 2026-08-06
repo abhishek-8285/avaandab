@@ -38,6 +38,10 @@ func (uc *DeleteBookingUseCase) Execute(ctx context.Context, cmd DeleteBookingCo
 			return errors.New("booking not found")
 		}
 
-		return repo.Delete(txCtx, cmd.BookingID, cmd.TenantID)
+		if err := repo.Delete(txCtx, cmd.BookingID, cmd.TenantID); err != nil {
+			return err
+		}
+		logAudit(txCtx, ActionDelete, string(cmd.BookingID), nil, nil)
+		return nil
 	})
 }

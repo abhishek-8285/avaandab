@@ -29,6 +29,7 @@ func (r *SQLRepository) UpdateCompanySettings(ctx context.Context, settings doma
 		BookingPrefix: settings.BookingPrefix,
 		TripPrefix:    settings.TripPrefix,
 		InvoicePrefix: settings.InvoicePrefix,
+		FinancialYear: nullString(settings.FinancialYear),
 		Address:       nullString(settings.Address),
 		Phone:         nullString(settings.Phone),
 		Email:         nullString(settings.Email),
