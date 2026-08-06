@@ -1,0 +1,54 @@
+<div class="max-w-xl mx-auto">
+    <h2 class="text-xl font-semibold mb-4">Record Payment</h2>
+
+    {{if .FlashError}}
+    <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">{{.FlashError}}</div>
+    {{end}}
+
+    <form method="POST" action="/payments/new/{{.InvoiceID}}" class="space-y-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Invoice</label>
+            <dd class="text-sm font-medium">{{.Invoice.InvoiceNumber}}</dd>
+            <p class="text-sm text-gray-500">Total: {{printf "%.2f" .Invoice.Total}} | Balance: {{printf "%.2f" .Balance}}</p>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Amount *</label>
+            <input type="number" step="0.01" name="amount" required max="{{printf "%.2f" .Balance}}"
+                class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Method</label>
+            <select name="method" class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                <option value="cash">Cash</option>
+                <option value="upi">UPI</option>
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="cheque">Cheque</option>
+            </select>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Payment Date</label>
+            <input type="date" name="payment_date" value="{{date_only .Now}}"
+                class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Reference</label>
+            <input type="text" name="reference"
+                class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Remarks</label>
+            <textarea name="remarks" rows="2"
+                class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"></textarea>
+        </div>
+
+        <div class="flex justify-end space-x-3 pt-4">
+            <a href="/invoices/{{.InvoiceID}}" class="px-4 py-2 min-h-[44px] flex items-center justify-center border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 active:bg-gray-100>Cancel</a>
+            <button type="submit" class="px-4 py-2 min-h-[44px] bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-blue-800">Record Payment</button>
+        </div>
+    </form>
+</div>

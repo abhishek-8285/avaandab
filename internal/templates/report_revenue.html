@@ -1,0 +1,29 @@
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold mb-4">Revenue Report</h2>
+
+        <div class="mb-6">
+            <div class="text-3xl font-bold text-teal-600">{{printf "%.2f" .TotalRevenue}}</div>
+            <div class="text-sm text-gray-600">Total Revenue</div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Month</th>
+                        <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Revenue</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {{range .MonthlyRevenue}}
+                    <tr>
+                        <td class="px-4 py-2 text-sm">{{.Month}}</td>
+                        <td class="px-4 py-2 text-sm text-right">{{printf "%.2f" .Total}}</td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

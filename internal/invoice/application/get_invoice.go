@@ -1,0 +1,77 @@
+package application
+
+import (
+	"context"
+	"errors"
+	"time"
+
+	"transport-app/internal/invoice/domain"
+	"transport-app/internal/invoice/domain/aggregate"
+	"transport-app/internal/shared"
+	"transport-app/internal/shared/ports"
+)
+
+// InvoiceResponseDTO represents read model fields.
+type InvoiceResponseDTO struct {
+	ID            string    `json:"id"`
+	InvoiceNumber string    `json:"invoice_number"`
+	BookingID     string    `json:"booking_id"`
+	CustomerID    string    `json:"customer_id"`
+	TripID        *string   `json:"trip_id"`
+	Subtotal      float64   `json:"subtotal"`
+	Tax           float64   `json:"tax"`
+	Discount      float64   `json:"discount"`
+	Total         float64   `json:"total"`
+	PaymentStatus string    `json:"payment_status"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+// GetInvoiceQuery query arguments.
+type GetInvoiceQuery struct {
+	ID       aggregate.InvoiceID
+	TenantID shared.TenantID
+}
+
+// GetInvoiceUseCase gets details of an invoice.
+type GetInvoiceUseCase struct {
+	uow ports.UnitOfWork
+}
+
+// NewGetInvoiceUseCase constructs a new GetInvoiceUseCase.
+func NewGetInvoiceUseCase(uow ports.UnitOfWork) *GetInvoiceUseCase {
+	return &GetInvoiceUseCase{uow: uow}
+}
+
+// Execute retrieves and maps to the read model DTO.
+func (uc *GetInvoiceUseCase) Execute(ctx context.Context, q GetInvoiceQuery) (InvoiceResponseDTO, error) {
+	var dto InvoiceResponseDTO
+	err := uc.uow.Execute(ctx, func(txCtx ports.TxContext) error {
+		repo, ok := txCtx.Repositories().Invoices().(domain.InvoiceRepository)
+		if !ok {
+			return errors.New("failed to retrieve invoice repository")
+		}
+
+		inv, err := repo.GetReadModel(txCtx, q.ID, q.TenantID)
+		if err != nil {
+			return err
+		}
+
+		dto = InvoiceResponseDTO{
+			ID:            inv.ID,
+			InvoiceNumber: inv.InvoiceNumber,
+			BookingID:     inv.BookingID,
+			CustomerID:    inv.CustomerID,
+			TripID:        inv.TripID,
+			Subtotal:      inv.Subtotal,
+			Tax:           inv.Tax,
+			Discount:      inv.Discount,
+			Total:         inv.Total,
+			PaymentStatus: inv.PaymentStatus,
+			CreatedAt:     inv.CreatedAt,
+			UpdatedAt:     inv.UpdatedAt,
+		}
+		return nil
+	})
+	return dto, err
+}

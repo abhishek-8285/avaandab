@@ -1,0 +1,51 @@
+<div class="bg-white rounded-lg shadow p-6">
+    <div class="flex justify-between items-start mb-4">
+        <div>
+            <h2 class="text-xl font-semibold">{{.Vehicle.VehicleNumber}}</h2>
+            <p class="text-gray-600">Reg: {{.Vehicle.RegistrationNumber}}</p>
+        </div>
+        <div class="flex space-x-2">
+            <a href="/vehicles/{{.Vehicle.ID}}/edit" class="px-3 py-1 min-h-[44px] flex items-center justify-center bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 active:bg-green-700">Edit</a>
+            <form method="POST" action="/vehicles/{{.Vehicle.ID}}/delete" class="inline">
+                <button type="submit" class="px-3 py-1 min-h-[44px] flex items-center justify-center bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 active:bg-red-800">Delete</button>
+            </form>
+        </div>
+    </div>
+
+    <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <div>
+            <dt class="text-sm text-gray-500">Type</dt>
+            <dd class="text-sm font-medium">{{.Vehicle.VehicleType}}</dd>
+        </div>
+        <div>
+            <dt class="text-sm text-gray-500">Capacity</dt>
+            <dd class="text-sm font-medium">{{.Vehicle.Capacity}}</dd>
+        </div>
+        <div>
+            <dt class="text-sm text-gray-500">Fuel Type</dt>
+            <dd class="text-sm font-medium">{{.Vehicle.FuelType}}</dd>
+        </div>
+        <div>
+            <dt class="text-sm text-gray-500">Status</dt>
+            <dd class="text-sm font-medium">
+                <span class="px-2 py-1 text-xs rounded-full {{statusBadge .Vehicle.Status}}">{{.Vehicle.Status}}</span>
+            </dd>
+        </div>
+        <div>
+            <dt class="text-sm text-gray-500">Insurance Expiry</dt>
+            <dd class="text-sm font-medium">{{date_only .Vehicle.InsuranceExpiry}}</dd>
+        </div>
+        <div>
+            <dt class="text-sm text-gray-500">Fitness Expiry</dt>
+            <dd class="text-sm font-medium">{{date_only .Vehicle.FitnessExpiry}}</dd>
+        </div>
+        <div>
+            <dt class="text-sm text-gray-500">Permit Expiry</dt>
+            <dd class="text-sm font-medium">{{date_only .Vehicle.PermitExpiry}}</dd>
+        </div>
+        <div>
+            <dt class="text-sm text-gray-500">Current Mileage</dt>
+            <dd class="text-sm font-medium">{{print .Vehicle.CurrentMileage}} km</dd>
+        </div>
+    </dl>
+</div>

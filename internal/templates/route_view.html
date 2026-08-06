@@ -1,0 +1,30 @@
+<div class="bg-white rounded-lg shadow p-6">
+    <div class="flex justify-between items-start mb-4">
+        <div>
+            <h2 class="text-xl font-semibold">{{.Route.Source}}</h2>
+            <p class="text-gray-600">→ {{.Route.Destination}}</p>
+        </div>
+        <div class="flex space-x-2">
+            <a href="/routes/{{.Route.ID}}/edit" class="px-3 py-1 min-h-[44px] flex items-center justify-center bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 active:bg-green-700">Edit</a>
+        </div>
+    </div>
+
+    <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <div>
+            <dt class="text-sm text-gray-500">Distance</dt>
+            <dd class="text-sm font-medium">{{.Route.Distance}} km</dd>
+        </div>
+        <div>
+            <dt class="text-sm text-gray-500">Estimated Hours</dt>
+            <dd class="text-sm font-medium">{{.Route.EstimatedHours}}</dd>
+        </div>
+        <div>
+            <dt class="text-sm text-gray-500">Standard Fare</dt>
+            <dd class="text-sm font-medium">{{printf "%.2f" .Route.StandardFare}}</dd>
+        </div>
+        <div>
+            <dt class="text-sm text-gray-500">Remarks</dt>
+            <dd class="text-sm font-medium">{{nullString .Route.Remarks}}</dd>
+        </div>
+    </dl>
+</div>

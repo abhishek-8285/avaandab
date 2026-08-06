@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>{{.Title}} - MVTMS</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script type="module" src="/static/js/datastar.js" defer></script>
+    <script src="https://cdn.tailwindcss.com" defer></script>
+    <script src="/static/js/router.js" defer></script>
+    <link rel="stylesheet" href="/static/css/app.css">
+    <style>
+        html { opacity: 0; transition: opacity 0.15s ease-in; }
+    </style>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            document.documentElement.style.opacity = "1";
+        });
+    </script>
+</head>
+<body class="bg-gray-50 font-sans">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Mobile overlay -->
+        <div id="mobile-overlay" class="fixed inset-0 z-20 bg-black bg-opacity-50 opacity-0 invisible transition-opacity duration-300 md:hidden"></div>
+
+        <!-- Sidebar -->
+        <div id="sidebar" class="fixed inset-y-0 left-0 z-30 w-64 bg-white shadow-lg transform -translate-x-full md:translate-x-0 md:relative md:z-0 md:flex md:flex-col transition-transform duration-300 ease-in-out sidebar-scroll">
+                <div class="flex items-center h-16 px-4 border-b safe-top safe-left safe-right">
+                    <h1 class="text-xl font-bold text-gray-800">MVTMS</h1>
+                </div>
+                <nav class="flex-1 overflow-y-auto py-4 safe-left safe-right">
+                    <ul class="space-y-1 px-2">
+                        <li>
+                            <a href="/dashboard" class="flex items-center px-4 py-2 min-h-[44px] text-gray-700 hover:bg-gray-100 rounded-lg mx-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-gray-200">
+                                <span class="material-icons mr-3">dashboard</span>Dashboard
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/drivers" class="flex items-center px-4 py-2 min-h-[44px] text-gray-700 hover:bg-gray-100 rounded-lg mx-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-gray-200">
+                                <span class="material-icons mr-3">badge</span>Drivers
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/vehicles" class="flex items-center px-4 py-2 min-h-[44px] text-gray-700 hover:bg-gray-100 rounded-lg mx-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-gray-200">
+                                <span class="material-icons mr-3">directions_bus</span>Vehicles
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/customers" class="flex items-center px-4 py-2 min-h-[44px] text-gray-700 hover:bg-gray-100 rounded-lg mx-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-gray-200">
+                                <span class="material-icons mr-3">people</span>Customers
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/routes" class="flex items-center px-4 py-2 min-h-[44px] text-gray-700 hover:bg-gray-100 rounded-lg mx-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-gray-200">
+                                <span class="material-icons mr-3">route</span>Routes
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/bookings" class="flex items-center px-4 py-2 min-h-[44px] text-gray-700 hover:bg-gray-100 rounded-lg mx-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-gray-200">
+                                <span class="material-icons mr-3">book</span>Bookings
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/trips" class="flex items-center px-4 py-2 min-h-[44px] text-gray-700 hover:bg-gray-100 rounded-lg mx-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-gray-200">
+                                <span class="material-icons mr-3">directions_bus</span>Trips
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/invoices" class="flex items-center px-4 py-2 min-h-[44px] text-gray-700 hover:bg-gray-100 rounded-lg mx-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-gray-200">
+                                <span class="material-icons mr-3">receipt_long</span>Invoices
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/payments" class="flex items-center px-4 py-2 min-h-[44px] text-gray-700 hover:bg-gray-100 rounded-lg mx-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-gray-200">
+                                <span class="material-icons mr-3">payment</span>Payments
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/reports" class="flex items-center px-4 py-2 min-h-[44px] text-gray-700 hover:bg-gray-100 rounded-lg mx-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-gray-200">
+                                <span class="material-icons mr-3">bar_chart</span>Reports
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/settings" class="flex items-center px-4 py-2 min-h-[44px] text-gray-700 hover:bg-gray-100 rounded-lg mx-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-gray-200">
+                                <span class="material-icons mr-3">settings</span>Settings
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/audit-logs" class="flex items-center px-4 py-2 min-h-[44px] text-gray-700 hover:bg-gray-100 rounded-lg mx-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-gray-200">
+                                <span class="material-icons mr-3">history</span>Audit Logs
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+                <div class="border-t p-4 safe-bottom safe-left safe-right">
+                    <form method="POST" action="/logout">
+                        <button type="submit" class="w-full flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg min-h-[44px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-gray-200">
+                            <span class="material-icons mr-3">logout</span>Logout
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Main content -->
+            <div class="flex-1 flex flex-col overflow-hidden">
+                <header class="bg-white shadow-sm border-b px-4 sm:px-6 py-3 flex items-center justify-between safe-top">
+                    <div class="flex items-center gap-3">
+                        <button id="mobile-menu-btn" type="button"
+                            class="md:hidden text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
+                            aria-label="Toggle navigation" aria-expanded="false">
+                            <span class="material-icons">menu</span>
+                        </button>
+                        <h2 class="text-lg font-semibold text-gray-800">{{.Title}}</h2>
+                    </div>
+                    {{if .User}}
+                    <div class="flex items-center space-x-3">
+                        <span class="text-sm text-gray-600">{{.User.Name}}</span>
+                        <a href="/profile" class="text-sm text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 rounded">Profile</a>
+                    </div>
+                    {{end}}
+                </header>
+
+                <main id="main-content" class="flex-1 overflow-y-auto p-4 sm:p-6">
+                    {{.Content}}
+                </main>
+            </div>
+        </div>
+
+        {{if .FlashError}}
+    <div class="fixed bottom-4 right-4 safe-bottom safe-right bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-lg">
+        {{.FlashError}}
+    </div>
+    {{end}}
+    {{if .FlashSuccess}}
+    <div class="fixed bottom-4 right-4 safe-bottom safe-right bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-lg">
+        {{.FlashSuccess}}
+    </div>
+    {{end}}
+
+    <script>
+        (function() {
+            var sidebar = document.getElementById('sidebar');
+            var overlay = document.getElementById('mobile-overlay');
+            var btn = document.getElementById('mobile-menu-btn');
+            var sidebarLinks = sidebar ? sidebar.querySelectorAll('a, button') : [];
+            if (!sidebar || !btn) return;
+
+            var firstLink = sidebarLinks[0];
+            var lastLink = sidebarLinks[sidebarLinks.length - 1];
+
+            function isSidebarOpen() {
+                return !sidebar.classList.contains('-translate-x-full');
+            }
+
+            function closeSidebar() {
+                sidebar.classList.remove('translate-x-0');
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('opacity-0', 'invisible');
+                btn.setAttribute('aria-expanded', 'false');
+                btn.focus();
+            }
+
+            function openSidebar() {
+                sidebar.classList.remove('-translate-x-full');
+                sidebar.classList.add('translate-x-0');
+                overlay.classList.remove('opacity-0', 'invisible');
+                btn.setAttribute('aria-expanded', 'true');
+                firstLink.focus();
+            }
+
+            btn.addEventListener('click', function() {
+                if (isSidebarOpen()) {
+                    closeSidebar();
+                } else {
+                    openSidebar();
+                }
+            });
+
+            overlay.addEventListener('click', closeSidebar);
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && isSidebarOpen()) {
+                    closeSidebar();
+                }
+                if (e.key === 'Tab' && isSidebarOpen()) {
+                    if (e.shiftKey && document.activeElement === firstLink) {
+                        e.preventDefault();
+                        lastLink.focus();
+                    } else if (!e.shiftKey && document.activeElement === lastLink) {
+                        e.preventDefault();
+                        firstLink.focus();
+                    }
+                }
+            });
+        })();
+    </script>
+
+</body>
+</html>
+

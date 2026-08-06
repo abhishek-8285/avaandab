@@ -1,0 +1,43 @@
+<div class="max-w-3xl mx-auto">
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex justify-between items-start mb-4">
+            <div>
+                <h2 class="text-xl font-semibold">{{.Customer.Name}}</h2>
+                <p class="text-gray-600">{{if .Customer.Company}}{{nullString .Customer.Company}}{{end}}</p>
+            </div>
+            <div class="flex space-x-2">
+                <a href="/customers/{{.Customer.ID}}/edit" class="px-3 py-1 min-h-[44px] flex items-center justify-center bg-green-600 text-white rounded-md hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 active:bg-green-900">Edit</a>
+                <form method="POST" action="/customers/{{.Customer.ID}}/delete" class="inline">
+                    <button type="submit" class="px-3 py-1 min-h-[44px] flex items-center justify-center bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 active:bg-red-800">Delete</button>
+                </form>
+            </div>
+        </div>
+
+        <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div>
+                <dt class="text-sm text-gray-500">Phone</dt>
+                <dd class="text-sm font-medium">{{.Customer.Phone}}</dd>
+            </div>
+            <div>
+                <dt class="text-sm text-gray-500">Email</dt>
+                <dd class="text-sm font-medium">{{nullString .Customer.Email}}</dd>
+            </div>
+            <div>
+                <dt class="text-sm text-gray-500">GST</dt>
+                <dd class="text-sm font-medium">{{nullString .Customer.GST}}</dd>
+            </div>
+            <div>
+                <dt class="text-sm text-gray-500">Created</dt>
+                <dd class="text-sm font-medium">{{datetime .Customer.CreatedAt}}</dd>
+            </div>
+            <div class="md:col-span-2">
+                <dt class="text-sm text-gray-500">Address</dt>
+                <dd class="text-sm font-medium">{{nullString .Customer.Address}}</dd>
+            </div>
+            <div class="md:col-span-2">
+                <dt class="text-sm text-gray-500">Notes</dt>
+                <dd class="text-sm font-medium">{{nullString .Customer.Notes}}</dd>
+            </div>
+        </dl>
+    </div>
+</div>

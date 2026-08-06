@@ -1,0 +1,510 @@
+package service
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"transport-app/internal/domain"
+	tripevents "transport-app/internal/domain/trip"
+	"transport-app/internal/events"
+	"transport-app/internal/repository"
+)
+
+// TripService handles trip management with business rule enforcement.
+type TripService struct {
+	baseService
+}
+
+// CreateTripRequest contains fields needed to create a trip.
+type CreateTripRequest struct {
+	BookingID     *domain.BookingID
+	RouteID       domain.RouteID
+	DriverID      *domain.DriverID
+	VehicleID     *domain.VehicleID
+	DepartureTime string
+	ArrivalTime   string
+	Remarks       string
+}
+
+// CreateTrip creates a new trip in draft status.
+func (s *TripService) CreateTrip(ctx context.Context, req CreateTripRequest) (domain.Trip, error) {
+	if req.RouteID == "" {
+		return domain.Trip{}, fmt.Errorf("route is required")
+	}
+
+	// Validate route exists
+	if _, err := s.store.GetRouteByID(ctx, req.RouteID); err != nil {
+		return domain.Trip{}, domain.ErrRouteNotFound
+	}
+
+	// Validate booking exists if provided
+	if req.BookingID != nil {
+		if _, err := s.store.GetBookingByID(ctx, *req.BookingID); err != nil {
+			return domain.Trip{}, domain.ErrBookingNotFound
+		}
+	}
+
+	// Validate driver exists if provided
+	if req.DriverID != nil {
+		if _, err := s.store.GetDriverByID(ctx, *req.DriverID); err != nil {
+			return domain.Trip{}, domain.ErrDriverNotFound
+		}
+	}
+
+	// Validate vehicle exists if provided
+	if req.VehicleID != nil {
+		if _, err := s.store.GetVehicleByID(ctx, *req.VehicleID); err != nil {
+			return domain.Trip{}, domain.ErrVehicleNotFound
+		}
+	}
+
+	depTime, err := parseDateTime(req.DepartureTime)
+	if err != nil {
+		return domain.Trip{}, fmt.Errorf("invalid departure time")
+	}
+
+	var arrTime *time.Time
+	if req.ArrivalTime != "" {
+		t, err := parseDateTime(req.ArrivalTime)
+		if err != nil {
+			return domain.Trip{}, fmt.Errorf("invalid arrival time")
+		}
+		arrTime = &t
+	}
+
+	trip := domain.Trip{
+		ID:            domain.TripID(generateID()),
+		TripNumber:    s.generateTripNumber(ctx),
+		BookingID:     req.BookingID,
+		DriverID:      req.DriverID,
+		VehicleID:     req.VehicleID,
+		RouteID:       req.RouteID,
+		DepartureTime: depTime,
+		ArrivalTime:   arrTime,
+		Status:        domain.TripDraft,
+		Remarks:       strPtr(req.Remarks),
+	}
+
+	created, err := s.store.CreateTrip(ctx, trip)
+	if err != nil {
+		return domain.Trip{}, err
+	}
+
+	s.log.Info("trip created", "trip_id", created.ID, "trip_number", created.TripNumber)
+
+	s.logAudit(ctx, nil, "create", "trips", string(created.ID), nil, nil)
+	s.events.Publish(ctx, events.Event{
+		Type: "TripCreated",
+		Payload: tripevents.TripCreatedEvent{
+			TripID:        created.ID,
+			TripNumber:    created.TripNumber,
+			RouteID:       created.RouteID,
+			DriverID:      created.DriverID,
+			VehicleID:     created.VehicleID,
+			DepartureTime: created.DepartureTime,
+			OccurredAt:    time.Now(),
+		},
+	})
+
+	return created, nil
+}
+
+// GetTrip retrieves a trip by ID.
+func (s *TripService) GetTrip(ctx context.Context, id domain.TripID) (repository.TripWithJoins, error) {
+	return s.store.GetTripByID(ctx, id)
+}
+
+// GetTripByNumber retrieves a trip by its number.
+func (s *TripService) GetTripByNumber(ctx context.Context, number string) (repository.TripWithJoins, error) {
+	return s.store.GetTripByNumber(ctx, number)
+}
+
+// ListTrips retrieves trips with search and pagination.
+func (s *TripService) ListTrips(ctx context.Context, query, status string, limit, offset int) ([]repository.TripWithJoins, int64, error) {
+	trips, err := s.store.SearchTrips(ctx, query, status, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	total, err := s.store.CountTrips(ctx, query, status)
+	if err != nil {
+		return nil, 0, err
+	}
+	return trips, total, nil
+}
+
+// ScheduleTrip schedules a trip (changes status from draft to scheduled).
+func (s *TripService) ScheduleTrip(ctx context.Context, id domain.TripID) (domain.Trip, error) {
+	trip, err := s.store.GetTripByID(ctx, id)
+	if err != nil {
+		return domain.Trip{}, domain.ErrTripNotFound
+	}
+
+	if err := trip.CanSchedule(); err != nil {
+		return domain.Trip{}, err
+	}
+
+	status := domain.TripScheduled
+	if trip.DriverID != nil && trip.VehicleID != nil {
+		status = domain.TripAssigned
+	}
+
+	updated, err := s.store.UpdateTripStatus(ctx, id, status)
+	if err != nil {
+		return domain.Trip{}, err
+	}
+
+	s.log.Info("trip scheduled", "trip_id", id, "status", status)
+	s.logAudit(ctx, nil, "schedule", "trips", string(id), nil, nil)
+	return updated, nil
+}
+
+// AssignDriver assigns a driver to a trip with conflict checking.
+func (s *TripService) AssignDriver(ctx context.Context, tripID domain.TripID, driverID domain.DriverID) (domain.Trip, error) {
+	trip, err := s.store.GetTripByID(ctx, tripID)
+	if err != nil {
+		return domain.Trip{}, domain.ErrTripNotFound
+	}
+
+	// Cannot modify cancelled or completed trips
+	if trip.Status == domain.TripCancelled {
+		return domain.Trip{}, domain.ErrCancelledTripImmutable
+	}
+	if trip.Status == domain.TripCompleted {
+		return domain.Trip{}, domain.ErrCompletedTripImmutable
+	}
+
+	// Validate driver exists and is available
+	driver, err := s.store.GetDriverByID(ctx, driverID)
+	if err != nil {
+		return domain.Trip{}, domain.ErrDriverNotFound
+	}
+
+	if err := driver.CanAcceptTrip(); err != nil {
+		return domain.Trip{}, err
+	}
+
+	// Check for scheduling conflicts
+	conflicts, err := s.store.CheckDriverConflict(ctx, driverID, &tripID)
+	if err != nil {
+		return domain.Trip{}, err
+	}
+	if len(conflicts) > 0 {
+		return domain.Trip{}, domain.ErrDriverOnTrip
+	}
+
+	var updated domain.Trip
+	err = s.txManager.WithTransaction(ctx, func(ctx context.Context) error {
+		u, err := s.store.AssignDriver(ctx, tripID, driverID)
+		if err != nil {
+			return err
+		}
+		updated = u
+
+		// Update trip to assigned status if not already
+		if updated.Status == domain.TripScheduled {
+			updated, err = s.store.UpdateTripStatus(ctx, tripID, domain.TripAssigned)
+			if err != nil {
+				return err
+			}
+		}
+
+		// Update driver status to on_trip
+		driver.Status = domain.DriverOnTrip
+		if _, err := s.store.UpdateDriver(ctx, driver); err != nil {
+			return err
+		}
+
+		s.logAudit(ctx, nil, "assign_driver", "trips", string(tripID), nil, nil)
+		return nil
+	})
+	if err != nil {
+		return domain.Trip{}, err
+	}
+
+	s.log.Info("driver assigned to trip", "driver_id", driverID, "trip_id", tripID)
+	return updated, nil
+}
+
+// AssignVehicle assigns a vehicle to a trip with conflict checking.
+func (s *TripService) AssignVehicle(ctx context.Context, tripID domain.TripID, vehicleID domain.VehicleID) (domain.Trip, error) {
+	trip, err := s.store.GetTripByID(ctx, tripID)
+	if err != nil {
+		return domain.Trip{}, domain.ErrTripNotFound
+	}
+
+	if trip.Status == domain.TripCancelled {
+		return domain.Trip{}, domain.ErrCancelledTripImmutable
+	}
+	if trip.Status == domain.TripCompleted {
+		return domain.Trip{}, domain.ErrCompletedTripImmutable
+	}
+
+	// Validate vehicle exists and is available
+	vehicle, err := s.store.GetVehicleByID(ctx, vehicleID)
+	if err != nil {
+		return domain.Trip{}, domain.ErrVehicleNotFound
+	}
+
+	if err := vehicle.CanAssign(); err != nil {
+		return domain.Trip{}, err
+	}
+
+	// Check for scheduling conflicts
+	conflicts, err := s.store.CheckVehicleConflict(ctx, vehicleID, &tripID)
+	if err != nil {
+		return domain.Trip{}, err
+	}
+	if len(conflicts) > 0 {
+		return domain.Trip{}, domain.ErrVehicleAssigned
+	}
+
+	var updated domain.Trip
+	err = s.txManager.WithTransaction(ctx, func(ctx context.Context) error {
+		u, err := s.store.AssignVehicle(ctx, tripID, vehicleID)
+		if err != nil {
+			return err
+		}
+		updated = u
+
+		// Update trip to assigned status if not already
+		if updated.Status == domain.TripScheduled {
+			updated, err = s.store.UpdateTripStatus(ctx, tripID, domain.TripAssigned)
+			if err != nil {
+				return err
+			}
+		}
+
+		// Update vehicle status to running
+		vehicle.Status = domain.VehicleRunning
+		if _, err := s.store.UpdateVehicle(ctx, vehicle); err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return domain.Trip{}, err
+	}
+
+	s.log.Info("vehicle assigned to trip", "vehicle_id", vehicleID, "trip_id", tripID)
+	return updated, nil
+}
+
+// StartTrip starts a trip (validate status is assigned).
+func (s *TripService) StartTrip(ctx context.Context, id domain.TripID) (domain.Trip, error) {
+	trip, err := s.store.GetTripByID(ctx, id)
+	if err != nil {
+		return domain.Trip{}, domain.ErrTripNotFound
+	}
+
+	if err := trip.CanStart(); err != nil {
+		return domain.Trip{}, err
+	}
+
+	var updated domain.Trip
+	err = s.txManager.WithTransaction(ctx, func(ctx context.Context) error {
+		u, err := s.store.UpdateTripStatus(ctx, id, domain.TripStarted)
+		if err != nil {
+			return err
+		}
+		updated = u
+		s.logAudit(ctx, nil, "start_trip", "trips", string(id), nil, nil)
+		return nil
+	})
+	if err != nil {
+		return domain.Trip{}, err
+	}
+
+	s.log.Info("trip started", "trip_id", id)
+	s.events.Publish(ctx, events.Event{
+		Type: "TripStarted",
+		Payload: tripevents.TripStartedEvent{
+			TripID:     id,
+			StartedAt:  time.Now(),
+			OccurredAt: time.Now(),
+		},
+	})
+	return updated, nil
+}
+
+// CompleteTrip completes a trip and returns domain trip.
+func (s *TripService) CompleteTrip(ctx context.Context, id domain.TripID) (domain.Trip, error) {
+	trip, err := s.store.GetTripByID(ctx, id)
+	if err != nil {
+		return domain.Trip{}, domain.ErrTripNotFound
+	}
+
+	if err := trip.CanComplete(); err != nil {
+		return domain.Trip{}, err
+	}
+
+	var completed domain.Trip
+	err = s.txManager.WithTransaction(ctx, func(ctx context.Context) error {
+		u, err := s.store.UpdateTripStatus(ctx, id, domain.TripCompleted)
+		if err != nil {
+			return err
+		}
+		completed = u
+
+		// Release driver and vehicle
+		if trip.DriverID != nil {
+			driver, err := s.store.GetDriverByID(ctx, *trip.DriverID)
+			if err == nil {
+				driver.Status = domain.DriverAvailable
+				_, _ = s.store.UpdateDriver(ctx, driver)
+			}
+		}
+		if trip.VehicleID != nil {
+			vehicle, err := s.store.GetVehicleByID(ctx, *trip.VehicleID)
+			if err == nil {
+				vehicle.Status = domain.VehicleAvailable
+				_, _ = s.store.UpdateVehicle(ctx, vehicle)
+			}
+		}
+
+		s.logAudit(ctx, nil, "complete_trip", "trips", string(id), nil, nil)
+		return nil
+	})
+	if err != nil {
+		return domain.Trip{}, err
+	}
+
+	s.log.Info("trip completed", "trip_id", id)
+	s.events.Publish(ctx, events.Event{
+		Type: "TripCompleted",
+		Payload: tripevents.TripCompletedEvent{
+			TripID:      id,
+			CompletedAt: time.Now(),
+			OccurredAt:  time.Now(),
+		},
+	})
+	return completed, nil
+}
+
+// CancelTrip cancels a trip (cannot cancel completed trips).
+func (s *TripService) CancelTrip(ctx context.Context, id domain.TripID) (domain.Trip, error) {
+	trip, err := s.store.GetTripByID(ctx, id)
+	if err != nil {
+		return domain.Trip{}, domain.ErrTripNotFound
+	}
+
+	if err := trip.CanCancel(); err != nil {
+		return domain.Trip{}, err
+	}
+
+	var updated domain.Trip
+	err = s.txManager.WithTransaction(ctx, func(ctx context.Context) error {
+		u, err := s.store.UpdateTripStatus(ctx, id, domain.TripCancelled)
+		if err != nil {
+			return err
+		}
+		updated = u
+
+		// Release driver and vehicle if assigned
+		if trip.DriverID != nil {
+			driver, err := s.store.GetDriverByID(ctx, *trip.DriverID)
+			if err == nil && driver.Status == domain.DriverOnTrip {
+				driver.Status = domain.DriverAvailable
+				_, _ = s.store.UpdateDriver(ctx, driver)
+			}
+		}
+		if trip.VehicleID != nil {
+			vehicle, err := s.store.GetVehicleByID(ctx, *trip.VehicleID)
+			if err == nil && vehicle.Status == domain.VehicleRunning {
+				vehicle.Status = domain.VehicleAvailable
+				_, _ = s.store.UpdateVehicle(ctx, vehicle)
+			}
+		}
+
+		s.logAudit(ctx, nil, "cancel_trip", "trips", string(id), nil, nil)
+		return nil
+	})
+	if err != nil {
+		return domain.Trip{}, err
+	}
+
+	s.log.Info("trip cancelled", "trip_id", id)
+	return updated, nil
+}
+
+// DeleteTrip deletes a trip (draft only).
+func (s *TripService) DeleteTrip(ctx context.Context, id domain.TripID) error {
+	trip, err := s.store.GetTripByID(ctx, id)
+	if err != nil {
+		return domain.ErrTripNotFound
+	}
+
+	if trip.Status != domain.TripDraft {
+		return fmt.Errorf("only draft trips can be deleted")
+	}
+
+	return s.store.DeleteTrip(ctx, id)
+}
+
+// GetTripByBooking returns the trip associated with a booking.
+func (s *TripService) GetTripByBooking(ctx context.Context, bookingID domain.BookingID) (*domain.Trip, error) {
+	twb, err := s.store.GetTripByBookingID(ctx, bookingID)
+	if err != nil {
+		return nil, err
+	}
+	return &twb.Trip, nil
+}
+
+// UpdateTrip updates an existing trip's details.
+func (s *TripService) UpdateTrip(ctx context.Context, id domain.TripID, req CreateTripRequest) (domain.Trip, error) {
+	trip, err := s.store.GetTripByID(ctx, id)
+	if err != nil {
+		return domain.Trip{}, domain.ErrTripNotFound
+	}
+
+	if trip.Status == domain.TripCancelled {
+		return domain.Trip{}, domain.ErrCancelledTripImmutable
+	}
+	if trip.Status == domain.TripCompleted {
+		return domain.Trip{}, domain.ErrCompletedTripImmutable
+	}
+
+	if req.RouteID != "" {
+		if _, err := s.store.GetRouteByID(ctx, req.RouteID); err != nil {
+			return domain.Trip{}, domain.ErrRouteNotFound
+		}
+		trip.Trip.RouteID = req.RouteID
+	}
+
+	if req.DriverID != nil {
+		if _, err := s.store.GetDriverByID(ctx, *req.DriverID); err != nil {
+			return domain.Trip{}, domain.ErrDriverNotFound
+		}
+		trip.Trip.DriverID = req.DriverID
+	}
+
+	if req.VehicleID != nil {
+		if _, err := s.store.GetVehicleByID(ctx, *req.VehicleID); err != nil {
+			return domain.Trip{}, domain.ErrVehicleNotFound
+		}
+		trip.Trip.VehicleID = req.VehicleID
+	}
+
+	if req.DepartureTime != "" {
+		depTime, err := parseDateTime(req.DepartureTime)
+		if err != nil {
+			return domain.Trip{}, fmt.Errorf("invalid departure time")
+		}
+		trip.Trip.DepartureTime = depTime
+	}
+
+	if req.ArrivalTime != "" {
+		arrTime, err := parseDateTime(req.ArrivalTime)
+		if err != nil {
+			return domain.Trip{}, fmt.Errorf("invalid arrival time")
+		}
+		trip.Trip.ArrivalTime = &arrTime
+	}
+
+	if req.Remarks != "" {
+		trip.Trip.Remarks = &req.Remarks
+	}
+
+	return s.store.UpdateTrip(ctx, trip.Trip)
+}

@@ -1,0 +1,14 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/data
+      - ./uploads:/uploads
+    restart: unless-stopped
+
+  # Optional: SQLite file-based database (default in-memory)
+  # If using SQLite file, uncomment the volume and set DATABASE_URL in .env

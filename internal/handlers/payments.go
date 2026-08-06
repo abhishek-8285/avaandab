@@ -1,0 +1,176 @@
+package handlers
+
+import (
+	"net/http"
+	"strconv"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+
+	"transport-app/internal/domain"
+	"transport-app/internal/middleware"
+	paymentapp "transport-app/internal/payment/application"
+	paymentagg "transport-app/internal/payment/domain/aggregate"
+	clock "transport-app/internal/shared/clock"
+	id "transport-app/internal/shared/id"
+	uow "transport-app/internal/shared/uow"
+)
+
+// PaymentHandlers handles payment management.
+type PaymentHandlers struct {
+	*App
+	recordUC *paymentapp.RecordPaymentUseCase
+	listUC   *paymentapp.ListPaymentsUseCase
+	getUC    *paymentapp.GetPaymentUseCase
+}
+
+func (h *PaymentHandlers) init() {
+	if h.recordUC == nil {
+		uowImpl := uow.NewSQLUnitOfWork(h.DB)
+		clockImpl := clock.NewRealClock()
+		idGenImpl := id.NewUUIDGenerator()
+
+		h.recordUC = paymentapp.NewRecordPaymentUseCase(uowImpl, idGenImpl, clockImpl)
+		h.listUC = paymentapp.NewListPaymentsUseCase(uowImpl)
+		h.getUC = paymentapp.NewGetPaymentUseCase(uowImpl)
+	}
+}
+
+func (h *PaymentHandlers) Routes(r chi.Router) {
+	r.With(middleware.ResourcePermission(h.AuthSrv, "payments", "read")).Get("/", h.List)
+	r.With(middleware.ResourcePermission(h.AuthSrv, "payments", "create")).Get("/new/{invoice_id}", h.New)
+	r.With(middleware.ResourcePermission(h.AuthSrv, "payments", "create")).Post("/new/{invoice_id}", h.Create)
+	r.With(middleware.ResourcePermission(h.AuthSrv, "payments", "read")).Get("/{id}", h.View)
+	r.With(middleware.ResourcePermission(h.AuthSrv, "payments", "delete")).Post("/{id}/delete", h.Delete)
+}
+
+func (h *PaymentHandlers) List(w http.ResponseWriter, r *http.Request) {
+	h.init()
+	session, _ := h.getUserFromContext(r)
+	pp := parsePaginationParams(r)
+
+	method := r.URL.Query().Get("method")
+	res, err := h.listUC.Execute(r.Context(), paymentapp.ListPaymentsQuery{
+		TenantID: "1",
+		Page:     pp.Page,
+		Limit:    pp.Limit,
+		Method:   method,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	pd := newPaginationData(pp, res.Total, "/payments")
+
+	if isDatastarRequest(r) {
+		h.renderFragment(w, "payment_list_table.html", map[string]interface{}{
+			"Payments":   res.Payments,
+			"Pagination": pd,
+			"Method":     method,
+		})
+		return
+	}
+
+	h.renderPage(w, "payment_list.html", PageData{
+		Title: "Payments",
+		User:  session,
+		Extra: map[string]interface{}{"Payments": res.Payments, "Pagination": pd, "Method": method},
+	})
+}
+
+func (h *PaymentHandlers) New(w http.ResponseWriter, r *http.Request) {
+	session, _ := h.getUserFromContext(r)
+	invoiceID := chi.URLParam(r, "invoice_id")
+
+	invoice, err := h.Services.Invoices.GetInvoice(r.Context(), domain.InvoiceID(invoiceID))
+	if err != nil {
+		http.Error(w, "Invoice not found", http.StatusNotFound)
+		return
+	}
+	balance, _ := h.Services.Invoices.GetBalance(r.Context(), domain.InvoiceID(invoiceID))
+
+	h.renderForm(w, r, "payment_edit.html", PageData{
+		Title: "Record Payment",
+		User:  session,
+		Extra: map[string]interface{}{
+			"InvoiceID": invoiceID,
+			"Invoice":   invoice,
+			"Balance":   balance,
+		},
+	})
+}
+
+func (h *PaymentHandlers) Create(w http.ResponseWriter, r *http.Request) {
+	h.init()
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	invoiceID := chi.URLParam(r, "invoice_id")
+	amount, _ := strconv.ParseFloat(r.PostFormValue("amount"), 64)
+	method := paymentagg.PaymentMethod(r.PostFormValue("method"))
+	paymentDateStr := r.PostFormValue("payment_date")
+	var paymentDate time.Time
+	var err error
+	if paymentDateStr != "" {
+		paymentDate, err = time.Parse("2006-01-02", paymentDateStr)
+	}
+	if paymentDateStr == "" || err != nil {
+		paymentDate = time.Now()
+	}
+
+	var reference *string
+	if val := r.PostFormValue("reference"); val != "" {
+		reference = &val
+	}
+	var remarks *string
+	if val := r.PostFormValue("remarks"); val != "" {
+		remarks = &val
+	}
+
+	_, err = h.recordUC.Execute(r.Context(), paymentapp.RecordPaymentCommand{
+		TenantID:    "1",
+		InvoiceID:   invoiceID,
+		PaymentDate: paymentDate,
+		Amount:      amount,
+		Method:      method,
+		Reference:   reference,
+		Remarks:     remarks,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if isDatastarRequest(r) {
+		w.Header().Set("Location", "/invoices/"+invoiceID)
+		w.WriteHeader(http.StatusSeeOther)
+		return
+	}
+	http.Redirect(w, r, "/invoices/"+invoiceID, http.StatusSeeOther)
+}
+
+func (h *PaymentHandlers) View(w http.ResponseWriter, r *http.Request) {
+	h.init()
+	id := chi.URLParam(r, "id")
+	payment, err := h.getUC.Execute(r.Context(), paymentapp.GetPaymentQuery{
+		ID:       paymentagg.PaymentID(id),
+		TenantID: "1",
+	})
+	if err != nil {
+		http.Error(w, "Payment not found", http.StatusNotFound)
+		return
+	}
+	h.renderPage(w, "payment_view.html", PageData{Title: "View Payment", Extra: map[string]interface{}{"Payment": payment}})
+}
+
+func (h *PaymentHandlers) Delete(w http.ResponseWriter, r *http.Request) {
+	id := domain.PaymentID(chi.URLParam(r, "id"))
+	if err := h.Services.Payments.DeletePayment(r.Context(), id); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/payments", http.StatusSeeOther)
+}

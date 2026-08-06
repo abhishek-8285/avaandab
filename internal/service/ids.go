@@ -1,0 +1,79 @@
+package service
+
+import (
+	"context"
+	"fmt"
+	"strings"
+
+	"github.com/google/uuid"
+
+	"transport-app/internal/domain"
+)
+
+// generateID creates a new UUID string for entity primary keys.
+func generateID() string {
+	return uuid.NewString()
+}
+
+// generateDisplayID creates a human-readable ID with a prefix.
+// Format: {prefix}-{short-uuid}
+func generateDisplayID(prefix string) string {
+	id := uuid.NewString()
+	return fmt.Sprintf("%s-%s", prefix, id[:8])
+}
+
+// generateDriverID creates a driver display ID.
+func generateDriverID(prefix string) string {
+	return generateDisplayID(prefix)
+}
+
+// generateBookingNumber creates a booking number from company settings.
+func (s *baseService) generateBookingNumber(ctx context.Context) string {
+	settings, err := s.store.GetCompanySettings(ctx)
+	if err != nil {
+		return fmt.Sprintf("%s-%s", "BK", uuid.NewString()[:8])
+	}
+	return generateDisplayID(settings.BookingPrefix)
+}
+
+// generateTripNumber creates a trip number from company settings.
+func (s *baseService) generateTripNumber(ctx context.Context) string {
+	settings, err := s.store.GetCompanySettings(ctx)
+	if err != nil {
+		return fmt.Sprintf("%s-%s", "TR", uuid.NewString()[:8])
+	}
+	return generateDisplayID(settings.TripPrefix)
+}
+
+// generateInvoiceNumber creates an invoice number from company settings.
+func (s *baseService) generateInvoiceNumber(ctx context.Context) string {
+	settings, err := s.store.GetCompanySettings(ctx)
+	if err != nil {
+		return fmt.Sprintf("%s-%s", "INV", uuid.NewString()[:8])
+	}
+	return generateDisplayID(settings.InvoicePrefix)
+}
+
+// sanitizeName capitalizes the first letter of a name.
+func sanitizeName(name string) string {
+	name = strings.TrimSpace(name)
+	if len(name) > 0 {
+		name = strings.ToUpper(name[:1]) + name[1:]
+	}
+	return name
+}
+
+// validateRequired checks that required string fields are non-empty.
+func validateRequired(fields map[string]string) error {
+	for name, value := range fields {
+		if strings.TrimSpace(value) == "" {
+			return fmt.Errorf("%s is required", name)
+		}
+	}
+	return nil
+}
+
+// roleFromID converts a role ID to a domain.Role.
+func roleFromID(store Store, ctx context.Context, roleID int64) (domain.Role, error) {
+	return store.GetRoleByID(ctx, roleID)
+}

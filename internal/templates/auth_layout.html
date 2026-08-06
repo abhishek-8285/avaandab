@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>{{.Title}} - MVTMS</title>
+    <script type="module" src="/static/js/datastar.js" defer></script>
+    <script src="https://cdn.tailwindcss.com" defer></script>
+    <script src="/static/js/router.js" defer></script>
+    <link rel="stylesheet" href="/static/css/app.css">
+    <style>
+        html { opacity: 0; transition: opacity 0.15s ease-in; }
+    </style>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            document.documentElement.style.opacity = "1";
+        });
+    </script>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 font-sans">
+    <div class="min-h-screen flex items-center justify-center safe-p">
+        {{.Content}}
+    </div>
+
+    {{if .FlashError}}
+    <div class="fixed bottom-4 right-4 safe-bottom safe-right bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-lg">
+        {{.FlashError}}
+    </div>
+    {{end}}
+    {{if .FlashSuccess}}
+    <div class="fixed bottom-4 right-4 safe-bottom safe-right bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-lg">
+        {{.FlashSuccess}}
+    </div>
+    {{end}}
+</body>
+</html>

@@ -1,0 +1,187 @@
+package handlers
+
+import (
+	"encoding/json"
+	"net/http"
+	"strconv"
+
+	"github.com/go-chi/chi/v5"
+
+	"transport-app/internal/booking/application"
+	"transport-app/internal/booking/domain/aggregate"
+	"transport-app/internal/booking/presentation/api/dto"
+)
+
+type APIBookingHandler struct {
+	createUC  *application.CreateBookingUseCase
+	confirmUC *application.ConfirmBookingUseCase
+	cancelUC  *application.CancelBookingUseCase
+	getUC     *application.GetBookingUseCase
+	listUC    *application.ListBookingsUseCase
+}
+
+func NewAPIBookingHandler(
+	createUC *application.CreateBookingUseCase,
+	confirmUC *application.ConfirmBookingUseCase,
+	cancelUC *application.CancelBookingUseCase,
+	getUC *application.GetBookingUseCase,
+	listUC *application.ListBookingsUseCase,
+) *APIBookingHandler {
+	return &APIBookingHandler{
+		createUC:  createUC,
+		confirmUC: confirmUC,
+		cancelUC:  cancelUC,
+		getUC:     getUC,
+		listUC:    listUC,
+	}
+}
+
+func (h *APIBookingHandler) Register(r chi.Router) {
+	r.Route("/api/v1/bookings", func(r chi.Router) {
+		r.Post("/", h.Create)
+		r.Get("/", h.List)
+		r.Get("/{id}", h.Get)
+		r.Post("/{id}/confirm", h.Confirm)
+		r.Post("/{id}/cancel", h.Cancel)
+	})
+}
+
+func (h *APIBookingHandler) Create(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		CustomerID  string   `json:"customer_id"`
+		RouteID     string   `json:"route_id"`
+		PickupDate  string   `json:"pickup_date"`
+		VehicleType string   `json:"vehicle_type"`
+		Passengers  int64    `json:"passengers"`
+		CargoWeight *float64 `json:"cargo_weight"`
+		Price       float64  `json:"price"`
+		Notes       string   `json:"notes"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	cmd := application.CreateBookingCommand{
+		TenantID:    "1", // Default Tenant ID
+		CustomerID:  req.CustomerID,
+		RouteID:     req.RouteID,
+		PickupDate:  req.PickupDate,
+		VehicleType: req.VehicleType,
+		Passengers:  req.Passengers,
+		CargoWeight: req.CargoWeight,
+		Price:       req.Price,
+		Notes:       req.Notes,
+	}
+
+	id, err := h.createUC.Execute(r.Context(), cmd)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(map[string]string{"id": string(id)})
+}
+
+func (h *APIBookingHandler) List(w http.ResponseWriter, r *http.Request) {
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	search := r.URL.Query().Get("search")
+	status := r.URL.Query().Get("status")
+
+	res, err := h.listUC.Execute(r.Context(), application.ListBookingsQuery{
+		TenantID: "1",
+		Page:     page,
+		Limit:    limit,
+		Search:   search,
+		Status:   status,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	dtos := make([]dto.BookingDTO, len(res.Bookings))
+	for i, b := range res.Bookings {
+		dtos[i] = dto.BookingDTO{
+			ID:            b.ID,
+			BookingNumber: b.BookingNumber,
+			CustomerID:    b.CustomerID,
+			RouteID:       b.RouteID,
+			PickupDate:    b.PickupDate,
+			VehicleType:   b.VehicleType,
+			Passengers:    b.Passengers,
+			CargoWeight:   b.CargoWeight,
+			Price:         b.Price,
+			Notes:         b.Notes,
+			Status:        b.Status,
+			CreatedAt:     b.CreatedAt,
+			UpdatedAt:     b.UpdatedAt,
+		}
+	}
+
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"bookings": dtos,
+		"total":    res.Total,
+	})
+}
+
+func (h *APIBookingHandler) Get(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	res, err := h.getUC.Execute(r.Context(), application.GetBookingQuery{
+		BookingID: aggregate.BookingID(id),
+		TenantID:  "1",
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	_ = json.NewEncoder(w).Encode(dto.BookingDTO{
+		ID:            res.ID,
+		BookingNumber: res.BookingNumber,
+		CustomerID:    res.CustomerID,
+		RouteID:       res.RouteID,
+		PickupDate:    res.PickupDate,
+		VehicleType:   res.VehicleType,
+		Passengers:    res.Passengers,
+		CargoWeight:   res.CargoWeight,
+		Price:         res.Price,
+		Notes:         res.Notes,
+		Status:        res.Status,
+		CreatedAt:     res.CreatedAt,
+		UpdatedAt:     res.UpdatedAt,
+	})
+}
+
+func (h *APIBookingHandler) Confirm(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	err := h.confirmUC.Execute(r.Context(), application.ConfirmBookingCommand{
+		BookingID: aggregate.BookingID(id),
+		TenantID:  "1",
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "confirmed"})
+}
+
+func (h *APIBookingHandler) Cancel(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	err := h.cancelUC.Execute(r.Context(), application.CancelBookingCommand{
+		BookingID: aggregate.BookingID(id),
+		TenantID:  "1",
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "cancelled"})
+}

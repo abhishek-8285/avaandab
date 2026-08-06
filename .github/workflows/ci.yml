@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+env:
+  CGO_ENABLED: 0
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Install dependencies
+        run: |
+          go mod download
+
+      - name: Format check
+        run: |
+          if [ "$(gofmt -l -s .)" != "" ]; then
+            echo "::error::Code is not formatted: $(gofmt -l -s .)"
+            exit 1
+          fi
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Build
+        run: go build ./...
+
+      - name: Unit tests
+        run: go test -v -race -count=1 ./...
+
+      - name: SQLC generate check
+        run: |
+          make generate
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::sqlc generated files are out of date"
+            git diff --exit-code
+            exit 1
+          fi
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v2.0
+
+      - name: Lint
+        run: golangci-lint run --timeout=5m
+
+  build:
+    name: Build Docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build binary
+        run: |
+          CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o mvtms ./cmd/server/
+
+      - name: Build Docker image
+        run: docker build -t mvtms:latest .

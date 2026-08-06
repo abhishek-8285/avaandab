@@ -1,0 +1,95 @@
+<div class="max-w-3xl mx-auto">
+    <h2 class="text-xl font-semibold mb-4">{{if .Driver}}Edit Driver{{else}}New Driver{{end}}</h2>
+
+    {{if .FlashError}}
+    <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">{{.FlashError}}</div>
+    {{end}}
+
+    {{ $driver := .Driver }}
+
+    <form method="POST" action="/drivers{{if $driver}}/{{$driver.ID}}/edit{{else}}/new{{end}}" class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">First Name *</label>
+                <input type="text" name="first_name" value="{{if $driver}}{{$driver.FirstName}}{{end}}" required
+                    class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Last Name *</label>
+                <input type="text" name="last_name" value="{{if $driver}}{{$driver.LastName}}{{end}}" required
+                    class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Phone *</label>
+                <input type="tel" name="phone" value="{{if $driver}}{{$driver.Phone}}{{end}}" required
+                    class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Email</label>
+                <input type="email" name="email" value="{{if $driver}}{{nullString $driver.Email}}{{end}}"
+                    class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Address</label>
+            <textarea name="address" rows="2"
+                class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">{{if $driver}}{{nullString $driver.Address}}{{end}}</textarea>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">License Number *</label>
+                <input type="text" name="license_number" value="{{if $driver}}{{$driver.LicenseNumber}}{{end}}" required
+                    class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">License Expiry *</label>
+                <input type="date" name="license_expiry" value="{{if $driver}}{{date_only $driver.LicenseExpiry}}{{end}}" required
+                    class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Experience (years)</label>
+                <input type="number" name="experience" value="{{if $driver}}{{$driver.ExperienceYears}}{{end}}"
+                    class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Status</label>
+            <select name="status" class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                <option value="available" {{if eq $driver.Status "available"}}selected{{end}}>Available</option>
+                <option value="on_trip" {{if eq $driver.Status "on_trip"}}selected{{end}}>On Trip</option>
+                <option value="leave" {{if eq $driver.Status "leave"}}selected{{end}}>Leave</option>
+                <option value="inactive" {{if eq $driver.Status "inactive"}}selected{{end}}>Inactive</option>
+            </select>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Emergency Contact Name</label>
+                <input type="text" name="emergency_contact_name" value="{{if $driver}}{{nullString $driver.EmergencyContactName}}{{end}}"
+                    class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Emergency Contact Phone</label>
+                <input type="tel" name="emergency_contact_phone" value="{{if $driver}}{{nullString $driver.EmergencyContactPhone}}{{end}}"
+                    class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Notes</label>
+            <textarea name="notes" rows="2"
+                class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">{{if $driver}}{{nullString $driver.Notes}}{{end}}</textarea>
+        </div>
+
+        <div class="flex justify-end space-x-3 pt-4">
+            <a href="/drivers" class="px-4 py-2 min-h-[44px] flex items-center justify-center border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 active:bg-gray-100>Cancel</a>
+            <button type="submit" class="px-4 py-2 min-h-[44px] bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-blue-800">Save Driver</button>
+        </div>
+    </form>
+</div>

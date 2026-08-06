@@ -1,0 +1,99 @@
+<div id="login-container" class="w-full max-w-md">
+    <div class="bg-white rounded-xl shadow-xl border border-slate-200 auth-enter">
+        <div class="p-6 sm:p-8">
+            <div class="text-center">
+                <h2 class="text-2xl font-extrabold text-slate-900">Welcome back</h2>
+                <p class="mt-2 text-sm text-slate-600">Sign in to continue to MVTMS</p>
+            </div>
+
+            {{if .Error}}
+            <div class="mt-5 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm auth-error">
+                {{.Error}}
+            </div>
+            {{end}}
+
+            <form class="mt-5 sm:mt-6 space-y-4 sm:space-y-5" method="POST" action="/login" data-on-submit="@post('/login', {contentType: 'form'})">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Email address</label>
+                    <input type="email" name="email" required value="{{.Email}}"
+                        class="block w-full border border-slate-300 rounded-md px-3 py-2 text-base sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:border-transparent auth-input">
+                </div>
+                <div class="relative">
+                    <label for="password-input" class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                    <div class="relative">
+                        <input type="password" id="password-input" name="password" required
+                            class="block w-full border border-slate-300 rounded-md px-3 py-2 pr-10 text-base sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:border-transparent auth-input">
+                        <button type="button" id="toggle-password" aria-label="Show password" aria-pressed="false"
+                            class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
+                            <svg id="icon-eye-off" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.878 15.499A5.873 5.873 0 0112 16c-3.309 0-6-2.691-6-6 0-.992.222-1.922.62-2.742m-.743 3.743A5.99 5.99 0 0012 18c1.657 0 3.139-.683 4.226-1.773M9.9 9.9L6.611 6.611m7.778 7.778l3.15-3.15M9.9 9.9a3 3 0 104.243 4.243M15.055 6.808A5.965 5.965 0 0119.949 12c0 1.213-.267 2.343-.74 3.303m-3.743-10.386A5.965 5.965 0 0112 4.051c1.213 0 2.343.267 3.303.74"></path>
+                            </svg>
+                            <svg id="icon-eye" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.084 12s4.048-7 9.916-7 9.916 7-9.916 7-9.916-7z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <label class="flex items-center min-h-[44px] cursor-pointer">
+                        <input type="checkbox" name="remember" value="1" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 rounded">
+                        <span class="me-2 text-sm text-slate-700">Remember me</span>
+                    </label>
+                </div>
+                <button type="submit"
+                    class="w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-base sm:text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 auth-btn min-h-[44px] disabled:opacity-75 disabled:cursor-not-allowed"
+                    data-loading="Signing in...">
+                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" id="login-spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Sign in</span>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+(function() {
+    var container = document.getElementById('login-container');
+    if (!container) return;
+    var form = container.querySelector('form');
+    if (!form) return;
+    var btn = form.querySelector('button[type="submit"]');
+    if (!btn) return;
+    var spinner = form.querySelector('#login-spinner');
+    var label = btn.querySelector('span');
+    var loadingText = btn.getAttribute('data-loading');
+    if (!loadingText) return;
+    form.addEventListener('submit', function() {
+        btn.disabled = true;
+        if (spinner) spinner.classList.remove('hidden');
+        if (label) label.innerText = loadingText;
+    });
+})();
+
+(function() {
+    var input = document.getElementById('password-input');
+    var toggle = document.getElementById('toggle-password');
+    var iconOff = document.getElementById('icon-eye-off');
+    var iconOn = document.getElementById('icon-eye');
+    if (!input || !toggle) return;
+    toggle.addEventListener('click', function() {
+        if (input.type === 'password') {
+            input.type = 'text';
+            toggle.setAttribute('aria-pressed', 'true');
+            toggle.setAttribute('aria-label', 'Hide password');
+            if (iconOff) iconOff.classList.add('hidden');
+            if (iconOn) iconOn.classList.remove('hidden');
+        } else {
+            input.type = 'password';
+            toggle.setAttribute('aria-pressed', 'false');
+            toggle.setAttribute('aria-label', 'Show password');
+            if (iconOff) iconOff.classList.remove('hidden');
+            if (iconOn) iconOn.classList.add('hidden');
+        }
+    });
+})();
+</script>
+

@@ -1,0 +1,62 @@
+package sqlite
+
+import (
+	"context"
+
+	"transport-app/internal/domain"
+
+	db "transport-app/db/generated/sqlite"
+)
+
+// FileRepository implementation
+
+func (r *SQLRepository) CreateFile(ctx context.Context, file domain.File) (domain.File, error) {
+	created, err := r.Q(ctx).CreateFile(ctx, db.CreateFileParams{
+		ID:             string(file.ID),
+		Filename:       file.Filename,
+		OriginalName:   file.OriginalName,
+		Path:           file.Path,
+		Size:           file.Size,
+		MimeType:       file.MimeType,
+		UploadableType: file.UploadableType,
+		UploadableID:   nullString(file.UploadableID),
+	})
+	if err != nil {
+		return domain.File{}, err
+	}
+	return toDomainFile(created), nil
+}
+
+func (r *SQLRepository) GetFileByID(ctx context.Context, id domain.FileID) (domain.File, error) {
+	f, err := r.Q(ctx).GetFileByID(ctx, string(id))
+	if err != nil {
+		return domain.File{}, err
+	}
+	return toDomainFile(f), nil
+}
+
+func (r *SQLRepository) GetFilesByUploadable(ctx context.Context, uploadableType string, uploadableID string) ([]domain.File, error) {
+	rows, err := r.Q(ctx).GetFilesByUploadable(ctx, db.GetFilesByUploadableParams{
+		UploadableType: uploadableType,
+		UploadableID:   nullString(&uploadableID),
+	})
+	if err != nil {
+		return nil, err
+	}
+	result := make([]domain.File, len(rows))
+	for i, f := range rows {
+		result[i] = toDomainFile(f)
+	}
+	return result, nil
+}
+
+func (r *SQLRepository) DeleteFile(ctx context.Context, id domain.FileID) error {
+	return r.Q(ctx).DeleteFile(ctx, string(id))
+}
+
+func (r *SQLRepository) DeleteFilesByUploadable(ctx context.Context, uploadableType string, uploadableID string) error {
+	return r.Q(ctx).DeleteFilesByUploadable(ctx, db.DeleteFilesByUploadableParams{
+		UploadableType: uploadableType,
+		UploadableID:   nullString(&uploadableID),
+	})
+}

@@ -1,0 +1,82 @@
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex justify-between items-start mb-4">
+            <div>
+                <h2 class="text-xl font-semibold">{{.Invoice.InvoiceNumber}}</h2>
+                <p class="text-gray-600">{{.Invoice.CreatedAt}}</p>
+            </div>
+            <div>
+                <span class="px-2 py-1 text-xs rounded-full {{statusBadge .Invoice.PaymentStatus}}">{{.Invoice.PaymentStatus}}</span>
+            </div>
+        </div>
+
+        <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div>
+                <dt class="text-sm text-gray-500">Customer</dt>
+                <dd class="text-sm font-medium">{{.Invoice.CustomerName}}</dd>
+            </div>
+            <div>
+                <dt class="text-sm text-gray-500">Booking</dt>
+                <dd class="text-sm font-medium">{{.Invoice.BookingNumber}}</dd>
+            </div>
+            <div>
+                <dt class="text-sm text-gray-500">Trip</dt>
+                <dd class="text-sm font-medium">{{if .Invoice.TripNumber}}{{.Invoice.TripNumber}}{{else}}-{{end}}</dd>
+            </div>
+            <div>
+                <dt class="text-sm text-gray-500">Subtotal</dt>
+                <dd class="text-sm font-medium">{{printf "%.2f" .Invoice.Subtotal}}</dd>
+            </div>
+            <div>
+                <dt class="text-sm text-gray-500">Tax</dt>
+                <dd class="text-sm font-medium">{{printf "%.2f" .Invoice.Tax}}</dd>
+            </div>
+            <div>
+                <dt class="text-sm text-gray-500">Discount</dt>
+                <dd class="text-sm font-medium">{{printf "%.2f" .Invoice.Discount}}</dd>
+            </div>
+            <div>
+                <dt class="text-sm text-gray-500">Total</dt>
+                <dd class="text-sm font-bold text-lg">{{printf "%.2f" .Invoice.Total}}</dd>
+            </div>
+            <div>
+                <dt class="text-sm text-gray-500">Balance Due</dt>
+                <dd class="text-sm font-medium">{{printf "%.2f" .Balance}}</dd>
+            </div>
+        </dl>
+
+        <div class="mt-6">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-semibold text-gray-800">Payments</h3>
+                <a href="/payments/new/{{.Invoice.ID}}"
+                    class="px-3 py-1 min-h-[44px] flex items-center justify-center bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-blue-800 text-sm">Record Payment</a>
+            </div>
+            {{if .Payments}}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Method</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Reference</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {{range .Payments}}
+                        <tr>
+                            <td class="px-4 py-2 text-sm">{{datetime .PaymentDate}}</td>
+                            <td class="px-4 py-2 text-sm">{{printf "%.2f" .Amount}}</td>
+                            <td class="px-4 py-2 text-sm">{{.Method}}</td>
+                            <td class="px-4 py-2 text-sm">{{nullString .Reference}}</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+            {{else}}
+            <p class="text-sm text-gray-500">No payments recorded.</p>
+            {{end}}
+        </div>
+    </div>
+</div>

@@ -1,0 +1,58 @@
+<div class="max-w-3xl mx-auto">
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex justify-between items-start mb-4">
+            <div>
+                <h2 class="text-xl font-semibold">My Profile</h2>
+            </div>
+            <a href="/change-password" class="px-3 py-1 min-h-[44px] flex items-center justify-center bg-yellow-600 text-white rounded-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 active:bg-yellow-700">Change Password</a>
+        </div>
+
+        {{ $u := .UserDetail }}
+
+        <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <dt class="text-sm text-gray-500">Name</dt>
+                <dd class="text-sm font-medium">{{$u.Name}}</dd>
+            </div>
+            <div>
+                <dt class="text-sm text-gray-500">Email</dt>
+                <dd class="text-sm font-medium">{{$u.Email}}</dd>
+            </div>
+            <div>
+                <dt class="text-sm text-gray-500">Phone</dt>
+                <dd class="text-sm font-medium">{{nullString $u.Phone}}</dd>
+            </div>
+            <div>
+                <dt class="text-sm text-gray-500">Role</dt>
+                <dd class="text-sm font-medium">{{$u.Role.Name}}</dd>
+            </div>
+            <div>
+                <dt class="text-sm text-gray-500">Status</dt>
+                <dd class="text-sm font-medium">
+                    <span class="px-2 py-1 text-xs rounded-full {{statusBadge $u.Status}}">{{$u.Status}}</span>
+                </dd>
+            </div>
+            <div>
+                <dt class="text-sm text-gray-500">Last Login</dt>
+                <dd class="text-sm font-medium">{{if $u.LastLoginAt}}{{datetime $u.LastLoginAt}}{{else}}Never{{end}}</dd>
+            </div>
+        </dl>
+
+        <form method="POST" action="/profile" class="mt-6 space-y-4">
+            <h3 class="font-semibold text-gray-800">Update Profile</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Name</label>
+                    <input type="text" name="name" value="{{$u.Name}}"
+                        class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Phone</label>
+                    <input type="tel" name="phone" value="{{nullString $u.Phone}}"
+                        class="mt-1 block w-full text-base sm:text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                </div>
+            </div>
+            <button type="submit" class="px-4 py-2 min-h-[44px] bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-blue-800">Update</button>
+        </form>
+    </div>
+</div>
