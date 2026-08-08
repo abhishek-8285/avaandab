@@ -105,9 +105,7 @@ func (t *TripAggregate) AssignDriver(driverID string, now time.Time) error {
 		return errors.New("cannot assign driver to completed or cancelled trip")
 	}
 	t.DriverID = &driverID
-	if t.Status == TripScheduled {
-		t.Status = TripAssigned
-	}
+	t.Status = TripAssigned
 	t.UpdatedAt = now
 	t.RecordEvent(TripAssignedEvent{
 		TripID:     t.ID,

@@ -41,6 +41,10 @@ func (uc *AssignVehicleUseCase) Execute(ctx context.Context, cmd AssignVehicleCo
 		if err := t.AssignVehicle(cmd.VehicleID, uc.clock.Now()); err != nil {
 			return err
 		}
-		return repo.Save(txCtx, t)
+		if err := repo.Save(txCtx, t); err != nil {
+			return err
+		}
+		logAudit(txCtx, ActionAssign, string(t.ID), nil, nil)
+		return nil
 	})
 }

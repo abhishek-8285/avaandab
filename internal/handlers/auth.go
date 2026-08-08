@@ -28,8 +28,6 @@ func (h *AuthHandlers) LoginPage(w http.ResponseWriter, r *http.Request) {
 
 	pd := PageData{Title: "Login"}
 
-	// Read flash error cookie and pass to template (do not clear —
-	// allows error to persist through browser back/forward navigation)
 	if cookie, err := r.Cookie("flash_error"); err == nil {
 		if pd.Extra == nil {
 			pd.Extra = map[string]interface{}{}
@@ -37,7 +35,6 @@ func (h *AuthHandlers) LoginPage(w http.ResponseWriter, r *http.Request) {
 		pd.Extra["Error"] = cookie.Value
 	}
 
-	// Preserve email input on error
 	if cookie, err := r.Cookie("auth_email"); err == nil {
 		if pd.Extra == nil {
 			pd.Extra = map[string]interface{}{}
@@ -46,6 +43,89 @@ func (h *AuthHandlers) LoginPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.renderAuthPage(w, "login_form.html", pd)
+}
+
+// RegisterPage renders the user onboarding registration page.
+func (h *AuthHandlers) RegisterPage(w http.ResponseWriter, r *http.Request) {
+	if isDatastarRequest(r) {
+		h.renderFragment(w, "register_form.html", nil)
+		return
+	}
+	pd := PageData{Title: "Create Account"}
+	if cookie, err := r.Cookie("flash_error"); err == nil {
+		if pd.Extra == nil {
+			pd.Extra = map[string]interface{}{}
+		}
+		pd.Extra["Error"] = cookie.Value
+	}
+	h.renderAuthPage(w, "register_form.html", pd)
+}
+
+// Register handles self-onboarding account creation.
+func (h *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Redirect(w, r, "/register", http.StatusSeeOther)
+		return
+	}
+
+	name := r.PostFormValue("name")
+	email := r.PostFormValue("email")
+	phone := r.PostFormValue("phone")
+	password := r.PostFormValue("password")
+	confirm := r.PostFormValue("confirm_password")
+
+	if password != confirm {
+		h.renderRegisterError(w, r, "Passwords do not match", email, name, phone)
+		return
+	}
+
+	// New onboarded user is set as Admin (Role ID 1)
+	user, err := h.Services.Users.CreateUserWithPassword(r.Context(), email, name, phone, password, 1, domain.UserStatusActive)
+	if err != nil {
+		h.renderRegisterError(w, r, err.Error(), email, name, phone)
+		return
+	}
+
+	// Update Casbin policy so user gets admin permissions immediately
+	_ = h.AuthSrv.AddRoleForUser(user.ID.String(), "admin")
+
+	// Automatically log in the user upon onboarding
+	h.AuthStore.CreateSession(w, user.ID.String(), "admin", user.Name)
+
+	targetURL := "/dashboard"
+	// Check if company settings are configured, if not redirect to company onboarding
+	if company, err := h.Services.Settings.GetSettings(r.Context()); err == nil && company.CompanyName == "" {
+		targetURL = "/company/onboard"
+	}
+
+	if isDatastarRequest(r) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write([]byte("<script>window.location.href='" + targetURL + "'</script>"))
+		return
+	}
+
+	http.Redirect(w, r, targetURL, http.StatusSeeOther)
+}
+
+func (h *AuthHandlers) renderRegisterError(w http.ResponseWriter, r *http.Request, errMsg, email, name, phone string) {
+	if isDatastarRequest(r) {
+		h.renderFragment(w, "register_form.html", map[string]interface{}{
+			"Title": "Create Account",
+			"Error": errMsg,
+			"Email": email,
+			"Name":  name,
+			"Phone": phone,
+		})
+		return
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     "flash_error",
+		Value:    errMsg,
+		Path:     "/",
+		HttpOnly: true,
+		MaxAge:   30,
+	})
+	http.Redirect(w, r, "/register", http.StatusSeeOther)
 }
 
 // Login processes the login form submission.

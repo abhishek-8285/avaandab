@@ -37,6 +37,10 @@ func (uc *ScheduleTripUseCase) Execute(ctx context.Context, cmd ScheduleTripComm
 		if err := t.Schedule(uc.clock.Now()); err != nil {
 			return err
 		}
-		return repo.Save(txCtx, t)
+		if err := repo.Save(txCtx, t); err != nil {
+			return err
+		}
+		logAudit(txCtx, ActionSchedule, string(t.ID), nil, nil)
+		return nil
 	})
 }

@@ -22,6 +22,26 @@ type SettingsHandlers struct {
 func (h *SettingsHandlers) Routes(r chi.Router) {
 	r.With(middleware.ResourcePermission(h.AuthSrv, "settings", "read")).Get("/", h.Index)
 	r.With(middleware.ResourcePermission(h.AuthSrv, "settings", "update")).Post("/update", h.Update)
+	r.Get("/onboard", h.OnboardPage)
+	r.Post("/onboard", h.SaveOnboard)
+}
+
+func (h *SettingsHandlers) OnboardPage(w http.ResponseWriter, r *http.Request) {
+	session, _ := h.getUserFromContext(r)
+	settings, err := h.Services.Settings.GetSettings(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	h.renderPage(w, "company_onboard.html", PageData{
+		Title: "Company Onboarding",
+		User:  session,
+		Extra: map[string]interface{}{"Settings": settings},
+	})
+}
+
+func (h *SettingsHandlers) SaveOnboard(w http.ResponseWriter, r *http.Request) {
+	h.Update(w, r)
 }
 
 func (h *SettingsHandlers) Index(w http.ResponseWriter, r *http.Request) {

@@ -30,6 +30,8 @@ type stubAuthSvc struct{}
 
 func (s *stubAuthSvc) Can(_ string, _, _ string) bool { return true }
 func (s *stubAuthSvc) Reload() error                 { return nil }
+func (s *stubAuthSvc) AddRoleForUser(_, _ string) error { return nil }
+func (s *stubAuthSvc) DeleteRolesForUser(_ string) error { return nil }
 
 // authInjectMiddleware injects a test session into the request context.
 func authInjectMiddleware(next http.Handler) http.Handler {

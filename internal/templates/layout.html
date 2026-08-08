@@ -3,11 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="MVTMS - Multi-Vehicle Transport Management System">
+    <meta name="description" content="Avandab - Premium Transport & Fleet Management System">
     <meta name="mobile-web-app-capable" content="yes">
-    <title>{{.Title}} - MVTMS</title>
+    <title>{{.Title}} - Avandab</title>
     <link rel="icon" href="/static/img/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="/static/css/material-icons.css">
+    <link rel="stylesheet" href="/static/css/fonts.css">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&display=swap" rel="stylesheet">
     <script type="module" src="/static/js/datastar.js" defer></script>
     <script src="/static/js/router.js" defer></script>
     <link rel="stylesheet" href="/static/css/tailwind.css">
@@ -17,10 +21,31 @@
         body {
             font-size: 1rem;
             line-height: 1.5;
+            background-color: #f7f9fb;
+            color: #191c1e;
         }
-        .font-mono { font-family: ui-monaco, Menlo, Consolas, "Liberation Mono", monospace; }
+        .font-display { font-family: 'Satoshi', 'Plus Jakarta Sans', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
         td[data-numeric] { font-feature-settings: "tnum" 1; font-variant-numeric: tabular-nums; }
         dt { font-size: 0.75rem; line-height: 1; }
+
+        /* Direct Sidebar Navigation Hover Guarantee */
+        #sidebar-nav a {
+            transition: all 150ms ease-in-out !important;
+        }
+        #sidebar-nav a:hover {
+            background-color: #f2f4f6 !important;
+            color: #00685f !important;
+            transform: translateX(4px) !important;
+        }
+        #sidebar-nav a.active {
+            background-color: #e6f4f1 !important;
+            color: #00685f !important;
+            font-weight: 600 !important;
+        }
     </style>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
@@ -29,111 +54,118 @@
     </script>
 </head>
 <body class="bg-gray-50 font-sans">
-    <div class="flex h-screen overflow-hidden">
-    <div id="mobile-overlay" class="fixed inset-0 z-20 bg-black bg-opacity-50 opacity-0 invisible transition-opacity duration-300 md:hidden"></div>
+    <div class="flex h-screen overflow-hidden bg-[#f7f9fb]">
+        <div id="mobile-overlay" class="fixed inset-0 z-40 bg-black/50 opacity-0 invisible transition-opacity duration-300 md:hidden"></div>
 
-        <!-- Sidebar -->
-        <div id="sidebar" class="fixed inset-y-0 left-0 z-30 w-64 bg-white shadow-lg transform -translate-x-full md:translate-x-0 md:relative md:z-0 md:flex md:flex-col transition-transform duration-300 ease-in-out sidebar-scroll">
-                <div class="flex items-center h-16 px-4 border-b safe-top safe-left safe-right">
-                    <h1 class="text-xl font-bold text-gray-800">MVTMS</h1>
-                </div>
-                <nav class="flex-1 overflow-y-auto py-4 safe-left safe-right">
-                    <ul class="space-y-1 px-2">
-                        <li>
-                            <a href="/dashboard" class="flex items-center px-4 py-2 min-h-[44px] text-gray-700 hover:bg-gray-100 rounded-lg mx-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:bg-gray-200">
-                                <span class="material-icons mr-3">dashboard</span>Dashboard
-                            </a>
-                        </li>
-                        <li>
-                            <a href="/drivers" class="flex items-center px-4 py-2 min-h-[44px] text-gray-700 hover:bg-gray-100 rounded-lg mx-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:bg-gray-200">
-                                <span class="material-icons mr-3">badge</span>Drivers
-                            </a>
-                        </li>
-                        <li>
-                            <a href="/vehicles" class="flex items-center px-4 py-2 min-h-[44px] text-gray-700 hover:bg-gray-100 rounded-lg mx-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:bg-gray-200">
-                                <span class="material-icons mr-3">directions_bus</span>Vehicles
-                            </a>
-                        </li>
-                        <li>
-                            <a href="/customers" class="flex items-center px-4 py-2 min-h-[44px] text-gray-700 hover:bg-gray-100 rounded-lg mx-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:bg-gray-200">
-                                <span class="material-icons mr-3">people</span>Customers
-                            </a>
-                        </li>
-                        <li>
-                            <a href="/routes" class="flex items-center px-4 py-2 min-h-[44px] text-gray-700 hover:bg-gray-100 rounded-lg mx-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:bg-gray-200">
-                                <span class="material-icons mr-3">route</span>Routes
-                            </a>
-                        </li>
-                        <li>
-                            <a href="/bookings" class="flex items-center px-4 py-2 min-h-[44px] text-gray-700 hover:bg-gray-100 rounded-lg mx-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:bg-gray-200">
-                                <span class="material-icons mr-3">book</span>Bookings
-                            </a>
-                        </li>
-                        <li>
-                            <a href="/trips" class="flex items-center px-4 py-2 min-h-[44px] text-gray-700 hover:bg-gray-100 rounded-lg mx-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:bg-gray-200">
-                                <span class="material-icons mr-3">directions_bus</span>Trips
-                            </a>
-                        </li>
-                        <li>
-                            <a href="/invoices" class="flex items-center px-4 py-2 min-h-[44px] text-gray-700 hover:bg-gray-100 rounded-lg mx-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:bg-gray-200">
-                                <span class="material-icons mr-3">receipt_long</span>Invoices
-                            </a>
-                        </li>
-                        <li>
-                            <a href="/payments" class="flex items-center px-4 py-2 min-h-[44px] text-gray-700 hover:bg-gray-100 rounded-lg mx-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:bg-gray-200">
-                                <span class="material-icons mr-3">payment</span>Payments
-                            </a>
-                        </li>
-                        <li>
-                            <a href="/reports" class="flex items-center px-4 py-2 min-h-[44px] text-gray-700 hover:bg-gray-100 rounded-lg mx-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:bg-gray-200">
-                                <span class="material-icons mr-3">bar_chart</span>Reports
-                            </a>
-                        </li>
-                        <li>
-                            <a href="/settings" class="flex items-center px-4 py-2 min-h-[44px] text-gray-700 hover:bg-gray-100 rounded-lg mx-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:bg-gray-200">
-                                <span class="material-icons mr-3">settings</span>Settings
-                            </a>
-                        </li>
-                        <li>
-                            <a href="/audit-logs" class="flex items-center px-4 py-2 min-h-[44px] text-gray-700 hover:bg-gray-100 rounded-lg mx-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:bg-gray-200">
-                                <span class="material-icons mr-3">history</span>Audit Logs
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
-                <div class="border-t p-4 safe-bottom safe-left safe-right">
-                    <form method="POST" action="/logout">
-                        <button type="submit" class="w-full flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg min-h-[44px] focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:bg-gray-200">
-                            <span class="material-icons mr-3">logout</span>Logout
-                        </button>
-                    </form>
-                </div>
+        <!-- Sidebar (Stitch Design) -->
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-[#E2E8F0] flex flex-col transform -translate-x-full md:translate-x-0 md:relative md:z-0 transition-transform duration-300 ease-in-out sidebar-scroll shrink-0 shadow-sm">
+            <div class="h-16 flex items-center px-6 border-b border-[#EAE8E4] shrink-0 bg-white">
+                <a href="/dashboard" class="flex items-center gap-3 group text-decoration-none">
+                    <div class="w-9 h-9 rounded-lg bg-[#00685f] text-white flex items-center justify-center font-extrabold text-base shadow-sm group-hover:bg-[#005049] transition-colors">
+                        <span class="material-symbols-outlined text-xl">local_shipping</span>
+                    </div>
+                    <span class="text-2xl font-black text-[#00685f] font-display tracking-tight group-hover:text-[#005049] transition-colors">Avandab</span>
+                </a>
             </div>
+            <nav id="sidebar-nav" class="flex-1 py-4 flex flex-col gap-1 overflow-y-auto px-2">
+                <a href="/dashboard" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-[#565e74] hover:bg-[#f2f4f6] hover:text-[#00685f] hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Dashboard"}}active bg-[#e6f4f1] text-[#00685f] font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-[#00685f] after:rounded-l{{end}}">
+                    <span class="material-symbols-outlined text-xl">grid_view</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/drivers" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-[#565e74] hover:bg-[#f2f4f6] hover:text-[#00685f] hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Drivers"}}active bg-[#e6f4f1] text-[#00685f] font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-[#00685f] after:rounded-l{{end}}">
+                    <span class="material-symbols-outlined text-xl">groups</span>
+                    <span>Drivers</span>
+                </a>
+                <a href="/vehicles" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-[#565e74] hover:bg-[#f2f4f6] hover:text-[#00685f] hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Vehicles"}}active bg-[#e6f4f1] text-[#00685f] font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-[#00685f] after:rounded-l{{end}}">
+                    <span class="material-symbols-outlined text-xl">local_shipping</span>
+                    <span>Vehicles</span>
+                </a>
+                <a href="/customers" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-[#565e74] hover:bg-[#f2f4f6] hover:text-[#00685f] hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Customers"}}active bg-[#e6f4f1] text-[#00685f] font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-[#00685f] after:rounded-l{{end}}">
+                    <span class="material-symbols-outlined text-xl">groups</span>
+                    <span>Customers</span>
+                </a>
+                <a href="/routes" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-[#565e74] hover:bg-[#f2f4f6] hover:text-[#00685f] hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Routes"}}active bg-[#e6f4f1] text-[#00685f] font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-[#00685f] after:rounded-l{{end}}">
+                    <span class="material-symbols-outlined text-xl">route</span>
+                    <span>Routes</span>
+                </a>
+                <a href="/bookings" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-[#565e74] hover:bg-[#f2f4f6] hover:text-[#00685f] hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Bookings"}}active bg-[#e6f4f1] text-[#00685f] font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-[#00685f] after:rounded-l{{end}}">
+                    <span class="material-symbols-outlined text-xl">receipt_long</span>
+                    <span>Bookings</span>
+                </a>
+                <a href="/trips" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-[#565e74] hover:bg-[#f2f4f6] hover:text-[#00685f] hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Trips"}}active bg-[#e6f4f1] text-[#00685f] font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-[#00685f] after:rounded-l{{end}}">
+                    <span class="material-symbols-outlined text-xl">commute</span>
+                    <span>Trips</span>
+                </a>
+                <a href="/invoices" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-[#565e74] hover:bg-[#f2f4f6] hover:text-[#00685f] hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Invoices"}}active bg-[#e6f4f1] text-[#00685f] font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-[#00685f] after:rounded-l{{end}}">
+                    <span class="material-symbols-outlined text-xl">description</span>
+                    <span>Invoices</span>
+                </a>
+                <a href="/payments" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-[#565e74] hover:bg-[#f2f4f6] hover:text-[#00685f] hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Payments"}}active bg-[#e6f4f1] text-[#00685f] font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-[#00685f] after:rounded-l{{end}}">
+                    <span class="material-symbols-outlined text-xl">payments</span>
+                    <span>Payments</span>
+                </a>
+                <a href="/reports" class="flex items-center gap-3 px-4 py-2.5 rounded-md text-[#565e74] hover:bg-[#f2f4f6] hover:text-[#00685f] hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Reports"}}active bg-[#e6f4f1] text-[#00685f] font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-[#00685f] after:rounded-l{{end}}">
+                    <span class="material-symbols-outlined text-xl">monitoring</span>
+                    <span>Reports</span>
+                </a>
+                <a href="/settings" class="flex items-center gap-3 px-4 py-2.5 rounded-md text-[#565e74] hover:bg-[#f2f4f6] hover:text-[#00685f] hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Settings"}}active bg-[#e6f4f1] text-[#00685f] font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-[#00685f] after:rounded-l{{end}}">
+                    <span class="material-symbols-outlined text-xl">settings</span>
+                    <span>Settings</span>
+                </a>
+                {{if and .User (eq .User.Role "admin")}}
+                <a href="/users" class="flex items-center gap-3 px-4 py-2.5 rounded-md text-[#565e74] hover:bg-[#f2f4f6] hover:text-[#00685f] hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "User Management"}}active bg-[#e6f4f1] text-[#00685f] font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-[#00685f] after:rounded-l{{end}}">
+                    <span class="material-symbols-outlined text-xl">manage_accounts</span>
+                    <span>User Management</span>
+                </a>
+                {{end}}
+                <a href="/audit-logs" class="flex items-center gap-3 px-4 py-2.5 rounded-md text-[#565e74] hover:bg-[#f2f4f6] hover:text-[#00685f] hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Audit Logs"}}active bg-[#e6f4f1] text-[#00685f] font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-[#00685f] after:rounded-l{{end}}">
+                    <span class="material-symbols-outlined text-xl">history</span>
+                    <span>Audit Logs</span>
+                </a>
+            </nav>
+            <div class="mt-auto p-4 border-t border-[#EAE8E4]">
+                <form method="POST" action="/logout">
+                    <button type="submit" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-md text-red-600 hover:bg-red-50 hover:text-red-700 hover:translate-x-1 transition-all duration-150 cursor-pointer border-0 bg-transparent font-medium text-sm">
+                        <span class="material-symbols-outlined text-xl">logout</span>
+                        <span>Logout</span>
+                    </button>
+                </form>
+            </div>
+        </aside>
 
-            <!-- Main content -->
-            <div class="flex-1 flex flex-col overflow-hidden">
-                <header class="bg-white shadow-sm border-b px-4 sm:px-6 py-3 flex items-center justify-between safe-top">
-                    <div class="flex items-center gap-3">
-                        <button id="mobile-menu-btn" type="button"
-                            class="md:hidden w-10 h-10 flex items-center justify-center text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 rounded"
-                            aria-label="Toggle navigation" aria-expanded="false">
-                            <span class="material-icons">menu</span>
-                        </button>
-                        <h2 class="text-2xl font-bold text-gray-900">{{.Title}}</h2>
+        <!-- Main Content Area -->
+        <div class="flex-1 flex flex-col h-screen overflow-hidden bg-[#f7f9fb]">
+            <!-- TopAppBar (Stitch Design) -->
+            <header class="bg-white border-b border-[#E2E8F0] sticky top-0 z-30 flex justify-between items-center h-16 px-6 sm:px-8 w-full shrink-0 shadow-xs">
+                <div class="flex items-center gap-3">
+                    <button id="mobile-menu-btn" type="button"
+                        class="md:hidden w-10 h-10 flex items-center justify-center text-slate-600 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00685f] rounded-md"
+                        aria-label="Toggle navigation" aria-expanded="false">
+                        <span class="material-icons">menu</span>
+                    </button>
+                    <h2 class="text-xl font-bold text-slate-900 font-display tracking-tight">{{.Title}}</h2>
+                </div>
+                <div class="flex items-center gap-4 sm:gap-6 ml-auto">
+                    <div class="relative hidden sm:block">
+                        <span class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+                        <input class="bg-slate-50 border border-slate-200 rounded-md py-2 pl-9 pr-4 text-sm text-slate-800 placeholder-slate-400 w-64 md:w-80 focus:outline-none focus:bg-white focus:border-[#00685f] focus:ring-2 focus:ring-[#00685f]/20 transition-all" placeholder="Search units, drivers, or routes..." type="text">
                     </div>
                     {{if .User}}
-                    <div class="flex items-center space-x-3">
-                        <span class="text-sm text-gray-600">{{.User.Name}}</span>
-                        <a href="/profile" class="text-sm text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 rounded">Profile</a>
+                    <div class="flex items-center gap-3 cursor-pointer group border-l border-slate-200 pl-4 sm:pl-6">
+                        <div class="w-9 h-9 rounded-full bg-[#008378] text-white flex items-center justify-center font-bold text-xs ring-2 ring-emerald-500/20 shadow-xs">
+                            {{if .User.Name}}{{slice .User.Name 0 2}}{{else}}AD{{end}}
+                        </div>
+                        <a href="/profile" class="text-sm text-slate-700 group-hover:text-[#00685f] transition-colors font-semibold hidden sm:inline-block">{{.User.Name}}</a>
                     </div>
                     {{end}}
-                </header>
+                </div>
+            </header>
 
-                <main id="main-content" class="flex-1 overflow-y-auto p-4 sm:p-6">
-                    {{.Content}}
-                </main>
-            </div>
+            <main id="main-content" class="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8">
+                {{.Content}}
+            </main>
         </div>
+    </div>
 
         {{if .FlashError}}
         <div class="fixed bottom-4 right-4 safe-bottom safe-right max-w-md w-full bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-lg flex items-start justify-between">
@@ -223,6 +255,22 @@
                     // Restore on navigation error (keep original in case)
                     btn.setAttribute('data-original-html', originalHTML);
                 });
+            });
+        });
+
+        // Automatic Sidebar Active State Highlights based on window.location.pathname
+        document.addEventListener('DOMContentLoaded', function() {
+            var currentPath = window.location.pathname;
+            var navLinks = document.querySelectorAll('#sidebar-nav a');
+            var matched = false;
+            
+            navLinks.forEach(function(link) {
+                var href = link.getAttribute('href');
+                if (href && (href === currentPath || (href !== '/' && currentPath.startsWith(href)))) {
+                    link.classList.add('bg-[#e6f4f1]', 'text-[#00685f]', 'font-semibold', 'relative', 'after:content-[\'\']', 'after:absolute', 'after:right-0', 'after:top-0', 'after:bottom-0', 'after:w-1', 'after:bg-[#00685f]', 'after:rounded-l');
+                    link.classList.remove('text-[#565e74]');
+                    matched = true;
+                }
             });
         });
 

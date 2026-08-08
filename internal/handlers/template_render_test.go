@@ -19,6 +19,8 @@ type mockAuthSvc struct{}
 
 func (m *mockAuthSvc) Can(userID, resource, action string) bool { return true }
 func (m *mockAuthSvc) Reload() error                           { return nil }
+func (m *mockAuthSvc) AddRoleForUser(userID, role string) error { return nil }
+func (m *mockAuthSvc) DeleteRolesForUser(userID string) error   { return nil }
 
 func TestAllTemplatesRenderCleanly(t *testing.T) {
 	// Change working directory to project root if running from internal/handlers

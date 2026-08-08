@@ -14,7 +14,7 @@
 
         <div>
             <label class="block text-sm font-medium text-gray-700">Amount *</label>
-            <input type="number" step="0.01" name="amount" required max="{{printf "%.2f" .Balance}}"
+            <input type="number" step="0.01" min="0.01" name="amount" value="{{if gt .Balance 0.0}}{{printf "%.2f" .Balance}}{{end}}" required
                 class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
         </div>
 
@@ -48,7 +48,35 @@
 
         <div class="flex justify-end space-x-3 pt-4">
             <a href="/invoices/{{.InvoiceID}}" class="px-4 py-2 min-h-[44px] flex items-center justify-center border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 active:bg-gray-100">Cancel</a>
+            <button type="button" id="razorpay-btn" class="px-4 py-2 min-h-[44px] bg-emerald-600 text-white font-medium rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 active:bg-emerald-800">
+                💳 Pay Online via Razorpay
+            </button>
             <button type="submit" class="px-4 py-2 min-h-[44px] bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-blue-800">Record Payment</button>
         </div>
     </form>
 </div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+document.getElementById('razorpay-btn').onclick = function(e) {
+    e.preventDefault();
+    var options = {
+        "key": "rzp_test_TMdP3QXQq2L67c",
+        "amount": Math.round(parseFloat("{{if gt .Balance 0.0}}{{.Balance}}{{else}}1.00{{end}}") * 100),
+        "currency": "INR",
+        "name": "FlyFleet SaaS",
+        "description": "Invoice {{.Invoice.InvoiceNumber}} Payment",
+        "handler": function (response){
+            alert("✅ Payment Successful! Razorpay Payment ID: " + response.razorpay_payment_id);
+            document.querySelector('input[name="reference"]').value = response.razorpay_payment_id;
+            document.querySelector('select[name="method"]').value = "upi";
+            document.querySelector('form').submit();
+        },
+        "theme": {
+            "color": "#059669"
+        }
+    };
+    var rzp1 = new Razorpay(options);
+    rzp1.open();
+};
+</script>

@@ -5,70 +5,99 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/unidoc/unipdf/v3/creator"
+	"github.com/go-pdf/fpdf"
 
 	"transport-app/internal/domain/invoice"
 )
 
-// GenerateInvoicePDF creates a professional PDF document for an invoice using UniPDF.
+// GenerateInvoicePDF generates a high-performance, open-source (MIT) professional PDF document for an invoice.
 func GenerateInvoicePDF(inv invoice.Invoice, companyName string) ([]byte, error) {
-	c := creator.New()
-	c.SetPageMargins(40, 40, 40, 40)
+	pdf := fpdf.New("P", "mm", "A4", "")
+	pdf.SetMargins(15, 15, 15)
+	pdf.AddPage()
 
-	// Main Title / Header
-	p := c.NewParagraph(fmt.Sprintf("%s - INVOICE", companyName))
-	p.SetFontSize(24)
-	p.SetColor(creator.ColorRGBFrom8bit(25, 51, 128))
-	p.SetMargins(0, 0, 0, 20)
-	if err := c.Draw(p); err != nil {
-		return nil, err
+	// ── Company Branding Header ──────────────────────────────────────
+	pdf.SetFont("Arial", "B", 20)
+	pdf.SetTextColor(25, 51, 128) // Corporate Blue
+	pdf.CellFormat(0, 10, fmt.Sprintf("%s", companyName), "", 1, "L", false, 0, "")
+
+	pdf.SetFont("Arial", "B", 12)
+	pdf.SetTextColor(100, 100, 100)
+	pdf.CellFormat(0, 6, "INVOICE STATEMENT", "", 1, "L", false, 0, "")
+	pdf.Ln(4)
+
+	// Divider line
+	pdf.SetDrawColor(220, 220, 220)
+	pdf.SetLineWidth(0.5)
+	pdf.Line(15, pdf.GetY(), 195, pdf.GetY())
+	pdf.Ln(6)
+
+	// ── Invoice Metadata Section ─────────────────────────────────────
+	pdf.SetFont("Arial", "B", 10)
+	pdf.SetTextColor(50, 50, 50)
+	pdf.CellFormat(90, 6, fmt.Sprintf("Invoice Number: %s", inv.InvoiceNumber), "", 0, "L", false, 0, "")
+	pdf.CellFormat(90, 6, fmt.Sprintf("Status: %s", inv.Status), "", 1, "R", false, 0, "")
+
+	pdf.SetFont("Arial", "", 10)
+	pdf.CellFormat(90, 6, fmt.Sprintf("Date Created: %s", inv.CreatedAt.Format("2006-01-02 15:04")), "", 0, "L", false, 0, "")
+	pdf.CellFormat(90, 6, fmt.Sprintf("Customer ID: %s", string(inv.CustomerID)), "", 1, "R", false, 0, "")
+	pdf.Ln(8)
+
+	// ── Financial Breakdown Table ─────────────────────────────────────
+	// Header row
+	pdf.SetFillColor(240, 243, 246)
+	pdf.SetFont("Arial", "B", 10)
+	pdf.SetTextColor(30, 30, 30)
+	pdf.CellFormat(120, 8, "Description", "1", 0, "L", true, 0, "")
+	pdf.CellFormat(60, 8, "Amount ($)", "1", 1, "R", true, 0, "")
+
+	// Items
+	pdf.SetFont("Arial", "", 10)
+	pdf.SetTextColor(50, 50, 50)
+
+	pdf.CellFormat(120, 7, "Subtotal", "1", 0, "L", false, 0, "")
+	pdf.CellFormat(60, 7, fmt.Sprintf("%.2f", inv.Subtotal), "1", 1, "R", false, 0, "")
+
+	pdf.CellFormat(120, 7, "Tax", "1", 0, "L", false, 0, "")
+	pdf.CellFormat(60, 7, fmt.Sprintf("%.2f", inv.Tax), "1", 1, "R", false, 0, "")
+
+	pdf.CellFormat(120, 7, "Discount", "1", 0, "L", false, 0, "")
+	pdf.CellFormat(60, 7, fmt.Sprintf("-%.2f", inv.Discount), "1", 1, "R", false, 0, "")
+
+	// Total Row
+	pdf.SetFont("Arial", "B", 11)
+	pdf.SetFillColor(245, 247, 250)
+	pdf.CellFormat(120, 8, "Total Amount", "1", 0, "L", true, 0, "")
+	pdf.SetTextColor(0, 128, 25)
+	pdf.CellFormat(60, 8, fmt.Sprintf("%.2f", inv.Total), "1", 1, "R", true, 0, "")
+
+	// Paid Amount Row
+	pdf.SetFont("Arial", "", 10)
+	pdf.SetTextColor(50, 50, 50)
+	pdf.CellFormat(120, 7, "Paid Amount", "1", 0, "L", false, 0, "")
+	pdf.CellFormat(60, 7, fmt.Sprintf("%.2f", inv.PaidAmount), "1", 1, "R", false, 0, "")
+
+	// Outstanding Balance Row
+	pdf.SetFont("Arial", "B", 11)
+	pdf.CellFormat(120, 8, "Outstanding Balance Due", "1", 0, "L", true, 0, "")
+
+	bal := inv.OutstandingBalance()
+	if bal > 0 {
+		pdf.SetTextColor(200, 30, 30) // Red
+	} else {
+		pdf.SetTextColor(0, 128, 25) // Green
 	}
+	pdf.CellFormat(60, 8, fmt.Sprintf("%.2f", bal), "1", 1, "R", true, 0, "")
 
-	// Invoice Info Meta Table
-	table := c.NewTable(2)
-	table.SetMargins(0, 0, 0, 20)
+	pdf.Ln(15)
 
-	cell1 := table.NewCell()
-	cellText := c.NewParagraph(fmt.Sprintf("Invoice No: %s\nDate: %s\nStatus: %s",
-		inv.InvoiceNumber,
-		inv.CreatedAt.Format("2006-01-02"),
-		inv.Status,
-	))
-	cellText.SetFontSize(11)
-	_ = cell1.SetContent(cellText)
-
-	cell2 := table.NewCell()
-	_ = cell2.SetContent(c.NewParagraph(""))
-
-	if err := c.Draw(table); err != nil {
-		return nil, err
-	}
-
-	// Summary details
-	subP := c.NewParagraph(fmt.Sprintf("Subtotal: $%.2f", inv.Subtotal))
-	taxP := c.NewParagraph(fmt.Sprintf("Tax: $%.2f", inv.Tax))
-	discP := c.NewParagraph(fmt.Sprintf("Discount: $%.2f", inv.Discount))
-	totP := c.NewParagraph(fmt.Sprintf("Total: $%.2f", inv.Total))
-	totP.SetFontSize(14)
-	totP.SetColor(creator.ColorRGBFrom8bit(0, 128, 25))
-
-	balP := c.NewParagraph(fmt.Sprintf("Outstanding Balance: $%.2f", inv.OutstandingBalance()))
-	balP.SetFontSize(12)
-
-	_ = c.Draw(subP)
-	_ = c.Draw(taxP)
-	_ = c.Draw(discP)
-	_ = c.Draw(totP)
-	_ = c.Draw(balP)
-
-	// Footer timestamp
-	footer := c.NewParagraph(fmt.Sprintf("Generated automatically on %s", time.Now().Format("2006-01-02 15:04:05")))
-	footer.SetFontSize(9)
-	footer.SetMargins(0, 0, 40, 0)
-	_ = c.Draw(footer)
+	// ── Footer ─────────────────────────────────────────────────────────
+	pdf.SetFont("Arial", "I", 9)
+	pdf.SetTextColor(128, 128, 128)
+	pdf.CellFormat(0, 6, fmt.Sprintf("Generated automatically on %s | Thank you for your business!", time.Now().Format("2006-01-02 15:04:05")), "", 1, "C", false, 0, "")
 
 	var buf bytes.Buffer
-	if err := c.Write(&buf); err != nil {
+	if err := pdf.Output(&buf); err != nil {
 		return nil, err
 	}
 

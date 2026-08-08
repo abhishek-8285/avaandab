@@ -141,7 +141,21 @@ func (h *PaymentHandlers) Create(w http.ResponseWriter, r *http.Request) {
 		Remarks:     remarks,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		session, _ := h.getUserFromContext(r)
+		invoice, _ := h.Services.Invoices.GetInvoice(r.Context(), domain.InvoiceID(invoiceID))
+		balance, _ := h.Services.Invoices.GetBalance(r.Context(), domain.InvoiceID(invoiceID))
+
+		h.renderForm(w, r, "payment_edit.html", PageData{
+			Title:      "Record Payment",
+			User:       session,
+			FlashError: err.Error(),
+			Extra: map[string]interface{}{
+				"InvoiceID": invoiceID,
+				"Invoice":   invoice,
+				"Balance":   balance,
+				"Now":       time.Now(),
+			},
+		})
 		return
 	}
 

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -8,10 +9,10 @@ import (
 	"transport-app/internal/domain"
 	"transport-app/internal/domain/invoice"
 	"transport-app/internal/domain/types"
-	"transport-app/internal/middleware"
-	pdfgen "transport-app/internal/pdf"
 	invoiceapp "transport-app/internal/invoice/application"
 	invoiceagg "transport-app/internal/invoice/domain/aggregate"
+	"transport-app/internal/middleware"
+	pdfgen "transport-app/internal/pdf"
 	clock "transport-app/internal/shared/clock"
 	id "transport-app/internal/shared/id"
 	uow "transport-app/internal/shared/uow"
@@ -39,8 +40,8 @@ func (h *InvoiceHandlers) init() {
 
 func (h *InvoiceHandlers) Routes(r chi.Router) {
 	r.With(middleware.ResourcePermission(h.AuthSrv, "invoices", "read")).Get("/", h.List)
-	r.With(middleware.ResourcePermission(h.AuthSrv, "invoices", "read")).Get("/{id}", h.View)
 	r.With(middleware.ResourcePermission(h.AuthSrv, "invoices", "read")).Get("/{id}/pdf", h.DownloadPDF)
+	r.With(middleware.ResourcePermission(h.AuthSrv, "invoices", "read")).Get("/{id}", h.View)
 	r.With(middleware.ResourcePermission(h.AuthSrv, "invoices", "delete")).Post("/{id}/delete", h.Delete)
 	r.With(middleware.ResourcePermission(h.AuthSrv, "invoices", "read")).Get("/number/{number}", h.ViewByNumber)
 }
@@ -137,8 +138,15 @@ func (h *InvoiceHandlers) DownloadPDF(w http.ResponseWriter, r *http.Request) {
 		TenantID: "1",
 	})
 	if err != nil {
+		fmt.Printf("[DownloadPDF Error] Invoice query failed for ID %s: %v\n", idParam, err)
 		http.Error(w, "Invoice not found", http.StatusNotFound)
 		return
+	}
+
+	balance, _ := h.Services.Invoices.GetBalance(r.Context(), domain.InvoiceID(idParam))
+	paidAmount := invDTO.Total - balance
+	if paidAmount < 0 {
+		paidAmount = 0
 	}
 
 	invEntity := invoice.Invoice{
@@ -150,19 +158,21 @@ func (h *InvoiceHandlers) DownloadPDF(w http.ResponseWriter, r *http.Request) {
 		Tax:           invDTO.Tax,
 		Discount:      invDTO.Discount,
 		Total:         invDTO.Total,
-		PaidAmount:    0,
+		PaidAmount:    paidAmount,
 		Status:        invoice.InvoiceStatus(invDTO.PaymentStatus),
 		CreatedAt:     invDTO.CreatedAt,
 	}
 
 	pdfBytes, err := pdfgen.GenerateInvoicePDF(invEntity, "Apex Transport Ltd")
 	if err != nil {
+		fmt.Printf("[DownloadPDF Error] PDF generation failed: %v\n", err)
 		http.Error(w, "Failed to generate PDF: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/pdf")
-	w.Header().Set("Content-Disposition", "attachment; filename="+invDTO.InvoiceNumber+".pdf")
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.pdf"`, invDTO.InvoiceNumber))
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(pdfBytes)))
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(pdfBytes)
 }

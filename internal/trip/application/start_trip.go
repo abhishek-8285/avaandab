@@ -41,6 +41,10 @@ func (uc *StartTripUseCase) Execute(ctx context.Context, cmd StartTripCommand) e
 		if err := t.Start(uc.clock.Now()); err != nil {
 			return err
 		}
-		return repo.Save(txCtx, t)
+		if err := repo.Save(txCtx, t); err != nil {
+			return err
+		}
+		logAudit(txCtx, ActionStart, string(t.ID), nil, nil)
+		return nil
 	})
 }

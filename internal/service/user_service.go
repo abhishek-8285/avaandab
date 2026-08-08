@@ -16,6 +16,13 @@ type UserService struct {
 
 // CreateUser creates a new user with a default password.
 func (s *UserService) CreateUser(ctx context.Context, email, name, phone string, roleID int64, status domain.UserStatus) (domain.User, error) {
+	if email == "" {
+		return domain.User{}, domain.ErrUserEmailRequired
+	}
+	if phone == "" {
+		return domain.User{}, domain.ErrUserPhoneRequired
+	}
+
 	if _, err := s.store.GetUserByEmail(ctx, email); err == nil {
 		return domain.User{}, domain.ErrUserEmailExists
 	}
@@ -34,12 +41,9 @@ func (s *UserService) CreateUser(ctx context.Context, email, name, phone string,
 		Email:        email,
 		PasswordHash: hashed,
 		Name:         sanitizeName(name),
+		Phone:        &phone,
 		Role:         domain.Role{ID: roleID},
 		Status:       status,
-	}
-
-	if phone != "" {
-		user.Phone = &phone
 	}
 
 	created, err := s.store.CreateUser(ctx, user)
@@ -53,6 +57,13 @@ func (s *UserService) CreateUser(ctx context.Context, email, name, phone string,
 
 // CreateUserWithPassword creates a user with a specific password.
 func (s *UserService) CreateUserWithPassword(ctx context.Context, email, name, phone, password string, roleID int64, status domain.UserStatus) (domain.User, error) {
+	if email == "" {
+		return domain.User{}, domain.ErrUserEmailRequired
+	}
+	if phone == "" {
+		return domain.User{}, domain.ErrUserPhoneRequired
+	}
+
 	if _, err := s.store.GetUserByEmail(ctx, email); err == nil {
 		return domain.User{}, domain.ErrUserEmailExists
 	}

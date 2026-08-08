@@ -3,6 +3,7 @@ package auth
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -16,10 +17,11 @@ import (
 type ContextKey string
 
 const (
-	ContextUser  ContextKey = "user"
-	ContextRole  ContextKey = "role"
-	ContextReqID ContextKey = "request_id"
-	ContextIP    ContextKey = "ip_address"
+	ContextUser     ContextKey = "user"
+	ContextRole     ContextKey = "role"
+	ContextReqID    ContextKey = "request_id"
+	ContextIP       ContextKey = "ip_address"
+	ContextLocation ContextKey = "location"
 )
 
 // SessionStore manages secure cookie-based sessions.
@@ -112,19 +114,43 @@ func GenerateSecureToken() (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
-// ClientIP extracts the client IP from the request, checking
-// X-Forwarded-For first (for reverse proxies) and falling back to RemoteAddr.
+// ClientIP extracts the client IP from the request, checking Cloudflare headers
+// (CF-Connecting-IP, X-Real-IP, X-Forwarded-For) and falling back to RemoteAddr safely.
 func ClientIP(r *http.Request) string {
+	if ip := strings.TrimSpace(r.Header.Get("CF-Connecting-IP")); ip != "" {
+		return ip
+	}
+	if ip := strings.TrimSpace(r.Header.Get("X-Real-IP")); ip != "" {
+		return ip
+	}
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		if idx := strings.LastIndex(xff, ","); idx >= 0 {
-			return strings.TrimSpace(xff[idx+1:])
+		if idx := strings.Index(xff, ","); idx >= 0 {
+			return strings.TrimSpace(xff[:idx])
 		}
 		return strings.TrimSpace(xff)
 	}
 	if ip := strings.TrimSpace(r.RemoteAddr); ip != "" {
+		if host, _, err := net.SplitHostPort(ip); err == nil {
+			return host
+		}
 		return ip
 	}
-	return ""
+	return "Unknown"
+}
+
+// ClientLocation safely extracts country and city from Cloudflare proxy headers (CF-IPCountry, CF-IPCity).
+// Returns non-empty string or fallback without requiring client-side permissions or blocking behavior.
+func ClientLocation(r *http.Request) string {
+	country := strings.TrimSpace(r.Header.Get("CF-IPCountry"))
+	city := strings.TrimSpace(r.Header.Get("CF-IPCity"))
+
+	if city != "" && country != "" {
+		return city + ", " + country
+	}
+	if country != "" {
+		return country
+	}
+	return "Unknown"
 }
 
 // HashToken hashes a session token for storage.

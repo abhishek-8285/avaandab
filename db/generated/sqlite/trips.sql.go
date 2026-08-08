@@ -962,6 +962,7 @@ func (q *Queries) UpdateTrip(ctx context.Context, arg UpdateTripParams) (UpdateT
 	)
 	var i UpdateTripRow
 	err := row.Scan(
+		&i.ID,
 		&i.TripNumber,
 		&i.BookingID,
 		&i.DriverID,
@@ -971,16 +972,15 @@ func (q *Queries) UpdateTrip(ctx context.Context, arg UpdateTripParams) (UpdateT
 		&i.ArrivalTime,
 		&i.Status,
 		&i.Remarks,
+		&i.TenantID,
+		&i.Version,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 		&i.StartedAt,
 		&i.ReachedPickupAt,
 		&i.InTransitAt,
 		&i.DeliveredAt,
 		&i.CompletedAt,
-		&i.ID,
-		&i.TenantID,
-		&i.Version,
-		&i.CreatedAt,
-		&i.UpdatedAt,
 	)
 	return i, err
 }

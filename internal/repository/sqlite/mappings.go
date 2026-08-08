@@ -378,6 +378,14 @@ func tripRowToWithJoins(
 		UpdatedAt:     updatedAt,
 	}
 
+	var src, dest string
+	if routeSrc.Valid {
+		src = routeSrc.String
+	}
+	if routeDest.Valid {
+		dest = routeDest.String
+	}
+
 	return repository.TripWithJoins{
 		Trip:                toDomainTrip(t),
 		DriverDisplayID:     fromNullString(driverDisplayID),
@@ -385,8 +393,8 @@ func tripRowToWithJoins(
 		DriverLastName:      fromNullString(driverLastName),
 		VehicleRegistration: fromNullString(vehicleReg),
 		VehicleNumber:       fromNullString(vehicleNum),
-		RouteSource:         routeSrc.String,
-		RouteDestination:    routeDest.String,
+		RouteSource:         src,
+		RouteDestination:    dest,
 	}
 }
 
@@ -413,11 +421,16 @@ func invoiceRowToWithJoins(
 		UpdatedAt:     updatedAt,
 	}
 
+	var bNum string
+	if bookingNumber.Valid {
+		bNum = bookingNumber.String
+	}
+
 	return repository.InvoiceWithJoins{
 		Invoice:         toDomainInvoice(i),
 		CustomerName:    customerName,
 		CustomerCompany: fromNullString(customerCompany),
-		BookingNumber:   bookingNumber.String,
+		BookingNumber:   bNum,
 		TripNumber:      fromNullString(tripNumber),
 	}
 }

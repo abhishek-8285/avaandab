@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"runtime/debug"
@@ -10,6 +11,8 @@ import (
 	"github.com/google/uuid"
 
 	"transport-app/internal/auth"
+	"transport-app/internal/domain"
+	"transport-app/internal/operations/errors"
 	"transport-app/internal/shared"
 )
 
@@ -54,21 +57,48 @@ func Logger(next http.Handler) http.Handler {
 	})
 }
 
-// Recoverer recovers from panics and returns a 500 error.
-func Recoverer(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer func() {
-			if rec := recover(); rec != nil {
-				stack := debug.Stack()
-				slog.Error("panic recovered",
-					slog.Any("error", rec),
-					slog.String("stack", string(stack)),
-				)
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			}
-		}()
-		next.ServeHTTP(w, r)
-	})
+// Recoverer recovers from panics, logs stack trace, and reports to ErrorReporter.
+func Recoverer(reporter ...*errors.Reporter) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			defer func() {
+				if rec := recover(); rec != nil {
+					stack := debug.Stack()
+					msg := fmt.Sprintf("%v", rec)
+					reqID, _ := r.Context().Value(auth.ContextReqID).(string)
+					var userID string
+					if u, ok := r.Context().Value(auth.ContextUser).(domain.User); ok {
+						userID = string(u.ID)
+					}
+
+					slog.Error("panic recovered",
+						slog.String("request_id", reqID),
+						slog.Any("error", rec),
+						slog.String("stack", string(stack)),
+					)
+
+					if len(reporter) > 0 && reporter[0] != nil {
+						_, _ = reporter[0].Report(r.Context(), errors.ErrorReport{
+							RequestID:   reqID,
+							UserID:      userID,
+							TenantID:    "",
+							URL:         r.URL.String(),
+							Method:      r.Method,
+							StatusCode:  http.StatusInternalServerError,
+							StackTrace:  string(stack),
+							Message:     msg,
+							Severity:    errors.SeverityCritical,
+							UserAgent:   r.UserAgent(),
+							IPAddress:   r.RemoteAddr,
+						})
+					}
+
+					http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				}
+			}()
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 // Timeout wraps the handler with a request timeout.
@@ -110,6 +140,7 @@ func AuthRequired(store *auth.SessionStore, loginPath string) func(http.Handler)
 
 			ctx := context.WithValue(r.Context(), auth.ContextUser, data)
 			ctx = context.WithValue(ctx, auth.ContextIP, auth.ClientIP(r))
+			ctx = context.WithValue(ctx, auth.ContextLocation, auth.ClientLocation(r))
 			ctx = shared.ContextWithTenantID(ctx, "1")
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
@@ -203,12 +234,20 @@ func (s *SpaResponseWriter) IsSPARequest() bool {
 // SPAMiddleware checks for X-SPA-Request header and wraps the response writer.
 func SPAMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		isSPA := r.Header.Get("X-SPA-Request") == "true"
-		wrapped := &SpaResponseWriter{
-			ResponseWriter: w,
-			isSPA:          isSPA,
+		// Do not apply SPA wrapping on file or PDF download endpoints
+		if r.Header.Get("X-SPA-Request") == "true" && !isDownloadPath(r.URL.Path) {
+			wrapped := &SpaResponseWriter{
+				ResponseWriter: w,
+				isSPA:          true,
+			}
+			next.ServeHTTP(wrapped, r)
+			return
 		}
-		next.ServeHTTP(wrapped, r)
+		next.ServeHTTP(w, r)
 	})
+}
+
+func isDownloadPath(path string) bool {
+	return len(path) >= 4 && path[len(path)-4:] == "/pdf"
 }
 

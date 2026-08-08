@@ -1,0 +1,69 @@
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white rounded-xl shadow-xl border border-slate-200 p-6 sm:p-8">
+        <div class="text-center mb-6">
+            <h2 class="text-2xl font-extrabold text-slate-900">Company Setup & Onboarding</h2>
+            <p class="mt-1 text-sm text-slate-600">Configure your transport fleet company details to complete onboarding</p>
+        </div>
+
+        {{if .FlashError}}
+        <div class="mb-5 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
+            {{.FlashError}}
+        </div>
+        {{end}}
+
+        <form method="POST" action="/company/onboard" enctype="multipart/form-data" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Company Name *</label>
+                <input type="text" name="company_name" required value="{{.Settings.CompanyName}}" placeholder="e.g. Apex Logistics Corp"
+                    class="block w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Contact Email *</label>
+                    <input type="email" name="email" required value="{{if .Settings.Email}}{{.Settings.Email}}{{end}}" placeholder="ops@company.com"
+                        class="block w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Phone Number *</label>
+                    <input type="tel" name="phone" required value="{{if .Settings.Phone}}{{.Settings.Phone}}{{end}}" placeholder="+1-800-555-0199"
+                        class="block w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Company Address</label>
+                <textarea name="address" rows="2" placeholder="100 Transport Way, Suite 400"
+                    class="block w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500">{{if .Settings.Address}}{{.Settings.Address}}{{end}}</textarea>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">GST/Tax ID</label>
+                    <input type="text" name="gst_number" value="{{if .Settings.GSTNumber}}{{.Settings.GSTNumber}}{{end}}" placeholder="TAX-9988-77"
+                        class="block w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Currency</label>
+                    <select name="currency" class="block w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="USD">USD ($)</option>
+                        <option value="INR">INR (₹)</option>
+                        <option value="EUR">EUR (€)</option>
+                        <option value="GBP">GBP (£)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Company Logo</label>
+                <input type="file" name="logo" accept="image/*"
+                    class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+            </div>
+
+            <div class="pt-4 flex justify-end space-x-3">
+                <a href="/dashboard" class="px-4 py-2 border border-slate-300 rounded-md text-slate-700 hover:bg-slate-50 min-h-[44px] flex items-center justify-center">Skip for now</a>
+                <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium min-h-[44px] flex items-center justify-center">Save & Complete Onboarding</button>
+            </div>
+        </form>
+    </div>
+</div>

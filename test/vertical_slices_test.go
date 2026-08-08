@@ -252,6 +252,9 @@ func TestSprint2_CreateTripAndLifecycle(t *testing.T) {
 	assignDriverUC := tripApp.NewAssignDriverUseCase(sqlUoW, realClock)
 	assignVehicleUC := tripApp.NewAssignVehicleUseCase(sqlUoW, realClock)
 	startUC := tripApp.NewStartTripUseCase(sqlUoW, realClock)
+	reachPickupUC := tripApp.NewReachPickupUseCase(sqlUoW, realClock)
+	startTransitUC := tripApp.NewStartTransitUseCase(sqlUoW, realClock)
+	deliverUC := tripApp.NewDeliverUseCase(sqlUoW, realClock)
 	completeUC := tripApp.NewCompleteTripUseCase(sqlUoW, realClock)
 	getUC := tripApp.NewGetTripUseCase(sqlUoW)
 
@@ -281,12 +284,33 @@ func TestSprint2_CreateTripAndLifecycle(t *testing.T) {
 	trip, err := getUC.Execute(ctx, tripApp.GetTripQuery{TripID: tripID, TenantID: "1"})
 	require.NoError(t, err)
 	assert.Equal(t, "started", trip.Status)
+	assert.NotNil(t, trip.StartedAt)
+
+	// Execution workflow: started -> reached_pickup -> in_transit -> delivered -> completed
+	require.NoError(t, reachPickupUC.Execute(ctx, tripApp.ReachPickupCommand{TripID: tripID, TenantID: "1"}))
+	trip, err = getUC.Execute(ctx, tripApp.GetTripQuery{TripID: tripID, TenantID: "1"})
+	require.NoError(t, err)
+	assert.Equal(t, "reached_pickup", trip.Status)
+	assert.NotNil(t, trip.ReachedPickupAt)
+
+	require.NoError(t, startTransitUC.Execute(ctx, tripApp.StartTransitCommand{TripID: tripID, TenantID: "1"}))
+	trip, err = getUC.Execute(ctx, tripApp.GetTripQuery{TripID: tripID, TenantID: "1"})
+	require.NoError(t, err)
+	assert.Equal(t, "in_transit", trip.Status)
+	assert.NotNil(t, trip.InTransitAt)
+
+	require.NoError(t, deliverUC.Execute(ctx, tripApp.DeliverCommand{TripID: tripID, TenantID: "1"}))
+	trip, err = getUC.Execute(ctx, tripApp.GetTripQuery{TripID: tripID, TenantID: "1"})
+	require.NoError(t, err)
+	assert.Equal(t, "delivered", trip.Status)
+	assert.NotNil(t, trip.DeliveredAt)
 
 	require.NoError(t, completeUC.Execute(ctx, tripApp.CompleteTripCommand{TripID: tripID, TenantID: "1"}))
 
 	trip, err = getUC.Execute(ctx, tripApp.GetTripQuery{TripID: tripID, TenantID: "1"})
 	require.NoError(t, err)
 	assert.Equal(t, "completed", trip.Status)
+	assert.NotNil(t, trip.CompletedAt)
 }
 
 func TestSprint2_CancelTrip(t *testing.T) {
@@ -349,9 +373,64 @@ func TestSprint2_ScheduleTrip(t *testing.T) {
 	assert.Equal(t, "scheduled", trip.Status)
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Sprint 3: Invoice
-// ─────────────────────────────────────────────────────────────────────────────
+func TestSprint2_TripExecutionTransitionErrors(t *testing.T) {
+	db := NewTestDB(t)
+	sqlUoW := uow.NewSQLUnitOfWork(db)
+	idGen := id.NewUUIDGenerator()
+	realClock := clock.NewRealClock()
+	ctx := context.Background()
+
+	svc := NewTestServices(t, db)
+	route, _ := svc.Routes.CreateRoute(ctx, "G", "H", 80, 1, 1500, "")
+	driver, _ := svc.Drivers.CreateDriver(ctx, "Bob", "Smith", "777", "", "", "LIC777", "2027-01-01", 5, nil, nil, nil)
+
+	createUC := tripApp.NewCreateTripUseCase(sqlUoW, idGen, realClock)
+	assignDriverUC := tripApp.NewAssignDriverUseCase(sqlUoW, realClock)
+	startUC := tripApp.NewStartTripUseCase(sqlUoW, realClock)
+	reachPickupUC := tripApp.NewReachPickupUseCase(sqlUoW, realClock)
+	startTransitUC := tripApp.NewStartTransitUseCase(sqlUoW, realClock)
+	deliverUC := tripApp.NewDeliverUseCase(sqlUoW, realClock)
+	completeUC := tripApp.NewCompleteTripUseCase(sqlUoW, realClock)
+
+	tripID, err := createUC.Execute(ctx, tripApp.CreateTripCommand{
+		TenantID:      "1",
+		RouteID:       string(route.ID),
+		DepartureTime: time.Now().Add(1 * time.Hour),
+	})
+	require.NoError(t, err)
+
+	// Can't reach pickup from draft
+	err = reachPickupUC.Execute(ctx, tripApp.ReachPickupCommand{TripID: tripID, TenantID: "1"})
+	require.Error(t, err)
+
+	// Can't start transit from draft
+	err = startTransitUC.Execute(ctx, tripApp.StartTransitCommand{TripID: tripID, TenantID: "1"})
+	require.Error(t, err)
+
+	// Can't deliver from draft
+	err = deliverUC.Execute(ctx, tripApp.DeliverCommand{TripID: tripID, TenantID: "1"})
+	require.Error(t, err)
+
+	// Can't complete from draft
+	err = completeUC.Execute(ctx, tripApp.CompleteTripCommand{TripID: tripID, TenantID: "1"})
+	require.Error(t, err)
+
+	// Assign driver → start trip
+	require.NoError(t, assignDriverUC.Execute(ctx, tripApp.AssignDriverCommand{
+		TripID:   tripID,
+		DriverID: string(driver.ID),
+		TenantID: "1",
+	}))
+	require.NoError(t, startUC.Execute(ctx, tripApp.StartTripCommand{TripID: tripID, TenantID: "1"}))
+
+	// Can't complete from started directly — must go through full chain
+	err = completeUC.Execute(ctx, tripApp.CompleteTripCommand{TripID: tripID, TenantID: "1"})
+	require.Error(t, err)
+
+	// Can't start transit from started — must reach pickup first
+	err = startTransitUC.Execute(ctx, tripApp.StartTransitCommand{TripID: tripID, TenantID: "1"})
+	require.Error(t, err)
+}
 
 func TestSprint3_GenerateAndGetInvoice(t *testing.T) {
 	db := NewTestDB(t)

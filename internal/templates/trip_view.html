@@ -42,12 +42,30 @@
                 {{end}}
 
                 {{if eq .Trip.Status "started"}}
+                <form method="POST" action="/trips/{{.Trip.ID}}/reach-pickup" class="inline">
+                    <button type="submit" class="px-3 py-1 min-h-[44px] flex items-center justify-center bg-blue-600 text-white rounded-md hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-blue-900">Reach Pickup</button>
+                </form>
+                {{end}}
+
+                {{if eq .Trip.Status "reached_pickup"}}
+                <form method="POST" action="/trips/{{.Trip.ID}}/in-transit" class="inline">
+                    <button type="submit" class="px-3 py-1 min-h-[44px] flex items-center justify-center bg-teal-600 text-white rounded-md hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 active:bg-teal-900">In Transit</button>
+                </form>
+                {{end}}
+
+                {{if eq .Trip.Status "in_transit"}}
+                <form method="POST" action="/trips/{{.Trip.ID}}/deliver" class="inline">
+                    <button type="submit" class="px-3 py-1 min-h-[44px] flex items-center justify-center bg-emerald-600 text-white rounded-md hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 active:bg-emerald-900">Deliver</button>
+                </form>
+                {{end}}
+
+                {{if eq .Trip.Status "delivered"}}
                 <form method="POST" action="/trips/{{.Trip.ID}}/complete" class="inline">
                     <button type="submit" class="px-3 py-1 min-h-[44px] flex items-center justify-center bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 active:bg-green-700">Complete Trip</button>
                 </form>
                 {{end}}
 
-                {{if or (eq .Trip.Status "scheduled") (eq .Trip.Status "assigned") (eq .Trip.Status "started")}}
+                {{if or (eq .Trip.Status "scheduled") (eq .Trip.Status "assigned") (eq .Trip.Status "started") (eq .Trip.Status "reached_pickup") (eq .Trip.Status "in_transit") (eq .Trip.Status "delivered")}}
                 <form method="POST" action="/trips/{{.Trip.ID}}/cancel" class="inline">
                     <button type="submit" class="px-3 py-1 min-h-[44px] flex items-center justify-center bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 active:bg-red-800">Cancel</button>
                 </form>
@@ -92,6 +110,59 @@
         <div class="mt-4">
             <dt class="text-sm text-gray-500">Remarks</dt>
             <dd class="text-sm font-medium mt-1">{{nullString .Trip.Remarks}}</dd>
+        </div>
+        {{end}}
+
+        {{if or .Trip.StartedAt .Trip.ReachedPickupAt .Trip.InTransitAt .Trip.DeliveredAt .Trip.CompletedAt}}
+        <div class="mt-6">
+            <h3 class="text-sm font-medium text-gray-500 mb-3">Execution Timeline</h3>
+            <div class="space-y-3">
+                {{if .Trip.StartedAt}}
+                <div class="flex items-start gap-3">
+                    <div class="w-3 h-3 rounded-full bg-orange-500 mt-0.5"></div>
+                    <div>
+                        <span class="text-sm font-medium text-gray-700">Started</span>
+                        <span class="text-xs text-gray-500 block">{{datetime .Trip.StartedAt}}</span>
+                    </div>
+                </div>
+                {{end}}
+                {{if .Trip.ReachedPickupAt}}
+                <div class="flex items-start gap-3">
+                    <div class="w-3 h-3 rounded-full bg-blue-500 mt-0.5"></div>
+                    <div>
+                        <span class="text-sm font-medium text-gray-700">Reached Pickup</span>
+                        <span class="text-xs text-gray-500 block">{{datetime .Trip.ReachedPickupAt}}</span>
+                    </div>
+                </div>
+                {{end}}
+                {{if .Trip.InTransitAt}}
+                <div class="flex items-start gap-3">
+                    <div class="w-3 h-3 rounded-full bg-teal-500 mt-0.5"></div>
+                    <div>
+                        <span class="text-sm font-medium text-gray-700">In Transit</span>
+                        <span class="text-xs text-gray-500 block">{{datetime .Trip.InTransitAt}}</span>
+                    </div>
+                </div>
+                {{end}}
+                {{if .Trip.DeliveredAt}}
+                <div class="flex items-start gap-3">
+                    <div class="w-3 h-3 rounded-full bg-emerald-500 mt-0.5"></div>
+                    <div>
+                        <span class="text-sm font-medium text-gray-700">Delivered</span>
+                        <span class="text-xs text-gray-500 block">{{datetime .Trip.DeliveredAt}}</span>
+                    </div>
+                </div>
+                {{end}}
+                {{if .Trip.CompletedAt}}
+                <div class="flex items-start gap-3">
+                    <div class="w-3 h-3 rounded-full bg-green-500 mt-0.5"></div>
+                    <div>
+                        <span class="text-sm font-medium text-gray-700">Completed</span>
+                        <span class="text-xs text-gray-500 block">{{datetime .Trip.CompletedAt}}</span>
+                    </div>
+                </div>
+                {{end}}
+            </div>
         </div>
         {{end}}
     </div>

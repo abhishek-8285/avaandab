@@ -36,28 +36,49 @@
   --weight-semibold: 600;
   --weight-bold: 700;
   --weight-extrabold: 800;
+
+  /* Stitch Theme Colors */
+  --color-primary: #00685f;
+  --color-primary-container: #008378;
+  --color-on-primary-container: #f4fffc;
+  --color-secondary: #565e74;
+  --color-background: #f7f9fb;
+  --color-on-surface: #191c1e;
+  --color-border-subtle: #CBD5E1;
+  --color-[#E2E8F0]: #E2E8F0;
+  --color-status-success: #10B981;
+  --color-status-warning: #F59E0B;
+  --color-status-alert: #E11D48;
 }
+
+/* Stitch Font & Typography Tokens */
+.font-display { font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif; }
+.font-label-caps { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; line-height: 16px; letter-spacing: 0.06em; font-weight: 700; }
+.font-body-sm { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; line-height: 18px; }
+.font-data-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px; line-height: 18px; }
 
 /* Apply line-height and font-weight to typography utilities */
 .text-page-title { font-size: var(--text-page-title); line-height: var(--text-page-title-lh); font-weight: var(--weight-bold); }
 .text-section { font-size: var(--text-section); line-height: var(--text-section-lh); font-weight: var(--weight-bold); }
 .text-subsection { font-size: var(--text-subsection); line-height: var(--text-subsection-lh); font-weight: var(--weight-semibold); }
-.text-stat { font-size: var(--text-stat); line-height: var(--text-stat-lh); font-weight: var(--weight-extrabold); }
+.text-[#00685f] { color: #00685f; }
+.bg-[#00685f] { background-color: #00685f; }
+.border-[#EAE8E4], .border-[#E2E8F0] { border-color: #E2E8F0; }
 
-/* Table headers — stronger than default text-xs */
-th { font-size: var(--text-caption); font-weight: var(--weight-semibold); line-height: var(--text-caption-lh); }
+/* Table headers — crisp, high contrast styling */
+th { font-size: var(--text-caption); font-weight: 700; line-height: var(--text-caption-lh); color: #1E293B; background-color: #F8FAFC; }
 
-/* Table cell tokens */
-.th-cell { padding: 0.5rem 1rem; font-size: var(--text-caption); font-weight: var(--weight-semibold); line-height: var(--text-caption-lh); color: var(--color-gray-500); text-align: left; text-transform: uppercase; letter-spacing: 0.05em; }
-.th-cell-right { padding: 0.5rem 1rem; font-size: var(--text-caption); font-weight: var(--weight-semibold); line-height: var(--text-caption-lh); color: var(--color-gray-500); text-align: right; text-transform: uppercase; letter-spacing: 0.05em; }
+/* Table cell tokens - High Density Operational Precision */
+.th-cell { padding: 0.875rem 1.5rem; font-size: 11px; font-weight: 700; line-height: 16px; color: #334155; text-align: left; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid #E2E8F0; background-color: #F8FAFC; }
+.th-cell-right { padding: 0.875rem 1.5rem; font-size: 11px; font-weight: 700; line-height: 16px; color: #334155; text-align: right; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid #E2E8F0; background-color: #F8FAFC; }
 
-.td-cell { padding: 0.5rem 1rem; font-size: var(--text-body); line-height: var(--text-body-lh); color: var(--color-gray-700); }
-.td-cell-num { padding: 0.5rem 1rem; font-size: var(--text-body); line-height: var(--text-body-lh); color: var(--color-gray-700); text-align: right; font-variant-numeric: tabular-nums; }
-.td-cell-strong { padding: 0.5rem 1rem; font-size: var(--text-body); line-height: var(--text-body-lh); font-weight: var(--font-weight-medium); color: var(--color-gray-900); }
-.td-cell-actions { padding: 0.5rem 1rem; font-size: var(--text-body); line-height: var(--text-body-lh); text-align: right; }
+.td-cell { padding: 0.875rem 1.5rem; font-size: 13px; line-height: 18px; color: #0F172A; border-bottom: 1px solid #E2E8F0; }
+.td-cell-num { padding: 0.875rem 1.5rem; font-size: 13px; line-height: 18px; color: #0F172A; text-align: right; font-variant-numeric: tabular-nums; border-bottom: 1px solid #E2E8F0; }
+.td-cell-strong { padding: 0.875rem 1.5rem; font-size: 13px; line-height: 18px; font-weight: 600; color: #00685f; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; border-bottom: 1px solid #E2E8F0; }
+.td-cell-actions { padding: 0.875rem 1.5rem; font-size: 13px; line-height: 18px; text-align: right; border-bottom: 1px solid #E2E8F0; }
 
 /* Status badge base */
-.status-badge { padding: 0.25rem 0.5rem; font-size: var(--text-caption); line-height: var(--text-caption-lh); border-radius: 9999px; }
+.status-badge { padding: 0.25rem 0.625rem; font-size: 12px; font-weight: 600; line-height: 16px; border-radius: 9999px; display: inline-flex; align-items: center; gap: 0.375rem; border: 1px solid transparent; }
 
 /* Action links — View/Edit/Delete with consistent focus rings */
 .action-link,
@@ -117,32 +138,35 @@ input[type="email"],
 input[type="date"],
 input[type="time"],
 textarea {
-    transition: background-color 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out, box-shadow 150ms ease-out;
+    transition: background-color 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out, box-shadow 150ms ease-out, transform 150ms ease-out;
 }
 
-/* Press feedback — scale down on active for buttons */
-button:active,
-.btn:active {
-    transform: scale(0.97);
+/* Sidebar Navigation Hover System */
+#sidebar-nav a {
+    transition: all 150ms ease-in-out !important;
 }
 
-@media (prefers-reduced-motion: reduce) {
-    button,
-    a,
-    select,
-    input,
-    textarea {
-        transition: none;
-    }
-    button:active,
-    .btn:active {
-        transform: none;
-    }
+#sidebar-nav a:hover,
+aside#sidebar nav a:hover {
+    background-color: #f2f4f6 !important;
+    color: #00685f !important;
+    transform: translateX(4px) !important;
 }
 
-/* Table row hover — smooth background transition */
-tr {
-    transition: background-color 150ms ease-out;
+#sidebar-nav a.active,
+aside#sidebar nav a.active {
+    background-color: #e6f4f1 !important;
+    color: #00685f !important;
+    font-weight: 600 !important;
+}
+
+/* Table Row Hover Highlight */
+tbody tr {
+    transition: background-color 150ms ease-in-out, transform 150ms ease-in-out;
+}
+
+tbody tr:hover {
+    background-color: #f2f4f6 !important;
 }
 
 

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
@@ -68,19 +69,40 @@ func (h *UserHandlers) Create(w http.ResponseWriter, r *http.Request) {
 
 	roleID, _ := strconv.ParseInt(r.PostFormValue("role_id"), 10, 64)
 
-	_, err := h.Services.Users.CreateUser(
-		r.Context(),
-		r.PostFormValue("email"),
-		r.PostFormValue("name"),
-		r.PostFormValue("phone"),
-		roleID,
-		domain.UserStatus(r.PostFormValue("status")),
-	)
+	pwd := r.PostFormValue("password")
+	var created domain.User
+	var err error
+
+	if pwd != "" {
+		created, err = h.Services.Users.CreateUserWithPassword(
+			r.Context(),
+			r.PostFormValue("email"),
+			r.PostFormValue("name"),
+			r.PostFormValue("phone"),
+			pwd,
+			roleID,
+			domain.UserStatus(r.PostFormValue("status")),
+		)
+	} else {
+		created, err = h.Services.Users.CreateUser(
+			r.Context(),
+			r.PostFormValue("email"),
+			r.PostFormValue("name"),
+			r.PostFormValue("phone"),
+			roleID,
+			domain.UserStatus(r.PostFormValue("status")),
+		)
+	}
+
 	if err != nil {
 		roles, _ := h.Services.Users.ListRoles(r.Context())
 		h.renderForm(w, r, "user_edit.html", PageData{Title: "New User", FlashError: err.Error(), Roles: roles})
 		return
 	}
+
+	// Update Casbin policy for RBAC
+	roleName := h.getRoleNameByID(r.Context(), roleID)
+	_ = h.AuthSrv.AddRoleForUser(created.ID.String(), roleName)
 
 	if isDatastarRequest(r) {
 		w.Header().Set("Location", "/users")
@@ -114,7 +136,7 @@ func (h *UserHandlers) Update(w http.ResponseWriter, r *http.Request) {
 	id := domain.UserID(chi.URLParam(r, "id"))
 	roleID, _ := strconv.ParseInt(r.PostFormValue("role_id"), 10, 64)
 
-	_, err := h.Services.Users.UpdateUser(
+	updated, err := h.Services.Users.UpdateUser(
 		r.Context(), id,
 		r.PostFormValue("email"),
 		r.PostFormValue("name"),
@@ -126,7 +148,26 @@ func (h *UserHandlers) Update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	// Update RBAC role in Casbin
+	roleName := h.getRoleNameByID(r.Context(), roleID)
+	_ = h.AuthSrv.DeleteRolesForUser(updated.ID.String())
+	_ = h.AuthSrv.AddRoleForUser(updated.ID.String(), roleName)
+
 	http.Redirect(w, r, "/users", http.StatusSeeOther)
+}
+
+func (h *UserHandlers) getRoleNameByID(ctx context.Context, roleID int64) string {
+	roles, err := h.Services.Users.ListRoles(ctx)
+	if err != nil {
+		return "viewer"
+	}
+	for _, r := range roles {
+		if r.ID == roleID {
+			return string(r.Name)
+		}
+	}
+	return "viewer"
 }
 
 func (h *UserHandlers) Delete(w http.ResponseWriter, r *http.Request) {

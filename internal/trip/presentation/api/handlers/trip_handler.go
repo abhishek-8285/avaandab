@@ -20,6 +20,9 @@ type APITripHandler struct {
 	assignVehicleUC *application.AssignVehicleUseCase
 	scheduleUC      *application.ScheduleTripUseCase
 	startUC         *application.StartTripUseCase
+	reachPickupUC   *application.ReachPickupUseCase
+	startTransitUC  *application.StartTransitUseCase
+	deliverUC       *application.DeliverUseCase
 	completeUC      *application.CompleteTripUseCase
 	cancelUC        *application.CancelTripUseCase
 	getUC           *application.GetTripUseCase
@@ -33,6 +36,9 @@ func NewAPITripHandler(
 	assignVehicleUC *application.AssignVehicleUseCase,
 	scheduleUC *application.ScheduleTripUseCase,
 	startUC *application.StartTripUseCase,
+	reachPickupUC *application.ReachPickupUseCase,
+	startTransitUC *application.StartTransitUseCase,
+	deliverUC *application.DeliverUseCase,
 	completeUC *application.CompleteTripUseCase,
 	cancelUC *application.CancelTripUseCase,
 	getUC *application.GetTripUseCase,
@@ -44,6 +50,9 @@ func NewAPITripHandler(
 		assignVehicleUC: assignVehicleUC,
 		scheduleUC:      scheduleUC,
 		startUC:         startUC,
+		reachPickupUC:   reachPickupUC,
+		startTransitUC:  startTransitUC,
+		deliverUC:       deliverUC,
 		completeUC:      completeUC,
 		cancelUC:        cancelUC,
 		getUC:           getUC,
@@ -61,6 +70,9 @@ func (h *APITripHandler) Register(r chi.Router) {
 		r.Post("/{id}/assign-vehicle", h.AssignVehicle)
 		r.Post("/{id}/schedule", h.Schedule)
 		r.Post("/{id}/start", h.Start)
+		r.Post("/{id}/reach-pickup", h.ReachPickup)
+		r.Post("/{id}/in-transit", h.StartTransit)
+		r.Post("/{id}/deliver", h.Deliver)
 		r.Post("/{id}/complete", h.Complete)
 		r.Post("/{id}/cancel", h.Cancel)
 	})
@@ -197,6 +209,45 @@ func (h *APITripHandler) Start(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "started"})
+}
+
+func (h *APITripHandler) ReachPickup(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if err := h.reachPickupUC.Execute(r.Context(), application.ReachPickupCommand{
+		TripID:   aggregate.TripID(id),
+		TenantID: shared.TenantIDFromContext(r.Context()),
+	}); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "reached_pickup"})
+}
+
+func (h *APITripHandler) StartTransit(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if err := h.startTransitUC.Execute(r.Context(), application.StartTransitCommand{
+		TripID:   aggregate.TripID(id),
+		TenantID: shared.TenantIDFromContext(r.Context()),
+	}); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "in_transit"})
+}
+
+func (h *APITripHandler) Deliver(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if err := h.deliverUC.Execute(r.Context(), application.DeliverCommand{
+		TripID:   aggregate.TripID(id),
+		TenantID: shared.TenantIDFromContext(r.Context()),
+	}); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "delivered"})
 }
 
 func (h *APITripHandler) Complete(w http.ResponseWriter, r *http.Request) {

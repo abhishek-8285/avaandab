@@ -20,15 +20,18 @@ import (
 // TripHandlers handles trip management.
 type TripHandlers struct {
 	*App
-	createUC        *tripapp.CreateTripUseCase
-	startUC         *tripapp.StartTripUseCase
-	completeUC      *tripapp.CompleteTripUseCase
-	cancelUC        *tripapp.CancelTripUseCase
-	getUC           *tripapp.GetTripUseCase
-	listUC          *tripapp.ListTripsUseCase
-	scheduleUC      *tripapp.ScheduleTripUseCase
-	assignDriverUC  *tripapp.AssignDriverUseCase
-	assignVehicleUC *tripapp.AssignVehicleUseCase
+	createUC         *tripapp.CreateTripUseCase
+	startUC          *tripapp.StartTripUseCase
+	reachPickupUC    *tripapp.ReachPickupUseCase
+	startTransitUC   *tripapp.StartTransitUseCase
+	deliverUC        *tripapp.DeliverUseCase
+	completeUC       *tripapp.CompleteTripUseCase
+	cancelUC         *tripapp.CancelTripUseCase
+	getUC            *tripapp.GetTripUseCase
+	listUC           *tripapp.ListTripsUseCase
+	scheduleUC       *tripapp.ScheduleTripUseCase
+	assignDriverUC   *tripapp.AssignDriverUseCase
+	assignVehicleUC  *tripapp.AssignVehicleUseCase
 }
 
 func (h *TripHandlers) init() {
@@ -39,6 +42,9 @@ func (h *TripHandlers) init() {
 
 		h.createUC = tripapp.NewCreateTripUseCase(uowImpl, idGenImpl, clockImpl)
 		h.startUC = tripapp.NewStartTripUseCase(uowImpl, clockImpl)
+		h.reachPickupUC = tripapp.NewReachPickupUseCase(uowImpl, clockImpl)
+		h.startTransitUC = tripapp.NewStartTransitUseCase(uowImpl, clockImpl)
+		h.deliverUC = tripapp.NewDeliverUseCase(uowImpl, clockImpl)
 		h.completeUC = tripapp.NewCompleteTripUseCase(uowImpl, clockImpl)
 		h.cancelUC = tripapp.NewCancelTripUseCase(uowImpl, clockImpl)
 		h.getUC = tripapp.NewGetTripUseCase(uowImpl)
@@ -61,6 +67,9 @@ func (h *TripHandlers) Routes(r chi.Router) {
 	r.With(middleware.ResourcePermission(h.AuthSrv, "trips", "assign")).Post("/{id}/assign-driver", h.AssignDriver)
 	r.With(middleware.ResourcePermission(h.AuthSrv, "trips", "assign")).Post("/{id}/assign-vehicle", h.AssignVehicle)
 	r.With(middleware.ResourcePermission(h.AuthSrv, "trips", "update")).Post("/{id}/start", h.StartTrip)
+	r.With(middleware.ResourcePermission(h.AuthSrv, "trips", "update")).Post("/{id}/reach-pickup", h.ReachPickup)
+	r.With(middleware.ResourcePermission(h.AuthSrv, "trips", "update")).Post("/{id}/in-transit", h.StartTransit)
+	r.With(middleware.ResourcePermission(h.AuthSrv, "trips", "update")).Post("/{id}/deliver", h.Deliver)
 	r.With(middleware.ResourcePermission(h.AuthSrv, "trips", "update")).Post("/{id}/complete", h.CompleteTrip)
 	r.With(middleware.ResourcePermission(h.AuthSrv, "trips", "cancel")).Post("/{id}/cancel", h.CancelTrip)
 }
@@ -78,7 +87,8 @@ func (h *TripHandlers) List(w http.ResponseWriter, r *http.Request) {
 		Status:   pp.Status,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		fmt.Printf("[Trips Error] Failed to list trips: %v\n", err)
+		http.Error(w, "Failed to load trips: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -326,6 +336,48 @@ func (h *TripHandlers) StartTrip(w http.ResponseWriter, r *http.Request) {
 	h.init()
 	id := chi.URLParam(r, "id")
 	err := h.startUC.Execute(r.Context(), tripapp.StartTripCommand{
+		TripID:   tripagg.TripID(id),
+		TenantID: "1",
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	http.Redirect(w, r, "/trips/"+id, http.StatusSeeOther)
+}
+
+func (h *TripHandlers) ReachPickup(w http.ResponseWriter, r *http.Request) {
+	h.init()
+	id := chi.URLParam(r, "id")
+	err := h.reachPickupUC.Execute(r.Context(), tripapp.ReachPickupCommand{
+		TripID:   tripagg.TripID(id),
+		TenantID: "1",
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	http.Redirect(w, r, "/trips/"+id, http.StatusSeeOther)
+}
+
+func (h *TripHandlers) StartTransit(w http.ResponseWriter, r *http.Request) {
+	h.init()
+	id := chi.URLParam(r, "id")
+	err := h.startTransitUC.Execute(r.Context(), tripapp.StartTransitCommand{
+		TripID:   tripagg.TripID(id),
+		TenantID: "1",
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	http.Redirect(w, r, "/trips/"+id, http.StatusSeeOther)
+}
+
+func (h *TripHandlers) Deliver(w http.ResponseWriter, r *http.Request) {
+	h.init()
+	id := chi.URLParam(r, "id")
+	err := h.deliverUC.Execute(r.Context(), tripapp.DeliverCommand{
 		TripID:   tripagg.TripID(id),
 		TenantID: "1",
 	})

@@ -41,6 +41,10 @@ func (uc *AssignDriverUseCase) Execute(ctx context.Context, cmd AssignDriverComm
 		if err := t.AssignDriver(cmd.DriverID, uc.clock.Now()); err != nil {
 			return err
 		}
-		return repo.Save(txCtx, t)
+		if err := repo.Save(txCtx, t); err != nil {
+			return err
+		}
+		logAudit(txCtx, ActionAssign, string(t.ID), nil, nil)
+		return nil
 	})
 }

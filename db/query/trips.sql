@@ -54,9 +54,13 @@ SET trip_number = ?, booking_id = ?, driver_id = ?, vehicle_id = ?, route_id = ?
     version = version + 1,
     updated_at = datetime('now')
 WHERE id = ? AND tenant_id = ? AND version = ?
-RETURNING id, trip_number, booking_id, driver_id, vehicle_id, route_id,
-    departure_time, arrival_time, status, remarks, tenant_id, version, created_at, updated_at,
-    started_at, reached_pickup_at, in_transit_at, delivered_at, completed_at;
+RETURNING trip_number, booking_id, driver_id, vehicle_id, route_id,
+    departure_time, arrival_time, status, remarks,
+    started_at, reached_pickup_at, in_transit_at, delivered_at, completed_at,
+    id, tenant_id, version, created_at, updated_at;
+
+
+
 
 -- name: UpdateTripStatus :one
 UPDATE trips
@@ -93,11 +97,11 @@ FROM trips t
 LEFT JOIN drivers d ON t.driver_id = d.id
 LEFT JOIN vehicles v ON t.vehicle_id = v.id
 LEFT JOIN routes r ON t.route_id = r.id
-WHERE t.tenant_id = ?
-  AND (t.trip_number LIKE '%' || ? || '%' OR d.first_name LIKE '%' || ? || '%' OR d.last_name LIKE '%' || ? || '%' OR v.registration_number LIKE '%' || ? || '%' OR r.source LIKE '%' || ? || '%' OR r.destination LIKE '%' || '%')
-  AND (? = '' OR t.status = ?)
+WHERE t.tenant_id = sqlc.arg(tenant_id)
+  AND (sqlc.arg(query)::text = '' OR t.trip_number LIKE '%' || sqlc.arg(query) || '%' OR d.first_name LIKE '%' || sqlc.arg(query) || '%' OR d.last_name LIKE '%' || sqlc.arg(query) || '%' OR v.registration_number LIKE '%' || sqlc.arg(query) || '%' OR r.source LIKE '%' || sqlc.arg(query) || '%' OR r.destination LIKE '%' || sqlc.arg(query) || '%')
+  AND (sqlc.arg(status)::text = '' OR t.status = sqlc.arg(status))
 ORDER BY t.departure_time DESC
-LIMIT ? OFFSET ?;
+LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 
 -- name: CountTrips :one
 SELECT COUNT(*) AS count
@@ -105,9 +109,9 @@ FROM trips t
 LEFT JOIN drivers d ON t.driver_id = d.id
 LEFT JOIN vehicles v ON t.vehicle_id = v.id
 LEFT JOIN routes r ON t.route_id = r.id
-WHERE t.tenant_id = ?
-  AND (t.trip_number LIKE '%' || ? || '%' OR d.first_name LIKE '%' || ? || '%' OR d.last_name LIKE '%' || ? || '%' OR v.registration_number LIKE '%' || ? || '%' OR r.source LIKE '%' || ? || '%' OR r.destination LIKE '%' || '%')
-  AND (? = '' OR t.status = ?);
+WHERE t.tenant_id = sqlc.arg(tenant_id)
+  AND (sqlc.arg(query)::text = '' OR t.trip_number LIKE '%' || sqlc.arg(query) || '%' OR d.first_name LIKE '%' || sqlc.arg(query) || '%' OR d.last_name LIKE '%' || sqlc.arg(query) || '%' OR v.registration_number LIKE '%' || sqlc.arg(query) || '%' OR r.source LIKE '%' || sqlc.arg(query) || '%' OR r.destination LIKE '%' || sqlc.arg(query) || '%')
+  AND (sqlc.arg(status)::text = '' OR t.status = sqlc.arg(status));
 
 -- name: CheckVehicleConflict :many
 SELECT id, trip_number, status, departure_time, arrival_time

@@ -8,6 +8,8 @@ import (
 	bookingevents "transport-app/internal/domain/booking"
 	tripevents "transport-app/internal/domain/trip"
 	"transport-app/internal/events"
+	"transport-app/internal/founder"
+	"transport-app/internal/founder/alerts"
 	"transport-app/internal/repository"
 )
 
@@ -47,6 +49,7 @@ type Services struct {
 	Dashboard *DashboardService
 	Files     *FileService
 	Audit     *AuditLogService
+	Founder   *founder.FounderService
 
 	store Store
 	cfg   *config.Config
@@ -79,6 +82,11 @@ func NewServices(store Store, cfg *config.Config, log *slog.Logger) *Services {
 	s.Dashboard = &DashboardService{baseService: bs}
 	s.Files = &FileService{baseService: bs}
 	s.Audit = &AuditLogService{baseService: bs}
+
+	// Instantiate Telegram Bot Notifier if token configured, otherwise graceful fallback
+	var founderNotifier founder.Notifier = alerts.NewTelegramBotNotifier(nil, 0)
+	s.Founder = founder.NewFounderService(founderNotifier)
+	s.Founder.RegisterEventHandlers(bs.events)
 
 	s.initEventHandlers()
 

@@ -1,39 +1,53 @@
-<div>
-    <div class="flex justify-between items-center mb-4">
-        <h2 class="text-2xl font-bold text-gray-900">Routes</h2>
-        <a href="/routes/new"
-            class="px-4 py-2 min-h-[44px] bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-blue-800">New Route</a>
-    </div>
+<div class="bg-white border border-[#EAE8E4] rounded shadow-sm flex flex-col h-full overflow-hidden">
+    <!-- Sticky Search & Filter Bar (Stitch Design) -->
+    <form method="GET" action="/routes" class="px-6 py-4 border-b border-[#EAE8E4] flex flex-wrap items-center gap-3 bg-white sticky top-0 z-10">
+        <div class="relative flex-1 min-w-[240px] max-w-md">
+            <span class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">search</span>
+            <input type="text" name="q" value="{{.Query}}" placeholder="Filter by source or destination city..."
+                class="bg-white border border-[#EAE8E4] rounded py-1.5 pl-9 pr-4 text-sm w-full focus:outline-none focus:border-[#00685f] transition-colors">
+        </div>
+        <button type="submit" class="px-4 py-1.5 rounded bg-[#00685f] text-white text-sm font-medium hover:bg-[#005049] transition-colors">
+            Search
+        </button>
 
-    <form method="GET" action="/routes" class="mb-4 flex gap-2">
-        <input type="text" name="q" value="{{.Query}}" placeholder="Search routes..."
-            class="flex-1 text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-        <button type="submit" class="px-4 py-2 min-h-[44px] flex items-center justify-center bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 active:bg-gray-300">Search</button>
+        <div class="ml-auto flex items-center gap-3">
+            <a href="/routes/new" class="inline-flex items-center gap-2 px-4 py-1.5 rounded bg-[#00685f] text-white text-sm font-medium hover:bg-[#005049] transition-colors shadow-sm">
+                <span class="material-icons text-sm">add</span> New Route
+            </a>
+        </div>
     </form>
 
-    <div class="bg-white rounded-lg shadow overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+    <!-- Data Table (Stitch Design) -->
+    <div class="flex-1 overflow-x-auto">
+        <table class="w-full text-left border-collapse min-w-full">
+            <thead class="sticky top-0 bg-white z-10 border-b border-[#EAE8E4]">
                 <tr>
                     <th class="th-cell">Source</th>
                     <th class="th-cell">Destination</th>
-                    <th class="th-cell">Distance</th>
-                    <th class="th-cell">Est. Hours</th>
-                    <th class="th-cell">Fare</th>
+                    <th class="th-cell">Distance (km)</th>
+                    <th class="th-cell">Est. Duration</th>
+                    <th class="th-cell">Standard Fare (₹)</th>
                     <th class="th-cell-right">Actions</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200">
+            <tbody class="divide-y divide-[#EAE8E4] font-body-sm text-sm text-[#191c1e]">
                 {{range .Routes}}
-                <tr>
-                    <td class="td-cell">{{.Source}}</td>
+                <tr class="hover:bg-[#f2f4f6] transition-colors group">
+                    <td class="td-cell-strong">{{.Source}}</td>
                     <td class="td-cell">{{.Destination}}</td>
-                    <td class="td-cell">{{.Distance}}</td>
-                    <td class="td-cell">{{.EstimatedHours}}</td>
-                    <td class="td-cell">{{printf "%.2f" .StandardFare}}</td>
+                    <td class="td-cell font-mono text-xs">{{.Distance}} km</td>
+                    <td class="td-cell">{{.EstimatedHours}} hrs</td>
+                    <td class="td-cell font-mono text-xs">₹{{printf "%.2f" .StandardFare}}</td>
                     <td class="td-cell-actions">
-                        <a href="/routes/{{.ID}}" class="action-view">View</a>
-                        <a href="/routes/{{.ID}}/edit" class="action-edit">Edit</a>
+                        <a href="/routes/{{.ID}}" class="action-view font-medium mr-2">View</a>
+                        <a href="/routes/{{.ID}}/edit" class="action-edit font-medium">Edit</a>
+                    </td>
+                </tr>
+                {{else}}
+                <tr>
+                    <td colspan="6" class="py-16 text-center text-gray-500">
+                        <span class="material-icons text-4xl text-gray-300 mb-2 block">route</span>
+                        <p class="font-medium text-base">No routes found matching the search criteria.</p>
                     </td>
                 </tr>
                 {{end}}

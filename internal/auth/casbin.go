@@ -107,6 +107,8 @@ func (a *DBAdapter) RemoveFilteredPolicy(sec string, ptype string, fieldIndex in
 type AuthorizationService interface {
 	Can(userID string, resource string, action string) bool
 	Reload() error
+	AddRoleForUser(userID string, role string) error
+	DeleteRolesForUser(userID string) error
 }
 
 // CasbinAuthorizationService wraps Casbin with SyncedEnforcer.
@@ -143,4 +145,16 @@ func (s *CasbinAuthorizationService) Can(userID string, resource string, action 
 // Reload reloads the policies from the database.
 func (s *CasbinAuthorizationService) Reload() error {
 	return s.enforcer.LoadPolicy()
+}
+
+// AddRoleForUser assigns a role to a user in Casbin memory.
+func (s *CasbinAuthorizationService) AddRoleForUser(userID string, role string) error {
+	_, err := s.enforcer.AddRoleForUser(userID, role)
+	return err
+}
+
+// DeleteRolesForUser removes all roles for a user in Casbin memory.
+func (s *CasbinAuthorizationService) DeleteRolesForUser(userID string) error {
+	_, err := s.enforcer.DeleteRolesForUser(userID)
+	return err
 }

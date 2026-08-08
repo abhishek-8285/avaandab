@@ -32,6 +32,11 @@ type TripResponseDTO struct {
 	Remarks                   string     `json:"remarks"`
 	CreatedAt                 time.Time  `json:"created_at"`
 	UpdatedAt                 time.Time  `json:"updated_at"`
+	StartedAt                 *time.Time `json:"started_at"`
+	ReachedPickupAt           *time.Time `json:"reached_pickup_at"`
+	InTransitAt               *time.Time `json:"in_transit_at"`
+	DeliveredAt               *time.Time `json:"delivered_at"`
+	CompletedAt               *time.Time `json:"completed_at"`
 }
 
 // VehicleRegistration returns VehicleRegistrationNumber for template compatibility.
@@ -89,6 +94,11 @@ func (uc *GetTripUseCase) Execute(ctx context.Context, query GetTripQuery) (Trip
 			Remarks:                   t.Remarks,
 			CreatedAt:                 t.CreatedAt,
 			UpdatedAt:                 t.UpdatedAt,
+			StartedAt:                 t.StartedAt,
+			ReachedPickupAt:           t.ReachedPickupAt,
+			InTransitAt:               t.InTransitAt,
+			DeliveredAt:               t.DeliveredAt,
+			CompletedAt:               t.CompletedAt,
 		}
 		return nil
 	})

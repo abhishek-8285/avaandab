@@ -274,108 +274,111 @@ func (r *tripRepository) GetReadModel(ctx context.Context, id aggregate.TripID, 
 }
 
 func (r *tripRepository) SearchReadModels(ctx context.Context, tenantID shared.TenantID, query string, status string, limit int, offset int) ([]domain.TripReadModel, int64, error) {
-	rows, err := r.Q(ctx).SearchTrips(ctx, db.SearchTripsParams{
-		TenantID: string(tenantID),
-		Column2:  sql.NullString{String: query, Valid: true},
-		Column3:  sql.NullString{String: query, Valid: true},
-		Column4:  sql.NullString{String: query, Valid: true},
-		Column5:  sql.NullString{String: query, Valid: true},
-		Column6:  sql.NullString{String: query, Valid: true},
-		Column7:  sql.NullString{String: query, Valid: true},
-		Column8:  status,
-		Status:   status,
-		Limit:    int64(limit),
-		Offset:   int64(offset),
-	})
+	qPattern := "%" + query + "%"
+
+	querySQL := `
+SELECT t.id, t.trip_number, t.booking_id, t.driver_id, t.vehicle_id, t.route_id,
+    t.departure_time, t.arrival_time, t.status, t.remarks, t.created_at, t.updated_at,
+    t.started_at, t.reached_pickup_at, t.in_transit_at, t.delivered_at, t.completed_at,
+    COALESCE(d.driver_id, '') AS driver_display_id,
+    COALESCE(d.first_name, '') AS driver_first_name,
+    COALESCE(d.last_name, '') AS driver_last_name,
+    COALESCE(v.registration_number, '') AS vehicle_registration_number,
+    COALESCE(v.vehicle_number, '') AS vehicle_number,
+    COALESCE(r.source, '') AS route_source,
+    COALESCE(r.destination, '') AS route_destination
+FROM trips t
+LEFT JOIN drivers d ON t.driver_id = d.id
+LEFT JOIN vehicles v ON t.vehicle_id = v.id
+LEFT JOIN routes r ON t.route_id = r.id
+WHERE t.tenant_id = ?
+  AND (? = '' OR t.trip_number LIKE ? OR d.first_name LIKE ? OR d.last_name LIKE ? OR v.registration_number LIKE ? OR r.source LIKE ? OR r.destination LIKE ?)
+  AND (? = '' OR t.status = ?)
+ORDER BY t.departure_time DESC
+LIMIT ? OFFSET ?`
+
+	rows, err := r.dbConn.QueryContext(ctx, querySQL,
+		string(tenantID),
+		query, qPattern, qPattern, qPattern, qPattern, qPattern, qPattern,
+		status, status,
+		limit, offset,
+	)
 	if err != nil {
 		return nil, 0, err
 	}
+	defer rows.Close()
 
-	count, err := r.Q(ctx).CountTrips(ctx, db.CountTripsParams{
-		TenantID: string(tenantID),
-		Column2:  sql.NullString{String: query, Valid: true},
-		Column3:  sql.NullString{String: query, Valid: true},
-		Column4:  sql.NullString{String: query, Valid: true},
-		Column5:  sql.NullString{String: query, Valid: true},
-		Column6:  sql.NullString{String: query, Valid: true},
-		Column7:  sql.NullString{String: query, Valid: true},
-		Column8:  status,
-		Status:   status,
-	})
-	if err != nil {
-		return nil, 0, err
+	var readModels []domain.TripReadModel
+	for rows.Next() {
+		var m domain.TripReadModel
+		var bookingID, driverID, vehicleID sql.NullString
+		var arrivalTime, startedAt, reachedPickupAt, inTransitAt, deliveredAt, completedAt sql.NullTime
+		var remarks sql.NullString
+
+		err := rows.Scan(
+			&m.ID, &m.TripNumber, &bookingID, &driverID, &vehicleID, &m.RouteID,
+			&m.DepartureTime, &arrivalTime, &m.Status, &remarks, &m.CreatedAt, &m.UpdatedAt,
+			&startedAt, &reachedPickupAt, &inTransitAt, &deliveredAt, &completedAt,
+			&m.DriverDisplayID, &m.DriverFirstName, &m.DriverLastName,
+			&m.VehicleRegistrationNumber, &m.VehicleNumber,
+			&m.RouteSource, &m.RouteDestination,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		if bookingID.Valid {
+			m.BookingID = &bookingID.String
+		}
+		if driverID.Valid {
+			m.DriverID = &driverID.String
+		}
+		if vehicleID.Valid {
+			m.VehicleID = &vehicleID.String
+		}
+		if arrivalTime.Valid {
+			m.ArrivalTime = &arrivalTime.Time
+		}
+		if remarks.Valid {
+			m.Remarks = remarks.String
+		}
+		if startedAt.Valid {
+			m.StartedAt = &startedAt.Time
+		}
+		if reachedPickupAt.Valid {
+			m.ReachedPickupAt = &reachedPickupAt.Time
+		}
+		if inTransitAt.Valid {
+			m.InTransitAt = &inTransitAt.Time
+		}
+		if deliveredAt.Valid {
+			m.DeliveredAt = &deliveredAt.Time
+		}
+		if completedAt.Valid {
+			m.CompletedAt = &completedAt.Time
+		}
+
+		readModels = append(readModels, m)
 	}
 
-	readModels := make([]domain.TripReadModel, len(rows))
-	for i, row := range rows {
-		var bookingID *string
-		if row.BookingID.Valid {
-			bookingID = &row.BookingID.String
-		}
-		var driverID *string
-		if row.DriverID.Valid {
-			driverID = &row.DriverID.String
-		}
-		var vehicleID *string
-		if row.VehicleID.Valid {
-			vehicleID = &row.VehicleID.String
-		}
-		var arrivalTime *time.Time
-		if row.ArrivalTime.Valid {
-			arrivalTime = &row.ArrivalTime.Time
-		}
-		var remarks string
-		if row.Remarks.Valid {
-			remarks = row.Remarks.String
-		}
+	countSQL := `
+SELECT COUNT(*)
+FROM trips t
+LEFT JOIN drivers d ON t.driver_id = d.id
+LEFT JOIN vehicles v ON t.vehicle_id = v.id
+LEFT JOIN routes r ON t.route_id = r.id
+WHERE t.tenant_id = ?
+  AND (? = '' OR t.trip_number LIKE ? OR d.first_name LIKE ? OR d.last_name LIKE ? OR v.registration_number LIKE ? OR r.source LIKE ? OR r.destination LIKE ?)
+  AND (? = '' OR t.status = ?)`
 
-		var startedAt *time.Time
-		if row.StartedAt.Valid {
-			startedAt = &row.StartedAt.Time
-		}
-		var reachedPickupAt *time.Time
-		if row.ReachedPickupAt.Valid {
-			reachedPickupAt = &row.ReachedPickupAt.Time
-		}
-		var inTransitAt *time.Time
-		if row.InTransitAt.Valid {
-			inTransitAt = &row.InTransitAt.Time
-		}
-		var deliveredAt *time.Time
-		if row.DeliveredAt.Valid {
-			deliveredAt = &row.DeliveredAt.Time
-		}
-		var completedAt *time.Time
-		if row.CompletedAt.Valid {
-			completedAt = &row.CompletedAt.Time
-		}
-
-		readModels[i] = domain.TripReadModel{
-			ID:                        row.ID,
-			TripNumber:                row.TripNumber,
-			BookingID:                 bookingID,
-			DriverID:                  driverID,
-			DriverDisplayID:           row.DriverDisplayID.String,
-			DriverFirstName:           row.DriverFirstName.String,
-			DriverLastName:            row.DriverLastName.String,
-			VehicleID:                 vehicleID,
-			VehicleRegistrationNumber: row.VehicleRegistrationNumber.String,
-			VehicleNumber:             row.VehicleNumber.String,
-			RouteID:                   row.RouteID,
-			RouteSource:               row.RouteSource.String,
-			RouteDestination:          row.RouteDestination.String,
-			DepartureTime:             row.DepartureTime,
-			ArrivalTime:               arrivalTime,
-			Status:                    row.Status,
-			Remarks:                   remarks,
-			CreatedAt:                 row.CreatedAt,
-			UpdatedAt:                 row.UpdatedAt,
-			StartedAt:                 startedAt,
-			ReachedPickupAt:           reachedPickupAt,
-			InTransitAt:               inTransitAt,
-			DeliveredAt:               deliveredAt,
-			CompletedAt:               completedAt,
-		}
+	var count int64
+	err = r.dbConn.QueryRowContext(ctx, countSQL,
+		string(tenantID),
+		query, qPattern, qPattern, qPattern, qPattern, qPattern, qPattern,
+		status, status,
+	).Scan(&count)
+	if err != nil {
+		return nil, 0, err
 	}
 
 	return readModels, count, nil

@@ -1,49 +1,71 @@
-<div>
-    <div class="flex justify-between items-center mb-4">
-        <h2 class="text-2xl font-bold text-gray-900">Vehicles</h2>
-        <a href="/vehicles/new" class="px-4 py-2 min-h-[44px] bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-blue-800">New Vehicle</a>
-    </div>
+<div class="bg-white border border-[#EAE8E4] rounded shadow-sm flex flex-col h-full overflow-hidden">
+    <!-- Sticky Filter Bar (Stitch Screen 3 Exact Layout) -->
+    <form method="GET" action="/vehicles" class="px-6 py-4 border-b border-[#EAE8E4] flex flex-wrap items-center gap-3 bg-white sticky top-0 z-10">
+        <span class="text-sm font-medium text-[#565e74] mr-2 font-display">Filters:</span>
+        <a href="/vehicles" class="px-4 py-1.5 rounded-full border text-sm font-medium transition-colors {{if eq .StatusFilter ""}}border-[#00685f] bg-[#00685f] text-white{{else}}border-[#EAE8E4] bg-white text-[#565e74] hover:bg-[#f2f4f6]{{end}}">All Units</a>
+        <a href="/vehicles?status=available" class="px-4 py-1.5 rounded-full border text-sm font-medium transition-colors {{if eq .StatusFilter "available"}}border-[#00685f] bg-[#00685f] text-white{{else}}border-[#EAE8E4] bg-white text-[#565e74] hover:bg-[#f2f4f6]{{end}}">Active</a>
+        <a href="/vehicles?status=running" class="px-4 py-1.5 rounded-full border text-sm font-medium transition-colors {{if eq .StatusFilter "running"}}border-[#00685f] bg-[#00685f] text-white{{else}}border-[#EAE8E4] bg-white text-[#565e74] hover:bg-[#f2f4f6]{{end}}">Running</a>
+        <a href="/vehicles?status=maintenance" class="px-4 py-1.5 rounded-full border text-sm font-medium transition-colors {{if eq .StatusFilter "maintenance"}}border-[#00685f] bg-[#00685f] text-white{{else}}border-[#EAE8E4] bg-white text-[#565e74] hover:bg-[#f2f4f6]{{end}}">Maintenance</a>
+        <a href="/vehicles?status=inactive" class="px-4 py-1.5 rounded-full border text-sm font-medium transition-colors {{if eq .StatusFilter "inactive"}}border-[#00685f] bg-[#00685f] text-white{{else}}border-[#EAE8E4] bg-white text-[#565e74] hover:bg-[#f2f4f6]{{end}}">Out of Service</a>
 
-    <form method="GET" action="/vehicles" class="mb-4 flex gap-2">
-        <input type="text" name="q" value="{{.Query}}" placeholder="Search vehicles..."
-            class="flex-1 text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-        <select name="status" class="text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-            <option value="">All Status</option>
-            <option value="available" {{if eq .StatusFilter "available"}}selected{{end}}>Available</option>
-            <option value="running" {{if eq .StatusFilter "running"}}selected{{end}}>Running</option>
-            <option value="maintenance" {{if eq .StatusFilter "maintenance"}}selected{{end}}>Maintenance</option>
-            <option value="inactive" {{if eq .StatusFilter "inactive"}}selected{{end}}>Inactive</option>
-        </select>
-        <button type="submit" class="px-4 py-2 min-h-[44px] flex items-center justify-center bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 active:bg-gray-300">Filter</button>
+        <div class="ml-auto flex items-center gap-3">
+            <a href="/vehicles/new" class="inline-flex items-center gap-2 px-4 py-1.5 rounded bg-[#00685f] text-white text-sm font-medium hover:bg-[#005049] transition-colors shadow-sm">
+                <span class="material-symbols-outlined text-sm">add</span> New Vehicle
+            </a>
+        </div>
     </form>
 
-    <div class="bg-white rounded-lg shadow overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+    <!-- High-Density Data Table (Stitch Operational View Exact Classes & Layout) -->
+    <div class="flex-1 overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead class="sticky top-0 bg-white z-10 border-b border-[#EAE8E4] font-label-caps text-[11px] text-[#565e74] uppercase tracking-wider">
                 <tr>
-                    <th class="th-cell">Reg. Number</th>
-                    <th class="th-cell">Vehicle No</th>
-                    <th class="th-cell">Type</th>
-                    <th class="th-cell">Capacity</th>
-                    <th class="th-cell">Fuel</th>
-                    <th class="th-cell">Status</th>
-                    <th class="th-cell-right">Actions</th>
+                    <th class="py-3 px-6 font-semibold w-36">Unit ID</th>
+                    <th class="py-3 px-6 font-semibold">Vehicle Type</th>
+                    <th class="py-3 px-6 font-semibold">Capacity & Fuel</th>
+                    <th class="py-3 px-6 font-semibold">Status</th>
+                    <th class="py-3 px-6 font-semibold text-right">Actions</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200">
+            <tbody class="divide-y divide-[#EAE8E4] text-sm text-[#191c1e]">
                 {{range .Vehicles}}
-                <tr>
-                    <td class="td-cell">{{.RegistrationNumber}}</td>
-                    <td class="td-cell">{{.VehicleNumber}}</td>
-                    <td class="td-cell">{{.VehicleType}}</td>
-                    <td class="td-cell">{{.Capacity}}</td>
-                    <td class="td-cell">{{.FuelType}}</td>
-                    <td class="td-cell">
-                        <span class="status-badge {{statusBadge .Status}}">{{.Status}}</span>
+                <tr class="hover:bg-[#f2f4f6] transition-colors group">
+                    <td class="py-4 px-6 font-mono font-medium text-[#00685f]">{{.RegistrationNumber}}</td>
+                    <td class="py-4 px-6">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded border border-[#EAE8E4] bg-[#ffffff] flex items-center justify-center text-[#565e74]">
+                                <span class="material-symbols-outlined text-lg">local_shipping</span>
+                            </div>
+                            <span class="font-medium text-[#191c1e]">{{.VehicleType}} ({{.VehicleNumber}})</span>
+                        </div>
                     </td>
-                    <td class="td-cell-actions">
-                        <a href="/vehicles/{{.ID}}" class="action-view">View</a>
-                        <a href="/vehicles/{{.ID}}/edit" class="action-edit">Edit</a>
+                    <td class="py-4 px-6 text-[#565e74]">
+                        <span class="font-medium text-[#191c1e]">{{.Capacity}}</span> • <span class="text-xs uppercase">{{.FuelType}}</span>
+                    </td>
+                    <td class="py-4 px-6">
+                        <div class="inline-flex items-center gap-2">
+                            {{if or (eq .Status "available") (eq .Status "active") (eq .Status "running")}}
+                            <span class="w-2 h-2 rounded-full bg-[#10B981]"></span>
+                            <span class="text-[#10B981] font-medium capitalize">{{.Status}}</span>
+                            {{else if eq .Status "maintenance"}}
+                            <span class="w-2 h-2 rounded-full bg-[#E11D48]"></span>
+                            <span class="text-[#E11D48] font-medium capitalize">{{.Status}}</span>
+                            {{else}}
+                            <span class="w-2 h-2 rounded-full bg-[#64748B]"></span>
+                            <span class="text-[#64748B] font-medium capitalize">{{.Status}}</span>
+                            {{end}}
+                        </div>
+                    </td>
+                    <td class="py-4 px-6 text-right">
+                        <a href="/vehicles/{{.ID}}" class="text-[#00685f] hover:underline font-medium mr-3">View</a>
+                        <a href="/vehicles/{{.ID}}/edit" class="text-[#565e74] hover:underline font-medium">Edit</a>
+                    </td>
+                </tr>
+                {{else}}
+                <tr>
+                    <td colspan="5" class="py-16 text-center text-[#565e74]">
+                        <span class="material-symbols-outlined text-4xl text-gray-300 mb-2 block">local_shipping</span>
+                        <p class="font-medium text-base">No vehicles found matching the current filters.</p>
                     </td>
                 </tr>
                 {{end}}
@@ -51,5 +73,7 @@
         </table>
     </div>
 
-    {{template "pagination.html" .}}
+    <div class="p-4 border-t border-[#EAE8E4] bg-white">
+        {{template "pagination.html" .}}
+    </div>
 </div>

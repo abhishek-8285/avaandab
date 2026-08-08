@@ -14,8 +14,10 @@ type Config struct {
 	CookieSecret  string
 	SessionMaxAge time.Duration
 	LogLevel      string
-	UploadDir     string
-	MaxUploadSize int64
+	UploadDir         string
+	MaxUploadSize     int64
+	RazorpayKeyID     string
+	RazorpayKeySecret string
 }
 
 // Load reads configuration from environment variables.
@@ -46,8 +48,10 @@ func Load() *Config {
 		CookieSecret:  getEnv("COOKIE_SECRET", "dev-secret-key-change-in-production-32b!"),
 		SessionMaxAge: sessionMaxAge,
 		LogLevel:      getEnv("LOG_LEVEL", "info"),
-		UploadDir:     getEnv("UPLOAD_DIR", "./uploads"),
-		MaxUploadSize: maxUpload,
+		UploadDir:         getEnv("UPLOAD_DIR", "./uploads"),
+		MaxUploadSize:     maxUpload,
+		RazorpayKeyID:     getEnv("RAZORPAY_KEY_ID", "rzp_test_TMdP3QXQq2L67c"),
+		RazorpayKeySecret: getEnv("RAZORPAY_KEY_SECRET", "Fv17NyJHioQluynfHY59F0da"),
 	}
 }
 

@@ -9,4 +9,6 @@ var (
 	ErrUserEmailExists    = errors.New("user with this email already exists")
 	ErrUnauthorized       = errors.New("unauthorized")
 	ErrSessionExpired     = errors.New("session has expired")
+	ErrUserEmailRequired  = errors.New("email is required")
+	ErrUserPhoneRequired  = errors.New("phone number is required")
 )

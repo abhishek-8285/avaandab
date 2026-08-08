@@ -1,57 +1,57 @@
-<div>
-    <div class="flex justify-between items-center mb-4">
-        <h2 class="text-2xl font-bold text-gray-900">Bookings</h2>
-        <a href="/bookings/new" class="px-4 py-2 min-h-[44px] bg-brand-600 text-white rounded-md hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 active:bg-brand-800">New Booking</a>
-    </div>
+<div class="bg-white border border-[#EAE8E4] rounded shadow-sm flex flex-col h-full overflow-hidden">
+    <!-- Sticky Filter Bar (Stitch Design) -->
+    <form method="GET" action="/bookings" class="px-6 py-4 border-b border-[#EAE8E4] flex flex-wrap items-center gap-3 bg-white sticky top-0 z-10">
+        <span class="text-sm font-medium text-[#565e74] mr-2 font-display">Filters:</span>
+        <a href="/bookings" class="px-4 py-1.5 rounded-full border text-sm font-medium transition-colors {{if eq .StatusFilter ""}}border-[#00685f] bg-[#00685f] text-white{{else}}border-[#EAE8E4] bg-white text-[#565e74] hover:bg-[#f2f4f6]{{end}}">All Bookings</a>
+        <a href="/bookings?status=pending" class="px-4 py-1.5 rounded-full border text-sm font-medium transition-colors {{if eq .StatusFilter "pending"}}border-[#00685f] bg-[#00685f] text-white{{else}}border-[#EAE8E4] bg-white text-[#565e74] hover:bg-[#f2f4f6]{{end}}">Pending</a>
+        <a href="/bookings?status=confirmed" class="px-4 py-1.5 rounded-full border text-sm font-medium transition-colors {{if eq .StatusFilter "confirmed"}}border-[#00685f] bg-[#00685f] text-white{{else}}border-[#EAE8E4] bg-white text-[#565e74] hover:bg-[#f2f4f6]{{end}}">Confirmed</a>
+        <a href="/bookings?status=completed" class="px-4 py-1.5 rounded-full border text-sm font-medium transition-colors {{if eq .StatusFilter "completed"}}border-[#00685f] bg-[#00685f] text-white{{else}}border-[#EAE8E4] bg-white text-[#565e74] hover:bg-[#f2f4f6]{{end}}">Completed</a>
+        <a href="/bookings?status=cancelled" class="px-4 py-1.5 rounded-full border text-sm font-medium transition-colors {{if eq .StatusFilter "cancelled"}}border-[#00685f] bg-[#00685f] text-white{{else}}border-[#EAE8E4] bg-white text-[#565e74] hover:bg-[#f2f4f6]{{end}}">Cancelled</a>
 
-    <form method="GET" action="/bookings" class="mb-4 flex flex-wrap gap-2">
-        <input type="text" name="q" value="{{.Query}}" placeholder="Search bookings..."
-            class="flex-1 min-w-[120px] text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2">
-        <select name="status" class="text-base border border-gray-300 rounded-md px-3 py-2 min-w-[120px] focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2">
-            <option value="">All Status</option>
-            <option value="pending" {{if eq .StatusFilter "pending"}}selected{{end}}>Pending</option>
-            <option value="confirmed" {{if eq .StatusFilter "confirmed"}}selected{{end}}>Confirmed</option>
-            <option value="cancelled" {{if eq .StatusFilter "cancelled"}}selected{{end}}>Cancelled</option>
-            <option value="completed" {{if eq .StatusFilter "completed"}}selected{{end}}>Completed</option>
-        </select>
-        <button type="submit" class="px-4 py-2 min-h-[44px] w-full sm:w-auto flex items-center justify-center bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 active:bg-gray-300">Filter</button>
+        <div class="ml-auto flex items-center gap-3">
+            <a href="/bookings/new" class="inline-flex items-center gap-2 px-4 py-1.5 rounded bg-[#00685f] text-white text-sm font-medium hover:bg-[#005049] transition-colors shadow-sm">
+                <span class="material-icons text-sm">add</span> New Booking
+            </a>
+        </div>
     </form>
 
-    <div class="bg-white rounded-lg shadow overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+    <!-- Data Table (Stitch Design) -->
+    <div class="flex-1 overflow-x-auto">
+        <table class="w-full text-left border-collapse min-w-full">
+            <thead class="sticky top-0 bg-white z-10 border-b border-[#EAE8E4]">
                 <tr>
-                    <th class="th-cell hidden sm:table-cell">Booking #</th>
+                    <th class="th-cell">Booking #</th>
                     <th class="th-cell">Customer</th>
                     <th class="th-cell">Route</th>
-                    <th class="th-cell">Pickup</th>
-                    <th class="th-cell">Price</th>
+                    <th class="th-cell">Pickup Date</th>
+                    <th class="th-cell">Amount (₹)</th>
                     <th class="th-cell">Status</th>
                     <th class="th-cell-right">Actions</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200">
+            <tbody class="divide-y divide-[#EAE8E4] font-body-sm text-sm text-[#191c1e]">
                 {{if .Bookings}}
                 {{range .Bookings}}
-                <tr>
-                    <td class="td-cell-strong hidden sm:table-cell" data-numeric>{{.BookingNumber}}</td>
+                <tr class="hover:bg-[#f2f4f6] transition-colors group">
+                    <td class="td-cell-strong">{{.BookingNumber}}</td>
                     <td class="td-cell">{{.CustomerName}}</td>
                     <td class="td-cell">{{.RouteSource}} → {{.RouteDestination}}</td>
                     <td class="td-cell">{{datetime .PickupDate}}</td>
-                    <td class="td-cell-num" data-numeric>{{printf "%.2f" .Price}}</td>
+                    <td class="td-cell font-mono text-xs">₹{{printf "%.2f" .Price}}</td>
                     <td class="td-cell">
                         <span class="status-badge {{statusBadge .Status}}">{{.Status}}</span>
                     </td>
                     <td class="td-cell-actions">
-                        <a href="/bookings/{{.ID}}" class="action-view">View</a>
-                        <a href="/bookings/{{.ID}}/edit" class="action-edit">Edit</a>
+                        <a href="/bookings/{{.ID}}" class="action-view font-medium mr-2">View</a>
+                        <a href="/bookings/{{.ID}}/edit" class="action-edit font-medium">Edit</a>
                     </td>
                 </tr>
                 {{end}}
                 {{else}}
                 <tr>
-                    <td colspan="7" class="px-4 py-8 text-center text-sm text-gray-500">
-                        No bookings found. <a href="/bookings/new" class="empty-link">Create your first booking</a>.
+                    <td colspan="7" class="py-16 text-center text-gray-500">
+                        <span class="material-icons text-4xl text-gray-300 mb-2 block">receipt_long</span>
+                        <p class="font-medium text-base">No bookings found matching the current filters.</p>
                     </td>
                 </tr>
                 {{end}}
