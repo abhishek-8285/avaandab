@@ -11,9 +11,9 @@ import (
 // BookingWorkflow orchestrates the booking lifecycle across use-case boundaries.
 // It coordinates state transitions and cross-module side-effects.
 type BookingWorkflow struct {
-	confirmUC   *application.ConfirmBookingUseCase
-	completeUC  *application.CompleteBookingUseCase
-	cancelUC    *application.CancelBookingUseCase
+	confirmUC  *application.ConfirmBookingUseCase
+	completeUC *application.CompleteBookingUseCase
+	cancelUC   *application.CancelBookingUseCase
 }
 
 // NewBookingWorkflow creates a new BookingWorkflow.

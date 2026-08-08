@@ -9,9 +9,9 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"transport-app/internal/domain"
-	"transport-app/internal/middleware"
 	driverapp "transport-app/internal/driver/application"
 	driveragg "transport-app/internal/driver/domain/aggregate"
+	"transport-app/internal/middleware"
 	clock "transport-app/internal/shared/clock"
 	id "transport-app/internal/shared/id"
 	uow "transport-app/internal/shared/uow"

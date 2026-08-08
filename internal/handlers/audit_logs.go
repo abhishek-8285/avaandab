@@ -34,8 +34,8 @@ func (h *AuditLogHandlers) List(w http.ResponseWriter, r *http.Request) {
 		Title: "Audit Logs",
 		User:  session,
 		Extra: map[string]interface{}{
-			"AuditLogs":   logs,
-			"Pagination":  pd,
+			"AuditLogs":  logs,
+			"Pagination": pd,
 		},
 	})
 }

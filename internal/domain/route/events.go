@@ -8,8 +8,8 @@ import (
 
 // RouteCreated is emitted when a new route is created.
 type RouteCreated struct {
-	RouteID       types.RouteID
-	Source        string
-	Destination   string
-	OccurredAt    time.Time
+	RouteID     types.RouteID
+	Source      string
+	Destination string
+	OccurredAt  time.Time
 }

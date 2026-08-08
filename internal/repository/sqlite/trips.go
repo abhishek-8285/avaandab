@@ -38,7 +38,7 @@ func (r *SQLRepository) CreateTrip(ctx context.Context, trip domain.Trip) (domai
 		ArrivalTime:   nullTime(trip.ArrivalTime),
 		Status:        string(trip.Status),
 		Remarks:       nullString(trip.Remarks),
-		TenantID: string(shared.TenantIDFromContext(ctx)),
+		TenantID:      string(shared.TenantIDFromContext(ctx)),
 	})
 	if err != nil {
 		return domain.Trip{}, err
@@ -81,7 +81,7 @@ func (r *SQLRepository) GetTripByID(ctx context.Context, id domain.TripID) (repo
 func (r *SQLRepository) GetTripByNumber(ctx context.Context, number string) (repository.TripWithJoins, error) {
 	row, err := r.Q(ctx).GetTripByNumber(ctx, db.GetTripByNumberParams{
 		TripNumber: number,
-		TenantID: string(shared.TenantIDFromContext(ctx)),
+		TenantID:   string(shared.TenantIDFromContext(ctx)),
 	})
 	if err != nil {
 		return repository.TripWithJoins{}, err
@@ -99,7 +99,7 @@ func (r *SQLRepository) GetTripByNumber(ctx context.Context, number string) (rep
 func (r *SQLRepository) GetTripByBookingID(ctx context.Context, bookingID domain.BookingID) (repository.TripWithJoins, error) {
 	row, err := r.Q(ctx).GetTripByBookingID(ctx, db.GetTripByBookingIDParams{
 		BookingID: sql.NullString{String: string(bookingID), Valid: true},
-		TenantID: string(shared.TenantIDFromContext(ctx)),
+		TenantID:  string(shared.TenantIDFromContext(ctx)),
 	})
 	if err != nil {
 		return repository.TripWithJoins{}, err
@@ -145,7 +145,7 @@ func (r *SQLRepository) UpdateTrip(ctx context.Context, trip domain.Trip) (domai
 		Status:        string(trip.Status),
 		Remarks:       nullString(trip.Remarks),
 		ID:            string(trip.ID),
-		TenantID: string(shared.TenantIDFromContext(ctx)),
+		TenantID:      string(shared.TenantIDFromContext(ctx)),
 		Version:       current.Version,
 	})
 	if err != nil {
@@ -247,7 +247,7 @@ func (r *SQLRepository) AssignVehicle(ctx context.Context, tripID domain.TripID,
 	updated, err := r.Q(ctx).AssignVehicleToTrip(ctx, db.AssignVehicleToTripParams{
 		VehicleID: sql.NullString{String: string(vehicleID), Valid: true},
 		ID:        string(tripID),
-		TenantID: string(shared.TenantIDFromContext(ctx)),
+		TenantID:  string(shared.TenantIDFromContext(ctx)),
 		Version:   current.Version,
 	})
 	if err != nil {
@@ -334,7 +334,7 @@ func (r *SQLRepository) CheckVehicleConflict(ctx context.Context, vehicleID doma
 
 	rows, err := r.Q(ctx).CheckVehicleConflict(ctx, db.CheckVehicleConflictParams{
 		VehicleID: sql.NullString{String: string(vehicleID), Valid: true},
-		TenantID: string(shared.TenantIDFromContext(ctx)),
+		TenantID:  string(shared.TenantIDFromContext(ctx)),
 		Column3:   excludeID,
 		ID:        excludeID,
 	})
@@ -386,7 +386,7 @@ func (r *SQLRepository) GetTripsByDate(ctx context.Context, date string) ([]repo
 	t, _ := time.Parse("2006-01-02", date)
 	rows, err := r.Q(ctx).GetTripsByDate(ctx, db.GetTripsByDateParams{
 		DepartureTime: t,
-		TenantID: string(shared.TenantIDFromContext(ctx)),
+		TenantID:      string(shared.TenantIDFromContext(ctx)),
 	})
 	if err != nil {
 		return nil, err
@@ -409,7 +409,7 @@ func (r *SQLRepository) CountTripsByStatusForDate(ctx context.Context, date stri
 	t, _ := time.Parse("2006-01-02", date)
 	rows, err := r.Q(ctx).CountTripsByStatus(ctx, db.CountTripsByStatusParams{
 		DepartureTime: t,
-		TenantID: string(shared.TenantIDFromContext(ctx)),
+		TenantID:      string(shared.TenantIDFromContext(ctx)),
 	})
 	if err != nil {
 		return nil, err

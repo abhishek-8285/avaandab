@@ -11,15 +11,15 @@ type TripID string
 type TripStatus string
 
 const (
-	TripDraft          TripStatus = "draft"
-	TripScheduled      TripStatus = "scheduled"
-	TripAssigned       TripStatus = "assigned"
-	TripStarted        TripStatus = "started"
-	TripReachedPickup  TripStatus = "reached_pickup"
-	TripInTransit      TripStatus = "in_transit"
-	TripDelivered      TripStatus = "delivered"
-	TripCompleted      TripStatus = "completed"
-	TripCancelled      TripStatus = "cancelled"
+	TripDraft         TripStatus = "draft"
+	TripScheduled     TripStatus = "scheduled"
+	TripAssigned      TripStatus = "assigned"
+	TripStarted       TripStatus = "started"
+	TripReachedPickup TripStatus = "reached_pickup"
+	TripInTransit     TripStatus = "in_transit"
+	TripDelivered     TripStatus = "delivered"
+	TripCompleted     TripStatus = "completed"
+	TripCancelled     TripStatus = "cancelled"
 )
 
 // TripAggregate represents the consistency boundary for a single transport Trip.
@@ -151,9 +151,9 @@ func (t *TripAggregate) ReachPickup(now time.Time) error {
 	t.ReachedPickupAt = &now
 	t.UpdatedAt = now
 	t.RecordEvent(TripReachedPickupEvent{
-		TripID:        t.ID,
-		TenantID:      t.TenantID,
-		OccurredAt:    now,
+		TripID:     t.ID,
+		TenantID:   t.TenantID,
+		OccurredAt: now,
 	})
 	return nil
 }

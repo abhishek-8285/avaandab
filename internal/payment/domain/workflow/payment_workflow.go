@@ -10,9 +10,9 @@ import (
 // PaymentWorkflow orchestrates payment lifecycle operations,
 // coordinating with the invoice module when payments are recorded.
 type PaymentWorkflow struct {
-	recordUC  *application.RecordPaymentUseCase
-	getUC     *application.GetPaymentUseCase
-	listUC    *application.ListPaymentsUseCase
+	recordUC *application.RecordPaymentUseCase
+	getUC    *application.GetPaymentUseCase
+	listUC   *application.ListPaymentsUseCase
 }
 
 // NewPaymentWorkflow creates a new PaymentWorkflow.

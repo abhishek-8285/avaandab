@@ -24,7 +24,7 @@ type PaymentMethod string
 
 const (
 	PaymentMethodCash         PaymentMethod = "cash"
-	PaymentMethodUPI         PaymentMethod = "upi"
+	PaymentMethodUPI          PaymentMethod = "upi"
 	PaymentMethodBankTransfer PaymentMethod = "bank_transfer"
 	PaymentMethodCheque       PaymentMethod = "cheque"
 )

@@ -178,4 +178,3 @@ func TestTripRepository_SearchReadModels_NullFields(t *testing.T) {
 	assert.Nil(t, models[0].DriverID)
 	assert.Nil(t, models[0].BookingID)
 }
-

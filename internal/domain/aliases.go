@@ -46,19 +46,19 @@ type (
 	UserStatus = user.UserStatus
 	RoleName   = user.RoleName
 
-	Driver      = driver.Driver
+	Driver       = driver.Driver
 	DriverStatus = driver.DriverStatus
 
-	Vehicle     = vehicle.Vehicle
-	VehicleType = vehicle.VehicleType
-	FuelType    = vehicle.FuelType
+	Vehicle       = vehicle.Vehicle
+	VehicleType   = vehicle.VehicleType
+	FuelType      = vehicle.FuelType
 	VehicleStatus = vehicle.VehicleStatus
 
 	Customer = customer.Customer
 
 	Route = route.Route
 
-	Booking      = booking.Booking
+	Booking       = booking.Booking
 	BookingStatus = booking.BookingStatus
 
 	Dispatch       = dispatch.Dispatch
@@ -67,9 +67,9 @@ type (
 	Trip       = trip.Trip
 	TripStatus = trip.TripStatus
 
-	Invoice         = invoice.Invoice
-	InvoiceStatus   = invoice.InvoiceStatus
-	PaymentStatus   = invoice.PaymentStatus
+	Invoice       = invoice.Invoice
+	InvoiceStatus = invoice.InvoiceStatus
+	PaymentStatus = invoice.PaymentStatus
 
 	Payment       = payment.Payment
 	PaymentMethod = payment.PaymentMethod
@@ -86,10 +86,10 @@ const (
 	// (none)
 
 	// user
-	RoleAdmin      = user.RoleAdmin
-	RoleDispatcher = user.RoleDispatcher
-	RoleAccountant = user.RoleAccountant
-	RoleViewer     = user.RoleViewer
+	RoleAdmin           = user.RoleAdmin
+	RoleDispatcher      = user.RoleDispatcher
+	RoleAccountant      = user.RoleAccountant
+	RoleViewer          = user.RoleViewer
 	UserStatusActive    = user.UserStatusActive
 	UserStatusInactive  = user.UserStatusInactive
 	UserStatusSuspended = user.UserStatusSuspended
@@ -107,15 +107,15 @@ const (
 	VehicleTypeVan       = vehicle.VehicleTypeVan
 	VehicleTypePickup    = vehicle.VehicleTypePickup
 	VehicleTypeTempo     = vehicle.VehicleTypeTempo
-	FuelTypeDiesel   = vehicle.FuelTypeDiesel
-	FuelTypePetrol   = vehicle.FuelTypePetrol
-	FuelTypeGas      = vehicle.FuelTypeGas
-	FuelTypeElectric = vehicle.FuelTypeElectric
-	FuelTypeCNG      = vehicle.FuelTypeCNG
-	VehicleAvailable   = vehicle.VehicleAvailable
-	VehicleRunning     = vehicle.VehicleRunning
-	VehicleMaintenance = vehicle.VehicleMaintenance
-	VehicleInactive    = vehicle.VehicleInactive
+	FuelTypeDiesel       = vehicle.FuelTypeDiesel
+	FuelTypePetrol       = vehicle.FuelTypePetrol
+	FuelTypeGas          = vehicle.FuelTypeGas
+	FuelTypeElectric     = vehicle.FuelTypeElectric
+	FuelTypeCNG          = vehicle.FuelTypeCNG
+	VehicleAvailable     = vehicle.VehicleAvailable
+	VehicleRunning       = vehicle.VehicleRunning
+	VehicleMaintenance   = vehicle.VehicleMaintenance
+	VehicleInactive      = vehicle.VehicleInactive
 
 	// booking
 	BookingDraft     = booking.BookingDraft

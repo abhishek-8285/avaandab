@@ -26,7 +26,7 @@ func (r *SQLRepository) CreateVehicle(ctx context.Context, vehicle domain.Vehicl
 		PermitExpiry:       vehicle.PermitExpiry,
 		Status:             string(vehicle.Status),
 		CurrentMileage:     nullFloat(vehicle.CurrentMileage),
-		TenantID: string(shared.TenantIDFromContext(ctx)),
+		TenantID:           string(shared.TenantIDFromContext(ctx)),
 	})
 	if err != nil {
 		return domain.Vehicle{}, err
@@ -78,7 +78,7 @@ func (r *SQLRepository) GetVehicleByID(ctx context.Context, id domain.VehicleID)
 func (r *SQLRepository) GetVehicleByRegistration(ctx context.Context, regNum string) (domain.Vehicle, error) {
 	row, err := r.Q(ctx).GetVehicleByRegistration(ctx, db.GetVehicleByRegistrationParams{
 		RegistrationNumber: regNum,
-		TenantID: string(shared.TenantIDFromContext(ctx)),
+		TenantID:           string(shared.TenantIDFromContext(ctx)),
 	})
 	if err != nil {
 		return domain.Vehicle{}, err
@@ -114,7 +114,7 @@ func (r *SQLRepository) UpdateVehicle(ctx context.Context, vehicle domain.Vehicl
 		Status:             string(vehicle.Status),
 		CurrentMileage:     nullFloat(vehicle.CurrentMileage),
 		ID:                 string(vehicle.ID),
-		TenantID: string(shared.TenantIDFromContext(ctx)),
+		TenantID:           string(shared.TenantIDFromContext(ctx)),
 	})
 	if err != nil {
 		return domain.Vehicle{}, err

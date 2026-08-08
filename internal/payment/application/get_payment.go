@@ -16,12 +16,12 @@ type PaymentResponseDTO struct {
 	InvoiceID     string    `json:"invoice_id"`
 	InvoiceNumber string    `json:"invoice_number"`
 	PaymentDate   time.Time `json:"payment_date"`
-	Amount      float64   `json:"amount"`
-	Method      string    `json:"method"`
-	Reference   *string   `json:"reference"`
-	Remarks     *string   `json:"remarks"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	Amount        float64   `json:"amount"`
+	Method        string    `json:"method"`
+	Reference     *string   `json:"reference"`
+	Remarks       *string   `json:"remarks"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 type GetPaymentQuery struct {
@@ -55,12 +55,12 @@ func (uc *GetPaymentUseCase) Execute(ctx context.Context, q GetPaymentQuery) (Pa
 			InvoiceID:     p.InvoiceID,
 			InvoiceNumber: p.InvoiceNumber,
 			PaymentDate:   p.PaymentDate,
-			Amount:      p.Amount,
-			Method:      p.Method,
-			Reference:   p.Reference,
-			Remarks:     p.Remarks,
-			CreatedAt:   p.CreatedAt,
-			UpdatedAt:   p.UpdatedAt,
+			Amount:        p.Amount,
+			Method:        p.Method,
+			Reference:     p.Reference,
+			Remarks:       p.Remarks,
+			CreatedAt:     p.CreatedAt,
+			UpdatedAt:     p.UpdatedAt,
 		}
 		return nil
 	})

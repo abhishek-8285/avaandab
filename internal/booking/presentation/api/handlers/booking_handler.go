@@ -16,15 +16,15 @@ import (
 )
 
 type APIBookingHandler struct {
-	createUC    *application.CreateBookingUseCase
-	confirmUC   *application.ConfirmBookingUseCase
-	cancelUC    *application.CancelBookingUseCase
-	updateUC    *application.UpdateBookingUseCase
-	completeUC  *application.CompleteBookingUseCase
-	deleteUC    *application.DeleteBookingUseCase
-	getUC       *application.GetBookingUseCase
-	listUC      *application.ListBookingsUseCase
-	authSrv     auth.AuthorizationService
+	createUC   *application.CreateBookingUseCase
+	confirmUC  *application.ConfirmBookingUseCase
+	cancelUC   *application.CancelBookingUseCase
+	updateUC   *application.UpdateBookingUseCase
+	completeUC *application.CompleteBookingUseCase
+	deleteUC   *application.DeleteBookingUseCase
+	getUC      *application.GetBookingUseCase
+	listUC     *application.ListBookingsUseCase
+	authSrv    auth.AuthorizationService
 }
 
 func NewAPIBookingHandler(

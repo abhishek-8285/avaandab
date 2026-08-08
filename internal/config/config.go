@@ -8,12 +8,12 @@ import (
 
 // Config holds all application configuration.
 type Config struct {
-	AppEnv        string
-	Port          string
-	DatabaseURL   string
-	CookieSecret  string
-	SessionMaxAge time.Duration
-	LogLevel      string
+	AppEnv            string
+	Port              string
+	DatabaseURL       string
+	CookieSecret      string
+	SessionMaxAge     time.Duration
+	LogLevel          string
 	UploadDir         string
 	MaxUploadSize     int64
 	RazorpayKeyID     string
@@ -42,12 +42,12 @@ func Load() *Config {
 	}
 
 	return &Config{
-		AppEnv:        env,
-		Port:          getEnv("PORT", "8080"),
-		DatabaseURL:   getEnv("DATABASE_URL", "file:transport.db?mode=rwc&cache=shared&_foreign_keys=on&_journal_mode=WAL"),
-		CookieSecret:  getEnv("COOKIE_SECRET", "dev-secret-key-change-in-production-32b!"),
-		SessionMaxAge: sessionMaxAge,
-		LogLevel:      getEnv("LOG_LEVEL", "info"),
+		AppEnv:            env,
+		Port:              getEnv("PORT", "8080"),
+		DatabaseURL:       getEnv("DATABASE_URL", "file:transport.db?mode=rwc&cache=shared&_foreign_keys=on&_journal_mode=WAL"),
+		CookieSecret:      getEnv("COOKIE_SECRET", "dev-secret-key-change-in-production-32b!"),
+		SessionMaxAge:     sessionMaxAge,
+		LogLevel:          getEnv("LOG_LEVEL", "info"),
 		UploadDir:         getEnv("UPLOAD_DIR", "./uploads"),
 		MaxUploadSize:     maxUpload,
 		RazorpayKeyID:     getEnv("RAZORPAY_KEY_ID", "rzp_test_TMdP3QXQq2L67c"),

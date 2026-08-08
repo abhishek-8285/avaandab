@@ -12,11 +12,11 @@ import (
 
 // APITokenClaims are the claims embedded in a signed API token.
 type APITokenClaims struct {
-	UserID   string `json:"uid"`
-	Role     string `json:"role"`
-	TenantID string `json:"tid"`
-	IssuedAt int64  `json:"iat"`
-	ExpiresAt int64 `json:"exp"`
+	UserID    string `json:"uid"`
+	Role      string `json:"role"`
+	TenantID  string `json:"tid"`
+	IssuedAt  int64  `json:"iat"`
+	ExpiresAt int64  `json:"exp"`
 }
 
 var (

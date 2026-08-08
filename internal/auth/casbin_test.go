@@ -61,7 +61,7 @@ func TestCasbinAuthorization(t *testing.T) {
 		// Dispatcher permissions
 		{"user-disp-1", "drivers", "create", true},
 		{"user-disp-1", "drivers", "read", true},
-		{"user-disp-1", "users", "delete", false}, // Dispatcher cannot delete users
+		{"user-disp-1", "users", "delete", false},    // Dispatcher cannot delete users
 		{"user-disp-1", "payments", "create", false}, // Dispatcher cannot manage payments
 
 		// Viewer permissions

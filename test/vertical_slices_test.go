@@ -19,7 +19,6 @@ import (
 	"transport-app/internal/shared/uow"
 )
 
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Sprint 1: Booking
 // ─────────────────────────────────────────────────────────────────────────────
@@ -508,9 +507,9 @@ func TestSprint3_GenerateInvoice_InvalidInput(t *testing.T) {
 
 	// Missing booking ID
 	_, err := generateUC.Execute(ctx, invoiceApp.GenerateInvoiceCommand{
-		TenantID:  "1",
+		TenantID:   "1",
 		CustomerID: "cust-1",
-		Total:     100,
+		Total:      100,
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "booking ID is required")
@@ -519,8 +518,8 @@ func TestSprint3_GenerateInvoice_InvalidInput(t *testing.T) {
 	_, err = generateUC.Execute(ctx, invoiceApp.GenerateInvoiceCommand{
 		TenantID:   "1",
 		BookingID:  "bk-1",
-		CustomerID:  "cust-1",
-		Total:     -100,
+		CustomerID: "cust-1",
+		Total:      -100,
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "total cannot be negative")

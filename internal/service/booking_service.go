@@ -176,7 +176,7 @@ func (s *BookingService) ConfirmBooking(ctx context.Context, id domain.BookingID
 	s.events.Publish(ctx, events.Event{
 		Type: "BookingConfirmed",
 		Payload: bookingevents.BookingConfirmedEvent{
-			BookingID:  id,
+			BookingID:   id,
 			ConfirmedAt: time.Now(),
 			OccurredAt:  time.Now(),
 		},

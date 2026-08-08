@@ -22,7 +22,7 @@ func (r *SQLRepository) CreatePayment(ctx context.Context, payment domain.Paymen
 		Method:      string(payment.Method),
 		Reference:   nullString(payment.Reference),
 		Remarks:     nullString(payment.Remarks),
-		TenantID: string(shared.TenantIDFromContext(ctx)),
+		TenantID:    string(shared.TenantIDFromContext(ctx)),
 	})
 	if err != nil {
 		return domain.Payment{}, err
@@ -67,7 +67,7 @@ func (r *SQLRepository) DeletePayment(ctx context.Context, id domain.PaymentID) 
 func (r *SQLRepository) GetPaymentsByInvoice(ctx context.Context, invoiceID domain.InvoiceID) ([]domain.Payment, error) {
 	rows, err := r.Q(ctx).GetPaymentsByInvoice(ctx, db.GetPaymentsByInvoiceParams{
 		InvoiceID: string(invoiceID),
-		TenantID: string(shared.TenantIDFromContext(ctx)),
+		TenantID:  string(shared.TenantIDFromContext(ctx)),
 	})
 	if err != nil {
 		return nil, err
@@ -92,7 +92,7 @@ func (r *SQLRepository) GetPaymentsByInvoice(ctx context.Context, invoiceID doma
 func (r *SQLRepository) SumPaymentsByInvoice(ctx context.Context, invoiceID domain.InvoiceID) (float64, error) {
 	return r.Q(ctx).SumPaymentsByInvoice(ctx, db.SumPaymentsByInvoiceParams{
 		InvoiceID: string(invoiceID),
-		TenantID: string(shared.TenantIDFromContext(ctx)),
+		TenantID:  string(shared.TenantIDFromContext(ctx)),
 	})
 }
 

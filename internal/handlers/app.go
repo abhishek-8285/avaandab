@@ -158,24 +158,24 @@ func parseTemplates(authSrv auth.AuthorizationService) *template.Template {
 func statusBadgeClass(status interface{}) string {
 	s := fmt.Sprintf("%v", status)
 	classes := map[string]string{
-		"pending":         "bg-yellow-100 text-yellow-800",
-		"confirmed":       "bg-blue-100 text-blue-800",
-		"completed":       "bg-green-100 text-green-800",
-		"cancelled":       "bg-red-100 text-red-800",
-		"draft":           "bg-gray-100 text-gray-800",
-		"scheduled":       "bg-purple-100 text-purple-800",
-		"assigned":        "bg-indigo-100 text-indigo-800",
-		"started":         "bg-orange-100 text-orange-800",
-		"reached_pickup":  "bg-blue-100 text-blue-800",
-		"in_transit":      "bg-teal-100 text-teal-800",
-		"delivered":       "bg-emerald-100 text-emerald-800",
-		"available":       "bg-green-100 text-green-800",
-		"on_trip":         "bg-orange-100 text-orange-800",
-		"maintenance":     "bg-yellow-100 text-yellow-800",
-		"running":         "bg-blue-100 text-blue-800",
-		"inactive":        "bg-gray-100 text-gray-800",
-		"paid":            "bg-green-100 text-green-800",
-		"partially_paid":  "bg-yellow-100 text-yellow-800",
+		"pending":        "bg-yellow-100 text-yellow-800",
+		"confirmed":      "bg-blue-100 text-blue-800",
+		"completed":      "bg-green-100 text-green-800",
+		"cancelled":      "bg-red-100 text-red-800",
+		"draft":          "bg-gray-100 text-gray-800",
+		"scheduled":      "bg-purple-100 text-purple-800",
+		"assigned":       "bg-indigo-100 text-indigo-800",
+		"started":        "bg-orange-100 text-orange-800",
+		"reached_pickup": "bg-blue-100 text-blue-800",
+		"in_transit":     "bg-teal-100 text-teal-800",
+		"delivered":      "bg-emerald-100 text-emerald-800",
+		"available":      "bg-green-100 text-green-800",
+		"on_trip":        "bg-orange-100 text-orange-800",
+		"maintenance":    "bg-yellow-100 text-yellow-800",
+		"running":        "bg-blue-100 text-blue-800",
+		"inactive":       "bg-gray-100 text-gray-800",
+		"paid":           "bg-green-100 text-green-800",
+		"partially_paid": "bg-yellow-100 text-yellow-800",
 	}
 	if cls, ok := classes[s]; ok {
 		return cls
@@ -475,4 +475,3 @@ func (a *App) renderError(w http.ResponseWriter, statusCode int, title string, m
 		User:    user,
 	})
 }
-

@@ -79,17 +79,17 @@ func Recoverer(reporter ...*errors.Reporter) func(http.Handler) http.Handler {
 
 					if len(reporter) > 0 && reporter[0] != nil {
 						_, _ = reporter[0].Report(r.Context(), errors.ErrorReport{
-							RequestID:   reqID,
-							UserID:      userID,
-							TenantID:    "",
-							URL:         r.URL.String(),
-							Method:      r.Method,
-							StatusCode:  http.StatusInternalServerError,
-							StackTrace:  string(stack),
-							Message:     msg,
-							Severity:    errors.SeverityCritical,
-							UserAgent:   r.UserAgent(),
-							IPAddress:   r.RemoteAddr,
+							RequestID:  reqID,
+							UserID:     userID,
+							TenantID:   "",
+							URL:        r.URL.String(),
+							Method:     r.Method,
+							StatusCode: http.StatusInternalServerError,
+							StackTrace: string(stack),
+							Message:    msg,
+							Severity:   errors.SeverityCritical,
+							UserAgent:  r.UserAgent(),
+							IPAddress:  r.RemoteAddr,
 						})
 					}
 
@@ -250,4 +250,3 @@ func SPAMiddleware(next http.Handler) http.Handler {
 func isDownloadPath(path string) bool {
 	return len(path) >= 4 && path[len(path)-4:] == "/pdf"
 }
-

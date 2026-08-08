@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	ErrDispatchNotFound  = errors.New("dispatch order not found")
-	ErrInvalidDispatch   = errors.New("invalid dispatch transition")
+	ErrDispatchNotFound   = errors.New("dispatch order not found")
+	ErrInvalidDispatch    = errors.New("invalid dispatch transition")
 	ErrUnassignedResource = errors.New("driver and vehicle must be assigned before trip creation")
 )
 

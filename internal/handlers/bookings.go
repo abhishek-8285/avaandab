@@ -19,13 +19,13 @@ import (
 // BookingHandlers handles booking management.
 type BookingHandlers struct {
 	*App
-	createUC  *bookingapp.CreateBookingUseCase
-	confirmUC *bookingapp.ConfirmBookingUseCase
-	cancelUC  *bookingapp.CancelBookingUseCase
-	getUC     *bookingapp.GetBookingUseCase
-	listUC    *bookingapp.ListBookingsUseCase
-	updateUC  *bookingapp.UpdateBookingUseCase
-	deleteUC  *bookingapp.DeleteBookingUseCase
+	createUC   *bookingapp.CreateBookingUseCase
+	confirmUC  *bookingapp.ConfirmBookingUseCase
+	cancelUC   *bookingapp.CancelBookingUseCase
+	getUC      *bookingapp.GetBookingUseCase
+	listUC     *bookingapp.ListBookingsUseCase
+	updateUC   *bookingapp.UpdateBookingUseCase
+	deleteUC   *bookingapp.DeleteBookingUseCase
 	completeUC *bookingapp.CompleteBookingUseCase
 }
 

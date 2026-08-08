@@ -29,7 +29,7 @@ func (r *SQLRepository) CreateDriver(ctx context.Context, driver domain.Driver) 
 		EmergencyContactName:  nullString(driver.EmergencyContactName),
 		EmergencyContactPhone: nullString(driver.EmergencyContactPhone),
 		Notes:                 nullString(driver.Notes),
-		TenantID: string(shared.TenantIDFromContext(ctx)),
+		TenantID:              string(shared.TenantIDFromContext(ctx)),
 	})
 	if err != nil {
 		return domain.Driver{}, err
@@ -158,7 +158,7 @@ func (r *SQLRepository) UpdateDriver(ctx context.Context, driver domain.Driver) 
 		EmergencyContactPhone: nullString(driver.EmergencyContactPhone),
 		Notes:                 nullString(driver.Notes),
 		ID:                    string(driver.ID),
-		TenantID: string(shared.TenantIDFromContext(ctx)),
+		TenantID:              string(shared.TenantIDFromContext(ctx)),
 	})
 	if err != nil {
 		return domain.Driver{}, err

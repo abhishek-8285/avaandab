@@ -13,8 +13,8 @@ import (
 
 // InvoiceResponseDTO represents read model fields.
 type InvoiceResponseDTO struct {
-	ID            string    `json:"id"`
-	InvoiceNumber string    `json:"invoice_number"`
+	ID              string    `json:"id"`
+	InvoiceNumber   string    `json:"invoice_number"`
 	BookingID       string    `json:"booking_id"`
 	BookingNumber   string    `json:"booking_number"`
 	CustomerID      string    `json:"customer_id"`
@@ -23,12 +23,12 @@ type InvoiceResponseDTO struct {
 	TripID          *string   `json:"trip_id"`
 	TripNumber      string    `json:"trip_number"`
 	Subtotal        float64   `json:"subtotal"`
-	Tax           float64   `json:"tax"`
-	Discount      float64   `json:"discount"`
-	Total         float64   `json:"total"`
-	PaymentStatus string    `json:"payment_status"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	Tax             float64   `json:"tax"`
+	Discount        float64   `json:"discount"`
+	Total           float64   `json:"total"`
+	PaymentStatus   string    `json:"payment_status"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
 }
 
 // GetInvoiceQuery query arguments.

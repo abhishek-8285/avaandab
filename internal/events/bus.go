@@ -27,8 +27,8 @@ type EventBus interface {
 
 // InMemoryBus is a synchronous event bus safe for concurrent use.
 type InMemoryBus struct {
-	mu        sync.RWMutex
-	subs      map[string][]Handler
+	mu   sync.RWMutex
+	subs map[string][]Handler
 }
 
 // NewInMemoryBus creates a new empty InMemoryBus.

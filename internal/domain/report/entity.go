@@ -14,13 +14,13 @@ type DateRange struct {
 
 // TripsReport aggregates operational trip execution counts and statuses.
 type TripsReport struct {
-	Period           DateRange `json:"period"`
-	TotalTrips       int64     `json:"total_trips"`
-	ScheduledTrips   int64     `json:"scheduled_trips"`
-	InTransitTrips   int64     `json:"in_transit_trips"`
-	CompletedTrips   int64     `json:"completed_trips"`
-	CancelledTrips   int64     `json:"cancelled_trips"`
-	CompletionRatePct float64  `json:"completion_rate_pct"`
+	Period            DateRange `json:"period"`
+	TotalTrips        int64     `json:"total_trips"`
+	ScheduledTrips    int64     `json:"scheduled_trips"`
+	InTransitTrips    int64     `json:"in_transit_trips"`
+	CompletedTrips    int64     `json:"completed_trips"`
+	CancelledTrips    int64     `json:"cancelled_trips"`
+	CompletionRatePct float64   `json:"completion_rate_pct"`
 }
 
 // RevenueReport summarizes billing totals and financial breakdown.
@@ -34,11 +34,11 @@ type RevenueReport struct {
 
 // OutstandingReport details uncollected balances across customers.
 type OutstandingReport struct {
-	TotalOutstanding   float64             `json:"total_outstanding"`
-	OverdueAmount      float64             `json:"overdue_amount"`
-	OutstandingCount   int64               `json:"outstanding_count"`
-	OverdueCount       int64               `json:"overdue_count"`
-	CustomerBreakdown  []CustomerBalDetail `json:"customer_breakdown"`
+	TotalOutstanding  float64             `json:"total_outstanding"`
+	OverdueAmount     float64             `json:"overdue_amount"`
+	OutstandingCount  int64               `json:"outstanding_count"`
+	OverdueCount      int64               `json:"overdue_count"`
+	CustomerBreakdown []CustomerBalDetail `json:"customer_breakdown"`
 }
 
 type CustomerBalDetail struct {
@@ -50,12 +50,12 @@ type CustomerBalDetail struct {
 
 // FleetUtilizationReport details vehicle usage and status breakdown.
 type FleetUtilizationReport struct {
-	Period               DateRange `json:"period"`
-	TotalVehicles        int64     `json:"total_vehicles"`
-	ActiveVehicles       int64     `json:"active_vehicles"`
-	InMaintenanceVehicles int64    `json:"in_maintenance_vehicles"`
-	IdleVehicles         int64     `json:"idle_vehicles"`
-	UtilizationRatePct   float64   `json:"utilization_rate_pct"`
+	Period                DateRange `json:"period"`
+	TotalVehicles         int64     `json:"total_vehicles"`
+	ActiveVehicles        int64     `json:"active_vehicles"`
+	InMaintenanceVehicles int64     `json:"in_maintenance_vehicles"`
+	IdleVehicles          int64     `json:"idle_vehicles"`
+	UtilizationRatePct    float64   `json:"utilization_rate_pct"`
 }
 
 // DriverUtilizationReport details driver duty and assignment metrics.

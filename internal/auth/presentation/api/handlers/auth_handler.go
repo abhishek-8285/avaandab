@@ -27,7 +27,6 @@ func (h *APIAuthHandler) Register(r chi.Router) {
 	r.Post("/api/v1/auth/token", h.IssueToken)
 }
 
-
 // IssueToken godoc
 //
 //	POST /api/v1/auth/token

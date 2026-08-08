@@ -65,12 +65,12 @@ func (uc *ListInvoicesUseCase) Execute(ctx context.Context, q ListInvoicesQuery)
 				TripID:          inv.TripID,
 				TripNumber:      inv.TripNumber,
 				Subtotal:        inv.Subtotal,
-				Tax:           inv.Tax,
-				Discount:      inv.Discount,
-				Total:         inv.Total,
-				PaymentStatus: inv.PaymentStatus,
-				CreatedAt:     inv.CreatedAt,
-				UpdatedAt:     inv.UpdatedAt,
+				Tax:             inv.Tax,
+				Discount:        inv.Discount,
+				Total:           inv.Total,
+				PaymentStatus:   inv.PaymentStatus,
+				CreatedAt:       inv.CreatedAt,
+				UpdatedAt:       inv.UpdatedAt,
 			}
 		}
 

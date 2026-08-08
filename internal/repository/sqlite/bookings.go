@@ -27,7 +27,7 @@ func (r *SQLRepository) CreateBooking(ctx context.Context, booking domain.Bookin
 		Price:         booking.Price,
 		Notes:         nullString(booking.Notes),
 		Status:        string(booking.Status),
-		TenantID: string(shared.TenantIDFromContext(ctx)),
+		TenantID:      string(shared.TenantIDFromContext(ctx)),
 	})
 	if err != nil {
 		return domain.Booking{}, err
@@ -85,7 +85,7 @@ func (r *SQLRepository) GetBookingByID(ctx context.Context, id domain.BookingID)
 func (r *SQLRepository) GetBookingByNumber(ctx context.Context, number string) (repository.BookingWithJoins, error) {
 	row, err := r.Q(ctx).GetBookingByNumber(ctx, db.GetBookingByNumberParams{
 		BookingNumber: number,
-		TenantID: string(shared.TenantIDFromContext(ctx)),
+		TenantID:      string(shared.TenantIDFromContext(ctx)),
 	})
 	if err != nil {
 		return repository.BookingWithJoins{}, err
@@ -135,7 +135,7 @@ func (r *SQLRepository) UpdateBooking(ctx context.Context, booking domain.Bookin
 		Notes:         nullString(booking.Notes),
 		Status:        string(booking.Status),
 		ID:            string(booking.ID),
-		TenantID: string(shared.TenantIDFromContext(ctx)),
+		TenantID:      string(shared.TenantIDFromContext(ctx)),
 		Version:       current.Version,
 	})
 	if err != nil {

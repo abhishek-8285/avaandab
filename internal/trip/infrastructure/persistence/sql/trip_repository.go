@@ -144,7 +144,7 @@ func (r *tripRepository) Find(ctx context.Context, id aggregate.TripID, tenantID
 func (r *tripRepository) FindByNumber(ctx context.Context, number string, tenantID shared.TenantID) (*aggregate.TripAggregate, error) {
 	row, err := r.Q(ctx).GetTripByNumber(ctx, db.GetTripByNumberParams{
 		TripNumber: number,
-		TenantID:      string(tenantID),
+		TenantID:   string(tenantID),
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

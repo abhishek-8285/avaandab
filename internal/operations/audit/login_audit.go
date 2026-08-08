@@ -25,11 +25,11 @@ type SecurityPolicy struct {
 }
 
 type LoginAuditService struct {
-	mu            sync.RWMutex
-	history       []LoginRecord
-	knownDevices  map[string]map[string]bool // userID -> userAgent -> true
-	notifSvc      ports.NotificationService
-	policy        SecurityPolicy
+	mu           sync.RWMutex
+	history      []LoginRecord
+	knownDevices map[string]map[string]bool // userID -> userAgent -> true
+	notifSvc     ports.NotificationService
+	policy       SecurityPolicy
 }
 
 func NewLoginAuditService(notifSvc ports.NotificationService, policy SecurityPolicy) *LoginAuditService {

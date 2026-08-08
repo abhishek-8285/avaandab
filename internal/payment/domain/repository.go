@@ -14,12 +14,12 @@ type PaymentReadModel struct {
 	InvoiceID     string
 	InvoiceNumber string
 	PaymentDate   time.Time
-	Amount      float64
-	Method      string
-	Reference   *string
-	Remarks     *string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	Amount        float64
+	Method        string
+	Reference     *string
+	Remarks       *string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }
 
 // PaymentRepository defines the persistence contract for payments.

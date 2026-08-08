@@ -58,12 +58,12 @@ func (uc *ListPaymentsUseCase) Execute(ctx context.Context, q ListPaymentsQuery)
 				InvoiceID:     p.InvoiceID,
 				InvoiceNumber: p.InvoiceNumber,
 				PaymentDate:   p.PaymentDate,
-				Amount:      p.Amount,
-				Method:      p.Method,
-				Reference:   p.Reference,
-				Remarks:     p.Remarks,
-				CreatedAt:   p.CreatedAt,
-				UpdatedAt:   p.UpdatedAt,
+				Amount:        p.Amount,
+				Method:        p.Method,
+				Reference:     p.Reference,
+				Remarks:       p.Remarks,
+				CreatedAt:     p.CreatedAt,
+				UpdatedAt:     p.UpdatedAt,
 			}
 		}
 

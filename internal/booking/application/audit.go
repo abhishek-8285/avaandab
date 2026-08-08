@@ -13,12 +13,12 @@ import (
 
 // AuditAction constants for booking operations.
 const (
-	ActionCreate  = "create"
-	ActionUpdate  = "update"
-	ActionConfirm = "confirm"
+	ActionCreate   = "create"
+	ActionUpdate   = "update"
+	ActionConfirm  = "confirm"
 	ActionComplete = "complete"
-	ActionCancel  = "cancel"
-	ActionDelete  = "delete"
+	ActionCancel   = "cancel"
+	ActionDelete   = "delete"
 )
 
 // BookingTableName is the audit log table identifier for bookings.

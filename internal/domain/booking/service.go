@@ -21,9 +21,9 @@ type BookingService interface {
 
 // CreateBookingRequest contains fields needed to create or update a booking.
 type CreateBookingRequest struct {
-	CustomerID types.CustomerID
-	RouteID    types.RouteID
-	PickupDate string
+	CustomerID  types.CustomerID
+	RouteID     types.RouteID
+	PickupDate  string
 	VehicleType string
 	Passengers  int64
 	CargoWeight *float64

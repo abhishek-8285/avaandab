@@ -6,23 +6,23 @@ import (
 )
 
 type CustomerHealthFactors struct {
-	LastLoginDays       int     `json:"last_login_days"`
-	BookingsCount30d    int     `json:"bookings_count_30d"`
-	TripsCompleted30d   int     `json:"trips_completed_30d"`
-	ActiveUsersCount    int     `json:"active_users_count"`
-	ErrorsEncounteredd  int     `json:"errors_encountered"`
-	DaysUntilTrialExpiry int    `json:"days_until_trial_expiry"`
-	IsTrial             bool    `json:"is_trial"`
+	LastLoginDays        int  `json:"last_login_days"`
+	BookingsCount30d     int  `json:"bookings_count_30d"`
+	TripsCompleted30d    int  `json:"trips_completed_30d"`
+	ActiveUsersCount     int  `json:"active_users_count"`
+	ErrorsEncounteredd   int  `json:"errors_encountered"`
+	DaysUntilTrialExpiry int  `json:"days_until_trial_expiry"`
+	IsTrial              bool `json:"is_trial"`
 }
 
 type CustomerHealthResult struct {
-	CompanyID   string    `json:"company_id"`
-	CompanyName string    `json:"company_name"`
-	Score       int       `json:"score"` // 0 to 100
-	Status      string    `json:"status"` // Healthy, At Risk, Critical
-	Reasons     []string  `json:"reasons"`
-	SuggestedAction string `json:"suggested_action"`
-	CalculatedAt time.Time `json:"calculated_at"`
+	CompanyID       string    `json:"company_id"`
+	CompanyName     string    `json:"company_name"`
+	Score           int       `json:"score"`  // 0 to 100
+	Status          string    `json:"status"` // Healthy, At Risk, Critical
+	Reasons         []string  `json:"reasons"`
+	SuggestedAction string    `json:"suggested_action"`
+	CalculatedAt    time.Time `json:"calculated_at"`
 }
 
 // CalculateHealthScore produces a Customer Health Score (0-100%) based on platform telemetry

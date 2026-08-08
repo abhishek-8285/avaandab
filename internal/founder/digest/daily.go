@@ -6,16 +6,16 @@ import (
 )
 
 type DailyDigestReport struct {
-	Date            time.Time `json:"date"`
-	Visitors        int       `json:"visitors"`
-	NewSignups      int       `json:"new_signups"`
-	Activated       int       `json:"activated"`
-	Trials          int       `json:"trials"`
-	Paid            int       `json:"paid"`
-	MRR             string    `json:"mrr"`
-	ChurnRiskCount  int       `json:"churn_risk_count"`
-	CriticalErrors  int       `json:"critical_errors"`
-	OpenIncidents   int       `json:"open_incidents"`
+	Date           time.Time `json:"date"`
+	Visitors       int       `json:"visitors"`
+	NewSignups     int       `json:"new_signups"`
+	Activated      int       `json:"activated"`
+	Trials         int       `json:"trials"`
+	Paid           int       `json:"paid"`
+	MRR            string    `json:"mrr"`
+	ChurnRiskCount int       `json:"churn_risk_count"`
+	CriticalErrors int       `json:"critical_errors"`
+	OpenIncidents  int       `json:"open_incidents"`
 }
 
 func FormatDailyDigest(report DailyDigestReport) string {

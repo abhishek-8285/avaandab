@@ -20,18 +20,18 @@ import (
 // TripHandlers handles trip management.
 type TripHandlers struct {
 	*App
-	createUC         *tripapp.CreateTripUseCase
-	startUC          *tripapp.StartTripUseCase
-	reachPickupUC    *tripapp.ReachPickupUseCase
-	startTransitUC   *tripapp.StartTransitUseCase
-	deliverUC        *tripapp.DeliverUseCase
-	completeUC       *tripapp.CompleteTripUseCase
-	cancelUC         *tripapp.CancelTripUseCase
-	getUC            *tripapp.GetTripUseCase
-	listUC           *tripapp.ListTripsUseCase
-	scheduleUC       *tripapp.ScheduleTripUseCase
-	assignDriverUC   *tripapp.AssignDriverUseCase
-	assignVehicleUC  *tripapp.AssignVehicleUseCase
+	createUC        *tripapp.CreateTripUseCase
+	startUC         *tripapp.StartTripUseCase
+	reachPickupUC   *tripapp.ReachPickupUseCase
+	startTransitUC  *tripapp.StartTransitUseCase
+	deliverUC       *tripapp.DeliverUseCase
+	completeUC      *tripapp.CompleteTripUseCase
+	cancelUC        *tripapp.CancelTripUseCase
+	getUC           *tripapp.GetTripUseCase
+	listUC          *tripapp.ListTripsUseCase
+	scheduleUC      *tripapp.ScheduleTripUseCase
+	assignDriverUC  *tripapp.AssignDriverUseCase
+	assignVehicleUC *tripapp.AssignVehicleUseCase
 }
 
 func (h *TripHandlers) init() {

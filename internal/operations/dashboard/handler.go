@@ -25,7 +25,7 @@ type SummaryResponse struct {
 	TotalErrors     int                  `json:"total_errors"`
 	ActiveIncidents int                  `json:"active_incidents"`
 	RecentErrors    []errors.ErrorReport `json:"recent_errors"`
-	RecentIncidents []errors.Incident   `json:"recent_incidents"`
+	RecentIncidents []errors.Incident    `json:"recent_incidents"`
 	Timestamp       time.Time            `json:"timestamp"`
 }
 

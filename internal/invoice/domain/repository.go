@@ -10,8 +10,8 @@ import (
 
 // InvoiceReadModel optimized for read operations.
 type InvoiceReadModel struct {
-	ID            string
-	InvoiceNumber string
+	ID              string
+	InvoiceNumber   string
 	BookingID       string
 	BookingNumber   string
 	CustomerID      string
@@ -20,12 +20,12 @@ type InvoiceReadModel struct {
 	TripID          *string
 	TripNumber      string
 	Subtotal        float64
-	Tax           float64
-	Discount      float64
-	Total         float64
-	PaymentStatus string
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	Tax             float64
+	Discount        float64
+	Total           float64
+	PaymentStatus   string
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 // InvoiceRepository defines the persistence contract for invoices.

@@ -106,4 +106,3 @@ func (i *Invoice) AdjustAmount(subtotal, tax, discount float64) {
 		}
 	}
 }
-

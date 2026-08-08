@@ -17,9 +17,9 @@ type FileID string
 type SessionID string
 
 // String converts a typed ID to its string representation.
-func (id UserID) String() string    { return string(id) }
-func (id DriverID) String() string  { return string(id) }
-func (id VehicleID) String() string { return string(id) }
+func (id UserID) String() string     { return string(id) }
+func (id DriverID) String() string   { return string(id) }
+func (id VehicleID) String() string  { return string(id) }
 func (id CustomerID) String() string { return string(id) }
 func (id RouteID) String() string    { return string(id) }
 func (id BookingID) String() string  { return string(id) }
@@ -27,8 +27,8 @@ func (id TripID) String() string     { return string(id) }
 func (id DispatchID) String() string { return string(id) }
 func (id InvoiceID) String() string  { return string(id) }
 func (id PaymentID) String() string  { return string(id) }
-func (id FileID) String() string    { return string(id) }
-func (id SessionID) String() string { return string(id) }
+func (id FileID) String() string     { return string(id) }
+func (id SessionID) String() string  { return string(id) }
 
 type FileCategory string
 

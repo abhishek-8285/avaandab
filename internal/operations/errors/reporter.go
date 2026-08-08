@@ -38,14 +38,14 @@ type ErrorReport struct {
 }
 
 type Incident struct {
-	ID         string    `json:"id"`
-	ErrorID    string    `json:"error_id"`
-	Status     string    `json:"status"` // OPEN, ASSIGNED, RESOLVED
-	Severity   Severity  `json:"severity"`
-	Created    time.Time `json:"created"`
-	AssignedTo string    `json:"assigned_to"`
+	ID         string     `json:"id"`
+	ErrorID    string     `json:"error_id"`
+	Status     string     `json:"status"` // OPEN, ASSIGNED, RESOLVED
+	Severity   Severity   `json:"severity"`
+	Created    time.Time  `json:"created"`
+	AssignedTo string     `json:"assigned_to"`
 	ResolvedAt *time.Time `json:"resolved_at,omitempty"`
-	RootCause  string    `json:"root_cause,omitempty"`
+	RootCause  string     `json:"root_cause,omitempty"`
 }
 
 type Reporter struct {

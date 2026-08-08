@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 
-	"transport-app/internal/repository"
 	db "transport-app/db/generated/sqlite"
+	"transport-app/internal/repository"
 )
 
 // SQLRepository implements all repository interfaces using SQLite.

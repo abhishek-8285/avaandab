@@ -18,19 +18,19 @@ import (
 	"transport-app/internal/auth"
 	bookingApp "transport-app/internal/booking/application"
 	bookingHandlers "transport-app/internal/booking/presentation/api/handlers"
+	"transport-app/internal/service"
 	"transport-app/internal/shared"
 	"transport-app/internal/shared/clock"
 	"transport-app/internal/shared/id"
 	"transport-app/internal/shared/uow"
-	"transport-app/internal/service"
 )
 
 // stubAuthSvc bypasses Casbin in tests; allows all permissions.
 type stubAuthSvc struct{}
 
-func (s *stubAuthSvc) Can(_ string, _, _ string) bool { return true }
-func (s *stubAuthSvc) Reload() error                 { return nil }
-func (s *stubAuthSvc) AddRoleForUser(_, _ string) error { return nil }
+func (s *stubAuthSvc) Can(_ string, _, _ string) bool    { return true }
+func (s *stubAuthSvc) Reload() error                     { return nil }
+func (s *stubAuthSvc) AddRoleForUser(_, _ string) error  { return nil }
 func (s *stubAuthSvc) DeleteRolesForUser(_ string) error { return nil }
 
 // authInjectMiddleware injects a test session into the request context.
@@ -129,7 +129,9 @@ func TestBookingHTTP_CreateConfirmViewCancel(t *testing.T) {
 	})
 	require.Equal(t, http.StatusCreated, rr.Code, "body: %s", rr.Body.String())
 
-	var createResp struct{ ID string `json:"id"` }
+	var createResp struct {
+		ID string `json:"id"`
+	}
 	mustParseJSON(t, rr.Body.Bytes(), &createResp)
 	assert.NotEmpty(t, createResp.ID)
 	bid := createResp.ID
@@ -191,7 +193,9 @@ func TestBookingHTTP_CompleteWorkflow(t *testing.T) {
 	})
 	require.Equal(t, http.StatusCreated, rr.Code)
 
-	var resp struct{ ID string `json:"id"` }
+	var resp struct {
+		ID string `json:"id"`
+	}
 	mustParseJSON(t, rr.Body.Bytes(), &resp)
 
 	// Complete without confirm → fails
@@ -208,7 +212,9 @@ func TestBookingHTTP_CompleteWorkflow(t *testing.T) {
 
 	// Verify completed
 	rr = doRequest(t, env.Router, http.MethodGet, "/api/v1/bookings/"+resp.ID, nil)
-	var detail struct{ Status string `json:"status"` }
+	var detail struct {
+		Status string `json:"status"`
+	}
 	mustParseJSON(t, rr.Body.Bytes(), &detail)
 	assert.Equal(t, "completed", detail.Status)
 }
@@ -246,7 +252,9 @@ func TestBookingHTTP_Delete(t *testing.T) {
 	})
 	require.Equal(t, http.StatusCreated, rr.Code)
 
-	var resp struct{ ID string `json:"id"` }
+	var resp struct {
+		ID string `json:"id"`
+	}
 	mustParseJSON(t, rr.Body.Bytes(), &resp)
 
 	rr = doRequest(t, env.Router, http.MethodDelete, "/api/v1/bookings/"+resp.ID, nil)
@@ -274,7 +282,9 @@ func TestBookingHTTP_AuditLogCreated(t *testing.T) {
 	})
 	require.Equal(t, http.StatusCreated, rr.Code)
 
-	var resp struct{ ID string `json:"id"` }
+	var resp struct {
+		ID string `json:"id"`
+	}
 	mustParseJSON(t, rr.Body.Bytes(), &resp)
 
 	// Verify create audit log
@@ -310,7 +320,9 @@ func TestBookingHTTP_Update(t *testing.T) {
 	})
 	require.Equal(t, http.StatusCreated, rr.Code)
 
-	var resp struct{ ID string `json:"id"` }
+	var resp struct {
+		ID string `json:"id"`
+	}
 	mustParseJSON(t, rr.Body.Bytes(), &resp)
 
 	rr = doRequest(t, env.Router, http.MethodPut, "/api/v1/bookings/"+resp.ID, map[string]interface{}{
