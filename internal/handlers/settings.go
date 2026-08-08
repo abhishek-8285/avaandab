@@ -75,7 +75,7 @@ func (h *SettingsHandlers) Update(w http.ResponseWriter, r *http.Request) {
 
 	// Handle logo upload
 	if file, header, err := r.FormFile("logo"); err == nil {
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 
 		uploaded, upErr := saveLogo(file, header, h.Config.UploadDir)
 		if upErr != nil {
@@ -129,7 +129,7 @@ func saveLogo(file io.Reader, header *multipart.FileHeader, uploadDir string) (s
 	if err != nil {
 		return "", err
 	}
-	defer out.Close()
+	defer func() { _ = out.Close() }()
 
 	if _, err := io.Copy(out, file); err != nil {
 		return "", err

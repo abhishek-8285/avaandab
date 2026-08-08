@@ -48,7 +48,7 @@ func (a *DBAdapter) LoadPolicy(m model.Model) error {
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	for rows.Next() {
 		var roleName, permName string
@@ -59,7 +59,7 @@ func (a *DBAdapter) LoadPolicy(m model.Model) error {
 		if len(parts) == 2 {
 			resource := parts[0]
 			action := parts[1]
-			m.AddPolicy("p", "p", []string{roleName, resource, action})
+			_ = m.AddPolicy("p", "p", []string{roleName, resource, action})
 		}
 	}
 
@@ -73,14 +73,14 @@ func (a *DBAdapter) LoadPolicy(m model.Model) error {
 	if err != nil {
 		return err
 	}
-	defer gRows.Close()
+	defer func() { _ = gRows.Close() }()
 
 	for gRows.Next() {
 		var userID, roleName string
 		if err := gRows.Scan(&userID, &roleName); err != nil {
 			return err
 		}
-		m.AddPolicy("g", "g", []string{userID, roleName})
+		_ = m.AddPolicy("g", "g", []string{userID, roleName})
 	}
 
 	return nil

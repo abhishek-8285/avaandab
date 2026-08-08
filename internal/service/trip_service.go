@@ -469,21 +469,21 @@ func (s *TripService) UpdateTrip(ctx context.Context, id domain.TripID, req Crea
 		if _, err := s.store.GetRouteByID(ctx, req.RouteID); err != nil {
 			return domain.Trip{}, domain.ErrRouteNotFound
 		}
-		trip.Trip.RouteID = req.RouteID
+		trip.RouteID = req.RouteID
 	}
 
 	if req.DriverID != nil {
 		if _, err := s.store.GetDriverByID(ctx, *req.DriverID); err != nil {
 			return domain.Trip{}, domain.ErrDriverNotFound
 		}
-		trip.Trip.DriverID = req.DriverID
+		trip.DriverID = req.DriverID
 	}
 
 	if req.VehicleID != nil {
 		if _, err := s.store.GetVehicleByID(ctx, *req.VehicleID); err != nil {
 			return domain.Trip{}, domain.ErrVehicleNotFound
 		}
-		trip.Trip.VehicleID = req.VehicleID
+		trip.VehicleID = req.VehicleID
 	}
 
 	if req.DepartureTime != "" {

@@ -148,10 +148,7 @@ func parseTemplates(authSrv auth.AuthorizationService) *template.Template {
 		}
 	}
 	// Parse partial templates from subdirectories
-	_, err = tmpl.ParseGlob("internal/templates/partials/*.html")
-	if err != nil {
-		// Ignore if no partial templates exist
-	}
+	_, _ = tmpl.ParseGlob("internal/templates/partials/*.html")
 	return tmpl
 }
 
@@ -241,12 +238,12 @@ func parsePaginationParams(r *http.Request) PaginationParams {
 		status = ""
 	}
 	limit := 20
-	fmt.Sscanf(r.URL.Query().Get("limit"), "%d", &limit)
+	_, _ = fmt.Sscanf(r.URL.Query().Get("limit"), "%d", &limit)
 	if limit < 1 {
 		limit = 20
 	}
 	page := 1
-	fmt.Sscanf(r.URL.Query().Get("page"), "%d", &page)
+	_, _ = fmt.Sscanf(r.URL.Query().Get("page"), "%d", &page)
 	if page < 1 {
 		page = 1
 	}
@@ -316,7 +313,7 @@ func (a *App) renderPage(w http.ResponseWriter, name string, data PageData) {
 
 	if s, ok := w.(interface{ IsSPARequest() bool }); ok && s.IsSPARequest() {
 		w.Header().Set("X-Page-Title", data.Title)
-		w.Write([]byte(buf.String()))
+		_, _ = w.Write([]byte(buf.String()))
 		return
 	}
 
@@ -459,7 +456,7 @@ func (a *App) renderError(w http.ResponseWriter, statusCode int, title string, m
 
 	layout := a.Templates.Lookup("layout.html")
 	if layout == nil {
-		w.Write([]byte(buf.String()))
+		_, _ = w.Write([]byte(buf.String()))
 		return
 	}
 

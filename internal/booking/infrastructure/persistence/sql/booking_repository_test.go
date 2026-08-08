@@ -16,7 +16,7 @@ import (
 func TestBookingRepository_SaveAndFind(t *testing.T) {
 	dbConn, err := sql.Open("sqlite", ":memory:")
 	assert.NoError(t, err)
-	defer dbConn.Close()
+	defer func() { _ = dbConn.Close() }()
 
 	// Set up simple sqlite schema for testing
 	_, err = dbConn.Exec(`

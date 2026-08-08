@@ -60,7 +60,7 @@ func TestTripAggregate_ExecutionWorkflow(t *testing.T) {
 	assert.Equal(t, TripScheduled, agg.Status)
 
 	// Scheduled -> Assigned
-	agg.AssignDriver("driver-1", now)
+	assert.NoError(t, agg.AssignDriver("driver-1", now))
 	assert.Equal(t, TripAssigned, agg.Status)
 
 	// Assigned -> Started (timeline: started_at set)
@@ -132,9 +132,9 @@ func TestTripAggregate_TransitionErrors(t *testing.T) {
 
 	// Start without driver/vehicle assignment is allowed (from assigned or scheduled)
 	// Schedule -> Start -> Complete should fail (must go through full chain)
-	agg.Schedule(now)
-	agg.AssignDriver("driver-1", now)
-	agg.Start(now)
+	assert.NoError(t, agg.Schedule(now))
+	assert.NoError(t, agg.AssignDriver("driver-1", now))
+	assert.NoError(t, agg.Start(now))
 
 	// Started -> Complete should fail (must reach pickup, go in transit, deliver first)
 	err = agg.Complete(now)
@@ -165,13 +165,13 @@ func TestTripAggregate_TimelineEvents(t *testing.T) {
 	)
 	agg.ClearEvents()
 
-	agg.Schedule(now)
-	agg.AssignDriver("driver-1", now)
-	agg.Start(now)
-	agg.ReachPickup(now)
-	agg.StartTransit(now)
-	agg.Deliver(now)
-	agg.Complete(now)
+	assert.NoError(t, agg.Schedule(now))
+	assert.NoError(t, agg.AssignDriver("driver-1", now))
+	assert.NoError(t, agg.Start(now))
+	assert.NoError(t, agg.ReachPickup(now))
+	assert.NoError(t, agg.StartTransit(now))
+	assert.NoError(t, agg.Deliver(now))
+	assert.NoError(t, agg.Complete(now))
 
 	events := agg.Events()
 	assert.Len(t, events, 7)

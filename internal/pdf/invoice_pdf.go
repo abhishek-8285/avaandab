@@ -19,7 +19,7 @@ func GenerateInvoicePDF(inv invoice.Invoice, companyName string) ([]byte, error)
 	// ── Company Branding Header ──────────────────────────────────────
 	pdf.SetFont("Arial", "B", 20)
 	pdf.SetTextColor(25, 51, 128) // Corporate Blue
-	pdf.CellFormat(0, 10, fmt.Sprintf("%s", companyName), "", 1, "L", false, 0, "")
+	pdf.CellFormat(0, 10, companyName, "", 1, "L", false, 0, "")
 
 	pdf.SetFont("Arial", "B", 12)
 	pdf.SetTextColor(100, 100, 100)

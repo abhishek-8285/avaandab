@@ -100,7 +100,7 @@ func (h *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 
 	if isDatastarRequest(r) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Write([]byte("<script>window.location.href='" + targetURL + "'</script>"))
+		_, _ = w.Write([]byte("<script>window.location.href='" + targetURL + "'</script>"))
 		return
 	}
 

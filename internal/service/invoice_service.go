@@ -118,14 +118,14 @@ func (s *InvoiceService) UpdateInvoice(ctx context.Context, id domain.InvoiceID,
 		return domain.Invoice{}, domain.ErrInvoiceNotFound
 	}
 
-	invoice.Invoice.BookingID = bookingID
-	invoice.Invoice.CustomerID = customerID
-	invoice.Invoice.TripID = tripID
-	invoice.Invoice.Subtotal = subtotal
-	invoice.Invoice.Tax = tax
-	invoice.Invoice.Discount = discount
-	invoice.Invoice.Total = total
-	invoice.Invoice.PaymentStatus = paymentStatus
+	invoice.BookingID = bookingID
+	invoice.CustomerID = customerID
+	invoice.TripID = tripID
+	invoice.Subtotal = subtotal
+	invoice.Tax = tax
+	invoice.Discount = discount
+	invoice.Total = total
+	invoice.PaymentStatus = paymentStatus
 
 	return s.store.UpdateInvoice(ctx, invoice.Invoice)
 }

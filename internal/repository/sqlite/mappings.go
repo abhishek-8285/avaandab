@@ -11,7 +11,7 @@ import (
 
 // Helpers to convert between sql.Null* types and Go pointers.
 
-func ptrString(s string) *string {
+func PtrString(s string) *string {
 	return &s
 }
 
@@ -29,7 +29,7 @@ func fromNullString(ns sql.NullString) *string {
 	return &ns.String
 }
 
-func ptrFloat(f float64) *float64 {
+func PtrFloat(f float64) *float64 {
 	return &f
 }
 
@@ -61,14 +61,14 @@ func fromNullTime(nt sql.NullTime) *time.Time {
 	return &nt.Time
 }
 
-func fromNullInt64(ni sql.NullInt64) *int64 {
+func FromNullInt64(ni sql.NullInt64) *int64 {
 	if !ni.Valid {
 		return nil
 	}
 	return &ni.Int64
 }
 
-func nullStringVal(s string) sql.NullString {
+func NullStringVal(s string) sql.NullString {
 	if s == "" {
 		return sql.NullString{Valid: false}
 	}
@@ -310,7 +310,7 @@ func toDomainCompanySetting(c db.CompanySetting) domain.CompanySettings {
 
 // Nullable ID conversion helpers
 
-func nullStringToTripID(ns sql.NullString) *domain.TripID {
+func NullStringToTripID(ns sql.NullString) *domain.TripID {
 	if !ns.Valid {
 		return nil
 	}
@@ -318,7 +318,7 @@ func nullStringToTripID(ns sql.NullString) *domain.TripID {
 	return &tid
 }
 
-func nullStringToBookingID(ns sql.NullString) *domain.BookingID {
+func NullStringToBookingID(ns sql.NullString) *domain.BookingID {
 	if !ns.Valid {
 		return nil
 	}
@@ -326,7 +326,7 @@ func nullStringToBookingID(ns sql.NullString) *domain.BookingID {
 	return &bid
 }
 
-func nullStringToDriverID(ns sql.NullString) *domain.DriverID {
+func NullStringToDriverID(ns sql.NullString) *domain.DriverID {
 	if !ns.Valid {
 		return nil
 	}
@@ -334,7 +334,7 @@ func nullStringToDriverID(ns sql.NullString) *domain.DriverID {
 	return &did
 }
 
-func nullStringToVehicleID(ns sql.NullString) *domain.VehicleID {
+func NullStringToVehicleID(ns sql.NullString) *domain.VehicleID {
 	if !ns.Valid {
 		return nil
 	}
@@ -343,15 +343,15 @@ func nullStringToVehicleID(ns sql.NullString) *domain.VehicleID {
 }
 
 // Trip row -> TripWithJoins
-type tripRowFields struct {
-	base       db.Trip
-	driverID   *string
-	driverFN   *string
-	driverLN   *string
-	vehicleReg *string
-	vehicleNum *string
-	routeSrc   string
-	routeDest  string
+type TripRowFields struct {
+	Base       db.Trip
+	DriverID   *string
+	DriverFN   *string
+	DriverLN   *string
+	VehicleReg *string
+	VehicleNum *string
+	RouteSrc   string
+	RouteDest  string
 }
 
 func tripRowToWithJoins(

@@ -22,14 +22,14 @@ type UploadResult struct {
 }
 
 // Allowed image types for uploads.
-var allowedImageTypes = map[string]bool{
+var AllowedImageTypes = map[string]bool{
 	"image/jpeg": true,
 	"image/png":  true,
 	"image/gif":  true,
 }
 
 // Allowed document types for uploads.
-var allowedDocTypes = map[string]bool{
+var AllowedDocTypes = map[string]bool{
 	"application/pdf": true,
 	"image/jpeg":      true,
 	"image/png":       true,
@@ -45,7 +45,7 @@ func (s *FileService) UploadFile(ctx context.Context, header *multipart.FileHead
 	if err != nil {
 		return domain.File{}, fmt.Errorf("failed to open file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// Generate unique filename
 	ext := filepath.Ext(header.Filename)

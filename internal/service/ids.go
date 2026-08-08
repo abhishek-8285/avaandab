@@ -63,8 +63,8 @@ func sanitizeName(name string) string {
 	return name
 }
 
-// validateRequired checks that required string fields are non-empty.
-func validateRequired(fields map[string]string) error {
+// ValidateRequired checks that required string fields are non-empty.
+func ValidateRequired(fields map[string]string) error {
 	for name, value := range fields {
 		if strings.TrimSpace(value) == "" {
 			return fmt.Errorf("%s is required", name)
@@ -73,7 +73,7 @@ func validateRequired(fields map[string]string) error {
 	return nil
 }
 
-// roleFromID converts a role ID to a domain.Role.
-func roleFromID(store Store, ctx context.Context, roleID int64) (domain.Role, error) {
+// RoleFromID converts a role ID to a domain.Role.
+func RoleFromID(store Store, ctx context.Context, roleID int64) (domain.Role, error) {
 	return store.GetRoleByID(ctx, roleID)
 }

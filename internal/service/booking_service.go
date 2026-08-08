@@ -131,19 +131,19 @@ func (s *BookingService) UpdateBooking(ctx context.Context, id domain.BookingID,
 		if _, err := s.store.GetCustomerByID(ctx, req.CustomerID); err != nil {
 			return domain.Booking{}, domain.ErrCustomerNotFound
 		}
-		b.Booking.CustomerID = req.CustomerID
+		b.CustomerID = req.CustomerID
 	}
 
 	if req.RouteID != "" {
 		if _, err := s.store.GetRouteByID(ctx, req.RouteID); err != nil {
 			return domain.Booking{}, domain.ErrRouteNotFound
 		}
-		b.Booking.RouteID = req.RouteID
+		b.RouteID = req.RouteID
 	}
 
 	pickup, err := parseDateTime(req.PickupDate)
 	if err == nil {
-		b.Booking.PickupDate = pickup
+		b.PickupDate = pickup
 	}
 	b.Booking.VehicleType = req.VehicleType
 	b.Booking.Passengers = req.Passengers

@@ -15,7 +15,7 @@ import (
 func TestTripRepository_SaveAndFind(t *testing.T) {
 	dbConn, err := sql.Open("sqlite", ":memory:")
 	assert.NoError(t, err)
-	defer dbConn.Close()
+	defer func() { _ = dbConn.Close() }()
 
 	// Set up simple sqlite schema for testing
 	_, err = dbConn.Exec(`
@@ -102,7 +102,7 @@ func TestTripRepository_SaveAndFind(t *testing.T) {
 func TestTripRepository_SearchReadModels_NullFields(t *testing.T) {
 	dbConn, err := sql.Open("sqlite", ":memory:")
 	assert.NoError(t, err)
-	defer dbConn.Close()
+	defer func() { _ = dbConn.Close() }()
 
 	_, err = dbConn.Exec(`
 		CREATE TABLE drivers (

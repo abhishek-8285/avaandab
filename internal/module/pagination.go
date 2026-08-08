@@ -22,12 +22,12 @@ func ParsePaginationParams(r *http.Request) PaginationParams {
 		status = ""
 	}
 	limit := 20
-	fmt.Sscanf(r.URL.Query().Get("limit"), "%d", &limit)
+	_, _ = fmt.Sscanf(r.URL.Query().Get("limit"), "%d", &limit)
 	if limit < 1 {
 		limit = 20
 	}
 	page := 1
-	fmt.Sscanf(r.URL.Query().Get("page"), "%d", &page)
+	_, _ = fmt.Sscanf(r.URL.Query().Get("page"), "%d", &page)
 	if page < 1 {
 		page = 1
 	}

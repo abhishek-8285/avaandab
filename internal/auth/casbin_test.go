@@ -14,10 +14,10 @@ func TestCasbinAuthorization(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Apply migrations
-	goose.SetDialect("sqlite")
+	_ = goose.SetDialect("sqlite")
 	if err := goose.Up(db, "../../db/migrations"); err != nil {
 		t.Fatalf("failed to run migrations: %v", err)
 	}

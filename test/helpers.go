@@ -23,7 +23,7 @@ func NewTestDB(t *testing.T) *sql.DB {
 		t.Fatalf("failed to open in-memory database: %v", err)
 	}
 
-	goose.SetDialect("sqlite")
+	_ = goose.SetDialect("sqlite")
 	if err := goose.Up(db, "../db/migrations"); err != nil {
 		t.Fatalf("failed to run migrations: %v", err)
 	}

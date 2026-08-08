@@ -40,6 +40,7 @@ jobs:
 
       - name: SQLC generate check
         run: |
+          go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
           make generate
           if [ -n "$(git status --porcelain)" ]; then
             echo "::error::sqlc generated files are out of date"
@@ -69,6 +70,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
 
       - name: Build binary
         run: |

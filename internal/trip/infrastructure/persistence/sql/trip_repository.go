@@ -306,7 +306,7 @@ LIMIT ? OFFSET ?`
 	if err != nil {
 		return nil, 0, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var readModels []domain.TripReadModel
 	for rows.Next() {

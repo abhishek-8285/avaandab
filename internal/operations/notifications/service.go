@@ -64,11 +64,11 @@ func (s *Service) SendSMS(ctx context.Context, msg ports.NotificationMessage) er
 }
 
 func (s *Service) SendPush(ctx context.Context, msg ports.NotificationMessage) error {
-	return fmt.Errorf("Push notification channel not configured yet")
+	return fmt.Errorf("push notification channel not configured yet")
 }
 
 func (s *Service) SendWebhook(ctx context.Context, msg ports.NotificationMessage) error {
-	return fmt.Errorf("Webhook notification channel not configured yet")
+	return fmt.Errorf("webhook notification channel not configured yet")
 }
 
 var _ ports.NotificationService = (*Service)(nil)
