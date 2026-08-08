@@ -249,35 +249,19 @@ FROM trips t
 LEFT JOIN drivers d ON t.driver_id = d.id
 LEFT JOIN vehicles v ON t.vehicle_id = v.id
 LEFT JOIN routes r ON t.route_id = r.id
-WHERE t.tenant_id = ?
-  AND (t.trip_number LIKE '%' || ? || '%' OR d.first_name LIKE '%' || ? || '%' OR d.last_name LIKE '%' || ? || '%' OR v.registration_number LIKE '%' || ? || '%' OR r.source LIKE '%' || '%' OR r.destination LIKE '%' || '%')
-  AND (? = '' OR t.status = ?)
+WHERE t.tenant_id = ?1
+  AND (CAST(?2 AS text) = '' OR t.trip_number LIKE '%' || ?2 || '%' OR d.first_name LIKE '%' || ?2 || '%' OR d.last_name LIKE '%' || ?2 || '%' OR v.registration_number LIKE '%' || ?2 || '%' OR r.source LIKE '%' || ?2 || '%' OR r.destination LIKE '%' || ?2 || '%')
+  AND (CAST(?3 AS text) = '' OR t.status = ?3)
 `
 
 type CountTripsParams struct {
-	TenantID string         `json:"tenant_id"`
-	Column2  sql.NullString `json:"column_2"`
-	Column3  sql.NullString `json:"column_3"`
-	Column4  sql.NullString `json:"column_4"`
-	Column5  sql.NullString `json:"column_5"`
-	Column6  sql.NullString `json:"column_6"`
-	Column7  sql.NullString `json:"column_7"`
-	Column8  interface{}    `json:"column_8"`
-	Status   string         `json:"status"`
+	TenantID string `json:"tenant_id"`
+	Query    string `json:"query"`
+	Status   string `json:"status"`
 }
 
 func (q *Queries) CountTrips(ctx context.Context, arg CountTripsParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countTrips,
-		arg.TenantID,
-		arg.Column2,
-		arg.Column3,
-		arg.Column4,
-		arg.Column5,
-		arg.Column6,
-		arg.Column7,
-		arg.Column8,
-		arg.Status,
-	)
+	row := q.db.QueryRowContext(ctx, countTrips, arg.TenantID, arg.Query, arg.Status)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -775,25 +759,19 @@ FROM trips t
 LEFT JOIN drivers d ON t.driver_id = d.id
 LEFT JOIN vehicles v ON t.vehicle_id = v.id
 LEFT JOIN routes r ON t.route_id = r.id
-WHERE t.tenant_id = ?
-  AND (t.trip_number LIKE '%' || ? || '%' OR d.first_name LIKE '%' || ? || '%' OR d.last_name LIKE '%' || ? || '%' OR v.registration_number LIKE '%' || ? || '%' OR r.source LIKE '%' || ? || '%' OR r.destination LIKE '%' || '%')
-  AND (? = '' OR t.status = ?)
+WHERE t.tenant_id = ?1
+  AND (CAST(?2 AS text) = '' OR t.trip_number LIKE '%' || ?2 || '%' OR d.first_name LIKE '%' || ?2 || '%' OR d.last_name LIKE '%' || ?2 || '%' OR v.registration_number LIKE '%' || ?2 || '%' OR r.source LIKE '%' || ?2 || '%' OR r.destination LIKE '%' || ?2 || '%')
+  AND (CAST(?3 AS text) = '' OR t.status = ?3)
 ORDER BY t.departure_time DESC
-LIMIT ? OFFSET ?
+LIMIT ?5 OFFSET ?4
 `
 
 type SearchTripsParams struct {
-	TenantID string         `json:"tenant_id"`
-	Column2  sql.NullString `json:"column_2"`
-	Column3  sql.NullString `json:"column_3"`
-	Column4  sql.NullString `json:"column_4"`
-	Column5  sql.NullString `json:"column_5"`
-	Column6  sql.NullString `json:"column_6"`
-	Column7  sql.NullString `json:"column_7"`
-	Column8  interface{}    `json:"column_8"`
-	Status   string         `json:"status"`
-	Limit    int64          `json:"limit"`
-	Offset   int64          `json:"offset"`
+	TenantID string `json:"tenant_id"`
+	Query    string `json:"query"`
+	Status   string `json:"status"`
+	Offset   int64  `json:"offset"`
+	Limit    int64  `json:"limit"`
 }
 
 type SearchTripsRow struct {
@@ -827,16 +805,10 @@ type SearchTripsRow struct {
 func (q *Queries) SearchTrips(ctx context.Context, arg SearchTripsParams) ([]SearchTripsRow, error) {
 	rows, err := q.db.QueryContext(ctx, searchTrips,
 		arg.TenantID,
-		arg.Column2,
-		arg.Column3,
-		arg.Column4,
-		arg.Column5,
-		arg.Column6,
-		arg.Column7,
-		arg.Column8,
+		arg.Query,
 		arg.Status,
-		arg.Limit,
 		arg.Offset,
+		arg.Limit,
 	)
 	if err != nil {
 		return nil, err
@@ -893,9 +865,10 @@ SET trip_number = ?, booking_id = ?, driver_id = ?, vehicle_id = ?, route_id = ?
     version = version + 1,
     updated_at = datetime('now')
 WHERE id = ? AND tenant_id = ? AND version = ?
-RETURNING id, trip_number, booking_id, driver_id, vehicle_id, route_id,
-    departure_time, arrival_time, status, remarks, tenant_id, version, created_at, updated_at,
-    started_at, reached_pickup_at, in_transit_at, delivered_at, completed_at
+RETURNING trip_number, booking_id, driver_id, vehicle_id, route_id,
+    departure_time, arrival_time, status, remarks,
+    started_at, reached_pickup_at, in_transit_at, delivered_at, completed_at,
+    id, tenant_id, version, created_at, updated_at
 `
 
 type UpdateTripParams struct {
@@ -962,7 +935,6 @@ func (q *Queries) UpdateTrip(ctx context.Context, arg UpdateTripParams) (UpdateT
 	)
 	var i UpdateTripRow
 	err := row.Scan(
-		&i.ID,
 		&i.TripNumber,
 		&i.BookingID,
 		&i.DriverID,
@@ -972,15 +944,16 @@ func (q *Queries) UpdateTrip(ctx context.Context, arg UpdateTripParams) (UpdateT
 		&i.ArrivalTime,
 		&i.Status,
 		&i.Remarks,
-		&i.TenantID,
-		&i.Version,
-		&i.CreatedAt,
-		&i.UpdatedAt,
 		&i.StartedAt,
 		&i.ReachedPickupAt,
 		&i.InTransitAt,
 		&i.DeliveredAt,
 		&i.CompletedAt,
+		&i.ID,
+		&i.TenantID,
+		&i.Version,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }

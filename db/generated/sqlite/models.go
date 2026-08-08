@@ -72,6 +72,22 @@ type Customer struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 }
 
+type Dispatch struct {
+	ID           string         `json:"id"`
+	DispatchNo   string         `json:"dispatch_no"`
+	DispatcherID string         `json:"dispatcher_id"`
+	BookingID    string         `json:"booking_id"`
+	DriverID     sql.NullString `json:"driver_id"`
+	VehicleID    sql.NullString `json:"vehicle_id"`
+	ScheduledAt  time.Time      `json:"scheduled_at"`
+	Status       string         `json:"status"`
+	TripID       sql.NullString `json:"trip_id"`
+	Notes        sql.NullString `json:"notes"`
+	TenantID     sql.NullString `json:"tenant_id"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+}
+
 type Driver struct {
 	ID                    string         `json:"id"`
 	DriverID              string         `json:"driver_id"`
@@ -103,6 +119,7 @@ type File struct {
 	UploadableType string         `json:"uploadable_type"`
 	UploadableID   sql.NullString `json:"uploadable_id"`
 	CreatedAt      time.Time      `json:"created_at"`
+	Category       string         `json:"category"`
 }
 
 type Invoice struct {
@@ -120,6 +137,21 @@ type Invoice struct {
 	UpdatedAt     time.Time      `json:"updated_at"`
 	TenantID      string         `json:"tenant_id"`
 	Version       int64          `json:"version"`
+	PaidAmount    float64        `json:"paid_amount"`
+	Status        string         `json:"status"`
+	DueDate       sql.NullTime   `json:"due_date"`
+}
+
+type Notification struct {
+	ID        string         `json:"id"`
+	UserID    string         `json:"user_id"`
+	Title     string         `json:"title"`
+	Message   string         `json:"message"`
+	Channel   string         `json:"channel"`
+	Status    string         `json:"status"`
+	Link      sql.NullString `json:"link"`
+	CreatedAt time.Time      `json:"created_at"`
+	ReadAt    sql.NullTime   `json:"read_at"`
 }
 
 type OutboxEvent struct {
@@ -201,8 +233,8 @@ type Trip struct {
 	Remarks         sql.NullString `json:"remarks"`
 	CreatedAt       time.Time      `json:"created_at"`
 	UpdatedAt       time.Time      `json:"updated_at"`
-	TenantID        string         `json:"tenant_id"`
 	Version         int64          `json:"version"`
+	TenantID        string         `json:"tenant_id"`
 	StartedAt       sql.NullTime   `json:"started_at"`
 	ReachedPickupAt sql.NullTime   `json:"reached_pickup_at"`
 	InTransitAt     sql.NullTime   `json:"in_transit_at"`

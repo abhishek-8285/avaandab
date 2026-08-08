@@ -24,7 +24,17 @@ func (r *SQLRepository) CreateFile(ctx context.Context, file domain.File) (domai
 	if err != nil {
 		return domain.File{}, err
 	}
-	return toDomainFile(created), nil
+	return toDomainFile(db.File{
+		ID:             created.ID,
+		Filename:       created.Filename,
+		OriginalName:   created.OriginalName,
+		Path:           created.Path,
+		Size:           created.Size,
+		MimeType:       created.MimeType,
+		UploadableType: created.UploadableType,
+		UploadableID:   created.UploadableID,
+		CreatedAt:      created.CreatedAt,
+	}), nil
 }
 
 func (r *SQLRepository) GetFileByID(ctx context.Context, id domain.FileID) (domain.File, error) {
@@ -32,7 +42,17 @@ func (r *SQLRepository) GetFileByID(ctx context.Context, id domain.FileID) (doma
 	if err != nil {
 		return domain.File{}, err
 	}
-	return toDomainFile(f), nil
+	return toDomainFile(db.File{
+		ID:             f.ID,
+		Filename:       f.Filename,
+		OriginalName:   f.OriginalName,
+		Path:           f.Path,
+		Size:           f.Size,
+		MimeType:       f.MimeType,
+		UploadableType: f.UploadableType,
+		UploadableID:   f.UploadableID,
+		CreatedAt:      f.CreatedAt,
+	}), nil
 }
 
 func (r *SQLRepository) GetFilesByUploadable(ctx context.Context, uploadableType string, uploadableID string) ([]domain.File, error) {
@@ -45,7 +65,17 @@ func (r *SQLRepository) GetFilesByUploadable(ctx context.Context, uploadableType
 	}
 	result := make([]domain.File, len(rows))
 	for i, f := range rows {
-		result[i] = toDomainFile(f)
+		result[i] = toDomainFile(db.File{
+			ID:             f.ID,
+			Filename:       f.Filename,
+			OriginalName:   f.OriginalName,
+			Path:           f.Path,
+			Size:           f.Size,
+			MimeType:       f.MimeType,
+			UploadableType: f.UploadableType,
+			UploadableID:   f.UploadableID,
+			CreatedAt:      f.CreatedAt,
+		})
 	}
 	return result, nil
 }

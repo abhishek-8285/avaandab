@@ -145,11 +145,11 @@ func (s *BookingService) UpdateBooking(ctx context.Context, id domain.BookingID,
 	if err == nil {
 		b.PickupDate = pickup
 	}
-	b.Booking.VehicleType = req.VehicleType
-	b.Booking.Passengers = req.Passengers
-	b.Booking.CargoWeight = req.CargoWeight
-	b.Booking.Price = req.Price
-	b.Booking.Notes = strPtr(notes)
+	b.VehicleType = req.VehicleType
+	b.Passengers = req.Passengers
+	b.CargoWeight = req.CargoWeight
+	b.Price = req.Price
+	b.Notes = strPtr(notes)
 
 	s.logAudit(ctx, nil, "update", "bookings", string(id), nil, nil)
 	return s.store.UpdateBooking(ctx, b.Booking)

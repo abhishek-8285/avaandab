@@ -280,13 +280,7 @@ func (r *SQLRepository) DeleteTrip(ctx context.Context, id domain.TripID) error 
 func (r *SQLRepository) SearchTrips(ctx context.Context, query string, status string, limit, offset int) ([]repository.TripWithJoins, error) {
 	rows, err := r.Q(ctx).SearchTrips(ctx, db.SearchTripsParams{
 		TenantID: string(shared.TenantIDFromContext(ctx)),
-		Column2:  sql.NullString{String: query, Valid: true},
-		Column3:  sql.NullString{String: query, Valid: true},
-		Column4:  sql.NullString{String: query, Valid: true},
-		Column5:  sql.NullString{String: query, Valid: true},
-		Column6:  sql.NullString{String: query, Valid: true},
-		Column7:  sql.NullString{String: query, Valid: true},
-		Column8:  status,
+		Query:    query,
 		Status:   status,
 		Limit:    int64(limit),
 		Offset:   int64(offset),
@@ -311,13 +305,7 @@ func (r *SQLRepository) SearchTrips(ctx context.Context, query string, status st
 func (r *SQLRepository) CountTrips(ctx context.Context, query string, status string) (int64, error) {
 	count, err := r.Q(ctx).CountTrips(ctx, db.CountTripsParams{
 		TenantID: string(shared.TenantIDFromContext(ctx)),
-		Column2:  sql.NullString{String: query, Valid: true},
-		Column3:  sql.NullString{String: query, Valid: true},
-		Column4:  sql.NullString{String: query, Valid: true},
-		Column5:  sql.NullString{String: query, Valid: true},
-		Column6:  sql.NullString{String: query, Valid: true},
-		Column7:  sql.NullString{String: query, Valid: true},
-		Column8:  status,
+		Query:    query,
 		Status:   status,
 	})
 	if err != nil {

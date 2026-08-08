@@ -98,8 +98,8 @@ LEFT JOIN drivers d ON t.driver_id = d.id
 LEFT JOIN vehicles v ON t.vehicle_id = v.id
 LEFT JOIN routes r ON t.route_id = r.id
 WHERE t.tenant_id = sqlc.arg(tenant_id)
-  AND (sqlc.arg(query)::text = '' OR t.trip_number LIKE '%' || sqlc.arg(query) || '%' OR d.first_name LIKE '%' || sqlc.arg(query) || '%' OR d.last_name LIKE '%' || sqlc.arg(query) || '%' OR v.registration_number LIKE '%' || sqlc.arg(query) || '%' OR r.source LIKE '%' || sqlc.arg(query) || '%' OR r.destination LIKE '%' || sqlc.arg(query) || '%')
-  AND (sqlc.arg(status)::text = '' OR t.status = sqlc.arg(status))
+  AND (CAST(sqlc.arg(query) AS text) = '' OR t.trip_number LIKE '%' || sqlc.arg(query) || '%' OR d.first_name LIKE '%' || sqlc.arg(query) || '%' OR d.last_name LIKE '%' || sqlc.arg(query) || '%' OR v.registration_number LIKE '%' || sqlc.arg(query) || '%' OR r.source LIKE '%' || sqlc.arg(query) || '%' OR r.destination LIKE '%' || sqlc.arg(query) || '%')
+  AND (CAST(sqlc.arg(status) AS text) = '' OR t.status = sqlc.arg(status))
 ORDER BY t.departure_time DESC
 LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 
@@ -110,8 +110,8 @@ LEFT JOIN drivers d ON t.driver_id = d.id
 LEFT JOIN vehicles v ON t.vehicle_id = v.id
 LEFT JOIN routes r ON t.route_id = r.id
 WHERE t.tenant_id = sqlc.arg(tenant_id)
-  AND (sqlc.arg(query)::text = '' OR t.trip_number LIKE '%' || sqlc.arg(query) || '%' OR d.first_name LIKE '%' || sqlc.arg(query) || '%' OR d.last_name LIKE '%' || sqlc.arg(query) || '%' OR v.registration_number LIKE '%' || sqlc.arg(query) || '%' OR r.source LIKE '%' || sqlc.arg(query) || '%' OR r.destination LIKE '%' || sqlc.arg(query) || '%')
-  AND (sqlc.arg(status)::text = '' OR t.status = sqlc.arg(status));
+  AND (CAST(sqlc.arg(query) AS text) = '' OR t.trip_number LIKE '%' || sqlc.arg(query) || '%' OR d.first_name LIKE '%' || sqlc.arg(query) || '%' OR d.last_name LIKE '%' || sqlc.arg(query) || '%' OR v.registration_number LIKE '%' || sqlc.arg(query) || '%' OR r.source LIKE '%' || sqlc.arg(query) || '%' OR r.destination LIKE '%' || sqlc.arg(query) || '%')
+  AND (CAST(sqlc.arg(status) AS text) = '' OR t.status = sqlc.arg(status));
 
 -- name: CheckVehicleConflict :many
 SELECT id, trip_number, status, departure_time, arrival_time

@@ -491,7 +491,7 @@ func (s *TripService) UpdateTrip(ctx context.Context, id domain.TripID, req Crea
 		if err != nil {
 			return domain.Trip{}, fmt.Errorf("invalid departure time")
 		}
-		trip.Trip.DepartureTime = depTime
+		trip.DepartureTime = depTime
 	}
 
 	if req.ArrivalTime != "" {
@@ -499,11 +499,11 @@ func (s *TripService) UpdateTrip(ctx context.Context, id domain.TripID, req Crea
 		if err != nil {
 			return domain.Trip{}, fmt.Errorf("invalid arrival time")
 		}
-		trip.Trip.ArrivalTime = &arrTime
+		trip.ArrivalTime = &arrTime
 	}
 
 	if req.Remarks != "" {
-		trip.Trip.Remarks = &req.Remarks
+		trip.Remarks = &req.Remarks
 	}
 
 	return s.store.UpdateTrip(ctx, trip.Trip)
