@@ -162,7 +162,7 @@ func (s *BookingService) ConfirmBooking(ctx context.Context, id domain.BookingID
 		return domain.Booking{}, domain.ErrBookingNotFound
 	}
 
-	if err := b.Booking.CanConfirm(); err != nil {
+	if err := b.CanConfirm(); err != nil {
 		return domain.Booking{}, err
 	}
 
@@ -191,7 +191,7 @@ func (s *BookingService) CancelBooking(ctx context.Context, id domain.BookingID)
 		return domain.Booking{}, domain.ErrBookingNotFound
 	}
 
-	if err := b.Booking.CanCancel(); err != nil {
+	if err := b.CanCancel(); err != nil {
 		return domain.Booking{}, err
 	}
 
@@ -233,7 +233,7 @@ func (s *BookingService) DeleteBooking(ctx context.Context, id domain.BookingID)
 		return domain.ErrBookingNotFound
 	}
 
-	if err := b.Booking.CanDelete(); err != nil {
+	if err := b.CanDelete(); err != nil {
 		return err
 	}
 
