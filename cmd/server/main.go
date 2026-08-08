@@ -59,7 +59,7 @@ func main() {
 		logger.Error("Failed to open database", "error", err)
 		os.Exit(1)
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 
 	database.SetMaxOpenConns(25)
 	database.SetMaxIdleConns(25)
