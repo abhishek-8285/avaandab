@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -248,5 +249,10 @@ func SPAMiddleware(next http.Handler) http.Handler {
 }
 
 func isDownloadPath(path string) bool {
-	return len(path) >= 4 && path[len(path)-4:] == "/pdf"
+	return strings.Contains(path, "/files/") ||
+		strings.HasSuffix(path, "/pdf") ||
+		strings.HasPrefix(path, "/static/") ||
+		strings.HasPrefix(path, "/uploads/") ||
+		path == "/robots.txt" ||
+		path == "/sitemap.xml"
 }

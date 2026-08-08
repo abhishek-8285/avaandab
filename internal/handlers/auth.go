@@ -267,10 +267,38 @@ func (h *AuthHandlers) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/profile", http.StatusSeeOther)
 }
 
+// ForgotPasswordPage renders the forgot password request page.
+func (h *AuthHandlers) ForgotPasswordPage(w http.ResponseWriter, r *http.Request) {
+	h.renderAuthPage(w, "forgot_password.html", PageData{
+		Title: "Forgot Password",
+	})
+}
+
+// SubmitForgotPassword processes password reset requests.
+func (h *AuthHandlers) SubmitForgotPassword(w http.ResponseWriter, r *http.Request) {
+	email := r.PostFormValue("email")
+	pd := PageData{
+		Title: "Forgot Password",
+	}
+	if pd.Extra == nil {
+		pd.Extra = map[string]interface{}{}
+	}
+	if email == "" {
+		pd.Extra["Error"] = "Please enter your email address"
+	} else {
+		pd.Extra["SuccessMsg"] = "If an account exists for " + email + ", password reset instructions have been sent."
+	}
+	h.renderAuthPage(w, "forgot_password.html", pd)
+}
+
 // RegisterRoutes registers auth routes.
 func (h *AuthHandlers) RegisterRoutes(r chi.Router) {
 	r.Get("/login", h.LoginPage)
 	r.Post("/login", h.Login)
+	r.Get("/register", h.RegisterPage)
+	r.Post("/register", h.Register)
+	r.Get("/forgot-password", h.ForgotPasswordPage)
+	r.Post("/forgot-password", h.SubmitForgotPassword)
 	r.Post("/logout", h.Logout)
 	r.Get("/profile", h.ProfilePage)
 	r.Post("/profile", h.UpdateProfile)

@@ -57,9 +57,9 @@ adb push internal/static /data/local/tmp/internal/ > /dev/null
 echo -e "${GREEN}✅ File transfer completed.${NC}"
 
 # 4. Configure ADB Port Forwarding
-echo -e "\n${CYAN}[4/6] Setting up ADB port forwarding (tcp:8090)...${NC}"
-adb forward tcp:8090 tcp:8090 || true
-echo -e "${GREEN}✅ ADB Port forwarding ready (localhost:8090 -> TECNO:8090).${NC}"
+echo -e "\n${CYAN}[4/6] Setting up ADB port forwarding (tcp:8092)...${NC}"
+adb forward tcp:8092 tcp:8092 || true
+echo -e "${GREEN}✅ ADB Port forwarding ready (localhost:8092 -> TECNO:8092).${NC}"
 
 # 5. Start Background Server on Android Device
 echo -e "\n${CYAN}[5/6] Starting Avandab server on TECNO device...${NC}"
@@ -68,11 +68,13 @@ sleep 1
 cat << 'RUNEOF' > bin/start_device.sh
 #!/system/bin/sh
 cd /data/local/tmp
-export PORT=8090
-export DATABASE_URL='file:mvtms.db?cache=shared&mode=rwc'
+ulimit -n 65535 2>/dev/null || true
+export GOMAXPROCS=8
+export PORT=8092
+export DATABASE_URL='file:mvtms.db?_journal_mode=WAL&_synchronous=OFF&_busy_timeout=10000&_cache_size=-131072&_mmap_size=536870912&cache=shared&mode=rwc'
 export COOKIE_SECRET='dev-secret-32bytes-for-cookie-signing!'
 export APP_DOMAIN='avandab.com'
-nohup ./server > server_8090.log 2>&1 &
+nohup ./server > server_8092.log 2>&1 &
 RUNEOF
 adb push bin/start_device.sh /data/local/tmp/start.sh > /dev/null
 adb shell "chmod +x /data/local/tmp/start.sh"
@@ -81,37 +83,36 @@ sleep 2
 
 sleep 2
 echo -e "${YELLOW}Server Boot Output Log:${NC}"
-adb shell "cat /data/local/tmp/server_8090.log"
+adb shell "cat /data/local/tmp/server_8092.log"
 
-# 6. Ensure Cloudflare Tunnel is Running
-echo -e "\n${CYAN}[6/6] Checking Cloudflare Tunnel status for avandab.com...${NC}"
-CLOUDFLARED_BIN="/home/abhishek/.local/bin/cloudflared"
+# 6. Ensure Cloudflare Tunnel is Running directly on TECNO device
+echo -e "\n${CYAN}[6/6] Configuring & starting Cloudflare Tunnel on TECNO device...${NC}"
+adb push /home/abhishek/.cloudflared/80c07818-cd81-4dfd-9970-e53d70acd334.json /data/local/tmp/tunnel.json > /dev/null
 
-mkdir -p ~/.cloudflared
-cat << EOF > ~/.cloudflared/config.yml
-tunnel: 16b2fee0-e242-42de-967a-1ed401a5bebc
-credentials-file: /home/abhishek/.cloudflared/16b2fee0-e242-42de-967a-1ed401a5bebc.json
+cat << EOF > bin/device_config.yml
+tunnel: 80c07818-cd81-4dfd-9970-e53d70acd334
+credentials-file: /data/local/tmp/tunnel.json
+protocol: http2
 
 ingress:
   - hostname: avandab.com
-    service: http://localhost:8090
+    service: http://localhost:8092
   - hostname: www.avandab.com
-    service: http://localhost:8090
+    service: http://localhost:8092
   - service: http_status:404
 EOF
+adb push bin/device_config.yml /data/local/tmp/config.yml > /dev/null
 
-if ! pgrep -f "cloudflared tunnel run avandab-tunnel" > /dev/null; then
-    echo -e "${YELLOW}Starting Cloudflare Tunnel in background...${NC}"
-    nohup $CLOUDFLARED_BIN tunnel run avandab-tunnel > ~/.cloudflared/tunnel.log 2>&1 &
-    sleep 2
-else
-    echo -e "${GREEN}Cloudflare Tunnel is already running.${NC}"
-fi
+adb shell "pkill -9 cloudflared 2>/dev/null || true"
+sleep 1
+adb shell "nohup /data/local/tmp/cloudflared --config /data/local/tmp/config.yml tunnel run 80c07818-cd81-4dfd-9970-e53d70acd334 > /data/local/tmp/tunnel.log 2>&1 &"
+sleep 2
 
 echo -e "\n${BLUE}==============================================================================${NC}"
-echo -e "${GREEN}🎉 Deployment Complete! Avandab is live on your TECNO device & Cloudflare!${NC}"
+echo -e "${GREEN}🎉 Deployment Complete! All services (Go Server + Cloudflare Tunnel) running on TECNO device!${NC}"
 echo -e "${BLUE}==============================================================================${NC}"
 echo -e "Public Web Domain: ${CYAN}https://avandab.com${NC}"
-echo -e "Local Device Port: ${CYAN}http://localhost:8090${NC}"
-echo -e "View live server logs: ${YELLOW}adb shell \"cat /data/local/tmp/server_8090.log\"${NC}"
+echo -e "Device Port: ${CYAN}http://localhost:8092${NC}"
+echo -e "View server logs: ${YELLOW}adb shell \"cat /data/local/tmp/server_8092.log\"${NC}"
+echo -e "View tunnel logs: ${YELLOW}adb shell \"cat /data/local/tmp/tunnel.log\"${NC}"
 echo -e "${BLUE}==============================================================================${NC}\n"

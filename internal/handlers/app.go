@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"bytes"
 	"database/sql"
 	"fmt"
 	"html/template"
 	"net/http"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"transport-app/internal/auth"
@@ -41,6 +43,7 @@ type App struct {
 	Reports   *ReportHandlers
 	SettingsH *SettingsHandlers
 	AuditLogs *AuditLogHandlers
+	Contact   *ContactHandlers
 }
 
 // NewApp creates a new handler app with all handler groups initialized.
@@ -70,6 +73,7 @@ func NewApp(svc *service.Services, cfg *config.Config, authStore *auth.SessionSt
 	app.Reports = &ReportHandlers{App: app}
 	app.SettingsH = &SettingsHandlers{App: app}
 	app.AuditLogs = &AuditLogHandlers{App: app}
+	app.Contact = &ContactHandlers{App: app}
 
 	return app
 }
@@ -411,9 +415,30 @@ func (a *App) renderForm(w http.ResponseWriter, r *http.Request, name string, da
 	a.renderPage(w, name, data)
 }
 
-// Marketing renders the landing homepage.
+var (
+	cachedHomeHTML []byte
+	cachedHomeOnce sync.Once
+)
+
+// Marketing renders the landing homepage using zero-alloc in-memory byte cache.
 func (a *App) Marketing(w http.ResponseWriter, r *http.Request) {
+	cachedHomeOnce.Do(func() {
+		tmpl := a.Templates.Lookup("home.html")
+		if tmpl != nil {
+			var buf bytes.Buffer
+			if err := tmpl.Execute(&buf, nil); err == nil {
+				cachedHomeHTML = buf.Bytes()
+			}
+		}
+	})
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800")
+	if len(cachedHomeHTML) > 0 {
+		_, _ = w.Write(cachedHomeHTML)
+		return
+	}
+
 	tmpl := a.Templates.Lookup("home.html")
 	if tmpl == nil {
 		http.Error(w, "home template not found", http.StatusInternalServerError)

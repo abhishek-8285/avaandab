@@ -1,4 +1,4 @@
-// FlyFleet Premium SPA Router with FOUC prevention and Progress Bar
+// FlyFleet Premium SPA Router with FOUC prevention, Smooth Anchor Scrolling, and Progress Bar
 (function() {
     // Create progress bar element
     const progressBar = document.createElement('div');
@@ -56,7 +56,6 @@
                 const doc = parser.parseFromString(html, 'text/html');
 
                 // 1. Sync Head Elements (Stylesheets & Title)
-                // Remove old external stylesheets that are not in the new page
                 const newStyles = Array.from(doc.head.querySelectorAll('link[rel="stylesheet"], style'));
                 const oldStyles = Array.from(document.head.querySelectorAll('link[rel="stylesheet"], style'));
                 
@@ -67,7 +66,6 @@
                     }
                 });
 
-                // Add new stylesheets if they don't exist yet
                 newStyles.forEach(style => {
                     const href = style.getAttribute('href');
                     if (href) {
@@ -82,19 +80,28 @@
                 // Update Title
                 document.title = doc.title;
 
-                // 2. Render Page Content with RequestAnimationFrame to avoid FOUC
+                // 2. Render Page Content
                 requestAnimationFrame(() => {
                     if (document.body && doc.body) {
                         document.body.className = doc.body.className;
                         document.body.innerHTML = doc.body.innerHTML;
                         document.body.style.opacity = '1';
                         
-                        // Scroll to top
-                        const mainContent = document.getElementById('main-content');
-                        if (mainContent) {
-                            mainContent.scrollTop = 0;
+                        // Handle internal anchor hash scrolling if target exists
+                        if (window.location.hash) {
+                            const target = document.querySelector(window.location.hash);
+                            if (target) {
+                                target.scrollIntoView({ behavior: 'smooth' });
+                            } else {
+                                window.scrollTo(0, 0);
+                            }
                         } else {
-                            window.scrollTo(0, 0);
+                            const mainContent = document.getElementById('main-content');
+                            if (mainContent) {
+                                mainContent.scrollTop = 0;
+                            } else {
+                                window.scrollTo(0, 0);
+                            }
                         }
 
                         // Re-run script tags
@@ -124,14 +131,39 @@
     document.addEventListener('click', function(e) {
         const a = e.target.closest('a');
         if (!a) return;
+        const href = a.getAttribute('href');
+        if (!href) return;
+
+        // 1. Internal page anchor links (#features, #benefits, #comparison, etc.)
+        if (href.startsWith('#')) {
+            e.preventDefault();
+            const target = document.querySelector(href);
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth' });
+                history.pushState(null, '', href);
+            }
+            return;
+        }
+
         const url = new URL(a.href, window.location.href);
         if (url.origin !== window.location.origin) return;
         if (a.getAttribute('target') === '_blank') return;
         if (url.pathname.startsWith('/static/')) return;
         if (a.hasAttribute('download')) return;
 
+        // 2. Same-page hash navigation (e.g. /#benefits when currently on /)
+        if (url.pathname === window.location.pathname && url.hash) {
+            e.preventDefault();
+            const target = document.querySelector(url.hash);
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth' });
+                history.pushState(null, '', url.hash);
+            }
+            return;
+        }
+
         e.preventDefault();
-        loadPage(url.pathname + url.search, { pushState: true });
+        loadPage(url.pathname + url.search + url.hash, { pushState: true });
     });
 
     document.addEventListener('submit', function(e) {
@@ -166,6 +198,13 @@
     });
 
     window.addEventListener('popstate', function() {
+        if (window.location.hash) {
+            const target = document.querySelector(window.location.hash);
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth' });
+                return;
+            }
+        }
         loadPage(window.location.pathname + window.location.search, { pushState: false });
     });
 })();

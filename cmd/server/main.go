@@ -53,7 +53,7 @@ func main() {
 	logger := slog.Default()
 	logger.Info("Starting MVTMS server", "env", cfg.AppEnv, "port", cfg.Port)
 
-	// Open database
+	// Open database with optimized PRAGMAs for high concurrency
 	database, err := sql.Open("sqlite", cfg.DatabaseURL)
 	if err != nil {
 		logger.Error("Failed to open database", "error", err)
@@ -61,9 +61,26 @@ func main() {
 	}
 	defer func() { _ = database.Close() }()
 
-	database.SetMaxOpenConns(25)
-	database.SetMaxIdleConns(25)
-	database.SetConnMaxLifetime(5 * time.Minute)
+	database.SetMaxOpenConns(256)
+	database.SetMaxIdleConns(256)
+	database.SetConnMaxLifetime(15 * time.Minute)
+
+	// Execute WAL mode & performance pragmas for extreme throughput
+	pragmas := []string{
+		"PRAGMA journal_mode=WAL;",
+		"PRAGMA synchronous=OFF;",
+		"PRAGMA busy_timeout=10000;",
+		"PRAGMA cache_size=-131072;",  // 128MB cache
+		"PRAGMA mmap_size=536870912;", // 512MB memory-mapped file I/O
+		"PRAGMA locking_mode=NORMAL;",
+		"PRAGMA foreign_keys=ON;",
+		"PRAGMA temp_store=MEMORY;",
+	}
+	for _, p := range pragmas {
+		if _, err := database.Exec(p); err != nil {
+			logger.Warn("Failed to execute pragma", "pragma", p, "error", err)
+		}
+	}
 
 	// Run migrations from embedded filesystem
 	ctx := context.Background()
@@ -158,9 +175,37 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(chiMiddleware.RequestID)
 	r.Use(chiMiddleware.Recoverer)
-	r.Use(chiMiddleware.Logger)
+	r.Use(chiMiddleware.Compress(5))
 	r.Use(chiMiddleware.Timeout(60 * time.Second))
 	r.Use(middleware.SPAMiddleware)
+
+	// Direct SEO Endpoints
+	r.Get("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		_, _ = w.Write([]byte("User-agent: *\nAllow: /\nSitemap: https://avandab.com/sitemap.xml\n"))
+	})
+	r.Get("/sitemap.xml", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/xml")
+		sitemap := `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://avandab.com/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/login</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/register</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+</urlset>`
+		_, _ = w.Write([]byte(sitemap))
+	})
 
 	// ── REST API v1 ───────────────────────────────────────────────────────
 	apiSecret := []byte(cfg.CookieSecret) // same secret; rotate independently in prod
@@ -178,24 +223,61 @@ func main() {
 		paymentAPIHandler.Register(r)
 	})
 
-	// Static files (no compression to avoid ERR_CONTENT_DECODING_FAILED)
+	// Static files with Cache-Control headers
 	fileServer := http.FileServer(http.Dir("internal/static"))
-	r.Handle("/static/*", http.StripPrefix("/static/", fileServer))
+	r.Handle("/static/*", http.StripPrefix("/static/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		fileServer.ServeHTTP(w, r)
+	})))
 
 	// Uploaded files (logos, documents)
 	uploadsServer := http.FileServer(http.Dir(cfg.UploadDir))
-	r.Handle("/uploads/*", http.StripPrefix("/uploads/", uploadsServer))
+	r.Handle("/uploads/*", http.StripPrefix("/uploads/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		uploadsServer.ServeHTTP(w, r)
+	})))
 
 	// All application routes
 	r.Group(func(r chi.Router) {
 
 		// Public routes
 		r.Get("/", app.Marketing)
+		r.Get("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/plain")
+			_, _ = w.Write([]byte("User-agent: *\nAllow: /\nSitemap: https://avandab.com/sitemap.xml\n"))
+		})
+		r.Get("/sitemap.xml", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/xml")
+			sitemap := `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://avandab.com/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/login</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/register</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+</urlset>`
+			_, _ = w.Write([]byte(sitemap))
+		})
 		r.Get("/login", app.Auth.LoginPage)
 		r.Post("/login", app.Auth.Login)
 		r.Get("/register", app.Auth.RegisterPage)
 		r.Post("/register", app.Auth.Register)
+		r.Get("/forgot-password", app.Auth.ForgotPasswordPage)
+		r.Post("/forgot-password", app.Auth.SubmitForgotPassword)
 		r.Post("/logout", app.Auth.Logout)
+
+		// Public Contact & Status Tracking
+		r.Route("/contact-us", app.Contact.Routes)
 
 		// Protected routes
 		r.Group(func(r chi.Router) {

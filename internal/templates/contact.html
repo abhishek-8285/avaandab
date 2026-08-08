@@ -1,0 +1,324 @@
+{{if not .User}}
+<!-- Header (MOST LEFT Logo & MOST RIGHT CTAs matching Landing Page) -->
+<header class="header mb-6">
+    <nav class="navigation">
+        <div class="navigation-button-container">
+            <div class="navigation-button">
+                <span class="material-symbols-outlined text-slate-700">menu</span>
+            </div>
+        </div>
+
+        <!-- MOST LEFT: Logo & Brand Name -->
+        <div class="navigation-main-logo">
+            <a class="desktop-logo" href="/">
+                <div class="logo-icon-box">
+                    <span class="material-symbols-outlined text-2xl">local_shipping</span>
+                </div>
+                <span class="text-2xl font-black text-[#00685f] font-display tracking-tight">Avandab</span>
+            </a>
+        </div>
+        
+        <!-- CENTER: Navigation Links -->
+        <div class="navigation-body">
+            <div class="navigation-body-container">
+                <ul class="navigation-top-menu navigation-top-menu-main">
+                    <li class="navigation-top-menu-item">
+                        <span class="navigation-top-menu-label navigation-top-menu-label-arrow">Operations</span>
+                        <ul class="navigation-top-menu-sublist">
+                            <li class="navigation-top-menu-item"><a class="navigation-top-menu-link" href="/dashboard"><span class="navigation-top-menu-label">Operations Cockpit</span></a></li>
+                            <li class="navigation-top-menu-item"><a class="navigation-top-menu-link" href="/trips"><span class="navigation-top-menu-label">Live Dispatch</span></a></li>
+                            <li class="navigation-top-menu-item"><a class="navigation-top-menu-link" href="/routes"><span class="navigation-top-menu-label">Route Optimizer</span></a></li>
+                            <li class="navigation-top-menu-item"><a class="navigation-top-menu-link" href="/bookings"><span class="navigation-top-menu-label">Bookings</span></a></li>
+                        </ul>
+                    </li>
+                    <li class="navigation-top-menu-item">
+                        <span class="navigation-top-menu-label navigation-top-menu-label-arrow">Fleet Management</span>
+                        <ul class="navigation-top-menu-sublist">
+                            <li class="navigation-top-menu-item"><a class="navigation-top-menu-link" href="/vehicles"><span class="navigation-top-menu-label">Active Units</span></a></li>
+                            <li class="navigation-top-menu-item"><a class="navigation-top-menu-link" href="/drivers"><span class="navigation-top-menu-label">Drivers Directory</span></a></li>
+                            <li class="navigation-top-menu-item"><a class="navigation-top-menu-link" href="/customers"><span class="navigation-top-menu-label">Customer Accounts</span></a></li>
+                        </ul>
+                    </li>
+                    <li class="navigation-top-menu-item">
+                        <span class="navigation-top-menu-label navigation-top-menu-label-arrow">Finance &amp; Reports</span>
+                        <ul class="navigation-top-menu-sublist">
+                            <li class="navigation-top-menu-item"><a class="navigation-top-menu-link" href="/invoices"><span class="navigation-top-menu-label">Invoices</span></a></li>
+                            <li class="navigation-top-menu-item"><a class="navigation-top-menu-link" href="/payments"><span class="navigation-top-menu-label">Payments &amp; Receipts</span></a></li>
+                            <li class="navigation-top-menu-item"><a class="navigation-top-menu-link" href="/reports"><span class="navigation-top-menu-label">Analytics Reports</span></a></li>
+                        </ul>
+                    </li>
+                    <li class="navigation-top-menu-item">
+                        <a class="navigation-top-menu-link" href="/#benefits"><span class="navigation-top-menu-label">Benefits</span></a>
+                    </li>
+                    <li class="navigation-top-menu-item">
+                        <a class="navigation-top-menu-link" href="/contact-us"><span class="navigation-top-menu-label">Contact Us</span></a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- MOST RIGHT: Login & Get Started -->
+        <ul class="navigation-top-menu navigation-top-menu-user-actions">
+            <li class="navigation-top-menu-item">
+                <a href="/login" class="login-link-button">
+                    <span class="material-symbols-outlined text-lg">account_circle</span>
+                    <span>Sign In / Login</span>
+                </a>
+            </li>
+            <li class="navigation-top-menu-item navigation-top-menu-item-get-started">
+                <a href="/login" class="get-started-link btn black-border-button">Get started</a>
+            </li>
+        </ul>
+    </nav>
+</header>
+{{end}}
+
+<!-- Exact Stitch Main Content Structure -->
+<main class="flex-grow pt-4 pb-12 px-4 max-w-6xl mx-auto w-full">
+<!-- Hero Section -->
+<section class="mb-12 text-center md:text-left">
+    <div class="inline-flex items-center gap-2 text-primary font-label-caps text-label-caps uppercase mb-4">
+        <span class="material-symbols-outlined text-[18px]">support_agent</span>
+        Avandab Support &amp; Inquiries
+    </div>
+    <h1 class="font-display text-display text-on-surface mb-4">Get in Touch with Our Team</h1>
+    <p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">Have a question about our fleet operations, route dispatches, or enterprise pricing? Submit your inquiry or track an existing ticket below.</p>
+</section>
+
+{{if .SubmittedNum}}
+<!-- Success Alert Banner with Ticket Number -->
+<div class="bg-emerald-50 border border-emerald-200 rounded-none p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+    <div class="flex items-start gap-3.5">
+        <div class="w-10 h-10 rounded-none bg-emerald-600 text-white flex items-center justify-center font-bold shrink-0">
+            <span class="material-symbols-outlined text-2xl">check_circle</span>
+        </div>
+        <div>
+            <h4 class="font-display font-bold text-base text-emerald-900">Inquiry Submitted Successfully!</h4>
+            <p class="text-xs text-emerald-700 mt-0.5">
+                Your reference ticket number is <strong class="font-mono font-bold underline">{{.SubmittedNum}}</strong>. Save this number to check your status updates anytime.
+            </p>
+        </div>
+    </div>
+    <a href="/contact-us?ticket={{.SubmittedNum}}" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-none transition-colors shrink-0">
+        View Ticket Status
+    </a>
+</div>
+{{end}}
+
+<!-- Two Column Layout (Exact 7 / 5 Grid from Stitch) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+<!-- Left Column: Form (7 cols) -->
+<div class="lg:col-span-7 bg-surface-container-lowest border border-border-subtle p-6 md:p-8">
+<div class="flex items-center gap-2 mb-6 border-b border-border-subtle pb-4">
+<span class="material-symbols-outlined text-primary">mail</span>
+<h2 class="font-headline-lg text-headline-lg text-on-surface m-0">Submit an Operational Inquiry</h2>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6">Fill in the details below and our logistics support team will respond promptly.</p>
+<form class="space-y-4" method="POST" action="/contact-us/submit">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div>
+<label class="block font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Your Full Name *</label>
+<input name="name" class="w-full bg-surface-bright border-outline-variant focus:border-brand-teal-deep focus:ring-1 focus:ring-brand-teal-deep text-on-surface font-body-md p-2 rounded-none" required="" type="text" placeholder="Alex Morgan">
+</div>
+<div>
+<label class="block font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Email Address *</label>
+<input name="email" class="w-full bg-surface-bright border-outline-variant focus:border-brand-teal-deep focus:ring-1 focus:ring-brand-teal-deep text-on-surface font-body-md p-2 rounded-none" required="" type="email" placeholder="alex@company.com">
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div>
+<label class="block font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Phone Number</label>
+<input name="phone" class="w-full bg-surface-bright border-outline-variant focus:border-brand-teal-deep focus:ring-1 focus:ring-brand-teal-deep text-on-surface font-body-md p-2 rounded-none" type="tel" placeholder="+91 8285336507">
+</div>
+<div>
+<label class="block font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Company / Organization</label>
+<input name="company_name" class="w-full bg-surface-bright border-outline-variant focus:border-brand-teal-deep focus:ring-1 focus:ring-brand-teal-deep text-on-surface font-body-md p-2 rounded-none" type="text" placeholder="Fleet Logistics LLC">
+</div>
+</div>
+<div>
+<label class="block font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Inquiry Category *</label>
+<select name="category" class="w-full bg-surface-bright border-outline-variant focus:border-brand-teal-deep focus:ring-1 focus:ring-brand-teal-deep text-on-surface font-body-md p-2 rounded-none" required="">
+<option value="">Select a category</option>
+<option value="support">General Support</option>
+<option value="fleet">Fleet Carrier Onboarding</option>
+<option value="quote">Shipper &amp; Load Quotation</option>
+<option value="billing">Billing &amp; Invoicing Issue</option>
+<option value="api">API &amp; Integration Support</option>
+</select>
+</div>
+<div>
+<label class="block font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Subject *</label>
+<input name="subject" class="w-full bg-surface-bright border-outline-variant focus:border-brand-teal-deep focus:ring-1 focus:ring-brand-teal-deep text-on-surface font-body-md p-2 rounded-none" required="" type="text" placeholder="Brief subject of inquiry">
+</div>
+<div>
+<label class="block font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Detailed Message *</label>
+<textarea name="message" class="w-full bg-surface-bright border-outline-variant focus:border-brand-teal-deep focus:ring-1 focus:ring-brand-teal-deep text-on-surface font-body-md p-2 rounded-none" required="" rows="4" placeholder="Describe your request in detail..."></textarea>
+</div>
+<div class="pt-4">
+<button class="bg-brand-teal-deep text-on-primary font-label-caps text-label-caps uppercase px-6 py-3 w-full md:w-auto inline-flex justify-center items-center gap-2 hover:bg-surface-tint transition-colors cursor-pointer" type="submit">
+<span class="material-symbols-outlined text-[18px]">send</span>
+                            Submit Inquiry &amp; Generate Ticket
+                        </button>
+</div>
+</form>
+</div>
+<!-- Right Column: Info & Status (5 cols) -->
+<div class="lg:col-span-5 space-y-6">
+<!-- Ticket Status -->
+<div class="bg-surface-container-lowest border border-border-subtle p-6">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-secondary">published_with_changes</span>
+<h3 class="font-headline-md text-headline-md text-on-surface m-0">Check Contact Ticket Status</h3>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-4">Track real-time progress of your submitted support ticket.</p>
+<form method="GET" action="/contact-us" class="flex gap-2">
+<input name="ticket" value="{{.SearchQuery}}" class="flex-grow bg-surface-bright border-outline-variant focus:border-brand-teal-deep focus:ring-1 focus:ring-brand-teal-deep text-on-surface font-body-md p-2 rounded-none" placeholder="Ticket ID (e.g. TKT-123)" type="text">
+<button type="submit" class="bg-secondary text-on-primary px-4 py-2 font-label-caps text-label-caps uppercase hover:bg-outline transition-colors inline-flex items-center gap-1 cursor-pointer">
+<span class="material-symbols-outlined text-[16px]">search</span> Check
+                        </button>
+</form>
+
+{{if .Ticket}}
+<div class="mt-4 bg-surface-bright border border-border-subtle p-4 space-y-3">
+    <div class="flex items-center justify-between border-b border-border-subtle pb-2">
+        <div>
+            <span class="text-[10px] font-bold text-on-surface-variant uppercase">Ticket Number</span>
+            <div class="font-data-mono font-bold text-sm text-primary">{{.Ticket.TicketNumber}}</div>
+        </div>
+        <div>
+            {{if eq .Ticket.Status "pending"}}
+            <span class="px-2 py-0.5 text-xs bg-amber-100 text-amber-800 font-semibold">Pending Review</span>
+            {{else if eq .Ticket.Status "in_progress"}}
+            <span class="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 font-semibold">In Progress</span>
+            {{else if eq .Ticket.Status "resolved"}}
+            <span class="px-2 py-0.5 text-xs bg-emerald-100 text-emerald-800 font-semibold">Resolved</span>
+            {{else}}
+            <span class="px-2 py-0.5 text-xs bg-slate-100 text-slate-700 font-semibold">Closed</span>
+            {{end}}
+        </div>
+    </div>
+    <div class="space-y-1 text-xs text-on-surface-variant">
+        <div class="flex justify-between"><span class="font-semibold">Submitted By:</span> <span>{{.Ticket.Name}}</span></div>
+        <div class="flex justify-between"><span class="font-semibold">Subject:</span> <span>{{.Ticket.Subject}}</span></div>
+    </div>
+</div>
+{{end}}
+</div>
+<!-- Direct Channels -->
+<div class="bg-surface-container-lowest border border-border-subtle p-6">
+<div class="flex items-center gap-2 mb-6 border-b border-border-subtle pb-2">
+<span class="material-symbols-outlined text-secondary">contact_support</span>
+<h3 class="font-headline-md text-headline-md text-on-surface m-0">Direct Operating Channels</h3>
+</div>
+<div class="space-y-6">
+<div class="flex gap-4 items-start">
+<div class="bg-surface-container p-2 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">call</span>
+</div>
+<div>
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">24/7 Fleet Dispatch Hotline</div>
+<div class="font-data-mono text-data-mono text-on-surface">+91 8285336507-AVANDAB</div>
+</div>
+</div>
+<div class="flex gap-4 items-start">
+<div class="bg-surface-container p-2 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">mark_email_read</span>
+</div>
+<div>
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Support Email</div>
+<div class="font-data-mono text-data-mono text-on-surface">support@avandab.com</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Quick Links -->
+<div class="bg-surface-container-lowest border border-border-subtle p-6">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-4">Quick Support</h3>
+<ul class="space-y-3 font-body-sm text-body-sm">
+<li class=""><a class="text-primary hover:underline flex items-center gap-1" href="/dashboard"><span class="material-symbols-outlined text-[14px]">arrow_right</span> Help Center</a></li>
+<li class=""><a class="text-primary hover:underline flex items-center gap-1" href="/invoices"><span class="material-symbols-outlined text-[14px]">arrow_right</span> Invoices &amp; Receipts</a></li>
+<li class=""><a class="text-primary hover:underline flex items-center gap-1" href="/audit-logs"><span class="material-symbols-outlined text-[14px]">arrow_right</span> Audit Logs</a></li>
+<li class=""><a class="text-primary hover:underline flex items-center gap-1" href="/settings"><span class="material-symbols-outlined text-[14px]">arrow_right</span> Contact Admin</a></li>
+</ul>
+</div>
+</div>
+</div>
+</main>
+
+{{if not .User}}
+<!-- ECASB Footer matching Landing Page -->
+<footer class="footer footer-ecasb mt-16" dir="ltr">
+    <div class="footer-top">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <h4>Get support</h4>
+                    <ul>
+                        <li><a href="/contact-us">Help Center &amp; Support</a></li>
+                        <li><a href="/contact-us#track-status-section">Check Inquiry Status</a></li>
+                        <li><a href="/invoices">Invoices &amp; Receipts</a></li>
+                        <li><a href="/audit-logs">Audit Logs</a></li>
+                        <li><a href="/contact-us">Contact Admin</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-col">
+                    <h4>Operations &amp; Security</h4>
+                    <ul>
+                        <li><a href="/payments">Safe &amp; Easy Payments</a></li>
+                        <li><a href="/routes">Route Optimization</a></li>
+                        <li><a href="/vehicles">Vehicle Maintenance</a></li>
+                        <li><a href="/drivers">Driver Licensing</a></li>
+                        <li><a href="/reports">Fleet Reports</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-col">
+                    <h4>Avandab Platform</h4>
+                    <ul>
+                        <li><a href="/bookings">Request Booking</a></li>
+                        <li><a href="/customers">Customer Directory</a></li>
+                        <li><a href="/reports">Revenue Analytics</a></li>
+                        <li><a href="/dashboard">Operations Cockpit</a></li>
+                        <li><a href="/settings">System Settings</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-col">
+                    <h4>Fleet Management</h4>
+                    <ul>
+                        <li><a href="/login">Operator Sign In</a></li>
+                        <li><a href="/register">Register Fleet</a></li>
+                        <li><a href="/vehicles">Active Units</a></li>
+                        <li><a href="/drivers">Driver Directory</a></li>
+                        <li><a href="/trips">Live Dispatch</a></li>
+                    </ul>
+
+                    <div class="socials">
+                        <a aria-label="Website" href="/"><span class="material-symbols-outlined text-base">public</span></a>
+                        <a aria-label="Dashboard" href="/dashboard"><span class="material-symbols-outlined text-base">grid_view</span></a>
+                        <a aria-label="Reports" href="/reports"><span class="material-symbols-outlined text-base">monitoring</span></a>
+                        <a aria-label="Settings" href="/settings"><span class="material-symbols-outlined text-base">settings</span></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-bottom">
+        <div class="container footer-bottom-row">
+            <div class="left">
+                <span>© 2026 Avandab Operations Platform. All rights reserved.</span>
+            </div>
+            <div class="right">
+                <ul class="legal">
+                    <li><a href="/dashboard">Conditions of Use</a></li>
+                    <li><a href="/dashboard">Privacy Notice</a></li>
+                    <li><a href="/dashboard">Compliance</a></li>
+                </ul>
+                <span class="powered">Powered by <a href="/dashboard">Avandab Fleet Engine</a></span>
+            </div>
+        </div>
+    </div>
+</footer>
+{{end}}

@@ -6,56 +6,70 @@
    Product register — consistency and speed for daily operators.
 */
 :root {
-  /* Heading scale */
-  --text-page-title: 1.5rem;      /* 24px — page titles, card stat values */
-  --text-page-title-lh: 1.333;
-
-  --text-section: 1.25rem;        /* 20px — section headers on list pages */
-  --text-section-lh: 1.3;
-
-  --text-subsection: 1.125rem;    /* 18px — card subsection titles */
-  --text-subsection-lh: 1.3;
-
-  /* Body and data */
-  --text-body: 0.875rem;          /* 14px — table data, body text */
-  --text-body-lh: 1.5;
-
-  --text-label: 0.875rem;         /* 14px — form labels */
-  --text-label-lh: 1.5;
-
-  --text-caption: 0.75rem;        /* 12px — table headers, field labels */
-  --text-caption-lh: 1;
-
-  /* Stat display */
-  --text-stat: 1.75rem;           /* 28px — dashboard stat numbers */
-  --text-stat-lh: 1.2;
-
-  /* Font weights */
-  --weight-body: 400;
-  --weight-medium: 500;
-  --weight-semibold: 600;
-  --weight-bold: 700;
-  --weight-extrabold: 800;
-
-  /* Stitch Theme Colors */
+  /* Stitch Color Tokens */
   --color-primary: #00685f;
+  --color-on-primary: #ffffff;
   --color-primary-container: #008378;
   --color-on-primary-container: #f4fffc;
   --color-secondary: #565e74;
-  --color-background: #f7f9fb;
+  --color-on-secondary: #ffffff;
+  --color-surface: #f7f9fb;
+  --color-surface-bright: #f7f9fb;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f2f4f6;
+  --color-surface-container: #eceef0;
+  --color-surface-container-high: #e6e8ea;
+  --color-surface-container-highest: #e0e3e5;
   --color-on-surface: #191c1e;
-  --color-border-subtle: #CBD5E1;
-  --color-[#E2E8F0]: #E2E8F0;
-  --color-status-success: #10B981;
-  --color-status-warning: #F59E0B;
-  --color-status-alert: #E11D48;
+  --color-on-surface-variant: #3d4947;
+  --color-outline: #6d7a77;
+  --color-outline-variant: #bcc9c6;
+  --color-border-subtle: #E2E8F0;
+  --color-brand-teal-deep: #115E59;
+  --color-surface-tint: #006a61;
+
+  /* Type System */
+  --text-page-title: 1.5rem;
+  --text-page-title-lh: 1.333;
+  --text-section: 1.25rem;
+  --text-section-lh: 1.3;
+  --text-subsection: 1.125rem;
+  --text-subsection-lh: 1.3;
+  --text-body: 0.875rem;
+  --text-body-lh: 1.5;
+  --text-label: 0.875rem;
+  --text-label-lh: 1.5;
+  --text-caption: 0.75rem;
+  --text-caption-lh: 1;
+  --text-stat: 1.75rem;
+  --text-stat-lh: 1.2;
 }
 
-/* Stitch Font & Typography Tokens */
-.font-display { font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif; }
-.font-label-caps { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; line-height: 16px; letter-spacing: 0.06em; font-weight: 700; }
-.font-body-sm { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; line-height: 18px; }
-.font-data-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px; line-height: 18px; }
+/* Stitch Theme Classes */
+.bg-surface { background-color: #f7f9fb; }
+.bg-surface-bright { background-color: #f7f9fb; }
+.bg-surface-container-lowest { background-color: #ffffff; }
+.bg-surface-container { background-color: #eceef0; }
+.bg-brand-teal-deep { background-color: #115E59; }
+.bg-secondary { background-color: #565e74; }
+
+.text-primary { color: #00685f; }
+.text-secondary { color: #565e74; }
+.text-on-surface { color: #191c1e; }
+.text-on-surface-variant { color: #3d4947; }
+.text-on-primary { color: #ffffff; }
+
+.border-border-subtle { border-color: #E2E8F0; }
+.border-outline-variant { border-color: #bcc9c6; }
+
+.font-display { font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif; font-size: 36px; line-height: 1.2; letter-spacing: -0.02em; font-weight: 700; }
+.font-headline-lg { font-family: 'Outfit', sans-serif; font-size: 24px; line-height: 32px; font-weight: 600; }
+.font-headline-md { font-family: 'Outfit', sans-serif; font-size: 20px; line-height: 28px; font-weight: 600; }
+.font-body-lg { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; line-height: 24px; font-weight: 400; }
+.font-body-md { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; line-height: 20px; font-weight: 400; }
+.font-body-sm { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; line-height: 18px; font-weight: 400; }
+.font-label-caps { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; line-height: 16px; letter-spacing: 0.05em; font-weight: 700; text-transform: uppercase; }
+.font-data-mono { font-family: 'Plus Jakarta Sans', ui-monospace, monospace; font-size: 14px; line-height: 20px; font-weight: 500; }
 
 /* Apply line-height and font-weight to typography utilities */
 .text-page-title { font-size: var(--text-page-title); line-height: var(--text-page-title-lh); font-weight: var(--weight-bold); }
