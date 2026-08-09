@@ -28,13 +28,6 @@ func RequestID(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), auth.ContextReqID, reqID)
 		w.Header().Set("X-Request-ID", reqID)
 
-		slog.SetDefault(slog.New(slog.NewJSONHandler(nil, nil)))
-		slog.LogAttrs(ctx, slog.LevelInfo, "request started",
-			slog.String("request_id", reqID),
-			slog.String("method", r.Method),
-			slog.String("path", r.URL.Path),
-		)
-
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

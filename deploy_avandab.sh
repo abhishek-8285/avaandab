@@ -35,9 +35,10 @@ mkdir -p bin
 CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o bin/server_arm64 ./cmd/server/main.go
 echo -e "${GREEN}✅ Compilation successful! Binary size: $(du -sh bin/server_arm64 | cut -f1)${NC}"
 
-# 3. Transfer Assets to Device
 echo -e "\n${CYAN}[3/6] Transferring application binary and assets to Android device...${NC}"
+npx @tailwindcss/cli -i src/input.css -o internal/static/css/tailwind.css --minify 2>/dev/null || true
 adb shell "mkdir -p /data/local/tmp/internal/templates /data/local/tmp/internal/static"
+
 
 echo "Pushing binary..."
 adb push bin/server_arm64 /data/local/tmp/server
@@ -64,17 +65,21 @@ echo -e "${GREEN}✅ ADB Port forwarding ready (localhost:8092 -> TECNO:8092).${
 # 5. Start Background Server on Android Device
 echo -e "\n${CYAN}[5/6] Starting Avandab server on TECNO device...${NC}"
 adb shell "pkill -9 server 2>/dev/null || true"
-sleep 1
 cat << 'RUNEOF' > bin/start_device.sh
 #!/system/bin/sh
 cd /data/local/tmp
 ulimit -n 65535 2>/dev/null || true
+su -c 'sysctl -w net.core.netdev_max_backlog=10000; sysctl -w net.ipv4.tcp_fastopen=3; sysctl -w vm.swappiness=20; sysctl -w vm.vfs_cache_pressure=10; sysctl -w kernel.sched_migration_cost_ns=5000000; sysctl -w kernel.sched_wakeup_granularity_ns=10000000; sysctl -w kernel.sched_min_granularity_ns=5000000; sysctl -w kernel.sched_latency_ns=20000000; sysctl -w net.ipv4.tcp_keepalive_time=30; sysctl -w net.ipv4.tcp_tw_reuse=1; sysctl -w net.ipv4.tcp_fin_timeout=15; sysctl -w net.core.netdev_budget=600; sysctl -w fs.file-max=2097152' 2>/dev/null || true
+
 export GOMAXPROCS=8
 export PORT=8092
-export DATABASE_URL='file:mvtms.db?_journal_mode=WAL&_synchronous=OFF&_busy_timeout=10000&_cache_size=-131072&_mmap_size=536870912&cache=shared&mode=rwc'
+export ENV=production
+export LOG_LEVEL=error
+export GODEBUG=netdns=go+1
+export DATABASE_URL='file:mvtms.db?_journal_mode=WAL&_synchronous=OFF&_temp_store=MEMORY&_busy_timeout=10000&_cache_size=-131072&_mmap_size=536870912&cache=shared&mode=rwc'
 export COOKIE_SECRET='dev-secret-32bytes-for-cookie-signing!'
 export APP_DOMAIN='avandab.com'
-nohup ./server > server_8092.log 2>&1 &
+nohup taskset c0 ./server > /dev/null 2>&1 &
 RUNEOF
 adb push bin/start_device.sh /data/local/tmp/start.sh > /dev/null
 adb shell "chmod +x /data/local/tmp/start.sh"
@@ -85,36 +90,12 @@ sleep 2
 echo -e "${YELLOW}Server Boot Output Log:${NC}"
 adb shell "cat /data/local/tmp/server_8092.log"
 
-# 6. Ensure Cloudflare Tunnel is Running directly on TECNO device
-echo -e "\n${CYAN}[6/6] Configuring & starting Cloudflare Tunnel on TECNO device...${NC}"
-adb push /home/abhishek/.cloudflared/80c07818-cd81-4dfd-9970-e53d70acd334.json /data/local/tmp/tunnel.json > /dev/null
-
-cat << EOF > bin/device_config.yml
-tunnel: 80c07818-cd81-4dfd-9970-e53d70acd334
-credentials-file: /data/local/tmp/tunnel.json
-protocol: quic
-transport-concurrency: 4
-
-ingress:
-  - hostname: avandab.com
-    service: http://localhost:8092
-  - hostname: www.avandab.com
-    service: http://localhost:8092
-  - service: http_status:404
-EOF
-adb push bin/device_config.yml /data/local/tmp/config.yml > /dev/null
-
-
-adb shell "pkill -9 cloudflared 2>/dev/null || true"
-sleep 1
-adb shell "nohup /data/local/tmp/cloudflared --config /data/local/tmp/config.yml tunnel run 80c07818-cd81-4dfd-9970-e53d70acd334 > /data/local/tmp/tunnel.log 2>&1 &"
-sleep 2
-
+# 6. Direct Deployment Complete (No Cloudflare Tunnel)
 echo -e "\n${BLUE}==============================================================================${NC}"
-echo -e "${GREEN}🎉 Deployment Complete! All services (Go Server + Cloudflare Tunnel) running on TECNO device!${NC}"
+echo -e "${GREEN}🎉 Deployment Complete! Go Server running on TECNO device!${NC}"
 echo -e "${BLUE}==============================================================================${NC}"
-echo -e "Public Web Domain: ${CYAN}https://avandab.com${NC}"
-echo -e "Device Port: ${CYAN}http://localhost:8092${NC}"
+echo -e "Device Port: ${CYAN}http://192.168.1.46:8092${NC}"
+echo -e "Public Web Domain: ${CYAN}http://avandab.com:8092${NC} (via Router Port Forwarding)"
 echo -e "View server logs: ${YELLOW}adb shell \"cat /data/local/tmp/server_8092.log\"${NC}"
-echo -e "View tunnel logs: ${YELLOW}adb shell \"cat /data/local/tmp/tunnel.log\"${NC}"
 echo -e "${BLUE}==============================================================================${NC}\n"
+

@@ -61,8 +61,10 @@ func main() {
 	}
 	defer func() { _ = database.Close() }()
 
-	database.SetMaxOpenConns(256)
-	database.SetMaxIdleConns(256)
+	database.SetMaxOpenConns(64)
+	database.SetMaxIdleConns(32)
+	database.SetConnMaxLifetime(5 * time.Minute)
+
 	database.SetConnMaxLifetime(15 * time.Minute)
 
 	// Execute WAL mode & performance pragmas for extreme throughput
@@ -178,6 +180,15 @@ func main() {
 	r.Use(chiMiddleware.Compress(5))
 	r.Use(chiMiddleware.Timeout(60 * time.Second))
 	r.Use(middleware.SPAMiddleware)
+
+	// Global HTTP middleware: Limit request body to 32MB in RAM (prevents disk spooling)
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			req.Body = http.MaxBytesReader(w, req.Body, 32<<20)
+			next.ServeHTTP(w, req)
+		})
+	})
+
 
 	// Direct SEO Endpoints
 	r.Get("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
