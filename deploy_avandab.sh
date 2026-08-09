@@ -92,7 +92,8 @@ adb push /home/abhishek/.cloudflared/80c07818-cd81-4dfd-9970-e53d70acd334.json /
 cat << EOF > bin/device_config.yml
 tunnel: 80c07818-cd81-4dfd-9970-e53d70acd334
 credentials-file: /data/local/tmp/tunnel.json
-protocol: http2
+protocol: quic
+transport-concurrency: 4
 
 ingress:
   - hostname: avandab.com
@@ -102,6 +103,7 @@ ingress:
   - service: http_status:404
 EOF
 adb push bin/device_config.yml /data/local/tmp/config.yml > /dev/null
+
 
 adb shell "pkill -9 cloudflared 2>/dev/null || true"
 sleep 1

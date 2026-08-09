@@ -78,7 +78,7 @@ func (h *VehicleHandlers) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.renderPage(w, "vehicle_list.html", PageData{
+	h.renderPage(w, r, "vehicle_list.html", PageData{
 		Title: "Vehicles",
 		User:  session,
 		Extra: map[string]interface{}{"Vehicles": res.Vehicles, "Pagination": pd, "Query": pp.Query, "StatusFilter": pp.Status},
@@ -158,7 +158,7 @@ func (h *VehicleHandlers) View(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	files, _ := h.Services.Files.GetFilesByEntity(r.Context(), "vehicle_insurance", id)
-	h.renderPage(w, "vehicle_view.html", PageData{Title: "View Vehicle", Extra: map[string]interface{}{"Vehicle": vehicle, "Files": files}})
+	h.renderPage(w, r, "vehicle_view.html", PageData{Title: "View Vehicle", Extra: map[string]interface{}{"Vehicle": vehicle, "Files": files}})
 }
 
 func (h *VehicleHandlers) Edit(w http.ResponseWriter, r *http.Request) {

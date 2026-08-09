@@ -25,7 +25,7 @@ func (h *DashboardHandlers) Index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.renderPage(w, "dashboard.html", PageData{
+	h.renderPage(w, r, "dashboard.html", PageData{
 		Title:      "Dashboard",
 		User:       session,
 		Settings:   company,

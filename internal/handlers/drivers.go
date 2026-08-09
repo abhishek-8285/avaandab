@@ -79,7 +79,7 @@ func (h *DriverHandlers) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.renderPage(w, "driver_list.html", PageData{
+	h.renderPage(w, r, "driver_list.html", PageData{
 		Title: "Drivers",
 		User:  session,
 		Extra: map[string]interface{}{"Drivers": res.Drivers, "Pagination": pd, "Query": pp.Query, "StatusFilter": pp.Status},
@@ -155,7 +155,7 @@ func (h *DriverHandlers) View(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	files, _ := h.Services.Files.GetFilesByEntity(r.Context(), "driver_license", id)
-	h.renderPage(w, "driver_view.html", PageData{Title: "View Driver", User: session, Extra: map[string]interface{}{"Driver": driver, "Files": files}})
+	h.renderPage(w, r, "driver_view.html", PageData{Title: "View Driver", User: session, Extra: map[string]interface{}{"Driver": driver, "Files": files}})
 }
 
 func (h *DriverHandlers) Edit(w http.ResponseWriter, r *http.Request) {

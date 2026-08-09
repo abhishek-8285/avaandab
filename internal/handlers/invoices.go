@@ -75,7 +75,7 @@ func (h *InvoiceHandlers) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.renderPage(w, "invoice_list.html", PageData{
+	h.renderPage(w, r, "invoice_list.html", PageData{
 		Title: "Invoices",
 		User:  session,
 		Extra: map[string]interface{}{"Invoices": res.Invoices, "Pagination": pd, "Query": pp.Query, "StatusFilter": pp.Status},
@@ -98,7 +98,7 @@ func (h *InvoiceHandlers) View(w http.ResponseWriter, r *http.Request) {
 	payments, _ := h.Services.Invoices.GetPaymentsForInvoice(r.Context(), domain.InvoiceID(idParam))
 	balance, _ := h.Services.Invoices.GetBalance(r.Context(), domain.InvoiceID(idParam))
 
-	h.renderPage(w, "invoice_view.html", PageData{
+	h.renderPage(w, r, "invoice_view.html", PageData{
 		Title: "View Invoice",
 		Extra: map[string]interface{}{
 			"Invoice":  invoice,
@@ -116,7 +116,7 @@ func (h *InvoiceHandlers) ViewByNumber(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invoice not found", http.StatusNotFound)
 		return
 	}
-	h.renderPage(w, "invoice_view.html", PageData{
+	h.renderPage(w, r, "invoice_view.html", PageData{
 		Title: "View Invoice",
 		Extra: map[string]interface{}{"Invoice": invoice},
 	})

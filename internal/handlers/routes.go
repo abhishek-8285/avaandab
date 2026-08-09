@@ -46,7 +46,7 @@ func (h *RouteHandlers) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.renderPage(w, "route_list.html", PageData{
+	h.renderPage(w, r, "route_list.html", PageData{
 		Title: "Routes",
 		User:  session,
 		Extra: map[string]interface{}{"Routes": list, "Pagination": pd, "Query": pp.Query},
@@ -95,7 +95,7 @@ func (h *RouteHandlers) View(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Route not found", http.StatusNotFound)
 		return
 	}
-	h.renderPage(w, "route_view.html", PageData{Title: "View Route", Extra: map[string]interface{}{"Route": route}})
+	h.renderPage(w, r, "route_view.html", PageData{Title: "View Route", Extra: map[string]interface{}{"Route": route}})
 }
 
 func (h *RouteHandlers) Edit(w http.ResponseWriter, r *http.Request) {

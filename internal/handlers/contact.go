@@ -72,7 +72,7 @@ func (h *ContactHandlers) Page(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.renderPage(w, "contact.html", pd)
+	h.renderPage(w, r, "contact.html", pd)
 }
 
 // Submit handles submission of a new inquiry.

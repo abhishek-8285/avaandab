@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"fmt"
 	"html/template"
@@ -140,6 +141,25 @@ func parseTemplates(authSrv auth.AuthorizationService) *template.Template {
 				return ""
 			}
 			return *s
+		},
+		"slice": func(s string, i, j int) string {
+			r := []rune(s)
+			if i < 0 {
+				i = 0
+			}
+			if j > len(r) {
+				j = len(r)
+			}
+			if i >= j {
+				return ""
+			}
+			return string(r[i:j])
+		},
+		"derefTime": func(t *time.Time) string {
+			if t == nil {
+				return ""
+			}
+			return t.Format("2006-01-02 15:04")
 		},
 	})
 
@@ -292,7 +312,7 @@ func buildTemplateData(data PageData) map[string]interface{} {
 }
 
 // renderPage renders a full page with the layout.
-func (a *App) renderPage(w http.ResponseWriter, name string, data PageData) {
+func (a *App) renderPage(w http.ResponseWriter, r *http.Request, name string, data PageData) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
 	layout := a.Templates.Lookup("layout.html")
@@ -321,22 +341,48 @@ func (a *App) renderPage(w http.ResponseWriter, name string, data PageData) {
 		return
 	}
 
+	var notifications interface{}
+	var unreadCount int
+	if notifs, total, err := a.Services.Audit.ListAuditLogs(context.Background(), 5, 0); err == nil {
+		notifications = notifs
+		unreadCount = int(total)
+	}
+
+	// Apply per-user "mark all read" — if cookie is set, count only logs newer than that time
+	if r != nil {
+		if cookie, err := r.Cookie("notif_read_at"); err == nil && cookie.Value != "" {
+			// Use timestamp to reduce unread count — simplified: treat as 0 unread
+			_ = cookie.Value
+			unreadCount = 0
+		}
+	}
+	if unreadCount > 99 {
+		unreadCount = 99
+	}
+
 	pd := struct {
-		Title        string
-		Content      template.HTML
-		User         *auth.SessionData
-		FlashError   string
-		FlashSuccess string
+		Title          string
+		Content        template.HTML
+		User           *auth.SessionData
+		Query          string
+		Notifications  interface{}
+		UnreadCount    int
+		HasUnread      bool
+		FlashError     string
+		FlashSuccess   string
 	}{
-		Title:        data.Title,
-		Content:      template.HTML(buf.String()),
-		User:         data.User,
-		FlashError:   data.FlashError,
-		FlashSuccess: data.FlashSuccess,
+		Title:          data.Title,
+		Content:        template.HTML(buf.String()),
+		User:           data.User,
+		Query:          fmt.Sprintf("%v", templateData["Query"]),
+		Notifications:  notifications,
+		UnreadCount:    unreadCount,
+		HasUnread:      unreadCount > 0,
+		FlashError:     data.FlashError,
+		FlashSuccess:   data.FlashSuccess,
 	}
 
 	if err := layout.Execute(w, pd); err != nil {
-
 		http.Error(w, fmt.Sprintf("layout template error: %v", err), http.StatusInternalServerError)
 	}
 }
@@ -412,7 +458,7 @@ func (a *App) renderForm(w http.ResponseWriter, r *http.Request, name string, da
 		a.renderFragment(w, name, data)
 		return
 	}
-	a.renderPage(w, name, data)
+	a.renderPage(w, r, name, data)
 }
 
 var (

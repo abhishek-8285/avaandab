@@ -219,12 +219,24 @@ func (h *AuthHandlers) ProfilePage(w http.ResponseWriter, r *http.Request) {
 
 	roles, _ := h.Services.Users.ListRoles(r.Context())
 
-	h.renderPage(w, "profile_page.html", PageData{
+	pd := PageData{
 		Title:      "My Profile",
 		User:       session,
 		UserDetail: user,
 		Roles:      roles,
-	})
+	}
+
+	// Read and clear flash cookies
+	if c, err := r.Cookie("flash_success"); err == nil && c.Value != "" {
+		pd.FlashSuccess = c.Value
+		http.SetCookie(w, &http.Cookie{Name: "flash_success", Value: "", Path: "/", MaxAge: -1})
+	}
+	if c, err := r.Cookie("flash_error"); err == nil && c.Value != "" {
+		pd.FlashError = c.Value
+		http.SetCookie(w, &http.Cookie{Name: "flash_error", Value: "", Path: "/", MaxAge: -1})
+	}
+
+	h.renderPage(w, r, "profile_page.html", pd)
 }
 
 // ChangePasswordPage renders the change password page.
@@ -317,8 +329,9 @@ func (h *AuthHandlers) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	userID := domain.UserID(session.UserID)
 	name := r.PostFormValue("name")
 	phone := r.PostFormValue("phone")
+	timezone := r.PostFormValue("timezone")
 
-	updated, err := h.Services.Auth.UpdateProfile(r.Context(), userID, name, phone)
+	updated, err := h.Services.Auth.UpdateProfile(r.Context(), userID, name, phone, timezone)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -333,5 +346,12 @@ func (h *AuthHandlers) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	http.SetCookie(w, &http.Cookie{
+		Name:     "flash_success",
+		Value:    "Profile updated successfully",
+		Path:     "/",
+		HttpOnly: true,
+		MaxAge:   10,
+	})
 	http.Redirect(w, r, "/profile", http.StatusSeeOther)
 }

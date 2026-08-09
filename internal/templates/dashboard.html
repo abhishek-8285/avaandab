@@ -60,7 +60,7 @@
                         <td class="px-4 py-2 text-sm">{{.DriverFirstName}} {{.DriverLastName}}</td>
                         <td class="px-4 py-2 text-sm">{{.VehicleRegistration}}</td>
                         <td class="px-4 py-2 text-sm">{{.RouteSource}} → {{.RouteDestination}}</td>
-                        <td class="px-4 py-2 text-sm">{{datetime .DepartureTime}}</td>
+                        <td class="px-4 py-2 text-sm"><span class="time-display" data-utc-time="{{.DepartureTime.Format "2006-01-02T15:04:05Z07:00"}}">{{datetime .DepartureTime}}</span></td>
                         <td class="px-4 py-2 text-sm">
                             <span class="px-2 py-1 text-xs rounded-full {{statusBadge .Status}}">{{.Status}}</span>
                         </td>
@@ -92,7 +92,7 @@
                         <tr>
                             <td class="px-4 py-2 text-sm">{{.BookingNumber}}</td>
                             <td class="px-4 py-2 text-sm">{{.CustomerName}}</td>
-                            <td class="px-4 py-2 text-sm">{{datetime .PickupDate}}</td>
+                            <td class="px-4 py-2 text-sm"><span class="time-display" data-utc-time="{{.PickupDate.Format "2006-01-02T15:04:05Z07:00"}}">{{datetime .PickupDate}}</span></td>
                             <td class="px-4 py-2 text-sm tabular-nums">{{printf "%.2f" .Price}}</td>
                         </tr>
                         {{end}}
@@ -121,7 +121,7 @@
                             <td class="px-4 py-2 text-sm">{{.InvoiceNumber}}</td>
                             <td class="px-4 py-2 text-sm tabular-nums">{{printf "%.2f" .Amount}}</td>
                             <td class="px-4 py-2 text-sm">{{.Method}}</td>
-                            <td class="px-4 py-2 text-sm">{{datetime .PaymentDate}}</td>
+                            <td class="px-4 py-2 text-sm"><span class="time-display" data-utc-time="{{.PaymentDate.Format "2006-01-02T15:04:05Z07:00"}}">{{datetime .PaymentDate}}</span></td>
                         </tr>
                         {{end}}
                     </tbody>
@@ -141,7 +141,7 @@
                 <li class="text-sm text-gray-600">
                     <span class="font-medium">{{.UserName}}</span> - {{.Action}}
                     {{if .TableName}}on {{.TableName}}{{end}}
-                    <span class="text-gray-400">({{datetime .CreatedAt}})</span>
+                    <span class="text-gray-400">(<span class="time-display" data-utc-time="{{.CreatedAt.Format "2006-01-02T15:04:05Z07:00"}}">{{datetime .CreatedAt}}</span>)</span>
                 </li>
                 {{end}}
             </ul>

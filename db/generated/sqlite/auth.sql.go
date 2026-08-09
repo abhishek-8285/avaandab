@@ -40,7 +40,7 @@ func (q *Queries) CountUsers(ctx context.Context, arg CountUsersParams) (int64, 
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (id, email, password_hash, name, phone, role_id, status)
 VALUES (?, ?, ?, ?, ?, ?, ?)
-RETURNING id, email, password_hash, name, phone, role_id, status, last_login_at, created_at, updated_at
+RETURNING id, email, password_hash, name, phone, timezone, role_id, status, last_login_at, created_at, updated_at
 `
 
 type CreateUserParams struct {
@@ -70,6 +70,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.PasswordHash,
 		&i.Name,
 		&i.Phone,
+		&i.Timezone,
 		&i.RoleID,
 		&i.Status,
 		&i.LastLoginAt,
@@ -126,7 +127,7 @@ func (q *Queries) GetRoleByName(ctx context.Context, name string) (Role, error) 
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password_hash, name, phone, role_id, status, last_login_at, created_at, updated_at
+SELECT id, email, password_hash, name, phone, timezone, role_id, status, last_login_at, created_at, updated_at
 FROM users WHERE email = ?
 `
 
@@ -139,6 +140,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.PasswordHash,
 		&i.Name,
 		&i.Phone,
+		&i.Timezone,
 		&i.RoleID,
 		&i.Status,
 		&i.LastLoginAt,
@@ -149,7 +151,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, password_hash, name, phone, role_id, status, last_login_at, created_at, updated_at
+SELECT id, email, password_hash, name, phone, timezone, role_id, status, last_login_at, created_at, updated_at
 FROM users WHERE id = ?
 `
 
@@ -163,6 +165,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
 		&i.PasswordHash,
 		&i.Name,
 		&i.Phone,
+		&i.Timezone,
 		&i.RoleID,
 		&i.Status,
 		&i.LastLoginAt,
@@ -284,18 +287,19 @@ func (q *Queries) SearchUsers(ctx context.Context, arg SearchUsersParams) ([]Sea
 
 const updateUser = `-- name: UpdateUser :one
 UPDATE users
-SET email = ?, name = ?, phone = ?, role_id = ?, status = ?, updated_at = datetime('now')
+SET email = ?, name = ?, phone = ?, timezone = ?, role_id = ?, status = ?, updated_at = datetime('now')
 WHERE id = ?
-RETURNING id, email, password_hash, name, phone, role_id, status, last_login_at, created_at, updated_at
+RETURNING id, email, password_hash, name, phone, timezone, role_id, status, last_login_at, created_at, updated_at
 `
 
 type UpdateUserParams struct {
-	Email  string         `json:"email"`
-	Name   string         `json:"name"`
-	Phone  sql.NullString `json:"phone"`
-	RoleID int64          `json:"role_id"`
-	Status string         `json:"status"`
-	ID     string         `json:"id"`
+	Email    string         `json:"email"`
+	Name     string         `json:"name"`
+	Phone    sql.NullString `json:"phone"`
+	Timezone string         `json:"timezone"`
+	RoleID   int64          `json:"role_id"`
+	Status   string         `json:"status"`
+	ID       string         `json:"id"`
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
@@ -303,6 +307,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		arg.Email,
 		arg.Name,
 		arg.Phone,
+		arg.Timezone,
 		arg.RoleID,
 		arg.Status,
 		arg.ID,
@@ -314,6 +319,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.PasswordHash,
 		&i.Name,
 		&i.Phone,
+		&i.Timezone,
 		&i.RoleID,
 		&i.Status,
 		&i.LastLoginAt,
@@ -327,7 +333,7 @@ const updateUserLastLogin = `-- name: UpdateUserLastLogin :one
 UPDATE users
 SET last_login_at = datetime('now')
 WHERE id = ?
-RETURNING id, email, password_hash, name, phone, role_id, status, last_login_at, created_at, updated_at
+RETURNING id, email, password_hash, name, phone, timezone, role_id, status, last_login_at, created_at, updated_at
 `
 
 func (q *Queries) UpdateUserLastLogin(ctx context.Context, id string) (User, error) {
@@ -339,6 +345,7 @@ func (q *Queries) UpdateUserLastLogin(ctx context.Context, id string) (User, err
 		&i.PasswordHash,
 		&i.Name,
 		&i.Phone,
+		&i.Timezone,
 		&i.RoleID,
 		&i.Status,
 		&i.LastLoginAt,
@@ -352,7 +359,7 @@ const updateUserPassword = `-- name: UpdateUserPassword :one
 UPDATE users
 SET password_hash = ?, updated_at = datetime('now')
 WHERE id = ?
-RETURNING id, email, password_hash, name, phone, role_id, status, last_login_at, created_at, updated_at
+RETURNING id, email, password_hash, name, phone, timezone, role_id, status, last_login_at, created_at, updated_at
 `
 
 type UpdateUserPasswordParams struct {
@@ -369,6 +376,7 @@ func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPassword
 		&i.PasswordHash,
 		&i.Name,
 		&i.Phone,
+		&i.Timezone,
 		&i.RoleID,
 		&i.Status,
 		&i.LastLoginAt,

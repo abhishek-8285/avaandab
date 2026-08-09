@@ -108,7 +108,7 @@ func (h *TripHandlers) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.renderPage(w, "trip_list.html", PageData{
+	h.renderPage(w, r, "trip_list.html", PageData{
 		Title: "Trips",
 		User:  session,
 		Extra: map[string]interface{}{"Trips": res.Trips, "Pagination": pd, "Query": pp.Query, "StatusFilter": pp.Status},
@@ -198,7 +198,7 @@ func (h *TripHandlers) View(w http.ResponseWriter, r *http.Request) {
 		availableVehicles, _, _ = h.Services.Vehicles.ListVehicles(r.Context(), "", "available", 1000, 0)
 	}
 
-	h.renderPage(w, "trip_view.html", PageData{
+	h.renderPage(w, r, "trip_view.html", PageData{
 		Title: "View Trip",
 		Extra: map[string]interface{}{
 			"Trip":              trip,

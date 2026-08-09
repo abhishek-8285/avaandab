@@ -248,6 +248,7 @@ type User struct {
 	PasswordHash string         `json:"password_hash"`
 	Name         string         `json:"name"`
 	Phone        sql.NullString `json:"phone"`
+	Timezone     string         `json:"timezone"`
 	RoleID       int64          `json:"role_id"`
 	Status       string         `json:"status"`
 	LastLoginAt  sql.NullTime   `json:"last_login_at"`

@@ -94,6 +94,7 @@ func toDomainUserWithRole(u db.User, role domain.Role) domain.User {
 		PasswordHash: u.PasswordHash,
 		Name:         u.Name,
 		Phone:        fromNullString(u.Phone),
+		Timezone:     u.Timezone,
 		Role:         role,
 		Status:       domain.UserStatus(u.Status),
 		LastLoginAt:  fromNullTime(u.LastLoginAt),

@@ -67,7 +67,28 @@
 .font-headline-md { font-family: 'Outfit', sans-serif; font-size: 20px; line-height: 28px; font-weight: 600; }
 .font-body-lg { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; line-height: 24px; font-weight: 400; }
 .font-body-md { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; line-height: 20px; font-weight: 400; }
-.font-body-sm { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; line-height: 18px; font-weight: 400; }
+/* Icon Alignment Rules */
+.material-symbols-outlined,
+.material-icons,
+svg.icon,
+.icon-align {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  line-height: 1 !important;
+  margin-top: -0.05em;
+}
+
+/* Ensure flex containers align icons centrally */
+.flex > .material-symbols-outlined,
+.flex > .material-icons,
+.inline-flex > .material-symbols-outlined,
+.inline-flex > .material-icons {
+  margin-top: 0;
+  align-self: center;
+}
+
 .font-label-caps { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; line-height: 16px; letter-spacing: 0.05em; font-weight: 700; text-transform: uppercase; }
 .font-data-mono { font-family: 'Plus Jakarta Sans', ui-monospace, monospace; font-size: 14px; line-height: 20px; font-weight: 500; }
 

@@ -41,12 +41,14 @@ def run_test(num_users, req_per_user):
     avg_lat = (sum(latencies) / len(latencies)) * 1000
     p50 = latencies[int(len(latencies) * 0.50)] * 1000
     p95 = latencies[int(len(latencies) * 0.95)] * 1000
+    p99 = latencies[int(len(latencies) * 0.99)] * 1000
     rps = total_requests / overall_elapsed
 
     print(f"Elapsed: {overall_elapsed:.2f}s | RPS: {rps:.2f} req/s")
     print(f"Status Codes: {statuses}")
-    print(f"Avg Latency: {avg_lat:.1f} ms | P50: {p50:.1f} ms | P95: {p95:.1f} ms")
+    print(f"Avg: {avg_lat:.1f} ms | P50: {p50:.1f} ms | P95: {p95:.1f} ms | P99: {p99:.1f} ms")
     return rps, statuses
+
 
 if __name__ == "__main__":
     levels = [10, 50, 100, 200, 500]

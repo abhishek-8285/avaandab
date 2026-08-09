@@ -24,7 +24,7 @@ type AuthService interface {
 	Logout(ctx context.Context, token string) error
 	ChangePassword(ctx context.Context, userID types.UserID, oldPassword, newPassword string) error
 	GetProfile(ctx context.Context, userID types.UserID) (User, error)
-	UpdateProfile(ctx context.Context, userID types.UserID, name, phone string) (User, error)
+	UpdateProfile(ctx context.Context, userID types.UserID, name, phone, timezone string) (User, error)
 	VerifySession(ctx context.Context, token string) (*User, error)
 }
 
