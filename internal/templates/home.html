@@ -47,11 +47,9 @@
             }
         }
         .navigation-button-container {
-            display: none;
+            display: none !important;
         }
-        @media (max-width: 1023px) {
-            .navigation-button-container { display: flex; }
-        }
+
         .navigation-button {
             width: 24px;
             height: 24px;
@@ -471,77 +469,8 @@
 </head>
 <body class="bg-[#f7f9fb] text-[#191c1e] font-sans antialiased overflow-x-hidden">
     <!-- Header -->
-    <header class="header">
-        <nav class="navigation">
-            <div class="navigation-button-container">
-                <div class="navigation-button">
-                    <span class="material-symbols-outlined text-slate-700">menu</span>
-                </div>
-            </div>
+    {{template "public_header.html" .}}
 
-            <!-- MOST LEFT: Logo & Brand Name -->
-            <div class="navigation-main-logo">
-                <a class="desktop-logo" href="/">
-                    <div class="logo-icon-box">
-                        <span class="material-symbols-outlined text-2xl">local_shipping</span>
-                    </div>
-                    <span class="text-2xl font-black text-[#00685f] font-display tracking-tight">Avandab</span>
-                </a>
-            </div>
-            
-            <!-- CENTER: Navigation Links -->
-            <div class="navigation-body">
-                <div class="navigation-body-container">
-                    <ul class="navigation-top-menu navigation-top-menu-main">
-                        <li class="navigation-top-menu-item">
-                            <span class="navigation-top-menu-label navigation-top-menu-label-arrow">Operations</span>
-                            <ul class="navigation-top-menu-sublist">
-                                <li class="navigation-top-menu-item"><a class="navigation-top-menu-link" href="/dashboard"><span class="navigation-top-menu-label">Operations Cockpit</span></a></li>
-                                <li class="navigation-top-menu-item"><a class="navigation-top-menu-link" href="/trips"><span class="navigation-top-menu-label">Live Dispatch</span></a></li>
-                                <li class="navigation-top-menu-item"><a class="navigation-top-menu-link" href="/routes"><span class="navigation-top-menu-label">Route Optimizer</span></a></li>
-                                <li class="navigation-top-menu-item"><a class="navigation-top-menu-link" href="/bookings"><span class="navigation-top-menu-label">Bookings</span></a></li>
-                            </ul>
-                        </li>
-                        <li class="navigation-top-menu-item">
-                            <span class="navigation-top-menu-label navigation-top-menu-label-arrow">Fleet Management</span>
-                            <ul class="navigation-top-menu-sublist">
-                                <li class="navigation-top-menu-item"><a class="navigation-top-menu-link" href="/vehicles"><span class="navigation-top-menu-label">Active Units</span></a></li>
-                                <li class="navigation-top-menu-item"><a class="navigation-top-menu-link" href="/drivers"><span class="navigation-top-menu-label">Drivers Directory</span></a></li>
-                                <li class="navigation-top-menu-item"><a class="navigation-top-menu-link" href="/customers"><span class="navigation-top-menu-label">Customer Accounts</span></a></li>
-                            </ul>
-                        </li>
-                        <li class="navigation-top-menu-item">
-                            <span class="navigation-top-menu-label navigation-top-menu-label-arrow">Finance &amp; Reports</span>
-                            <ul class="navigation-top-menu-sublist">
-                                <li class="navigation-top-menu-item"><a class="navigation-top-menu-link" href="/invoices"><span class="navigation-top-menu-label">Invoices</span></a></li>
-                                <li class="navigation-top-menu-item"><a class="navigation-top-menu-link" href="/payments"><span class="navigation-top-menu-label">Payments &amp; Receipts</span></a></li>
-                                <li class="navigation-top-menu-item"><a class="navigation-top-menu-link" href="/reports"><span class="navigation-top-menu-label">Analytics Reports</span></a></li>
-                            </ul>
-                        </li>
-                        <li class="navigation-top-menu-item">
-                            <a class="navigation-top-menu-link" href="#benefits"><span class="navigation-top-menu-label">Benefits</span></a>
-                        </li>
-                        <li class="navigation-top-menu-item">
-                            <a class="navigation-top-menu-link" href="/contact-us"><span class="navigation-top-menu-label">Contact Us</span></a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- MOST RIGHT: Login & Get Started -->
-            <ul class="navigation-top-menu navigation-top-menu-user-actions">
-                <li class="navigation-top-menu-item">
-                    <a href="/login" class="login-link-button">
-                        <span class="material-symbols-outlined text-lg">account_circle</span>
-                        <span>Sign In / Login</span>
-                    </a>
-                </li>
-                <li class="navigation-top-menu-item navigation-top-menu-item-get-started">
-                    <a href="/login" class="get-started-link btn black-border-button">Get started</a>
-                </li>
-            </ul>
-        </nav>
-    </header>
 
     <!-- Hero Section -->
     <section class="py-16 sm:py-24 px-6 max-w-6xl mx-auto">

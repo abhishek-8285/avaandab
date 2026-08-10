@@ -137,14 +137,15 @@
         <div class="flex-1 flex flex-col h-screen overflow-hidden bg-[#f7f9fb]">
             <!-- TopAppBar (Stitch Design) -->
             <header class="bg-white border-b border-[#E2E8F0] sticky top-0 z-30 flex justify-between items-center h-16 px-6 sm:px-8 w-full shrink-0 shadow-xs">
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 min-w-0">
                     <button id="mobile-menu-btn" type="button"
-                        class="md:hidden w-10 h-10 flex items-center justify-center text-slate-600 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00685f] rounded-md"
+                        class="md:hidden w-10 h-10 flex items-center justify-center text-slate-600 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00685f] rounded-md shrink-0"
                         aria-label="Toggle navigation" aria-expanded="false">
                         <span class="material-icons">menu</span>
                     </button>
-                    <h2 class="text-xl font-bold text-slate-900 font-display tracking-tight">{{.Title}}</h2>
+                    <h2 class="text-base sm:text-lg font-bold text-slate-900 font-display tracking-tight truncate">{{.Title}}</h2>
                 </div>
+
                 <div class="flex items-center gap-4 sm:gap-6 ml-auto">
                     <form method="GET" action="/audit-logs" class="relative hidden sm:block">
                         <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
@@ -231,7 +232,8 @@
                             <div class="w-9 h-9 rounded-full bg-[#008378] text-white flex items-center justify-center font-bold text-xs ring-2 ring-emerald-500/20 shadow-xs">
                                 {{if .User.Name}}{{slice .User.Name 0 2}}{{else}}AD{{end}}
                             </div>
-                            <span class="text-sm text-slate-700 group-hover:text-[#00685f] transition-colors font-semibold hidden sm:inline-block">{{.User.Name}}</span>
+                            <span class="text-xs md:text-sm text-slate-700 group-hover:text-[#00685f] transition-colors font-semibold hidden sm:inline-block max-w-[120px] md:max-w-[160px] truncate">{{.User.Name}}</span>
+
                         </div>
 
                         <div class="absolute right-0 top-full mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 py-1.5 text-slate-700 text-xs">
@@ -265,9 +267,10 @@
                 </div>
             </header>
 
-            <main id="main-content" class="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8">
+            <main id="main-content" class="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-6 md:p-8 max-w-full">
                 {{.Content}}
             </main>
+
         </div>
     </div>
 

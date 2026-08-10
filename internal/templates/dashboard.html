@@ -1,37 +1,37 @@
 <div class="space-y-6">
     <!-- Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white rounded-lg shadow p-4 text-center">
-            <div class="text-stat text-blue-600 tabular-nums">{{.Stats.TodaysTripsCount}}</div>
-            <div class="text-sm text-gray-600">Today's Trips</div>
+    <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
+        <div class="bg-white rounded-lg shadow p-3 sm:p-4 text-center">
+            <div class="text-stat text-blue-600 tabular-nums text-xl sm:text-2xl font-bold">{{.Stats.TodaysTripsCount}}</div>
+            <div class="text-xs sm:text-sm text-gray-600">Today's Trips</div>
         </div>
-        <div class="bg-white rounded-lg shadow p-4 text-center">
-            <div class="text-stat text-orange-600 tabular-nums">{{.Stats.ActiveTripsCount}}</div>
-            <div class="text-sm text-gray-600">Active Trips</div>
+        <div class="bg-white rounded-lg shadow p-3 sm:p-4 text-center">
+            <div class="text-stat text-orange-600 tabular-nums text-xl sm:text-2xl font-bold">{{.Stats.ActiveTripsCount}}</div>
+            <div class="text-xs sm:text-sm text-gray-600">Active Trips</div>
         </div>
-        <div class="bg-white rounded-lg shadow p-4 text-center">
-            <div class="text-stat text-green-600 tabular-nums">{{.Stats.CompletedTripsCount}}</div>
-            <div class="text-sm text-gray-600">Completed Trips</div>
+        <div class="bg-white rounded-lg shadow p-3 sm:p-4 text-center">
+            <div class="text-stat text-green-600 tabular-nums text-xl sm:text-2xl font-bold">{{.Stats.CompletedTripsCount}}</div>
+            <div class="text-xs sm:text-sm text-gray-600">Completed Trips</div>
         </div>
-        <div class="bg-white rounded-lg shadow p-4 text-center">
-            <div class="text-stat text-red-600 tabular-nums">{{.Stats.CancelledTripsCount}}</div>
-            <div class="text-sm text-gray-600">Cancelled Trips</div>
+        <div class="bg-white rounded-lg shadow p-3 sm:p-4 text-center">
+            <div class="text-stat text-red-600 tabular-nums text-xl sm:text-2xl font-bold">{{.Stats.CancelledTripsCount}}</div>
+            <div class="text-xs sm:text-sm text-gray-600">Cancelled Trips</div>
         </div>
-        <div class="bg-white rounded-lg shadow p-4 text-center">
-            <div class="text-stat text-purple-600 tabular-nums">{{.Stats.AvailableVehiclesCount}}</div>
-            <div class="text-sm text-gray-600">Available Vehicles</div>
+        <div class="bg-white rounded-lg shadow p-3 sm:p-4 text-center">
+            <div class="text-stat text-purple-600 tabular-nums text-xl sm:text-2xl font-bold">{{.Stats.AvailableVehiclesCount}}</div>
+            <div class="text-xs sm:text-sm text-gray-600">Available Vehicles</div>
         </div>
-        <div class="bg-white rounded-lg shadow p-4 text-center">
-            <div class="text-stat text-indigo-600 tabular-nums">{{.Stats.AvailableDriversCount}}</div>
-            <div class="text-sm text-gray-600">Available Drivers</div>
+        <div class="bg-white rounded-lg shadow p-3 sm:p-4 text-center">
+            <div class="text-stat text-indigo-600 tabular-nums text-xl sm:text-2xl font-bold">{{.Stats.AvailableDriversCount}}</div>
+            <div class="text-xs sm:text-sm text-gray-600">Available Drivers</div>
         </div>
-        <div class="bg-white rounded-lg shadow p-4 text-center">
-            <div class="text-stat text-yellow-600 tabular-nums">{{.Stats.PendingPaymentsCount}}</div>
-            <div class="text-sm text-gray-600">Pending Payments</div>
+        <div class="bg-white rounded-lg shadow p-3 sm:p-4 text-center">
+            <div class="text-stat text-yellow-600 tabular-nums text-xl sm:text-2xl font-bold">{{.Stats.PendingPaymentsCount}}</div>
+            <div class="text-xs sm:text-sm text-gray-600">Pending Payments</div>
         </div>
-        <div class="bg-white rounded-lg shadow p-4 text-center">
-            <div class="text-stat text-teal-600 tabular-nums">{{printf "%.2f" .Stats.MonthlyRevenue}}</div>
-            <div class="text-sm text-gray-600">Monthly Revenue</div>
+        <div class="bg-white rounded-lg shadow p-3 sm:p-4 text-center">
+            <div class="text-stat text-teal-600 tabular-nums text-xl sm:text-2xl font-bold">{{printf "%.2f" .Stats.MonthlyRevenue}}</div>
+            <div class="text-xs sm:text-sm text-gray-600">Monthly Revenue</div>
         </div>
     </div>
 
