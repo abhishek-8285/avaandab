@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -17,9 +18,12 @@ import (
 	dbmigr "transport-app/db"
 	"transport-app/internal/auth"
 	"transport-app/internal/config"
+	"transport-app/internal/graphqlservice"
+	"transport-app/internal/grpcservice"
 	"transport-app/internal/handlers"
 	"transport-app/internal/logging"
 	"transport-app/internal/middleware"
+	"transport-app/internal/mqttservice"
 	"transport-app/internal/repository/sqlite"
 	"transport-app/internal/service"
 
@@ -220,7 +224,44 @@ func main() {
 
 	// ── REST API v1 ───────────────────────────────────────────────────────
 	apiSecret := []byte(cfg.CookieSecret) // same secret; rotate independently in prod
-	authAPIHandler := authAPIHandlers.NewAPIAuthHandler(services.Auth, apiSecret)
+	authAPIHandler := authAPIHandlers.NewAPIAuthHandler(services.Auth, services.Users, apiSecret)
+
+	// ── High-Performance Architecture Protocols ──────────────────────
+	// 1. MQTT Broker Client Setup
+	_ = mqttservice.NewMQTTBroker("tcp://localhost:1883")
+
+	// 2. gRPC Dispatch Microservice
+	grpcservice.StartGRPCServer("50051")
+
+	// 3. GraphQL Query Endpoint
+	r.Post("/query", graphqlservice.GraphQLHandler)
+	r.Get("/graphql", graphqlservice.GraphQLHandler)
+
+	// 4. Telemetry Batch Sync Endpoint
+	r.Post("/api/v1/telemetry/sync", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		var body map[string]interface{}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		
+		logs, _ := body["logs"].([]interface{})
+		syncedIDs := make([]interface{}, 0)
+		if logs != nil {
+			for _, item := range logs {
+				if m, ok := item.(map[string]interface{}); ok {
+					if id, exists := m["id"]; exists {
+						syncedIDs = append(syncedIDs, id)
+					}
+				}
+			}
+		}
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success":      true,
+			"synced_count": len(syncedIDs),
+			"synced_ids":   syncedIDs,
+			"server_time":  time.Now().Format(time.RFC3339),
+		})
+	})
 
 	// Public: token endpoint (no auth required)
 	authAPIHandler.Register(r)

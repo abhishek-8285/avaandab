@@ -14,6 +14,11 @@
     <script src="/static/js/router.js" defer></script>
     <link rel="stylesheet" href="/static/css/tailwind.css">
     <link rel="stylesheet" href="/static/css/app.css">
+    <!-- PostHog Web Analytics -->
+    <script>
+      !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}!(p=t.createElement("script")).type="text/javascript",p.async=!0,p.src=s.api_host+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group identifyGroup".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1.0)}(document,window.posthog||[]);
+      posthog.init('phc_avandab_demo_api_key_placeholder',{api_host:'https://us.i.posthog.com'})
+    </script>
     <style>
         html { opacity: 0; transition: opacity 0.15s ease-in; }
         body {
@@ -516,7 +521,7 @@
                     </div>
 
                     <!-- Screenshot Container with Overlay Badges -->
-                    <div class="relative overflow-hidden rounded-xl border border-[#E2E8F0]">
+                    <div class="relative overflow-hidden rounded-xl border border-[#E2E8F0] mb-4">
                         <img src="/static/img/avandab_hero.jpg" alt="Avandab Operations Cockpit" class="w-full h-auto object-cover">
                         
                         <!-- Floating Live Status Pill 1 -->
@@ -543,6 +548,22 @@
                                 <div class="text-[11px] text-[#565e74] font-medium">98% Active Drivers</div>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Avandab Mobile App Preview Mockup -->
+                    <div class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-4 text-white shadow-lg border border-slate-700 flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-[#00685f] text-white flex items-center justify-center font-bold shadow-md">
+                                <span class="material-symbols-outlined text-xl">phone_iphone</span>
+                            </div>
+                            <div>
+                                <div class="text-xs font-bold uppercase tracking-wider text-teal-400">Mobile Driver App</div>
+                                <div class="text-sm font-semibold text-slate-100">React Native • GPS • Camera • Offline DB</div>
+                            </div>
+                        </div>
+                        <a href="/static/mobile-demo" onclick="alert('Mobile App project initialized in /mobile directory! Run \'cd mobile && npm run start\' to launch preview.')" class="px-3 py-1.5 rounded bg-teal-600 hover:bg-teal-500 text-xs font-bold text-white transition-colors shrink-0">
+                            Explore Code
+                        </a>
                     </div>
                 </div>
             </div>

@@ -8,23 +8,95 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"transport-app/internal/auth"
+	"transport-app/internal/domain"
 	"transport-app/internal/service"
 )
 
 // APIAuthHandler handles REST authentication endpoints.
 type APIAuthHandler struct {
 	authSvc *service.AuthService
+	userSvc *service.UserService
 	secret  []byte
 }
 
 // NewAPIAuthHandler constructs an APIAuthHandler.
-func NewAPIAuthHandler(authSvc *service.AuthService, secret []byte) *APIAuthHandler {
-	return &APIAuthHandler{authSvc: authSvc, secret: secret}
+func NewAPIAuthHandler(authSvc *service.AuthService, userSvc *service.UserService, secret []byte) *APIAuthHandler {
+	return &APIAuthHandler{authSvc: authSvc, userSvc: userSvc, secret: secret}
 }
 
-// Register mounts the token endpoint onto a chi.Router.
+// Register mounts the auth endpoints onto a chi.Router.
 func (h *APIAuthHandler) Register(r chi.Router) {
 	r.Post("/api/v1/auth/token", h.IssueToken)
+	r.Post("/api/v1/auth/register", h.RegisterUser)
+}
+
+// RegisterUser handles universal REST user registration across all client roles (Driver, Dispatcher, Admin).
+func (h *APIAuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Name          string `json:"name"`
+		Email         string `json:"email"`
+		Phone         string `json:"phone"`
+		Password      string `json:"password"`
+		Role          string `json:"role"`           // "driver", "dispatcher", "admin"
+		VehicleNumber string `json:"vehicle_number"` // Optional metadata
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		apiError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.Email == "" || req.Password == "" || req.Name == "" {
+		apiError(w, http.StatusBadRequest, "name, email, and password are required")
+		return
+	}
+
+	// Map requested role to database Role ID (Default: Driver ID 5)
+	var roleID int64 = 5
+	roleName := "driver"
+
+	switch req.Role {
+	case "admin", "ADMIN":
+		roleID = 1
+		roleName = "admin"
+	case "dispatcher", "DISPATCHER":
+		roleID = 2
+		roleName = "dispatcher"
+	default:
+		roleID = 5
+		roleName = "driver"
+	}
+
+	// Register user in database
+	user, err := h.userSvc.CreateUserWithPassword(r.Context(), req.Email, req.Name, req.Phone, req.Password, roleID, domain.UserStatusActive)
+	if err != nil {
+		apiError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	expiresAt := time.Now().Add(24 * time.Hour)
+	token, err := auth.IssueAPIToken(h.secret, auth.APITokenClaims{
+		UserID:    string(user.ID),
+		Role:      roleName,
+		TenantID:  "1",
+		IssuedAt:  time.Now().Unix(),
+		ExpiresAt: expiresAt.Unix(),
+	})
+	if err != nil {
+		apiError(w, http.StatusInternalServerError, "token generation failed")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"token":      token,
+		"expires_at": expiresAt.UTC().Format(time.RFC3339),
+		"user": map[string]string{
+			"id":    string(user.ID),
+			"name":  user.Name,
+			"email": user.Email,
+			"role":  roleName,
+		},
+	})
 }
 
 // IssueToken godoc

@@ -1,0 +1,217 @@
+<!DOCTYPE html><html lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Avandab Driver Onboarding</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-dim": "#cbdbf5",
+                        "primary": "#00685f", // Overriding primary for "Brand Orange" context while keeping theme keys
+                        "brand-orange": "#f97316", // Custom injection for the specific brand request
+                        "tertiary-container": "#727577",
+                        "error-container": "#ffdad6",
+                        "on-primary-fixed": "#00201d",
+                        "on-primary-fixed-variant": "#005049",
+                        "surface": "#f8f9ff",
+                        "secondary": "#565e74",
+                        "primary-fixed": "#89f5e7",
+                        "surface-container-high": "#dce9ff",
+                        "inverse-primary": "#6bd8cb",
+                        "surface-container": "#e5eeff",
+                        "on-secondary": "#ffffff",
+                        "primary-fixed-dim": "#6bd8cb",
+                        "error": "#ba1a1a",
+                        "inverse-surface": "#213145",
+                        "surface-tint": "#006a61",
+                        "on-tertiary-fixed-variant": "#444749",
+                        "surface-bright": "#f8f9ff",
+                        "on-error": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "on-tertiary": "#ffffff",
+                        "surface-variant": "#d3e4fe",
+                        "tertiary-fixed-dim": "#c4c7c9",
+                        "on-primary-container": "#f4fffc",
+                        "on-secondary-container": "#5c647a",
+                        "on-surface-variant": "#3d4947",
+                        "outline": "#6d7a77",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-fixed": "#131b2e",
+                        "outline-variant": "#bcc9c6",
+                        "on-primary": "#ffffff",
+                        "surface-container-highest": "#d3e4fe",
+                        "inverse-on-surface": "#eaf1ff",
+                        "surface-container-low": "#eff4ff",
+                        "on-secondary-fixed-variant": "#3f465c",
+                        "secondary-fixed-dim": "#bec6e0",
+                        "on-background": "#0b1c30",
+                        "on-tertiary-fixed": "#191c1e",
+                        "tertiary": "#595c5e",
+                        "primary-container": "#f97316", // Mapped to orange
+                        "on-tertiary-container": "#fbfdff",
+                        "on-surface": "#0b1c30",
+                        "background": "#f8f9ff",
+                        "tertiary-fixed": "#e0e3e5",
+                        "secondary-fixed": "#dae2fd",
+                        "secondary-container": "#dae2fd"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "md": "16px",
+                        "sm": "8px",
+                        "screen-margin": "16px",
+                        "xs": "4px",
+                        "xl": "32px",
+                        "base": "4px",
+                        "touch-target-min": "44px",
+                        "lg": "24px",
+                        "gutter": "12px"
+                    },
+                    "fontFamily": {
+                        "data-display": ["Plus Jakarta Sans"],
+                        "headline-md": ["Outfit"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "label-sm": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Outfit"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "headline-sm": ["Outfit"],
+                        "label-caps": ["Plus Jakarta Sans"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+        .animate-float-delayed {
+            animation: float 6s ease-in-out infinite;
+            animation-delay: 2s;
+        }
+        .animate-float-slow {
+            animation: float 8s ease-in-out infinite;
+            animation-delay: 1s;
+        }
+        .wavy-edge {
+            clip-path: ellipse(110% 100% at 50% 100%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body-md text-on-surface">
+<main class="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-background">
+<!-- Top Visual Section -->
+<section class="relative h-[530px] w-full overflow-hidden bg-primary-container">
+<!-- Background Image -->
+<div class="absolute inset-0 z-0"><img class="h-full w-full object-cover" alt="A professional, smiling Indian woman driver in her 30s, wearing a clean white t-shirt with a simple 'Avandab' logo. She is standing on a bustling Indian urban street at sunset, holding a smartphone showing a logistics app." src="https://lh3.googleusercontent.com/aida/AP1WRLvqM6ssiAm3hvOSRbQnvi6TTQRvcIh3HNUpR5Q8Tmdv9ZA2RewqNWLqet_S_Ei2Ohv6Nrf4VMo0FvF2OnvQkwuc8YSk2TWnbjGDL6DTmdbx5OD7L7tvo1HMbExGpEV62VxUfp1ozaNdM1_91x_my64BjDLKQStsfkis_60_chJPJx9a5bgCGrgDOG3up1Oq1xLVzscQA2A7FNwvK3JORAcYLShf54UaiTf0f_YnJzRrha9Oev7jtpecusHT"><div class="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60"></div></div>
+<!-- Floating Icons Overlay -->
+<div class="absolute inset-0 z-10 pointer-events-none">
+<!-- Location Icon -->
+<div class="absolute top-[15%] left-[10%] animate-float">
+<div class="flex h-14 w-14 items-center justify-center rounded-full text-white shadow-xl bg-primary"><span class="material-symbols-outlined text-[32px]" data-icon="location_on">location_on</span></div>
+</div>
+<!-- Chat Icon -->
+<div class="absolute top-[25%] right-[15%] animate-float-delayed">
+<div class="flex h-12 w-12 items-center justify-center rounded-full text-white shadow-lg bg-primary">
+<span class="material-symbols-outlined text-[28px]" data-icon="chat">chat</span>
+</div>
+</div>
+<!-- Phone Icon -->
+<div class="absolute bottom-[35%] left-[20%] animate-float-slow">
+<div class="flex h-12 w-12 items-center justify-center rounded-full text-white shadow-lg bg-primary">
+<span class="material-symbols-outlined text-[28px]" data-icon="phone">phone</span>
+</div>
+</div>
+<!-- Driver Profile Icon -->
+<div class="absolute bottom-[25%] right-[25%] animate-float">
+<div class="flex h-16 w-16 items-center justify-center rounded-full text-white shadow-2xl border-4 border-white bg-primary">
+<span class="material-symbols-outlined text-[36px]" data-icon="account_circle">account_circle</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Bottom Content Section -->
+<section class="relative z-20 -mt-20 flex flex-1 flex-col items-center bg-background px-lg pt-12 pb-xl wavy-edge">
+<div class="w-full max-w-md space-y-md text-center">
+<!-- Headline -->
+<h1 class="font-headline-lg text-on-surface text-[32px] font-bold leading-tight">
+                    Earn Money With This Driver App
+                </h1>
+<!-- Description -->
+<p class="font-body-lg text-secondary px-4">
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud.
+                </p>
+<!-- Action Button -->
+<div class="pt-lg">
+<button class="w-full h-14 rounded-full text-white font-headline-sm flex items-center justify-center shadow-lg hover:brightness-110 active:scale-[0.98] transition-all bg-primary">
+<span class="truncate">Let's Get Started</span>
+</button>
+</div>
+<!-- Secondary Action -->
+<div class="pt-sm pb-xl">
+<a class="font-label-sm text-secondary hover:text-brand-orange transition-colors" href="#">
+                        Already have an account? <span class="font-bold underline decoration-primary text-primary">Sign In</span>
+</a>
+</div>
+</div>
+</section>
+<!-- Visual Decorative Elements (Wavy transition helper) -->
+<div class="absolute top-[50%] left-0 w-full overflow-hidden leading-[0] z-10 pointer-events-none">
+<svg preserveAspectRatio="none" style="height: 100px; width: 100%;" viewBox="0 0 500 150">
+<path d="M-10.43,84.37 C149.99,150.00 349.20,-49.91 511.57,100.16 L500.00,150.00 L0.00,150.00 Z" style="stroke: none; fill: var(--tw-bg-opacity, 1) #f8f9ff;"></path>
+</svg>
+</div>
+</main>
+<script>
+        // Micro-interaction for the button
+        const button = document.querySelector('button');
+        button.addEventListener('touchstart', () => {
+            button.style.transform = 'scale(0.98)';
+        });
+        button.addEventListener('touchend', () => {
+            button.style.transform = 'scale(1)';
+        });
+
+        // Add scroll animation to floating icons
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            const floatIcons = document.querySelectorAll('.animate-float, .animate-float-delayed, .animate-float-slow');
+            floatIcons.forEach((icon, index) => {
+                const speed = (index + 1) * 0.1;
+                icon.style.transform = `translateY(${scrolled * speed}px)`;
+            });
+        });
+    </script>
+
+
+
+
+
+
+</body></html>
