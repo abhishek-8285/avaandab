@@ -10,20 +10,10 @@ import (
 	"time"
 )
 
-type GitHubAsset struct {
-	Name               string `json:"name"`
-	BrowserDownloadURL string `json:"browser_download_url"`
-}
-
-type GitHubRelease struct {
-	TagName string        `json:"tag_name"`
-	Assets  []GitHubAsset `json:"assets"`
-}
-
 func fetchLatestGitHubManifest(repo string) (*VersionManifest, error) {
 	url := fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo)
 	client := &http.Client{Timeout: 10 * time.Second}
-	
+
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
@@ -37,7 +27,7 @@ func fetchLatestGitHubManifest(repo string) (*VersionManifest, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.fmt.Errorf("github api error: %d", resp.StatusCode)
+		return nil, fmt.Errorf("github api error: %d", resp.StatusCode)
 	}
 
 	var release GitHubRelease

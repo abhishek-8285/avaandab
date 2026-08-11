@@ -197,7 +197,6 @@ func main() {
 		})
 	})
 
-
 	// Direct SEO Endpoints
 	r.Get("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
@@ -246,7 +245,7 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		var body map[string]interface{}
 		_ = json.NewDecoder(r.Body).Decode(&body)
-		
+
 		logs, _ := body["logs"].([]interface{})
 		syncedIDs := make([]interface{}, 0)
 		if logs != nil {

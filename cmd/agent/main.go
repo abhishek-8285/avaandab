@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -93,7 +94,10 @@ func checkAndUpdate(manifestURL string) {
 }
 
 func fetchManifest(url string) (*VersionManifest, error) {
-	client := &http.Client{Timeout: 10 * time.Second}
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Timeout: 10 * time.Second, Transport: tr}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
@@ -195,7 +199,10 @@ func downloadFile(filepath string, url string) error {
 	}
 	req.Header.Set("User-Agent", "TecnoPova2-AutoUpdateAgent")
 
-	client := &http.Client{Timeout: 60 * time.Second}
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Timeout: 60 * time.Second, Transport: tr}
 	resp, err := client.Do(req)
 	if err != nil {
 		return err

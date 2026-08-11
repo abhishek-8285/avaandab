@@ -7,9 +7,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	invoiceApp "transport-app/internal/invoice/application"
-	"transport-app/internal/domain/types"
 	"transport-app/internal/domain"
+	"transport-app/internal/domain/types"
+	invoiceApp "transport-app/internal/invoice/application"
 	"transport-app/internal/middleware"
 	"transport-app/internal/service"
 	clock "transport-app/internal/shared/clock"

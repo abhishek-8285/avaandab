@@ -21,10 +21,10 @@ type SyncBatchRequest struct {
 }
 
 type SyncBatchResponse struct {
-	Success      bool    `json:"success"`
-	SyncedCount  int     `json:"synced_count"`
-	SyncedIDs    []int64 `json:"synced_ids"`
-	ServerTime   string  `json:"server_time"`
+	Success     bool    `json:"success"`
+	SyncedCount int     `json:"synced_count"`
+	SyncedIDs   []int64 `json:"synced_ids"`
+	ServerTime  string  `json:"server_time"`
 }
 
 func RegisterTelemetryRoutes(r chi.Router) {

@@ -361,25 +361,25 @@ func (a *App) renderPage(w http.ResponseWriter, r *http.Request, name string, da
 	}
 
 	pd := struct {
-		Title          string
-		Content        template.HTML
-		User           *auth.SessionData
-		Query          string
-		Notifications  interface{}
-		UnreadCount    int
-		HasUnread      bool
-		FlashError     string
-		FlashSuccess   string
+		Title         string
+		Content       template.HTML
+		User          *auth.SessionData
+		Query         string
+		Notifications interface{}
+		UnreadCount   int
+		HasUnread     bool
+		FlashError    string
+		FlashSuccess  string
 	}{
-		Title:          data.Title,
-		Content:        template.HTML(buf.String()),
-		User:           data.User,
-		Query:          fmt.Sprintf("%v", templateData["Query"]),
-		Notifications:  notifications,
-		UnreadCount:    unreadCount,
-		HasUnread:      unreadCount > 0,
-		FlashError:     data.FlashError,
-		FlashSuccess:   data.FlashSuccess,
+		Title:         data.Title,
+		Content:       template.HTML(buf.String()),
+		User:          data.User,
+		Query:         fmt.Sprintf("%v", templateData["Query"]),
+		Notifications: notifications,
+		UnreadCount:   unreadCount,
+		HasUnread:     unreadCount > 0,
+		FlashError:    data.FlashError,
+		FlashSuccess:  data.FlashSuccess,
 	}
 
 	if err := layout.Execute(w, pd); err != nil {
