@@ -37,7 +37,7 @@ func HandleTelemetrySync(w http.ResponseWriter, r *http.Request) {
 	var req SyncBatchRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Invalid request payload"})
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Invalid request payload"})
 		return
 	}
 
@@ -53,5 +53,5 @@ func HandleTelemetrySync(w http.ResponseWriter, r *http.Request) {
 		ServerTime:  time.Now().Format(time.RFC3339),
 	}
 
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }

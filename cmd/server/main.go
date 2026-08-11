@@ -248,17 +248,15 @@ func main() {
 
 		logs, _ := body["logs"].([]interface{})
 		syncedIDs := make([]interface{}, 0)
-		if logs != nil {
-			for _, item := range logs {
-				if m, ok := item.(map[string]interface{}); ok {
-					if id, exists := m["id"]; exists {
-						syncedIDs = append(syncedIDs, id)
-					}
+		for _, item := range logs {
+			if m, ok := item.(map[string]interface{}); ok {
+				if id, exists := m["id"]; exists {
+					syncedIDs = append(syncedIDs, id)
 				}
 			}
 		}
 
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"success":      true,
 			"synced_count": len(syncedIDs),
 			"synced_ids":   syncedIDs,

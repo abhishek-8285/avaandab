@@ -49,9 +49,8 @@ func (h *APIAuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Map requested role to database Role ID (Default: Driver ID 5)
-	var roleID int64 = 5
-	roleName := "driver"
+	var roleID int64
+	var roleName string
 
 	switch req.Role {
 	case "admin", "ADMIN":
@@ -60,6 +59,12 @@ func (h *APIAuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	case "dispatcher", "DISPATCHER":
 		roleID = 2
 		roleName = "dispatcher"
+	case "fleet_owner", "FLEET_OWNER":
+		roleID = 3
+		roleName = "fleet_owner"
+	case "cargo_owner", "CARGO_OWNER":
+		roleID = 4
+		roleName = "cargo_owner"
 	default:
 		roleID = 5
 		roleName = "driver"

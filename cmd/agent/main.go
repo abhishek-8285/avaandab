@@ -150,14 +150,14 @@ func applyUpdate(m *VersionManifest) error {
 	}
 
 	log.Printf("[Agent] Terminating existing server process...")
-	exec.Command("pkill", "-9", "server").Run()
+	_ = exec.Command("pkill", "-9", "server").Run()
 
 	log.Printf("[Agent] Extracting updated files...")
 	if err := untarGz(tmpTar, workDir); err != nil {
 		return fmt.Errorf("unpack error: %w", err)
 	}
 
-	os.Chmod(filepath.Join(workDir, "server"), 0755)
+	_ = os.Chmod(filepath.Join(workDir, "server"), 0755)
 
 	log.Printf("[Agent] Restarting application server...")
 	startScript := filepath.Join(workDir, "start.sh")
@@ -183,7 +183,7 @@ func launchServerDirectly() {
 		"ENV=production",
 		"DATABASE_URL=file:mvtms.db?_journal_mode=WAL&_synchronous=OFF&cache=shared&mode=rwc",
 	)
-	cmd.Start()
+	_ = cmd.Start()
 }
 
 func downloadFile(filepath string, url string) error {
