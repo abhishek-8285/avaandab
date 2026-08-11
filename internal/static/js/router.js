@@ -55,12 +55,16 @@
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
 
-                // 1. Sync Head Elements (Stylesheets & Title)
+                // 1. Sync Head Elements (Stylesheets & Title) - Preserve critical theme links
                 const newStyles = Array.from(doc.head.querySelectorAll('link[rel="stylesheet"], style'));
                 const oldStyles = Array.from(document.head.querySelectorAll('link[rel="stylesheet"], style'));
                 
                 oldStyles.forEach(style => {
                     const href = style.getAttribute('href');
+                    // Never remove core app stylesheets during SPA navigation
+                    if (href && (href.includes('tailwind') || href.includes('app.css') || href.includes('fonts') || href.includes('material'))) {
+                        return;
+                    }
                     if (href && !newStyles.some(ns => ns.getAttribute('href') === href)) {
                         style.remove();
                     }
@@ -72,7 +76,7 @@
                         if (!oldStyles.some(os => os.getAttribute('href') === href)) {
                             document.head.appendChild(style.cloneNode(true));
                         }
-                    } else {
+                    } else if (!href) {
                         document.head.appendChild(style.cloneNode(true));
                     }
                 });
