@@ -14,7 +14,9 @@ import { EarningsOverviewScreen } from './src/components/EarningsOverviewScreen'
 import { LoginScreen } from './src/components/LoginScreen';
 import { RegisterScreen } from './src/components/RegisterScreen';
 import { ForgotPasswordScreen } from './src/components/ForgotPasswordScreen';
+import { FirstTimeSetupScreen } from './src/components/FirstTimeSetupScreen';
 import { DeliveryVerificationScreen } from './src/components/DeliveryVerificationScreen';
+import { ActiveNavigationScreen } from './src/components/ActiveNavigationScreen';
 import { DB } from './src/services/storage';
 import { Telemetry } from './src/services/telemetry';
 import { Analytics } from './src/services/analytics';
@@ -23,11 +25,12 @@ import { MQTT } from './src/services/mqtt';
 import { SyncEngine } from './src/services/syncEngine';
 import { useAuthStore } from './src/stores/authStore';
 import { Trip } from './src/types/api';
+import { CameraView } from 'expo-camera';
 
 const queryClient = new QueryClient();
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<'splash' | 'get_started' | 'onboarding_overview' | 'booking_schedule' | 'earnings_overview' | 'login' | 'register' | 'forgot_password' | 'delivery_verify' | 'main'>('splash');
+  const [currentScreen, setCurrentScreen] = useState<'splash' | 'get_started' | 'onboarding_overview' | 'booking_schedule' | 'earnings_overview' | 'login' | 'register' | 'forgot_password' | 'first_time_setup' | 'active_nav' | 'delivery_verify' | 'main'>('splash');
 
   if (currentScreen === 'splash') {
     return <SplashScreen onFinish={() => setCurrentScreen('get_started')} />;
@@ -72,7 +75,7 @@ export default function App() {
   if (currentScreen === 'login') {
     return (
       <LoginScreen
-        onLoginSuccess={() => setCurrentScreen('delivery_verify')}
+        onLoginSuccess={() => setCurrentScreen('first_time_setup')}
         onForgotPassword={() => setCurrentScreen('forgot_password')}
         onRegisterLink={() => setCurrentScreen('register')}
       />
@@ -82,7 +85,7 @@ export default function App() {
   if (currentScreen === 'register') {
     return (
       <RegisterScreen
-        onRegisterSuccess={() => setCurrentScreen('delivery_verify')}
+        onRegisterSuccess={() => setCurrentScreen('first_time_setup')}
         onBackToLogin={() => setCurrentScreen('login')}
       />
     );
@@ -96,11 +99,28 @@ export default function App() {
     );
   }
 
+  if (currentScreen === 'first_time_setup') {
+    return (
+      <FirstTimeSetupScreen
+        onCompleteSetup={() => setCurrentScreen('active_nav')}
+        onBack={() => setCurrentScreen('login')}
+      />
+    );
+  }
+
+  if (currentScreen === 'active_nav') {
+    return (
+      <ActiveNavigationScreen
+        onArriveAtStop={() => setCurrentScreen('delivery_verify')}
+      />
+    );
+  }
+
   if (currentScreen === 'delivery_verify') {
     return (
       <DeliveryVerificationScreen
         onComplete={() => setCurrentScreen('main')}
-        onBack={() => setCurrentScreen('main')}
+        onBack={() => setCurrentScreen('active_nav')}
       />
     );
   }

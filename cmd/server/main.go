@@ -335,6 +335,9 @@ func main() {
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.RequireAuth(authStore))
 
+			// User Setup & Onboarding
+			r.Get("/user/onboard", app.Auth.UserOnboardingPage)
+
 			// Dashboard
 			r.Get("/dashboard", app.Dashboard.Index)
 			r.Get("/files/{id}", app.DownloadFile)

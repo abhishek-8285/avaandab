@@ -188,13 +188,21 @@ func (h *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 		MaxAge:   -1,
 	})
 
+	targetURL := "/dashboard"
+	// Check if user has incomplete setup profile (or company onboarding needed)
+	if result.User.Phone == nil || *result.User.Phone == "" {
+		targetURL = "/user/onboard"
+	} else if company, err := h.Services.Settings.GetSettings(r.Context()); err == nil && company.CompanyName == "" {
+		targetURL = "/company/onboard"
+	}
+
 	if isDatastarRequest(r) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = w.Write([]byte("<script>window.location.href='/dashboard'</script>"))
+		_, _ = w.Write([]byte("<script>window.location.href='" + targetURL + "'</script>"))
 		return
 	}
 
-	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+	http.Redirect(w, r, targetURL, http.StatusSeeOther)
 }
 
 // Logout handles user logout.
@@ -303,6 +311,25 @@ func (h *AuthHandlers) SubmitForgotPassword(w http.ResponseWriter, r *http.Reque
 	h.renderAuthPage(w, "forgot_password.html", pd)
 }
 
+// UserOnboardingPage renders the post-login setup page when user has not completed details.
+func (h *AuthHandlers) UserOnboardingPage(w http.ResponseWriter, r *http.Request) {
+	session, ok := h.getUserFromContext(r)
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	user, _ := h.Services.Auth.GetProfile(r.Context(), domain.UserID(session.UserID))
+
+	pd := PageData{
+		Title:      "Account Setup",
+		User:       session,
+		UserDetail: user,
+	}
+
+	h.renderPage(w, r, "user_onboarding.html", pd)
+}
+
 // RegisterRoutes registers auth routes.
 func (h *AuthHandlers) RegisterRoutes(r chi.Router) {
 	r.Get("/login", h.LoginPage)
@@ -316,6 +343,7 @@ func (h *AuthHandlers) RegisterRoutes(r chi.Router) {
 	r.Post("/profile", h.UpdateProfile)
 	r.Get("/change-password", h.ChangePasswordPage)
 	r.Post("/change-password", h.ChangePassword)
+	r.Get("/user/onboard", h.UserOnboardingPage)
 }
 
 // UpdateProfile handles profile updates.
