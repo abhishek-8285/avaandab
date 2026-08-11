@@ -28,8 +28,7 @@ jobs:
 
       - name: Install dependencies & Build CSS
         run: |
-          npm ci
-          npm install --save-dev @tailwindcss/forms @tailwindcss/container-queries
+          npm install
           npx @tailwindcss/cli -i src/input.css -o internal/static/css/tailwind.css --minify
           # Fail if any CDN script references remain in templates
           if grep -rn 'cdn.tailwindcss.com' internal/templates/; then
