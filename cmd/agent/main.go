@@ -108,7 +108,7 @@ func fetchManifest(url string) (*VersionManifest, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
@@ -131,7 +131,7 @@ func getCurrentVersion() string {
 
 func applyUpdate(m *VersionManifest) error {
 	tmpTar := filepath.Join(workDir, "update.tar.gz")
-	defer os.Remove(tmpTar)
+	defer func() { _ = os.Remove(tmpTar) }()
 
 	log.Printf("[Agent] Downloading payload from %s...", m.DownloadURL)
 	if err := downloadFile(tmpTar, m.DownloadURL); err != nil {
@@ -191,7 +191,7 @@ func downloadFile(filepath string, url string) error {
 	if err != nil {
 		return err
 	}
-	defer out.Close()
+	defer func() { _ = out.Close() }()
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -207,7 +207,7 @@ func downloadFile(filepath string, url string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("http error: %s", resp.Status)
@@ -222,7 +222,7 @@ func fileSHA256(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	h := sha256.New()
 	if _, err := io.Copy(h, f); err != nil {
@@ -236,13 +236,13 @@ func untarGz(src string, dest string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	gzr, err := gzip.NewReader(f)
 	if err != nil {
 		return err
 	}
-	defer gzr.Close()
+	defer func() { _ = gzr.Close() }()
 
 	tr := tar.NewReader(gzr)
 	for {
@@ -269,10 +269,10 @@ func untarGz(src string, dest string) error {
 				return err
 			}
 			if _, err := io.Copy(outFile, tr); err != nil {
-				outFile.Close()
+				_ = outFile.Close()
 				return err
 			}
-			outFile.Close()
+			_ = outFile.Close()
 		}
 	}
 	return nil
