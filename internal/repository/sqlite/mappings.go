@@ -87,22 +87,6 @@ func toDomainRole(r db.Role) domain.Role {
 	}
 }
 
-func toDomainUserWithRole(u db.User, role domain.Role) domain.User {
-	return domain.User{
-		ID:           domain.UserID(u.ID),
-		Email:        u.Email,
-		PasswordHash: u.PasswordHash,
-		Name:         u.Name,
-		Phone:        fromNullString(u.Phone),
-		Timezone:     u.Timezone,
-		Role:         role,
-		Status:       domain.UserStatus(u.Status),
-		LastLoginAt:  fromNullTime(u.LastLoginAt),
-		CreatedAt:    u.CreatedAt,
-		UpdatedAt:    u.UpdatedAt,
-	}
-}
-
 func toCreateUserRowWithRole(u db.CreateUserRow, role domain.Role) domain.User {
 	return domain.User{
 		ID:           domain.UserID(u.ID),
