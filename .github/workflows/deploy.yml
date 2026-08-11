@@ -28,8 +28,14 @@ jobs:
 
       - name: Install dependencies & Build CSS
         run: |
-          npm ci || true
-          npx @tailwindcss/cli -i src/input.css -o internal/static/css/tailwind.css --minify || true
+          npm ci
+          npm install --save-dev @tailwindcss/forms @tailwindcss/container-queries
+          npx @tailwindcss/cli -i src/input.css -o internal/static/css/tailwind.css --minify
+          # Fail if any CDN script references remain in templates
+          if grep -rn 'cdn.tailwindcss.com' internal/templates/; then
+            echo "ERROR: CDN Tailwind references found! Remove them before deploying."
+            exit 1
+          fi
 
       - name: Cross-compile Go server for ARM64
         run: |

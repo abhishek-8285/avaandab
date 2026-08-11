@@ -15,8 +15,24 @@ echo -e "${BLUE}================================================================
 echo -e "${BLUE}🔍 Running Pre-Commit Verification Suite...${NC}"
 echo -e "${BLUE}==============================================================================${NC}"
 
-# 1. Format Check (gofmt)
-echo -e "\n${CYAN}[1/5] Checking Go code formatting (gofmt)...${NC}"
+# 1. Rebuild Tailwind CSS from source
+echo -e "\n${CYAN}[1/7] Rebuilding Tailwind CSS bundle...${NC}"
+npx @tailwindcss/cli -i src/input.css -o internal/static/css/tailwind.css --minify 2>&1
+echo -e "${GREEN}✅ Tailwind CSS rebuilt.${NC}"
+
+# 2. Verify no CDN fallback scripts left in templates
+echo -e "\n${CYAN}[2/7] Checking for CDN Tailwind references in templates...${NC}"
+CDN_REFS=$(grep -rn 'cdn.tailwindcss.com' internal/templates/ || true)
+if [ -n "$CDN_REFS" ]; then
+    echo -e "${RED}❌ Error: CDN Tailwind references found in templates:${NC}"
+    echo "$CDN_REFS"
+    echo -e "${YELLOW}Remove CDN <script> tags — styles must come from /static/css/tailwind.css only.${NC}"
+    exit 1
+fi
+echo -e "${GREEN}✅ No CDN references found.${NC}"
+
+# 3. Format Check (gofmt)
+echo -e "\n${CYAN}[3/7] Checking Go code formatting (gofmt)...${NC}"
 UNFORMATTED=$(gofmt -l -s . | grep -v '^dist/' || true)
 if [ -n "$UNFORMATTED" ]; then
     echo -e "${RED}❌ Error: The following Go files are not formatted:${NC}"
@@ -27,17 +43,17 @@ fi
 echo -e "${GREEN}✅ Formatting check passed.${NC}"
 
 # 2. Go Vet Analysis
-echo -e "\n${CYAN}[2/5] Running go vet static analysis...${NC}"
+echo -e "\n${CYAN}[4/7] Running go vet static analysis...${NC}"
 go vet ./...
 echo -e "${GREEN}✅ Go vet passed.${NC}"
 
 # 3. Linter (golangci-lint)
-echo -e "\n${CYAN}[3/5] Running golangci-lint...${NC}"
+echo -e "\n${CYAN}[5/7] Running golangci-lint...${NC}"
 go run github.com/golangci/golangci-lint/cmd/golangci-lint@latest run ./...
 echo -e "${GREEN}✅ Linter check passed.${NC}"
 
 # 4. SQLC Out-of-Date Check
-echo -e "\n${CYAN}[4/5] Checking sqlc generated files integrity...${NC}"
+echo -e "\n${CYAN}[6/7] Checking sqlc generated files integrity...${NC}"
 if [ -f "/tmp/go/bin/sqlc" ]; then
     /tmp/go/bin/sqlc generate
 else
@@ -53,7 +69,7 @@ fi
 echo -e "${GREEN}✅ sqlc files up to date.${NC}"
 
 # 5. Unit Tests
-echo -e "\n${CYAN}[5/5] Executing Go unit tests...${NC}"
+echo -e "\n${CYAN}[7/7] Executing Go unit tests...${NC}"
 go test -v ./...
 echo -e "${GREEN}✅ All unit tests passed.${NC}"
 
