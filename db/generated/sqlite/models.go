@@ -59,6 +59,22 @@ type CompanySetting struct {
 	FinancialYear sql.NullString `json:"financial_year"`
 }
 
+type ContactSubmission struct {
+	ID           string         `json:"id"`
+	TicketNumber string         `json:"ticket_number"`
+	Name         string         `json:"name"`
+	Email        string         `json:"email"`
+	Phone        sql.NullString `json:"phone"`
+	CompanyName  sql.NullString `json:"company_name"`
+	Subject      string         `json:"subject"`
+	Category     string         `json:"category"`
+	Message      string         `json:"message"`
+	Status       string         `json:"status"`
+	AdminNotes   sql.NullString `json:"admin_notes"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+}
+
 type Customer struct {
 	ID        string         `json:"id"`
 	Name      string         `json:"name"`
@@ -248,12 +264,12 @@ type User struct {
 	PasswordHash string         `json:"password_hash"`
 	Name         string         `json:"name"`
 	Phone        sql.NullString `json:"phone"`
-	Timezone     string         `json:"timezone"`
 	RoleID       int64          `json:"role_id"`
 	Status       string         `json:"status"`
 	LastLoginAt  sql.NullTime   `json:"last_login_at"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
+	Timezone     string         `json:"timezone"`
 }
 
 type UserRole struct {
