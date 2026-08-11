@@ -30,8 +30,61 @@ import { CameraView } from 'expo-camera';
 const queryClient = new QueryClient();
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<'splash' | 'get_started' | 'onboarding_overview' | 'booking_schedule' | 'earnings_overview' | 'login' | 'register' | 'forgot_password' | 'first_time_setup' | 'active_nav' | 'delivery_verify' | 'main'>('splash');
+  const { isAuthenticated, isLoading, loadSession } = useAuthStore();
+  const [setupCompleted, setSetupCompleted] = useState(false);
+  const [currentScreen, setCurrentScreen] = useState<'splash' | 'get_started' | 'onboarding_overview' | 'booking_schedule' | 'earnings_overview' | 'login' | 'register' | 'forgot_password' | 'first_time_setup' | 'active_nav' | 'delivery_verify'>('splash');
 
+  useEffect(() => {
+    loadSession();
+  }, []);
+
+  if (isLoading) {
+    return <SplashScreen onFinish={() => {}} />;
+  }
+
+  // Authenticated State -> Load Main App with Navigation Stack & Setup View Access
+  if (isAuthenticated) {
+    if (!setupCompleted && currentScreen === 'first_time_setup') {
+      return (
+        <FirstTimeSetupScreen
+          onCompleteSetup={() => {
+            setSetupCompleted(true);
+            setCurrentScreen('active_nav');
+          }}
+          onBack={() => setSetupCompleted(true)}
+        />
+      );
+    }
+
+    if (currentScreen === 'active_nav') {
+      return (
+        <ActiveNavigationScreen
+          onArriveAtStop={() => setCurrentScreen('delivery_verify')}
+          onMenuToggle={() => setSetupCompleted(false)}
+        />
+      );
+    }
+
+    if (currentScreen === 'delivery_verify') {
+      return (
+        <DeliveryVerificationScreen
+          onComplete={() => setCurrentScreen('active_nav')}
+          onBack={() => setCurrentScreen('active_nav')}
+        />
+      );
+    }
+
+    return (
+      <SafeAreaProvider>
+        <QueryClientProvider client={queryClient}>
+          <StatusBar style="dark" />
+          <MainScreen onOpenSetup={() => setCurrentScreen('first_time_setup')} />
+        </QueryClientProvider>
+      </SafeAreaProvider>
+    );
+  }
+
+  // Unauthenticated Flow -> Splash / Onboarding / Login / Register
   if (currentScreen === 'splash') {
     return <SplashScreen onFinish={() => setCurrentScreen('get_started')} />;
   }
@@ -75,7 +128,9 @@ export default function App() {
   if (currentScreen === 'login') {
     return (
       <LoginScreen
-        onLoginSuccess={() => setCurrentScreen('first_time_setup')}
+        onLoginSuccess={() => {
+          setCurrentScreen('first_time_setup');
+        }}
         onForgotPassword={() => setCurrentScreen('forgot_password')}
         onRegisterLink={() => setCurrentScreen('register')}
       />
@@ -85,7 +140,9 @@ export default function App() {
   if (currentScreen === 'register') {
     return (
       <RegisterScreen
-        onRegisterSuccess={() => setCurrentScreen('first_time_setup')}
+        onRegisterSuccess={() => {
+          setCurrentScreen('first_time_setup');
+        }}
         onBackToLogin={() => setCurrentScreen('login')}
       />
     );
@@ -99,43 +156,17 @@ export default function App() {
     );
   }
 
-  if (currentScreen === 'first_time_setup') {
-    return (
-      <FirstTimeSetupScreen
-        onCompleteSetup={() => setCurrentScreen('active_nav')}
-        onBack={() => setCurrentScreen('login')}
-      />
-    );
-  }
-
-  if (currentScreen === 'active_nav') {
-    return (
-      <ActiveNavigationScreen
-        onArriveAtStop={() => setCurrentScreen('delivery_verify')}
-      />
-    );
-  }
-
-  if (currentScreen === 'delivery_verify') {
-    return (
-      <DeliveryVerificationScreen
-        onComplete={() => setCurrentScreen('main')}
-        onBack={() => setCurrentScreen('active_nav')}
-      />
-    );
-  }
-
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <StatusBar style="dark" />
-        <MainScreen />
+        <MainScreen onOpenSetup={() => setCurrentScreen('first_time_setup')} />
       </QueryClientProvider>
     </SafeAreaProvider>
   );
 }
 
-function MainScreen() {
+function MainScreen({ onOpenSetup }: { onOpenSetup?: () => void }) {
   const [activeTab, setActiveTab] = useState<'trips' | 'dispatch'>('trips');
   const [locationState, setLocationState] = useState<{ granted: boolean; latitude: number | null; longitude: number | null; error: string | null }>({
     granted: false,

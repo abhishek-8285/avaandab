@@ -55,6 +55,10 @@ func main() {
 	logging.Setup(cfg.LogLevel, cfg.AppEnv)
 
 	logger := slog.Default()
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8092"
+	}
 	logger.Info("Starting MVTMS server", "env", cfg.AppEnv, "port", cfg.Port)
 
 	// Open database with optimized PRAGMAs for high concurrency
@@ -388,7 +392,7 @@ func main() {
 	})
 
 	// Start server
-	addr := fmt.Sprintf(":%s", cfg.Port)
+	addr := fmt.Sprintf(":%s", port)
 	logger.Info("Server listening", "address", addr)
 	if err := http.ListenAndServe(addr, r); err != nil {
 		logger.Error("Server error", "error", err)
