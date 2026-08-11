@@ -13,6 +13,7 @@ type User struct {
 	PasswordHash string
 	Name         string
 	Phone        *string
+	Timezone     string
 	Role         Role
 	Status       UserStatus
 	LastLoginAt  *time.Time

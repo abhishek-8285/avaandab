@@ -47,7 +47,7 @@ func (h *CustomerHandlers) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.renderPage(w, "customer_list.html", PageData{
+	h.renderPage(w, r, "customer_list.html", PageData{
 		Title: "Customers",
 		User:  session,
 		Extra: map[string]interface{}{"Customers": list, "Pagination": pd, "Query": pp.Query},
@@ -95,7 +95,7 @@ func (h *CustomerHandlers) View(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Customer not found", http.StatusNotFound)
 		return
 	}
-	h.renderPage(w, "customer_view.html", PageData{Title: "View Customer", Extra: map[string]interface{}{"Customer": customer}})
+	h.renderPage(w, r, "customer_view.html", PageData{Title: "View Customer", Extra: map[string]interface{}{"Customer": customer}})
 }
 
 func (h *CustomerHandlers) Edit(w http.ResponseWriter, r *http.Request) {

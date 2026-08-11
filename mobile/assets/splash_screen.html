@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Avandab Driver - Splash Screen</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary-fixed-variant": "#444749",
+                    "primary-fixed-dim": "#6bd8cb",
+                    "outline": "#6d7a77",
+                    "inverse-surface": "#213145",
+                    "on-secondary-fixed": "#131b2e",
+                    "on-primary": "#ffffff",
+                    "secondary-fixed": "#dae2fd",
+                    "on-tertiary": "#ffffff",
+                    "tertiary-container": "#727577",
+                    "surface-container-high": "#dce9ff",
+                    "on-tertiary-container": "#fbfdff",
+                    "surface": "#f8f9ff",
+                    "background": "#f8f9ff",
+                    "surface-dim": "#cbdbf5",
+                    "primary-container": "#008378",
+                    "tertiary-fixed-dim": "#c4c7c9",
+                    "on-primary-fixed-variant": "#005049",
+                    "surface-container-lowest": "#ffffff",
+                    "tertiary-fixed": "#e0e3e5",
+                    "on-secondary-fixed-variant": "#3f465c",
+                    "inverse-on-surface": "#eaf1ff",
+                    "primary-fixed": "#89f5e7",
+                    "error-container": "#ffdad6",
+                    "on-primary-fixed": "#00201d",
+                    "tertiary": "#595c5e",
+                    "on-secondary": "#ffffff",
+                    "on-secondary-container": "#5c647a",
+                    "surface-container": "#e5eeff",
+                    "on-tertiary-fixed": "#191c1e",
+                    "surface-tint": "#006a61",
+                    "on-background": "#0b1c30",
+                    "surface-container-highest": "#d3e4fe",
+                    "outline-variant": "#bcc9c6",
+                    "on-surface-variant": "#3d4947",
+                    "surface-variant": "#d3e4fe",
+                    "surface-bright": "#f8f9ff",
+                    "surface-container-low": "#eff4ff",
+                    "on-primary-container": "#f4fffc",
+                    "error": "#ba1a1a",
+                    "on-surface": "#0b1c30",
+                    "on-error-container": "#93000a",
+                    "inverse-primary": "#6bd8cb",
+                    "secondary-container": "#dae2fd",
+                    "primary": "#00685f", // Mapped teal to primary in theme
+                    "on-error": "#ffffff",
+                    "secondary-fixed-dim": "#bec6e0",
+                    "secondary": "#565e74"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "xl": "32px",
+                    "screen-margin": "16px",
+                    "base": "4px",
+                    "sm": "8px",
+                    "xs": "4px",
+                    "touch-target-min": "44px",
+                    "gutter": "12px",
+                    "lg": "24px",
+                    "md": "16px"
+            },
+            "fontFamily": {
+                    "headline-lg": ["Outfit"],
+                    "body-lg": ["Plus Jakarta Sans"],
+                    "body-md": ["Plus Jakarta Sans"],
+                    "label-sm": ["Plus Jakarta Sans"],
+                    "label-caps": ["Plus Jakarta Sans"],
+                    "data-display": ["Plus Jakarta Sans"],
+                    "headline-sm": ["Outfit"],
+                    "headline-md": ["Outfit"]
+            },
+            "fontSize": {
+                    "headline-lg": ["28px", {"lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                    "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                    "data-display": ["20px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "headline-sm": ["18px", {"lineHeight": "24px", "fontWeight": "500"}],
+                    "headline-md": ["22px", {"lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        .splash-fade-in {
+            animation: fadeIn 1s ease-out forwards;
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        .splash-fade-in-delayed {
+            animation: fadeIn 1s ease-out 0.5s forwards;
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body class="bg-primary h-screen w-full flex flex-col items-center justify-center overflow-hidden font-body-md text-on-primary select-none">
+<div class="flex flex-col items-center justify-center space-y-lg splash-fade-in">
+<div class="w-32 h-32 bg-white rounded-full flex items-center justify-center shadow-lg transform transition-transform duration-500 hover:scale-105">
+<span class="material-symbols-outlined text-primary text-[64px]" style="font-variation-settings: 'FILL' 1;">
+                directions_car
+            </span>
+</div>
+<div class="text-center splash-fade-in-delayed">
+<h1 class="font-headline-lg text-headline-lg text-white mb-2">Avandab</h1>
+<p class="font-headline-sm text-headline-sm text-white/90">Driver</p>
+</div>
+</div>
+<!-- Hidden image to fulfill the placeholder requirement from the prompt, though not visible in design -->
+<img alt="hidden placeholder" class="hidden" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC-PeJeilPRXZuYfpI1GTrkx51zq15zmbX29dK-9EvxsovD3bOv3XdgTNw9t-act2KriTVtkMotpkRHFRYB8O5XLdJzLY2nno7sy3BSUSZSmcDrPQR62rqqBlrY513JtrRVaypKz0DZrxPAMMWM7ylqxQCUrdmSpm6O64fCLu7yy6ZP71OCfMHCaUFlfbqNMsat1yIEv5vYlz-DW6niRN30nTqvwXq6JdOHi1m5I8tZ7fU3Dg-Z6H1F8aEos1vblK889Q8"/>
+</body></html>

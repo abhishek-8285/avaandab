@@ -53,7 +53,20 @@ type CreateUserParams struct {
 	Status       string         `json:"status"`
 }
 
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+type CreateUserRow struct {
+	ID           string         `json:"id"`
+	Email        string         `json:"email"`
+	PasswordHash string         `json:"password_hash"`
+	Name         string         `json:"name"`
+	Phone        sql.NullString `json:"phone"`
+	RoleID       int64          `json:"role_id"`
+	Status       string         `json:"status"`
+	LastLoginAt  sql.NullTime   `json:"last_login_at"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
 	row := q.db.QueryRowContext(ctx, createUser,
 		arg.ID,
 		arg.Email,
@@ -63,7 +76,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.RoleID,
 		arg.Status,
 	)
-	var i User
+	var i CreateUserRow
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
@@ -130,9 +143,22 @@ SELECT id, email, password_hash, name, phone, role_id, status, last_login_at, cr
 FROM users WHERE email = ?
 `
 
-func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+type GetUserByEmailRow struct {
+	ID           string         `json:"id"`
+	Email        string         `json:"email"`
+	PasswordHash string         `json:"password_hash"`
+	Name         string         `json:"name"`
+	Phone        sql.NullString `json:"phone"`
+	RoleID       int64          `json:"role_id"`
+	Status       string         `json:"status"`
+	LastLoginAt  sql.NullTime   `json:"last_login_at"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+}
+
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error) {
 	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
-	var i User
+	var i GetUserByEmailRow
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
@@ -153,10 +179,23 @@ SELECT id, email, password_hash, name, phone, role_id, status, last_login_at, cr
 FROM users WHERE id = ?
 `
 
+type GetUserByIDRow struct {
+	ID           string         `json:"id"`
+	Email        string         `json:"email"`
+	PasswordHash string         `json:"password_hash"`
+	Name         string         `json:"name"`
+	Phone        sql.NullString `json:"phone"`
+	RoleID       int64          `json:"role_id"`
+	Status       string         `json:"status"`
+	LastLoginAt  sql.NullTime   `json:"last_login_at"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+}
+
 // Users
-func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
+func (q *Queries) GetUserByID(ctx context.Context, id string) (GetUserByIDRow, error) {
 	row := q.db.QueryRowContext(ctx, getUserByID, id)
-	var i User
+	var i GetUserByIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
@@ -298,7 +337,20 @@ type UpdateUserParams struct {
 	ID     string         `json:"id"`
 }
 
-func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
+type UpdateUserRow struct {
+	ID           string         `json:"id"`
+	Email        string         `json:"email"`
+	PasswordHash string         `json:"password_hash"`
+	Name         string         `json:"name"`
+	Phone        sql.NullString `json:"phone"`
+	RoleID       int64          `json:"role_id"`
+	Status       string         `json:"status"`
+	LastLoginAt  sql.NullTime   `json:"last_login_at"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+}
+
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (UpdateUserRow, error) {
 	row := q.db.QueryRowContext(ctx, updateUser,
 		arg.Email,
 		arg.Name,
@@ -307,7 +359,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		arg.Status,
 		arg.ID,
 	)
-	var i User
+	var i UpdateUserRow
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
@@ -330,9 +382,22 @@ WHERE id = ?
 RETURNING id, email, password_hash, name, phone, role_id, status, last_login_at, created_at, updated_at
 `
 
-func (q *Queries) UpdateUserLastLogin(ctx context.Context, id string) (User, error) {
+type UpdateUserLastLoginRow struct {
+	ID           string         `json:"id"`
+	Email        string         `json:"email"`
+	PasswordHash string         `json:"password_hash"`
+	Name         string         `json:"name"`
+	Phone        sql.NullString `json:"phone"`
+	RoleID       int64          `json:"role_id"`
+	Status       string         `json:"status"`
+	LastLoginAt  sql.NullTime   `json:"last_login_at"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+}
+
+func (q *Queries) UpdateUserLastLogin(ctx context.Context, id string) (UpdateUserLastLoginRow, error) {
 	row := q.db.QueryRowContext(ctx, updateUserLastLogin, id)
-	var i User
+	var i UpdateUserLastLoginRow
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
@@ -360,9 +425,22 @@ type UpdateUserPasswordParams struct {
 	ID           string `json:"id"`
 }
 
-func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) (User, error) {
+type UpdateUserPasswordRow struct {
+	ID           string         `json:"id"`
+	Email        string         `json:"email"`
+	PasswordHash string         `json:"password_hash"`
+	Name         string         `json:"name"`
+	Phone        sql.NullString `json:"phone"`
+	RoleID       int64          `json:"role_id"`
+	Status       string         `json:"status"`
+	LastLoginAt  sql.NullTime   `json:"last_login_at"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+}
+
+func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) (UpdateUserPasswordRow, error) {
 	row := q.db.QueryRowContext(ctx, updateUserPassword, arg.PasswordHash, arg.ID)
-	var i User
+	var i UpdateUserPasswordRow
 	err := row.Scan(
 		&i.ID,
 		&i.Email,

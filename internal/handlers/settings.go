@@ -33,7 +33,7 @@ func (h *SettingsHandlers) OnboardPage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	h.renderPage(w, "company_onboard.html", PageData{
+	h.renderPage(w, r, "company_onboard.html", PageData{
 		Title: "Company Onboarding",
 		User:  session,
 		Extra: map[string]interface{}{"Settings": settings},
@@ -53,7 +53,7 @@ func (h *SettingsHandlers) Index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.renderPage(w, "settings.html", PageData{
+	h.renderPage(w, r, "settings.html", PageData{
 		Title: "Settings",
 		User:  session,
 		Extra: map[string]interface{}{"Settings": settings},

@@ -7,110 +7,851 @@
     <link rel="icon" href="/static/img/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="/static/css/fonts.css">
     <link rel="stylesheet" href="/static/css/material-icons.css">
-    <script src="/static/js/router.js" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&display=swap" rel="stylesheet">
+    <script type="module" src="/static/js/datastar.js" defer></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-error": "#ffffff",
+                      "surface-bright": "#f7f9fb",
+                      "surface-container-high": "#e6e8ea",
+                      "on-tertiary-fixed-variant": "#773215",
+                      "on-secondary-fixed-variant": "#3f465c",
+                      "on-primary": "#ffffff",
+                      "surface-container-low": "#f2f4f6",
+                      "background": "#f7f9fb",
+                      "status-alert": "#E11D48",
+                      "tertiary-fixed": "#ffdbce",
+                      "on-secondary-fixed": "#131b2e",
+                      "status-success": "#10B981",
+                      "error-container": "#ffdad6",
+                      "surface": "#f7f9fb",
+                      "secondary": "#565e74",
+                      "tertiary-fixed-dim": "#ffb59a",
+                      "surface-variant": "#e0e3e5",
+                      "status-warning": "#F59E0B",
+                      "outline": "#6d7a77",
+                      "surface-container-highest": "#e0e3e5",
+                      "on-tertiary-container": "#fffbff",
+                      "error": "#ba1a1a",
+                      "outline-variant": "#bcc9c6",
+                      "on-surface": "#191c1e",
+                      "on-tertiary": "#ffffff",
+                      "inverse-on-surface": "#eff1f3",
+                      "secondary-container": "#dae2fd",
+                      "on-tertiary-fixed": "#370e00",
+                      "primary-container": "#008378",
+                      "brand-teal-deep": "#115E59",
+                      "on-background": "#191c1e",
+                      "border-subtle": "#E2E8F0",
+                      "on-error-container": "#93000a",
+                      "primary-fixed-dim": "#6bd8cb",
+                      "surface-container": "#eceef0",
+                      "surface-tint": "#006a61",
+                      "on-primary-fixed": "#00201d",
+                      "text-muted": "#64748B",
+                      "on-secondary-container": "#5c647a",
+                      "surface-container-lowest": "#ffffff",
+                      "status-info": "#4F46E5",
+                      "primary-fixed": "#89f5e7",
+                      "on-primary-container": "#f4fffc",
+                      "on-secondary": "#ffffff",
+                      "tertiary": "#924628",
+                      "secondary-fixed-dim": "#bec6e0",
+                      "secondary-fixed": "#dae2fd",
+                      "surface-dim": "#d8dadc",
+                      "inverse-primary": "#6bd8cb",
+                      "on-primary-fixed-variant": "#005049",
+                      "tertiary-container": "#b05e3d",
+                      "primary": "#00685f",
+                      "on-surface-variant": "#3d4947",
+                      "inverse-surface": "#2d3133"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "container-max": "100%",
+                      "cell-padding-y": "8px",
+                      "section-gap": "24px",
+                      "cell-padding-x": "12px",
+                      "margin-edge": "16px",
+                      "unit": "4px"
+              },
+              "fontFamily": {
+                      "body-md": ["Plus Jakarta Sans"],
+                      "data-mono": ["Plus Jakarta Sans"],
+                      "body-lg": ["Plus Jakarta Sans"],
+                      "headline-lg": ["Outfit"],
+                      "body-sm": ["Plus Jakarta Sans"],
+                      "display": ["Outfit"],
+                      "label-caps": ["Plus Jakarta Sans"],
+                      "headline-md": ["Outfit"]
+              },
+              "fontSize": {
+                      "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                      "data-mono": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                      "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                      "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                      "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }],
+                      "display": ["36px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                      "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                      "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }]
+              }
+            },
+          },
+        };
+    </script>
     <link rel="stylesheet" href="/static/css/tailwind.css">
+    <link rel="stylesheet" href="/static/css/app.css">
+    <!-- PostHog Web Analytics -->
+    <script>
+      !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}!(p=t.createElement("script")).type="text/javascript",p.async=!0,p.src=s.api_host+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group identifyGroup".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1.0)}(document,window.posthog||[]);
+      posthog.init('phc_avandab_demo_api_key_placeholder',{api_host:'https://us.i.posthog.com'});
+    </script>
+
     <style>
-        html { opacity: 0; transition: opacity 0.15s ease-in; }
-        .hero-border {
-            border: 1px solid rgba(255, 255, 255, 0.08);
+        body {
+            background-color: #f7f9fb;
+            color: #191c1e;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .font-display { font-family: 'Outfit', 'Satoshi', 'Plus Jakarta Sans', sans-serif; }
+
+        /* Full Width Edge-to-Edge Navigation Bar */
+        .header {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+            width: 100%;
+        }
+        .navigation {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 0 1.5rem;
+            height: 80px;
+        }
+        @media (min-width: 768px) {
+            .navigation {
+                padding: 0 3rem;
+            }
+        }
+        .navigation-button-container {
+            display: none !important;
+        }
+
+        .navigation-button {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Far Left Logo */
+        .navigation-main-logo {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .navigation-main-logo a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+        .logo-icon-box {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background-color: #00685f;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0, 104, 95, 0.2);
+            flex-shrink: 0;
+        }
+
+        /* Center Navigation Links */
+        .navigation-body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+        }
+        @media (max-width: 1023px) {
+            .navigation-body { display: none; }
+        }
+        .navigation-body-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .navigation-top-menu {
+            display: flex;
+            align-items: center;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            gap: 0.5rem;
+        }
+        .navigation-top-menu-item {
+            position: relative;
+        }
+        .navigation-top-menu-label,
+        .navigation-top-menu-link {
+            font-size: 15px;
+            font-weight: 600;
+            color: #2c3e50;
+            text-decoration: none;
+            cursor: pointer;
+            padding: 10px 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.15s ease;
+        }
+        .navigation-top-menu-item:hover > .navigation-top-menu-label,
+        .navigation-top-menu-item:hover > .navigation-top-menu-link {
+            color: #00685f;
+        }
+        .navigation-top-menu-label-arrow::after {
+            content: '';
+            display: inline-block;
+            width: 5px;
+            height: 5px;
+            border-right: 2px solid #7f8c8d;
+            border-bottom: 2px solid #7f8c8d;
+            transform: rotate(45deg);
+            margin-top: -2px;
+            transition: transform 0.2s ease;
+        }
+        .navigation-top-menu-item:hover > .navigation-top-menu-label-arrow::after {
+            transform: rotate(225deg);
+            border-color: #00685f;
+        }
+        /* Dropdown Sublists */
+        .navigation-top-menu-sublist {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            min-width: 220px;
+            background-color: #ffffff;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+            border-radius: 6px;
+            padding: 8px 0;
+            list-style: none;
+            display: none;
+            z-index: 110;
+        }
+        .navigation-top-menu-item:hover > .navigation-top-menu-sublist {
+            display: block;
+        }
+        .navigation-top-menu-sublist .navigation-top-menu-link {
+            padding: 8px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #4b5563;
+            width: 100%;
+            display: block;
+        }
+        .navigation-top-menu-sublist .navigation-top-menu-link:hover {
+            background-color: #f3f4f6;
+            color: #00685f;
+        }
+
+        /* Far Right Action Buttons */
+        .navigation-top-menu-user-actions {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            flex-shrink: 0;
+        }
+        .btn.black-border-button {
+            border: 2px solid #111827;
+            color: #111827;
+            background-color: transparent;
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 14px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        .btn.black-border-button:hover {
+            background-color: #111827;
+            color: #ffffff;
+        }
+        .login-link-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #00685f;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background-color 0.15s ease;
+        }
+        .login-link-button:hover {
+            background-color: #e6f4f1;
+        }
+
+        /* Unified ECASB Design Token System */
+        .ecasb-card {
+            background-color: #ffffff;
+            border: 1px solid #E2E8F0;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+            transition: all 0.2s ease-in-out;
+        }
+        .ecasb-card:hover {
+            border-color: rgba(0, 104, 95, 0.4);
+            box-shadow: 0 6px 16px -4px rgba(0, 64, 55, 0.1);
+            transform: translateY(-2px);
+        }
+        .ecasb-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.375rem 0.875rem;
+            border-radius: 9999px;
+            border: 1px solid rgba(0, 104, 95, 0.2);
+            background-color: #e6f4f1;
+            color: #00685f;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        /* Responsive ECASB Mini Features Component with Proper Card Sizing */
+        .ecasb-mini-features {
+            padding: 4.5rem 0;
+            background-color: #ffffff;
+            border-top: 1px solid #E2E8F0;
+            border-bottom: 1px solid #E2E8F0;
+        }
+        .ecasb-mini-features .container {
+            max-width: 84rem;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+        .ecasb-mini-features .mini-title {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 1.45rem;
+            color: #0F172A;
+            margin-bottom: 1.5rem;
+            margin-top: 2.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            border-bottom: 2px solid #e6f4f1;
+            padding-bottom: 0.625rem;
+        }
+        .ecasb-mini-features .mini-title:first-child {
+            margin-top: 0;
+        }
+        .ecasb-mini-features .mini-grid {
+            display: grid;
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 3rem;
+        }
+        @media (min-width: 640px) {
+            .ecasb-mini-features .mini-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+        @media (min-width: 1024px) {
+            .ecasb-mini-features .mini-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+        @media (min-width: 1280px) {
+            .ecasb-mini-features .mini-grid {
+                grid-template-columns: repeat(5, minmax(0, 1fr));
+            }
+        }
+        .ecasb-mini-features .mini-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1.25rem;
+            min-height: 7.25rem;
+            background-color: #f7f9fb;
+            border: 1px solid #E2E8F0;
+            border-radius: 0.875rem;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+            transition: all 0.2s ease-in-out;
+        }
+        .ecasb-mini-features .mini-item:hover {
+            background-color: #ffffff;
+            border-color: rgba(0, 104, 95, 0.4);
+            box-shadow: 0 6px 16px -2px rgba(0, 64, 55, 0.08);
+            transform: translateY(-2px);
+        }
+        .ecasb-mini-features .mini-icon-wrap {
+            width: 2.75rem;
+            height: 2.75rem;
+            border-radius: 0.625rem;
+            background-color: #e6f4f1;
+            color: #00685f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .ecasb-mini-features .mini-item h4 {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #0F172A;
+            margin-bottom: 0.35rem;
+            line-height: 1.35;
+        }
+        .ecasb-mini-features .mini-item p {
+            font-size: 0.8125rem;
+            color: #565e74;
+            line-height: 1.45;
+            margin: 0;
+        }
+
+        /* ECASB Footer Component */
+        .footer-ecasb {
+            background-color: #ffffff;
+            border-top: 1px solid #E2E8F0;
+            color: #565e74;
+            font-size: 0.875rem;
+        }
+        .footer-ecasb .footer-top {
+            padding: 3.5rem 0;
+            border-bottom: 1px solid #E2E8F0;
+        }
+        .footer-ecasb .container {
+            max-width: 72rem;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+        }
+        .footer-ecasb .footer-grid {
+            display: grid;
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+            gap: 2.5rem;
+        }
+        @media (min-width: 640px) {
+            .footer-ecasb .footer-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+        @media (min-width: 1024px) {
+            .footer-ecasb .footer-grid {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+        }
+        .footer-ecasb .footer-col h4 {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 1rem;
+            color: #0F172A;
+            margin-bottom: 1.25rem;
+        }
+        .footer-ecasb .footer-col ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .footer-ecasb .footer-col ul li a {
+            color: #565e74;
+            text-decoration: none;
+            transition: color 0.15s ease;
+        }
+        .footer-ecasb .footer-col ul li a:hover {
+            color: #00685f;
+        }
+        .footer-ecasb .socials {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+        .footer-ecasb .socials a {
+            width: 2.25rem;
+            height: 2.25rem;
+            border-radius: 0.5rem;
+            background-color: #f7f9fb;
+            border: 1px solid #E2E8F0;
+            color: #00685f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+            text-decoration: none;
+        }
+        .footer-ecasb .socials a:hover {
+            background-color: #e6f4f1;
+            border-color: #00685f;
+            transform: translateY(-2px);
+        }
+        .footer-ecasb .footer-bottom {
+            padding: 1.5rem 0;
+            background-color: #f7f9fb;
+        }
+        .footer-ecasb .footer-bottom-row {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            align-items: center;
+            justify-content: space-between;
+        }
+        @media (min-width: 640px) {
+            .footer-ecasb .footer-bottom-row {
+                flex-direction: row;
+            }
+        }
+        .footer-ecasb .right {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        .footer-ecasb ul.legal {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+        }
+        .footer-ecasb ul.legal li a {
+            color: #64748B;
+            font-size: 0.8125rem;
+            text-decoration: none;
+            transition: color 0.15s ease;
+        }
+        .footer-ecasb ul.legal li a:hover {
+            color: #00685f;
+        }
+        .footer-ecasb .powered {
+            font-size: 0.8125rem;
+            color: #94A3B8;
+        }
+        .footer-ecasb .powered a {
+            color: #00685f;
+            font-weight: 600;
+            text-decoration: none;
         }
     </style>
     <script>
+        document.documentElement.style.opacity = "1";
         document.addEventListener("DOMContentLoaded", function() {
             document.documentElement.style.opacity = "1";
         });
     </script>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans antialiased overflow-x-hidden">
+<body class="bg-[#f7f9fb] text-[#191c1e] font-sans antialiased overflow-x-hidden">
     <!-- Header -->
-    <header class="border-b border-slate-900 bg-slate-950/90 backdrop-blur-md sticky top-0 z-50">
-        <div class="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
-                    <span class="material-icons text-white text-sm">local_shipping</span>
+    {{template "public_header.html" .}}
+
+
+    <!-- Hero Section -->
+    <section class="py-16 sm:py-24 px-6 max-w-6xl mx-auto">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            <!-- Left Hero Content -->
+            <div class="lg:col-span-7 space-y-6 text-center lg:text-left">
+                <div class="ecasb-badge">
+                    <span class="w-2 h-2 rounded-full bg-[#00685f] animate-pulse"></span>
+                    AVANDAB OPERATIONS PLATFORM
                 </div>
-                <span class="font-outfit font-bold text-xl tracking-tight text-white">Avandab</span>
+
+                <h1 class="font-display font-black text-4xl sm:text-5xl lg:text-6xl text-[#0F172A] tracking-tight leading-[1.15]">
+                    Fleet operations managed with clarity and control.
+                </h1>
+
+                <p class="text-[#565e74] text-lg sm:text-xl font-normal leading-relaxed max-w-2xl mx-auto lg:mx-0">
+                    A clean, high-performance platform for organizing drivers, routes, trips, and invoices without complex hardware or bloated workflows.
+                </p>
+
+                <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
+                    <a href="/login" style="background-color: #00685f !important; color: #ffffff !important;" class="w-full sm:w-auto px-7 py-3.5 rounded-md text-white font-bold text-sm shadow-md transition-all duration-150 flex items-center justify-center gap-2">
+                        <span style="color: #ffffff !important;">Get Started</span>
+                        <span class="material-symbols-outlined text-lg" style="color: #ffffff !important;">arrow_forward</span>
+                    </a>
+                    <a href="#benefits" class="w-full sm:w-auto px-7 py-3.5 rounded-md border border-[#CBD5E1] bg-white text-[#334155] font-bold text-sm hover:bg-[#F8FAFC] hover:border-[#94A3B8] transition-all duration-150 shadow-xs flex items-center justify-center">
+                        Explore Benefits
+                    </a>
+                </div>
             </div>
-            <nav class="hidden md:flex items-center gap-8 text-sm text-slate-400">
-                <a href="#features" class="hover:text-white transition">Features</a>
-                <a href="#comparison" class="hover:text-white transition">Comparison</a>
-            </nav>
-            <div class="flex items-center gap-3">
-                <a href="/login" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition">Sign In</a>
-                <a href="/dashboard" class="px-4 py-2 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition">Go to App</a>
+
+            <!-- Right Cockpit Screen Frame -->
+            <div class="lg:col-span-5">
+                <div class="ecasb-card p-3 shadow-xl">
+                    <div class="flex items-center justify-between px-3 py-2 border-b border-[#F1F5F9] mb-2">
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-3 h-3 rounded-full bg-red-400"></span>
+                            <span class="w-3 h-3 rounded-full bg-yellow-400"></span>
+                            <span class="w-3 h-3 rounded-full bg-green-400"></span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-[#e6f4f1] text-[#00685f]">SYSTEM LIVE</span>
+                        </div>
+                    </div>
+
+                    <!-- Screenshot Container with Overlay Badges -->
+                    <div class="relative overflow-hidden rounded-xl border border-[#E2E8F0] mb-4">
+                        <img src="/static/img/avandab_hero.jpg" alt="Avandab Operations Cockpit" class="w-full h-auto object-cover">
+                        
+                        <!-- Floating Live Status Pill 1 -->
+                        <div class="absolute top-4 left-4 bg-white/95 backdrop-blur-md border border-[#E2E8F0] rounded-lg px-3.5 py-2 shadow-lg flex items-center gap-3 hidden sm:flex">
+                            <div class="w-8 h-8 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                                <span class="material-symbols-outlined text-lg">local_shipping</span>
+                            </div>
+                            <div>
+                                <div class="text-xs font-bold text-[#0F172A]">Route #TRP-8492</div>
+                                <div class="text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                                    On Schedule (En Route)
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Floating Live Status Pill 2 -->
+                        <div class="absolute bottom-4 right-4 bg-white/95 backdrop-blur-md border border-[#E2E8F0] rounded-lg px-3.5 py-2 shadow-lg flex items-center gap-3 hidden sm:flex">
+                            <div class="w-8 h-8 rounded-md bg-[#e6f4f1] text-[#00685f] flex items-center justify-center font-bold">
+                                <span class="material-symbols-outlined text-lg">fact_check</span>
+                            </div>
+                            <div>
+                                <div class="text-xs font-bold text-[#0F172A]">Fleet Readiness</div>
+                                <div class="text-[11px] text-[#565e74] font-medium">98% Active Drivers</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Avandab Mobile App Preview Mockup -->
+                    <div class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-4 text-white shadow-lg border border-slate-700 flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-[#00685f] text-white flex items-center justify-center font-bold shadow-md">
+                                <span class="material-symbols-outlined text-xl">phone_iphone</span>
+                            </div>
+                            <div>
+                                <div class="text-xs font-bold uppercase tracking-wider text-teal-400">Mobile Driver App</div>
+                                <div class="text-sm font-semibold text-slate-100">React Native • GPS • Camera • Offline DB</div>
+                            </div>
+                        </div>
+                        <a href="/static/mobile-demo" onclick="alert('Mobile App project initialized in /mobile directory! Run \'cd mobile && npm run start\' to launch preview.')" class="px-3 py-1.5 rounded bg-teal-600 hover:bg-teal-500 text-xs font-bold text-white transition-colors shrink-0">
+                            Explore Code
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
-    </header>
+    </section>
 
-    <!-- Minimalist Hero Section -->
-    <section class="py-20 sm:py-28 px-6 max-w-4xl mx-auto text-center space-y-8">
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-slate-800 bg-slate-900/60 text-slate-400 text-xs font-medium">
-            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-            Avandab Operations Platform
+    <!-- ECASB Mini Features Section (Optimized Card Sizing & Responsive Grid) -->
+    <section id="benefits" class="ecasb-mini-features" dir="ltr">
+        <div class="container">
+            <h3 class="mini-title">
+                <span class="material-symbols-outlined text-[#00685f]">local_shipping</span>
+                Avandab benefits for fleet operators
+            </h3>
+            <div class="mini-grid">
+                <div class="mini-item">
+                    <div class="mini-icon-wrap">
+                        <span class="material-symbols-outlined text-xl">badge</span>
+                    </div>
+                    <div>
+                        <h4>Driver management</h4>
+                        <p>Real-time driver assignments, compliance, and license tracking</p>
+                    </div>
+                </div>
+                <div class="mini-item">
+                    <div class="mini-icon-wrap">
+                        <span class="material-symbols-outlined text-xl">directions_bus</span>
+                    </div>
+                    <div>
+                        <h4>Vehicle tracking</h4>
+                        <p>Track maintenance cycles, registration, and fleet readiness</p>
+                    </div>
+                </div>
+                <div class="mini-item">
+                    <div class="mini-icon-wrap">
+                        <span class="material-symbols-outlined text-xl">route</span>
+                    </div>
+                    <div>
+                        <h4>Route &amp; dispatch control</h4>
+                        <p>Schedule trips and automate dispatch to delivery workflows</p>
+                    </div>
+                </div>
+                <div class="mini-item">
+                    <div class="mini-icon-wrap">
+                        <span class="material-symbols-outlined text-xl">verified_user</span>
+                    </div>
+                    <div>
+                        <h4>Secure audit logging</h4>
+                        <p>Granular access control and full operational history logging</p>
+                    </div>
+                </div>
+                <div class="mini-item">
+                    <div class="mini-icon-wrap">
+                        <span class="material-symbols-outlined text-xl">monitoring</span>
+                    </div>
+                    <div>
+                        <h4>Performance analytics</h4>
+                        <p>Enhanced visibility into trip completion rates and margins</p>
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="mini-title">
+                <span class="material-symbols-outlined text-[#00685f]">inventory_2</span>
+                Avandab benefits for customers &amp; shippers
+            </h3>
+            <div class="mini-grid">
+                <div class="mini-item">
+                    <div class="mini-icon-wrap">
+                        <span class="material-symbols-outlined text-xl">receipt_long</span>
+                    </div>
+                    <div>
+                        <h4>Direct trip booking</h4>
+                        <p>Book trips directly with verified drivers and fleet units</p>
+                    </div>
+                </div>
+                <div class="mini-item">
+                    <div class="mini-icon-wrap">
+                        <span class="material-symbols-outlined text-xl">description</span>
+                    </div>
+                    <div>
+                        <h4>Automated invoicing</h4>
+                        <p>Instant invoice generation with itemized trip breakdowns</p>
+                    </div>
+                </div>
+                <div class="mini-item">
+                    <div class="mini-icon-wrap">
+                        <span class="material-symbols-outlined text-xl">payments</span>
+                    </div>
+                    <div>
+                        <h4>Transparent billing</h4>
+                        <p>Clear rate breakdown with pending payment status tracking</p>
+                    </div>
+                </div>
+                <div class="mini-item">
+                    <div class="mini-icon-wrap">
+                        <span class="material-symbols-outlined text-xl">location_on</span>
+                    </div>
+                    <div>
+                        <h4>Real-time route visibility</h4>
+                        <p>Live trip progress tracking from origin to destination</p>
+                    </div>
+                </div>
+                <div class="mini-item">
+                    <div class="mini-icon-wrap">
+                        <span class="material-symbols-outlined text-xl">history</span>
+                    </div>
+                    <div>
+                        <h4>Historical reporting</h4>
+                        <p>Export complete transport history, invoices, and payment records</p>
+                    </div>
+                </div>
+            </div>
         </div>
+    </section>
 
-        <h1 class="font-outfit font-bold text-4xl sm:text-6xl text-white tracking-tight leading-tight max-w-3xl mx-auto">
-            Fleet operations managed with clarity and control.
-        </h1>
+    <!-- Key Modules -->
+    <section id="features" class="py-20 border-t border-[#E2E8F0] bg-[#f7f9fb]">
+        <div class="max-w-6xl mx-auto px-6">
+            <div class="mb-12 space-y-2 text-center sm:text-left">
+                <h2 class="font-display font-bold text-2xl sm:text-3xl text-[#0F172A]">Essential operations, refined</h2>
+                <p class="text-[#565e74] text-sm sm:text-base">Everything needed to run daily transport and dispatch logistics.</p>
+            </div>
 
-        <p class="text-slate-400 text-lg sm:text-xl max-w-2xl mx-auto font-normal leading-relaxed">
-            A clean, high-performance platform for organizing drivers, routes, trips, and invoices without complex hardware or bloated workflows.
-        </p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="ecasb-card p-7 space-y-4">
+                    <div class="w-12 h-12 rounded-lg bg-[#e6f4f1] text-[#00685f] flex items-center justify-center">
+                        <span class="material-symbols-outlined text-2xl">badge</span>
+                    </div>
+                    <h3 class="font-display font-bold text-lg text-[#0F172A]">Driver Operations</h3>
+                    <p class="text-[#565e74] text-sm leading-relaxed">Manage driver assignments, active shifts, and license compliance in real time.</p>
+                </div>
 
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
-            <a href="/login" class="w-full sm:w-auto px-6 py-3 rounded-lg bg-white text-slate-950 font-semibold text-sm hover:bg-slate-200 transition">
-                Get Started
-            </a>
-            <a href="#features" class="w-full sm:w-auto px-6 py-3 rounded-lg border border-slate-800 bg-slate-900/40 text-slate-300 font-semibold text-sm hover:bg-slate-800/60 transition">
-                Explore Features
-            </a>
-        </div>
+                <div class="ecasb-card p-7 space-y-4">
+                    <div class="w-12 h-12 rounded-lg bg-[#e6f4f1] text-[#00685f] flex items-center justify-center">
+                        <span class="material-symbols-outlined text-2xl">directions_bus</span>
+                    </div>
+                    <h3 class="font-display font-bold text-lg text-[#0F172A]">Vehicle Tracking</h3>
+                    <p class="text-[#565e74] text-sm leading-relaxed">Track registrations, maintenance cycles, and vehicle readiness across your fleet.</p>
+                </div>
 
-        <!-- Cockpit Preview -->
-        <div class="pt-8 max-w-4xl mx-auto">
-            <div class="rounded-xl border border-slate-800 bg-slate-900/50 p-2 overflow-hidden shadow-xl">
-                <img src="/static/img/avandab_hero.jpg" alt="Avandab Operations Cockpit" class="rounded-lg w-full object-cover">
+                <div class="ecasb-card p-7 space-y-4">
+                    <div class="w-12 h-12 rounded-lg bg-[#e6f4f1] text-[#00685f] flex items-center justify-center">
+                        <span class="material-symbols-outlined text-2xl">route</span>
+                    </div>
+                    <h3 class="font-display font-bold text-lg text-[#0F172A]">Route & Dispatch</h3>
+                    <p class="text-[#565e74] text-sm leading-relaxed">Organize routes, schedule trips, and automate status progression from dispatch to delivery.</p>
+                </div>
             </div>
         </div>
     </section>
 
     <!-- Competitor Comparison -->
-    <section id="comparison" class="py-16 border-t border-slate-900 bg-slate-950">
-        <div class="max-w-4xl mx-auto px-6">
-            <div class="mb-10 space-y-2">
-                <h2 class="font-outfit font-bold text-2xl sm:text-3xl text-white">How Avandab compares</h2>
-                <p class="text-slate-400 text-sm sm:text-base">Built for speed, simplicity, and complete ownership.</p>
+    <section id="comparison" class="py-20 border-t border-[#E2E8F0] bg-white">
+        <div class="max-w-6xl mx-auto px-6">
+            <div class="mb-12 space-y-2 text-center sm:text-left">
+                <h2 class="font-display font-bold text-2xl sm:text-3xl text-[#0F172A]">How Avandab compares</h2>
+                <p class="text-[#565e74] text-sm sm:text-base">Built for speed, simplicity, and complete operational efficiency.</p>
             </div>
 
-            <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/30">
+            <div class="overflow-x-auto ecasb-card overflow-hidden">
                 <table class="w-full text-left border-collapse text-sm">
                     <thead>
-                        <tr class="border-b border-slate-800 bg-slate-900/50">
-                            <th class="p-4 font-semibold text-slate-400">Feature</th>
-                            <th class="p-4 font-bold text-indigo-400 bg-indigo-500/10">Avandab (avandab.com)</th>
-                            <th class="p-4 font-semibold text-slate-400">Legacy Enterprise SaaS</th>
+                        <tr class="border-b border-[#E2E8F0] bg-[#F8FAFC]">
+                            <th class="p-4 font-bold text-[#334155] uppercase text-xs tracking-wider">Feature</th>
+                            <th class="p-4 font-bold text-[#00685f] bg-[#e6f4f1]/60 uppercase text-xs tracking-wider">Avandab (avandab.com)</th>
+                            <th class="p-4 font-bold text-[#64748B] uppercase text-xs tracking-wider">Legacy Enterprise SaaS</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-850">
+                    <tbody class="divide-y divide-[#E2E8F0]">
                         <tr>
-                            <td class="p-4 text-slate-300 font-medium">Contracts</td>
-                            <td class="p-4 font-semibold text-emerald-400 bg-indigo-500/10">No contract / Flexible</td>
-                            <td class="p-4 text-slate-400">3–5 Year lock-in agreements</td>
+                            <td class="p-4 text-[#0F172A] font-semibold">Contracts</td>
+                            <td class="p-4 font-semibold text-[#00685f] bg-[#e6f4f1]/30">No contract / Flexible</td>
+                            <td class="p-4 text-[#64748B]">3–5 Year lock-in agreements</td>
                         </tr>
                         <tr>
-                            <td class="p-4 text-slate-300 font-medium">Deployment</td>
-                            <td class="p-4 font-semibold text-emerald-400 bg-indigo-500/10">Instant web & cloud ready</td>
-                            <td class="p-4 text-slate-400">Weeks of hardware installation</td>
+                            <td class="p-4 text-[#0F172A] font-semibold">Deployment</td>
+                            <td class="p-4 font-semibold text-[#00685f] bg-[#e6f4f1]/30">Instant web & cloud ready</td>
+                            <td class="p-4 text-[#64748B]">Weeks of hardware installation</td>
                         </tr>
                         <tr>
-                            <td class="p-4 text-slate-300 font-medium">Interface Speed</td>
-                            <td class="p-4 font-semibold text-emerald-400 bg-indigo-500/10">Instant SPA transitions</td>
-                            <td class="p-4 text-slate-400">Heavy page load latency</td>
+                            <td class="p-4 text-[#0F172A] font-semibold">Interface Speed</td>
+                            <td class="p-4 font-semibold text-[#00685f] bg-[#e6f4f1]/30">Instant SPA transitions</td>
+                            <td class="p-4 text-[#64748B]">Heavy page load latency</td>
                         </tr>
                         <tr>
-                            <td class="p-4 text-slate-300 font-medium">Data Ownership</td>
-                            <td class="p-4 font-semibold text-emerald-400 bg-indigo-500/10">Full export & self-host option</td>
-                            <td class="p-4 text-slate-400">Proprietary cloud lock-in</td>
+                            <td class="p-4 text-[#0F172A] font-semibold">Data Ownership</td>
+                            <td class="p-4 font-semibold text-[#00685f] bg-[#e6f4f1]/30">Full export & self-host option</td>
+                            <td class="p-4 text-[#64748B]">Proprietary cloud lock-in</td>
                         </tr>
                     </tbody>
                 </table>
@@ -118,50 +859,79 @@
         </div>
     </section>
 
-    <!-- Key Modules -->
-    <section id="features" class="py-16 border-t border-slate-900 bg-slate-950">
-        <div class="max-w-4xl mx-auto px-6">
-            <div class="mb-10 space-y-2">
-                <h2 class="font-outfit font-bold text-2xl sm:text-3xl text-white">Essential operations, refined</h2>
-                <p class="text-slate-400 text-sm sm:text-base">Everything needed to run daily transport and dispatch logistics.</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="p-6 rounded-xl border border-slate-800 bg-slate-900/30 space-y-3">
-                    <div class="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
-                        <span class="material-icons text-xl">badge</span>
+    <!-- ECASB Footer -->
+    <footer class="footer footer-ecasb" dir="ltr">
+        <div class="footer-top">
+            <div class="container">
+                <div class="footer-grid">
+                    <div class="footer-col">
+                        <h4>Get support</h4>
+                        <ul>
+                            <li><a href="/contact-us">Help Center &amp; Support</a></li>
+                            <li><a href="/contact-us#track-status-section">Check Inquiry Status</a></li>
+                            <li><a href="/invoices">Invoices &amp; Receipts</a></li>
+                            <li><a href="/audit-logs">Audit Logs</a></li>
+                            <li><a href="/contact-us">Contact Admin</a></li>
+                        </ul>
                     </div>
-                    <h3 class="font-outfit font-bold text-lg text-white">Driver Operations</h3>
-                    <p class="text-slate-400 text-sm leading-relaxed">Manage driver assignments, active shifts, and license compliance in real time.</p>
-                </div>
 
-                <div class="p-6 rounded-xl border border-slate-800 bg-slate-900/30 space-y-3">
-                    <div class="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
-                        <span class="material-icons text-xl">directions_bus</span>
+                    <div class="footer-col">
+                        <h4>Operations &amp; Security</h4>
+                        <ul>
+                            <li><a href="/payments">Safe &amp; Easy Payments</a></li>
+                            <li><a href="/routes">Route Optimization</a></li>
+                            <li><a href="/vehicles">Vehicle Maintenance</a></li>
+                            <li><a href="/drivers">Driver Licensing</a></li>
+                            <li><a href="/reports">Fleet Reports</a></li>
+                        </ul>
                     </div>
-                    <h3 class="font-outfit font-bold text-lg text-white">Vehicle Tracking</h3>
-                    <p class="text-slate-400 text-sm leading-relaxed">Track registrations, maintenance cycles, and vehicle readiness across your fleet.</p>
-                </div>
 
-                <div class="p-6 rounded-xl border border-slate-800 bg-slate-900/30 space-y-3">
-                    <div class="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
-                        <span class="material-icons text-xl">route</span>
+                    <div class="footer-col">
+                        <h4>Avandab Platform</h4>
+                        <ul>
+                            <li><a href="/bookings">Request Booking</a></li>
+                            <li><a href="/customers">Customer Directory</a></li>
+                            <li><a href="/reports">Revenue Analytics</a></li>
+                            <li><a href="/dashboard">Operations Cockpit</a></li>
+                            <li><a href="/settings">System Settings</a></li>
+                        </ul>
                     </div>
-                    <h3 class="font-outfit font-bold text-lg text-white">Route & Dispatch</h3>
-                    <p class="text-slate-400 text-sm leading-relaxed">Organize routes, schedule trips, and automate status progression from dispatch to delivery.</p>
+
+                    <div class="footer-col">
+                        <h4>Fleet Management</h4>
+                        <ul>
+                            <li><a href="/login">Operator Sign In</a></li>
+                            <li><a href="/register">Register Fleet</a></li>
+                            <li><a href="/vehicles">Active Units</a></li>
+                            <li><a href="/drivers">Driver Directory</a></li>
+                            <li><a href="/trips">Live Dispatch</a></li>
+                        </ul>
+
+                        <div class="socials">
+                            <a aria-label="Website" href="/"><span class="material-symbols-outlined text-base">public</span></a>
+                            <a aria-label="Dashboard" href="/dashboard"><span class="material-symbols-outlined text-base">grid_view</span></a>
+                            <a aria-label="Reports" href="/reports"><span class="material-symbols-outlined text-base">monitoring</span></a>
+                            <a aria-label="Settings" href="/settings"><span class="material-symbols-outlined text-base">settings</span></a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </section>
 
-    <!-- Footer -->
-    <footer class="border-t border-slate-900 py-10 bg-slate-950">
-        <div class="max-w-4xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div class="flex items-center gap-2">
-                <span class="font-outfit font-bold text-base text-white">Avandab</span>
-                <span class="text-slate-600 text-sm">• avandab.com</span>
+        <div class="footer-bottom">
+            <div class="container footer-bottom-row">
+                <div class="left">
+                    <span>© 2026 Avandab Operations Platform. All rights reserved.</span>
+                </div>
+                <div class="right">
+                    <ul class="legal">
+                        <li><a href="/dashboard">Conditions of Use</a></li>
+                        <li><a href="/dashboard">Privacy Notice</a></li>
+                        <li><a href="/dashboard">Compliance</a></li>
+                    </ul>
+                    <span class="powered">Powered by <a href="/dashboard">Avandab Fleet Engine</a></span>
+                </div>
             </div>
-            <p class="text-slate-500 text-xs">© 2026 Avandab. All rights reserved.</p>
         </div>
     </footer>
 </body>

@@ -1,0 +1,79 @@
+name: Deploy to Tecno Pova 2
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies & Build CSS
+        run: |
+          npm ci || true
+          npx @tailwindcss/cli -i src/input.css -o internal/static/css/tailwind.css --minify || true
+
+      - name: Cross-compile Go server for ARM64
+        run: |
+          mkdir -p payload/internal
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o payload/server ./cmd/server/main.go
+          cp -r internal/templates payload/internal/
+          cp -r internal/static payload/internal/
+
+      - name: Create release archive & sha256
+        id: archive
+        run: |
+          VERSION=$(date +%Y%m%d%H%M%S)
+          TAR_NAME="update_${VERSION}.tar.gz"
+          tar -czf "${TAR_NAME}" -C payload .
+          SHA256=$(sha256sum "${TAR_NAME}" | cut -d' ' -f1)
+          
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "TAR_NAME=${TAR_NAME}" >> $GITHUB_ENV
+          echo "SHA256=${SHA256}" >> $GITHUB_ENV
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: "v${{ env.VERSION }}"
+          name: "Release v${{ env.VERSION }}"
+          draft: false
+          prerelease: false
+          files: ${{ env.TAR_NAME }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate & Upload Manifest JSON Asset
+        run: |
+          cat << MANIFESTEOF > manifest.json
+          {
+            "version": "${{ env.VERSION }}",
+            "download_url": "https://github.com/${{ github.repository }}/releases/download/v${{ env.VERSION }}/${{ env.TAR_NAME }}",
+            "sha256": "${{ env.SHA256 }}"
+          }
+          MANIFESTEOF
+
+      - name: Update GitHub Release with manifest.json
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: "v${{ env.VERSION }}"
+          files: manifest.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

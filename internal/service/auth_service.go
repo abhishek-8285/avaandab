@@ -107,7 +107,7 @@ func (s *AuthService) GetProfile(ctx context.Context, userID domain.UserID) (dom
 }
 
 // UpdateProfile updates a user's profile information.
-func (s *AuthService) UpdateProfile(ctx context.Context, userID domain.UserID, name, phone string) (domain.User, error) {
+func (s *AuthService) UpdateProfile(ctx context.Context, userID domain.UserID, name, phone, timezone string) (domain.User, error) {
 	user, err := s.store.GetUserByID(ctx, userID)
 	if err != nil {
 		return domain.User{}, err
@@ -118,6 +118,9 @@ func (s *AuthService) UpdateProfile(ctx context.Context, userID domain.UserID, n
 		user.Phone = &phone
 	} else {
 		user.Phone = nil
+	}
+	if timezone != "" {
+		user.Timezone = timezone
 	}
 
 	return s.store.UpdateUser(ctx, user)

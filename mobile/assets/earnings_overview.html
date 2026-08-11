@@ -1,0 +1,153 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Avandab Driver - Earnings Screen</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600&amp;family=Material+Icons&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#0d9488", // Teal
+                        "background-light": "#f8fafc",
+                        "background-dark": "#0f172a",
+                        charcoal: "#262626",
+                    },
+                    fontFamily: {
+                        display: ["Outfit", "sans-serif"],
+                        body: ["Plus Jakarta Sans", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "12px",
+                        'xl': '24px',
+                    },
+                },
+            },
+        };
+    </script>
+<style>
+        .ios-status-bar {
+            padding: env(safe-area-inset-top) 20px 0;
+        }
+        .curved-card {
+            border-top-left-radius: 40px;
+            border-top-right-radius: 40px;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.05);
+        }
+        .phone-inner-scroll::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-body transition-colors duration-300">
+<div class="max-w-md mx-auto min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 relative overflow-hidden">
+<div class="ios-status-bar flex justify-between items-center py-4 px-8 w-full z-10">
+<span class="font-semibold text-sm dark:text-white">9:41</span>
+<div class="flex gap-1.5 items-center">
+<span class="material-icons text-base dark:text-white">signal_cellular_alt</span>
+<span class="material-icons text-base dark:text-white">wifi</span>
+<span class="material-icons text-base dark:text-white">battery_full</span>
+</div>
+</div>
+<div class="flex-grow flex justify-center items-start pt-6 px-4 pb-4">
+<div class="relative w-[280px] h-[520px] bg-white dark:bg-zinc-900 rounded-[3rem] border-[8px] border-charcoal shadow-2xl overflow-hidden">
+<div class="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-charcoal rounded-b-2xl z-20"></div>
+<div class="h-full flex flex-col phone-inner-scroll overflow-y-auto bg-white dark:bg-zinc-900">
+<div class="pt-10 pb-4 px-5 flex justify-between items-center">
+<div class="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center">
+<span class="material-icons text-lg dark:text-white">arrow_back</span>
+</div>
+<h3 class="font-display font-semibold dark:text-white">Today Earned</h3>
+<div class="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center">
+<span class="material-icons text-lg text-primary" style="color: rgb(0, 104, 95);">account_balance_wallet</span>
+</div>
+</div>
+<div class="px-5 grid grid-cols-3 gap-2 mb-6">
+<div class="bg-charcoal text-white p-3 rounded-xl text-center">
+<p class="text-[10px] opacity-70 mb-1">Total Hour</p>
+<p class="text-xl font-display font-bold">01</p>
+</div>
+<div class="bg-charcoal text-white p-3 rounded-xl text-center">
+<p class="text-[10px] opacity-70 mb-1">Total Miles</p>
+<p class="text-xl font-display font-bold">80</p>
+</div>
+<div class="bg-primary text-white p-3 rounded-xl text-center" style="background-color: rgb(0, 104, 95);">
+<p class="text-[10px] opacity-90 mb-1">Earning (₹)</p>
+<p class="text-xl font-display font-bold">₹1,250</p>
+</div>
+</div>
+<div class="px-5 space-y-4 mb-10">
+<div class="flex items-center gap-4 p-3 border border-slate-100 dark:border-slate-800 rounded-2xl">
+<div class="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center">
+<span class="material-icons text-slate-400">person</span>
+</div>
+<div class="flex-grow">
+<p class="text-sm font-semibold dark:text-white">Arjun Sharma</p>
+<p class="text-[10px] text-slate-400">4.5 Miles | 12 Mins</p>
+</div>
+<p class="font-display font-bold text-sm dark:text-white">₹350.00</p>
+</div>
+<div class="flex items-center gap-4 p-3 border border-slate-100 dark:border-slate-800 rounded-2xl">
+<div class="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center">
+<span class="material-icons text-slate-400">person</span>
+</div>
+<div class="flex-grow">
+<p class="text-sm font-semibold dark:text-white">Priya Patel</p>
+<p class="text-[10px] text-slate-400">10 Miles | 25 Mins</p>
+</div>
+<p class="font-display font-bold text-sm dark:text-white">₹580.00</p>
+</div>
+<div class="flex items-center gap-4 p-3 border border-slate-100 dark:border-slate-800 rounded-2xl">
+<div class="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center">
+<span class="material-icons text-slate-400">person</span>
+</div>
+<div class="flex-grow">
+<p class="text-sm font-semibold dark:text-white">Rahul Verma</p>
+<p class="text-[10px] text-slate-400">3.2 Miles | 10 Mins</p>
+</div>
+<p class="font-display font-bold text-sm dark:text-white">₹320.00</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 curved-card mt-auto px-10 pt-12 pb-10 flex flex-col items-center text-center">
+<h1 class="font-display text-2xl font-bold text-slate-900 dark:text-white leading-tight mb-4">
+                Keep Tabs on <span class="text-primary" style="color: rgb(0, 104, 95);">Your Earnings</span> with Ease
+            </h1>
+<p class="text-slate-500 dark:text-slate-400 text-sm leading-relaxed mb-10 max-w-xs">
+                Monitor your daily performance, track every rupee earned, and view detailed trip history at your fingertips.
+            </p>
+<div class="w-full flex justify-between items-center mt-auto">
+<button class="w-12 h-12 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+<span class="material-icons">arrow_back</span>
+</button>
+<div class="flex gap-2">
+<div class="w-2 h-2 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+<div class="w-2 h-2 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+<div class="w-2 h-2 rounded-full bg-primary" style="background-color: rgb(0, 104, 95);"></div>
+</div>
+<button class="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/30 hover:brightness-110 active:scale-95 transition-all" style="background-color: rgb(0, 104, 95);">
+<span class="material-icons">arrow_forward</span>
+</button>
+</div>
+<div class="w-32 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mt-12 mb-2"></div>
+</div>
+</div>
+<div class="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 overflow-hidden">
+<div class="absolute top-[10%] -left-20 w-64 h-64 bg-primary/5 rounded-full blur-3xl"></div>
+<div class="absolute bottom-[20%] -right-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl"></div>
+</div>
+
+
+
+</body></html>

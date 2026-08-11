@@ -90,7 +90,7 @@ func (h *BookingHandlers) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.renderPage(w, "booking_list.html", PageData{
+	h.renderPage(w, r, "booking_list.html", PageData{
 		Title: "Bookings",
 		User:  session,
 		Extra: map[string]interface{}{"Bookings": res.Bookings, "Pagination": pd, "Query": pp.Query, "StatusFilter": pp.Status},
@@ -156,7 +156,7 @@ func (h *BookingHandlers) View(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.renderPage(w, "booking_view.html", PageData{
+	h.renderPage(w, r, "booking_view.html", PageData{
 		Title: "View Booking",
 		User:  session,
 		Extra: map[string]interface{}{"Booking": booking},

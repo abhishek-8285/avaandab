@@ -1,58 +1,79 @@
-<div id="register-container" class="w-full max-w-md">
-    <div class="bg-white rounded-xl shadow-xl border border-slate-200 auth-enter">
-        <div class="p-6 sm:p-8">
-            <div class="text-center">
-                <h2 class="text-2xl font-extrabold text-slate-900">Create an Account</h2>
-                <p class="mt-2 text-sm text-slate-600">Get started with Avandab</p>
-            </div>
+<div class="flex-1 flex items-center justify-center p-4 min-h-[calc(100vh-2rem)]">
+    <main class="w-full max-w-[480px] bg-white border border-slate-200 rounded-xl shadow-xs flex flex-col p-6 sm:p-8 gap-6 relative overflow-hidden my-8">
+        <!-- Decorative Header Line -->
+        <div class="absolute top-0 left-0 w-full h-[4px] bg-[#00685f]"></div>
 
-            {{if .Error}}
-            <div class="mt-5 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm auth-error">
-                {{.Error}}
-            </div>
-            {{end}}
-
-            <form class="mt-5 sm:mt-6 space-y-4" method="POST" action="/register" data-on-submit="@post('/register', {contentType: 'form'})">
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Full Name *</label>
-                    <input type="text" name="name" required value="{{.Name}}" placeholder="e.g. John Doe"
-                        class="block w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 auth-input">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Email Address *</label>
-                    <input type="email" name="email" required value="{{.Email}}" placeholder="name@company.com"
-                        class="block w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 auth-input">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
-                    <input type="tel" name="phone" value="{{.Phone}}" placeholder="+1-555-0199"
-                        class="block w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 auth-input">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Password *</label>
-                    <input type="password" name="password" required minlength="6"
-                        class="block w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 auth-input">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Confirm Password *</label>
-                    <input type="password" name="confirm_password" required minlength="6"
-                        class="block w-full border border-slate-300 rounded-md px-3 py-2 text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 auth-input">
-                </div>
-
-                <button type="submit"
-                    class="w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 auth-btn min-h-[44px] disabled:opacity-75">
-                    <span>Create Account</span>
-                </button>
-            </form>
-
-            <div class="mt-6 text-center text-sm text-slate-600">
-                Already have an account?
-                <a href="/login" class="font-medium text-blue-600 hover:text-blue-500">Sign in</a>
-            </div>
+        <!-- Top Action Bar -->
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <a href="/" class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#00685f] transition-colors">
+                <span class="material-symbols-outlined text-base">arrow_back</span>
+                <span>Back to Home</span>
+            </a>
         </div>
-    </div>
+
+        <!-- Header -->
+        <header class="flex flex-col gap-1 text-center items-center">
+            <a href="/" class="inline-flex items-center gap-2.5 no-underline">
+                <div class="w-10 h-10 rounded-lg bg-[#00685f] text-white flex items-center justify-center shadow-sm shrink-0">
+                    <span class="material-symbols-outlined text-2xl">local_shipping</span>
+                </div>
+                <span class="text-2xl font-black text-[#00685f] font-display tracking-tight">Avandab</span>
+            </a>
+            <p class="text-xs text-slate-500 font-medium mt-1">Create your logistics management account.</p>
+        </header>
+
+        {{if .Error}}
+        <div class="p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-md text-xs flex items-center gap-2">
+            <span class="material-symbols-outlined text-base shrink-0">error</span>
+            <span>{{.Error}}</span>
+        </div>
+        {{end}}
+
+        <!-- Form -->
+        <form action="/register" class="flex flex-col gap-4" method="POST">
+            <div class="flex flex-col sm:flex-row gap-4">
+                <div class="flex flex-col gap-1 flex-1">
+                    <label class="text-xs font-bold text-slate-600 uppercase tracking-wider" for="name">Full Name *</label>
+                    <input class="h-[40px] px-3 py-2 border border-slate-300 bg-slate-50 rounded-md text-sm text-slate-900 focus:bg-white focus:border-[#00685f] focus:ring-2 focus:ring-[#00685f]/20 outline-none transition-all" id="name" name="name" value="{{.Name}}" placeholder="Jane Doe" required type="text"/>
+                </div>
+                <div class="flex flex-col gap-1 flex-1">
+                    <label class="text-xs font-bold text-slate-600 uppercase tracking-wider" for="phone">Phone Number</label>
+                    <input class="h-[40px] px-3 py-2 border border-slate-300 bg-slate-50 rounded-md text-sm text-slate-900 focus:bg-white focus:border-[#00685f] focus:ring-2 focus:ring-[#00685f]/20 outline-none transition-all" id="phone" name="phone" value="{{.Phone}}" placeholder="+91 8285336507" type="tel"/>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="text-xs font-bold text-slate-600 uppercase tracking-wider" for="email">Work Email *</label>
+                <div class="relative">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">mail</span>
+                    <input class="w-full h-[40px] pl-10 pr-3 py-2 border border-slate-300 bg-slate-50 rounded-md text-sm text-slate-900 focus:bg-white focus:border-[#00685f] focus:ring-2 focus:ring-[#00685f]/20 outline-none transition-all" id="email" name="email" value="{{.Email}}" placeholder="jane.doe@company.com" required type="email"/>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-4">
+                <div class="flex flex-col gap-1 flex-1">
+                    <label class="text-xs font-bold text-slate-600 uppercase tracking-wider" for="password">Password *</label>
+                    <input class="h-[40px] px-3 py-2 border border-slate-300 bg-slate-50 rounded-md text-sm text-slate-900 focus:bg-white focus:border-[#00685f] focus:ring-2 focus:ring-[#00685f]/20 outline-none transition-all" id="password" name="password" placeholder="••••••••" required type="password"/>
+                </div>
+                <div class="flex flex-col gap-1 flex-1">
+                    <label class="text-xs font-bold text-slate-600 uppercase tracking-wider" for="confirm_password">Confirm Password *</label>
+                    <input class="h-[40px] px-3 py-2 border border-slate-300 bg-slate-50 rounded-md text-sm text-slate-900 focus:bg-white focus:border-[#00685f] focus:ring-2 focus:ring-[#00685f]/20 outline-none transition-all" id="confirm_password" name="confirm_password" placeholder="••••••••" required type="password"/>
+                </div>
+            </div>
+
+            <div class="pt-2">
+                <button class="bg-[#00685f] hover:bg-[#005049] text-white font-bold text-xs uppercase tracking-wider px-6 py-3 w-full inline-flex justify-center items-center gap-2 rounded-md transition-colors shadow-xs cursor-pointer" type="submit">
+                    <span class="material-symbols-outlined text-base">how_to_reg</span>
+                    <span>Register Operator Account</span>
+                </button>
+            </div>
+        </form>
+
+        <div class="pt-4 border-t border-slate-100 text-center">
+            <p class="text-xs text-slate-500">
+                Already registered?
+                <a href="/login" class="text-[#00685f] font-bold hover:underline ml-1">Sign In</a>
+            </p>
+        </div>
+    </main>
 </div>

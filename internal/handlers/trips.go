@@ -8,6 +8,8 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"transport-app/internal/domain"
+	"transport-app/internal/domain/types"
+	invoiceApp "transport-app/internal/invoice/application"
 	"transport-app/internal/middleware"
 	"transport-app/internal/service"
 	clock "transport-app/internal/shared/clock"
@@ -20,18 +22,19 @@ import (
 // TripHandlers handles trip management.
 type TripHandlers struct {
 	*App
-	createUC        *tripapp.CreateTripUseCase
-	startUC         *tripapp.StartTripUseCase
-	reachPickupUC   *tripapp.ReachPickupUseCase
-	startTransitUC  *tripapp.StartTransitUseCase
-	deliverUC       *tripapp.DeliverUseCase
-	completeUC      *tripapp.CompleteTripUseCase
-	cancelUC        *tripapp.CancelTripUseCase
-	getUC           *tripapp.GetTripUseCase
-	listUC          *tripapp.ListTripsUseCase
-	scheduleUC      *tripapp.ScheduleTripUseCase
-	assignDriverUC  *tripapp.AssignDriverUseCase
-	assignVehicleUC *tripapp.AssignVehicleUseCase
+	createUC          *tripapp.CreateTripUseCase
+	startUC           *tripapp.StartTripUseCase
+	reachPickupUC     *tripapp.ReachPickupUseCase
+	startTransitUC    *tripapp.StartTransitUseCase
+	deliverUC         *tripapp.DeliverUseCase
+	completeUC        *tripapp.CompleteTripUseCase
+	cancelUC          *tripapp.CancelTripUseCase
+	getUC             *tripapp.GetTripUseCase
+	listUC            *tripapp.ListTripsUseCase
+	scheduleUC        *tripapp.ScheduleTripUseCase
+	assignDriverUC    *tripapp.AssignDriverUseCase
+	assignVehicleUC   *tripapp.AssignVehicleUseCase
+	generateInvoiceUC *invoiceApp.GenerateInvoiceUseCase
 }
 
 func (h *TripHandlers) init() {
@@ -52,6 +55,7 @@ func (h *TripHandlers) init() {
 		h.scheduleUC = tripapp.NewScheduleTripUseCase(uowImpl, clockImpl)
 		h.assignDriverUC = tripapp.NewAssignDriverUseCase(uowImpl, clockImpl)
 		h.assignVehicleUC = tripapp.NewAssignVehicleUseCase(uowImpl, clockImpl)
+		h.generateInvoiceUC = invoiceApp.NewGenerateInvoiceUseCase(uowImpl, idGenImpl, clockImpl)
 	}
 }
 
@@ -104,7 +108,7 @@ func (h *TripHandlers) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.renderPage(w, "trip_list.html", PageData{
+	h.renderPage(w, r, "trip_list.html", PageData{
 		Title: "Trips",
 		User:  session,
 		Extra: map[string]interface{}{"Trips": res.Trips, "Pagination": pd, "Query": pp.Query, "StatusFilter": pp.Status},
@@ -194,7 +198,7 @@ func (h *TripHandlers) View(w http.ResponseWriter, r *http.Request) {
 		availableVehicles, _, _ = h.Services.Vehicles.ListVehicles(r.Context(), "", "available", 1000, 0)
 	}
 
-	h.renderPage(w, "trip_view.html", PageData{
+	h.renderPage(w, r, "trip_view.html", PageData{
 		Title: "View Trip",
 		Extra: map[string]interface{}{
 			"Trip":              trip,
@@ -399,6 +403,28 @@ func (h *TripHandlers) CompleteTrip(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	// Auto-generate invoice upon trip completion if associated with a booking
+	if trip, err := h.getUC.Execute(r.Context(), tripapp.GetTripQuery{TripID: tripagg.TripID(id), TenantID: "1"}); err == nil && trip.BookingID != nil {
+		bookingID := types.BookingID(*trip.BookingID)
+		if booking, err := h.Services.Bookings.GetBooking(r.Context(), bookingID); err == nil {
+			subtotal := booking.Price
+			tax := subtotal * 0.18 // 18% GST standard rate
+			total := subtotal + tax
+			tripIDStr := string(trip.ID)
+			_, _ = h.generateInvoiceUC.Execute(r.Context(), invoiceApp.GenerateInvoiceCommand{
+				TenantID:   "1",
+				BookingID:  string(booking.ID),
+				CustomerID: string(booking.CustomerID),
+				TripID:     &tripIDStr,
+				Subtotal:   subtotal,
+				Tax:        tax,
+				Discount:   0,
+				Total:      total,
+			})
+		}
+	}
+
 	http.Redirect(w, r, "/trips/"+id, http.StatusSeeOther)
 }
 

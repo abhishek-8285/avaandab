@@ -28,7 +28,7 @@ func (h *ReportHandlers) Routes(r chi.Router) {
 
 func (h *ReportHandlers) Index(w http.ResponseWriter, r *http.Request) {
 	session, _ := h.getUserFromContext(r)
-	h.renderPage(w, "reports_index.html", PageData{
+	h.renderPage(w, r, "reports_index.html", PageData{
 		Title: "Reports",
 		User:  session,
 	})
@@ -40,7 +40,7 @@ func (h *ReportHandlers) RevenueReport(w http.ResponseWriter, r *http.Request) {
 	monthlyRev, _ := h.Services.Payments.GetMonthlyRevenue(r.Context())
 	totalRev, _ := h.Services.Payments.GetTotalRevenue(r.Context())
 
-	h.renderPage(w, "report_revenue.html", PageData{
+	h.renderPage(w, r, "report_revenue.html", PageData{
 		Title: "Revenue Report",
 		User:  session,
 		Extra: map[string]interface{}{
@@ -69,7 +69,7 @@ func (h *ReportHandlers) TripReport(w http.ResponseWriter, r *http.Request) {
 
 	pd := newPaginationData(pp, total, "/reports/trips")
 
-	h.renderPage(w, "report_trips.html", PageData{
+	h.renderPage(w, r, "report_trips.html", PageData{
 		Title: "Trip Performance Report",
 		User:  session,
 		Extra: map[string]interface{}{
@@ -97,7 +97,7 @@ func (h *ReportHandlers) DriverReport(w http.ResponseWriter, r *http.Request) {
 
 	pagination := newPaginationData(pp, total, "/reports/drivers")
 
-	h.renderPage(w, "report_drivers.html", PageData{
+	h.renderPage(w, r, "report_drivers.html", PageData{
 		Title: "Driver Roster Report",
 		User:  session,
 		Extra: map[string]interface{}{
@@ -125,7 +125,7 @@ func (h *ReportHandlers) VehicleReport(w http.ResponseWriter, r *http.Request) {
 
 	pagination := newPaginationData(pp, total, "/reports/vehicles")
 
-	h.renderPage(w, "report_vehicles.html", PageData{
+	h.renderPage(w, r, "report_vehicles.html", PageData{
 		Title: "Vehicle Fleet Report",
 		User:  session,
 		Extra: map[string]interface{}{
@@ -150,7 +150,7 @@ func (h *ReportHandlers) CustomerReport(w http.ResponseWriter, r *http.Request) 
 	}
 	pagination := newPaginationData(pp, total, "/reports/customers")
 
-	h.renderPage(w, "report_customers.html", PageData{
+	h.renderPage(w, r, "report_customers.html", PageData{
 		Title: "Customer Directory Report",
 		User:  session,
 		Extra: map[string]interface{}{
@@ -175,7 +175,7 @@ func (h *ReportHandlers) PendingPaymentsReport(w http.ResponseWriter, r *http.Re
 		totalOutstanding += inv.Total
 	}
 
-	h.renderPage(w, "report_pending_payments.html", PageData{
+	h.renderPage(w, r, "report_pending_payments.html", PageData{
 		Title: "Outstanding Payments Audit Report",
 		User:  session,
 		Extra: map[string]interface{}{

@@ -13,11 +13,109 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&display=swap" rel="stylesheet">
     <script type="module" src="/static/js/datastar.js" defer></script>
-    <script src="/static/js/router.js" defer></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-error": "#ffffff",
+                      "surface-bright": "#f7f9fb",
+                      "surface-container-high": "#e6e8ea",
+                      "on-tertiary-fixed-variant": "#773215",
+                      "on-secondary-fixed-variant": "#3f465c",
+                      "on-primary": "#ffffff",
+                      "surface-container-low": "#f2f4f6",
+                      "background": "#f7f9fb",
+                      "status-alert": "#E11D48",
+                      "tertiary-fixed": "#ffdbce",
+                      "on-secondary-fixed": "#131b2e",
+                      "status-success": "#10B981",
+                      "error-container": "#ffdad6",
+                      "surface": "#f7f9fb",
+                      "secondary": "#565e74",
+                      "tertiary-fixed-dim": "#ffb59a",
+                      "surface-variant": "#e0e3e5",
+                      "status-warning": "#F59E0B",
+                      "outline": "#6d7a77",
+                      "surface-container-highest": "#e0e3e5",
+                      "on-tertiary-container": "#fffbff",
+                      "error": "#ba1a1a",
+                      "outline-variant": "#bcc9c6",
+                      "on-surface": "#191c1e",
+                      "on-tertiary": "#ffffff",
+                      "inverse-on-surface": "#eff1f3",
+                      "secondary-container": "#dae2fd",
+                      "on-tertiary-fixed": "#370e00",
+                      "primary-container": "#008378",
+                      "brand-teal-deep": "#115E59",
+                      "on-background": "#191c1e",
+                      "border-subtle": "#E2E8F0",
+                      "on-error-container": "#93000a",
+                      "primary-fixed-dim": "#6bd8cb",
+                      "surface-container": "#eceef0",
+                      "surface-tint": "#006a61",
+                      "on-primary-fixed": "#00201d",
+                      "text-muted": "#64748B",
+                      "on-secondary-container": "#5c647a",
+                      "surface-container-lowest": "#ffffff",
+                      "status-info": "#4F46E5",
+                      "primary-fixed": "#89f5e7",
+                      "on-primary-container": "#f4fffc",
+                      "on-secondary": "#ffffff",
+                      "tertiary": "#924628",
+                      "secondary-fixed-dim": "#bec6e0",
+                      "secondary-fixed": "#dae2fd",
+                      "surface-dim": "#d8dadc",
+                      "inverse-primary": "#6bd8cb",
+                      "on-primary-fixed-variant": "#005049",
+                      "tertiary-container": "#b05e3d",
+                      "primary": "#00685f",
+                      "on-surface-variant": "#3d4947",
+                      "inverse-surface": "#2d3133"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "container-max": "100%",
+                      "cell-padding-y": "8px",
+                      "section-gap": "24px",
+                      "cell-padding-x": "12px",
+                      "margin-edge": "16px",
+                      "unit": "4px"
+              },
+              "fontFamily": {
+                      "body-md": ["Plus Jakarta Sans"],
+                      "data-mono": ["Plus Jakarta Sans"],
+                      "body-lg": ["Plus Jakarta Sans"],
+                      "headline-lg": ["Outfit"],
+                      "body-sm": ["Plus Jakarta Sans"],
+                      "display": ["Outfit"],
+                      "label-caps": ["Plus Jakarta Sans"],
+                      "headline-md": ["Outfit"]
+              },
+              "fontSize": {
+                      "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                      "data-mono": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                      "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                      "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                      "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }],
+                      "display": ["36px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                      "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                      "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }]
+              }
+            },
+          },
+        };
+    </script>
     <link rel="stylesheet" href="/static/css/tailwind.css">
     <link rel="stylesheet" href="/static/css/app.css">
     <style>
-        html { opacity: 0; transition: opacity 0.15s ease-in; }
         body {
             font-size: 1rem;
             line-height: 1.5;
@@ -137,33 +235,140 @@
         <div class="flex-1 flex flex-col h-screen overflow-hidden bg-[#f7f9fb]">
             <!-- TopAppBar (Stitch Design) -->
             <header class="bg-white border-b border-[#E2E8F0] sticky top-0 z-30 flex justify-between items-center h-16 px-6 sm:px-8 w-full shrink-0 shadow-xs">
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 min-w-0">
                     <button id="mobile-menu-btn" type="button"
-                        class="md:hidden w-10 h-10 flex items-center justify-center text-slate-600 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00685f] rounded-md"
+                        class="md:hidden w-10 h-10 flex items-center justify-center text-slate-600 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00685f] rounded-md shrink-0"
                         aria-label="Toggle navigation" aria-expanded="false">
                         <span class="material-icons">menu</span>
                     </button>
-                    <h2 class="text-xl font-bold text-slate-900 font-display tracking-tight">{{.Title}}</h2>
+                    <h2 class="text-base sm:text-lg font-bold text-slate-900 font-display tracking-tight truncate">{{.Title}}</h2>
                 </div>
+
                 <div class="flex items-center gap-4 sm:gap-6 ml-auto">
-                    <div class="relative hidden sm:block">
-                        <span class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
-                        <input class="bg-slate-50 border border-slate-200 rounded-md py-2 pl-9 pr-4 text-sm text-slate-800 placeholder-slate-400 w-64 md:w-80 focus:outline-none focus:bg-white focus:border-[#00685f] focus:ring-2 focus:ring-[#00685f]/20 transition-all" placeholder="Search units, drivers, or routes..." type="text">
-                    </div>
-                    {{if .User}}
-                    <div class="flex items-center gap-3 cursor-pointer group border-l border-slate-200 pl-4 sm:pl-6">
-                        <div class="w-9 h-9 rounded-full bg-[#008378] text-white flex items-center justify-center font-bold text-xs ring-2 ring-emerald-500/20 shadow-xs">
-                            {{if .User.Name}}{{slice .User.Name 0 2}}{{else}}AD{{end}}
+                    <form method="GET" action="/audit-logs" class="relative hidden sm:block">
+                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+                        <input type="text" name="q" value="{{.Query}}" class="bg-slate-50 border border-slate-200 rounded-md py-2 pl-9 pr-4 text-sm text-slate-800 placeholder-slate-400 w-64 md:w-80 focus:outline-none focus:bg-white focus:border-[#00685f] focus:ring-2 focus:ring-[#00685f]/20 transition-all" placeholder="Search logs, vehicles, drivers..." />
+                    </form>
+
+                    <!-- Notifications Dropdown (Hover Enabled) -->
+                    <div class="relative group">
+                        <button type="button" class="hover:bg-slate-100 p-2 rounded-lg transition-colors text-slate-600 hover:text-[#00685f] border-0 bg-transparent cursor-pointer flex items-center justify-center relative">
+                            <span class="material-symbols-outlined text-xl">notifications</span>
+                            {{if .HasUnread}}<span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white"></span>{{end}}
+                        </button>
+
+                        <div class="absolute right-0 top-full mt-2 w-[380px] max-w-[90vw] bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 p-4 text-slate-800">
+                            <div class="flex justify-between items-center pb-3 mb-3 border-b border-slate-100">
+                                <div class="font-bold text-sm text-slate-900 font-display">Notifications</div>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" id="notif-tab-inbox" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-teal-50 text-[#00685f] border-0 flex items-center gap-1 cursor-pointer">
+                                        Inbox {{if .HasUnread}}<span class="bg-[#00685f] text-white rounded-full px-1.5 py-0.2 text-[10px]">{{.UnreadCount}}</span>{{end}}
+                                    </button>
+                                    <button type="button" id="notif-tab-archived" class="text-xs font-semibold px-2.5 py-1 rounded-full border border-slate-200 text-slate-500 bg-transparent cursor-pointer hover:bg-slate-50">
+                                        Archived
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div id="notif-container-inbox" class="flex flex-col max-h-[320px] overflow-y-auto divide-y divide-slate-100">
+                                {{if .Notifications}}
+                                    {{range .Notifications}}
+                                    <a href="/audit-logs" class="flex items-start gap-3 py-2.5 hover:bg-slate-50 rounded-md px-2 transition-colors cursor-pointer text-decoration-none">
+                                        <div class="w-7 h-7 rounded-full bg-teal-100 flex items-center justify-center shrink-0 mt-0.5">
+                                            <span class="material-symbols-outlined text-xs text-[#00685f]">history</span>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="text-xs text-slate-800 leading-snug">
+                                                <strong class="font-semibold">{{if .UserName}}{{.UserName}}{{else}}System{{end}}</strong> {{.Action}} on <span class="font-semibold text-slate-700">{{.TableName}}</span>
+                                            </div>
+                                            <div class="text-[10px] text-slate-400 mt-0.5">{{datetime .CreatedAt}}</div>
+                                        </div>
+                                    </a>
+                                    {{end}}
+                                {{else}}
+                                    <div class="p-6 text-center text-slate-400 text-xs flex flex-col items-center gap-2">
+                                        <span class="material-symbols-outlined text-3xl text-slate-300">notifications_none</span>
+                                        <span>No new notifications</span>
+                                    </div>
+                                {{end}}
+                            </div>
+
+                            <div id="notif-container-archived" class="hidden flex flex-col max-h-[320px] overflow-y-auto">
+                                <div class="p-6 text-center text-slate-400 text-xs flex flex-col items-center gap-2">
+                                    <span class="material-symbols-outlined text-3xl text-slate-300">inventory_2</span>
+                                    <span>No archived notifications</span>
+                                </div>
+                            </div>
                         </div>
-                        <a href="/profile" class="text-sm text-slate-700 group-hover:text-[#00685f] transition-colors font-semibold hidden sm:inline-block">{{.User.Name}}</a>
+                    </div>
+
+                    <!-- Help & Support Dropdown -->
+                    <div class="relative group">
+                        <button type="button" class="hover:bg-slate-100 p-2 rounded-lg transition-colors text-slate-600 hover:text-[#00685f] border-0 bg-transparent cursor-pointer flex items-center justify-center">
+                            <span class="material-symbols-outlined text-xl">help</span>
+                        </button>
+                        <div class="absolute right-0 top-full mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 py-1.5 text-slate-700 text-xs">
+                            <a href="/contact-us" class="flex items-center gap-3 px-4 py-2 hover:bg-slate-50 hover:text-[#00685f] transition-colors text-decoration-none">
+                                <span class="material-symbols-outlined text-base text-slate-400">help</span>
+                                <span>Help & Support</span>
+                            </a>
+                            <a href="/contact-us" class="flex items-center gap-3 px-4 py-2 hover:bg-slate-50 hover:text-[#00685f] transition-colors text-decoration-none">
+                                <span class="material-symbols-outlined text-base text-slate-400">thumb_up</span>
+                                <span>Give Feedback</span>
+                            </a>
+                            <a href="/audit-logs" class="flex items-center gap-3 px-4 py-2 hover:bg-slate-50 hover:text-[#00685f] transition-colors text-decoration-none">
+                                <span class="material-symbols-outlined text-base text-slate-400">history</span>
+                                <span>Audit Trail</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    {{if .User}}
+                    <!-- Profile Avatar Dropdown -->
+                    <div class="relative group cursor-pointer border-l border-slate-200 pl-4 sm:pl-6">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 rounded-full bg-[#008378] text-white flex items-center justify-center font-bold text-xs ring-2 ring-emerald-500/20 shadow-xs">
+                                {{if .User.Name}}{{slice .User.Name 0 2}}{{else}}AD{{end}}
+                            </div>
+                            <span class="text-xs md:text-sm text-slate-700 group-hover:text-[#00685f] transition-colors font-semibold hidden sm:inline-block max-w-[120px] md:max-w-[160px] truncate">{{.User.Name}}</span>
+
+                        </div>
+
+                        <div class="absolute right-0 top-full mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 py-1.5 text-slate-700 text-xs">
+                            <div class="px-4 py-2.5 border-b border-slate-100">
+                                <div class="font-bold text-slate-900 truncate">{{.User.Name}}</div>
+                                <div class="text-[11px] text-slate-400 capitalize">{{if .User.Role}}{{.User.Role}}{{else}}Member{{end}}</div>
+                            </div>
+                            <a href="/profile" class="flex items-center gap-3 px-4 py-2 hover:bg-slate-50 hover:text-[#00685f] transition-colors text-decoration-none">
+                                <span class="material-symbols-outlined text-base text-slate-400">person</span>
+                                <span>View Profile</span>
+                            </a>
+                            <a href="/change-password" class="flex items-center gap-3 px-4 py-2 hover:bg-slate-50 hover:text-[#00685f] transition-colors text-decoration-none">
+                                <span class="material-symbols-outlined text-base text-slate-400">key</span>
+                                <span>Change Password</span>
+                            </a>
+                            <a href="/settings" class="flex items-center gap-3 px-4 py-2 hover:bg-slate-50 hover:text-[#00685f] transition-colors text-decoration-none">
+                                <span class="material-symbols-outlined text-base text-slate-400">settings</span>
+                                <span>Settings</span>
+                            </a>
+                            <div class="border-t border-slate-100 mt-1 pt-1">
+                                <form method="POST" action="/logout">
+                                    <button type="submit" class="w-full flex items-center gap-3 px-4 py-2 text-red-600 hover:bg-red-50 transition-colors bg-transparent border-0 cursor-pointer text-left font-medium">
+                                        <span class="material-symbols-outlined text-base text-red-500">logout</span>
+                                        <span>Sign Out</span>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                     {{end}}
                 </div>
             </header>
 
-            <main id="main-content" class="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8">
+            <main id="main-content" class="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-6 md:p-8 max-w-full">
                 {{.Content}}
             </main>
+
         </div>
     </div>
 

@@ -1,0 +1,163 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Avandab Driver - Booking Schedule</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600&amp;family=Material+Icons&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#0d9488", // Teal as requested
+                        "background-light": "#f8fafc",
+                        "background-dark": "#0f172a",
+                        surface: {
+                            light: "#ffffff",
+                            dark: "#1e293b"
+                        }
+                    },
+                    fontFamily: {
+                        display: ["Outfit", "sans-serif"],
+                        body: ["'Plus Jakarta Sans'", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "1rem",
+                    },
+                },
+            },
+        };
+    </script>
+<style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        h1, h2, h3 {
+            font-family: 'Outfit', sans-serif;
+        }
+        .ios-status-bar {
+            height: 44px;
+        }
+        .curved-card {
+            border-radius: 40px 40px 0 0;
+            margin-top: -40px;
+        }
+        .mockup-inner-shadow {
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen flex items-center justify-center p-4">
+<div class="relative w-[375px] h-[812px] bg-slate-100 dark:bg-slate-900 rounded-[3rem] overflow-hidden shadow-2xl border-[8px] border-slate-200 dark:border-slate-800 flex flex-col">
+<div class="relative flex-grow bg-slate-50 dark:bg-slate-950 flex flex-col items-center pt-12 px-6">
+<div class="absolute top-0 left-0 w-full px-8 py-3 flex justify-between items-center z-20">
+<span class="text-xs font-bold dark:text-white">9:41</span>
+<div class="flex gap-1">
+<span class="material-icons text-[14px] dark:text-white">signal_cellular_alt</span>
+<span class="material-icons text-[14px] dark:text-white">wifi</span>
+<span class="material-icons text-[14px] dark:text-white">battery_full</span>
+</div>
+</div>
+<div class="absolute top-12 right-6 z-20">
+<button class="text-primary font-semibold text-sm">Skip</button>
+</div>
+<div class="relative w-full max-w-[280px] h-[480px] bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-xl border-[6px] border-slate-900 dark:border-slate-700 overflow-hidden z-10">
+<div class="p-4 flex items-center justify-between border-b dark:border-slate-700">
+<span class="material-icons text-slate-400">arrow_back</span>
+<span class="font-display font-semibold text-sm dark:text-white">Bookings</span>
+<div class="w-6"></div>
+</div>
+<div class="flex justify-around border-b dark:border-slate-700">
+<button class="py-3 text-xs font-semibold text-primary border-b-2 border-primary">Active</button>
+<button class="py-3 text-xs font-semibold text-slate-400">Completed</button>
+<button class="py-3 text-xs font-semibold text-slate-400">Cancelled</button>
+</div>
+<div class="p-4 space-y-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-slate-200 overflow-hidden">
+<img alt="Jenny Wilson" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJY6ZidvwLP1AIK3XKhiJ5CzY7cO6LgszPE9QtrNv1_9Su2BegBqJ0lv15ORFaL4OV5p5Vh2nq7EROmR_fYnN0-iuHN2oKckzH027mpamXnHK_AhtgQurbxPiGMlikIJNmZmbbsrVy1tRtNnXuTLuifq8NdHviw41RDidQqV4GRwHp-vbjJHKopoZ5spWsBBG8XJnEVvqMCo8M_D7pBO6180aXk6z0jrZmAABsQkeG-ZIZKtq5928R7Q">
+</div>
+<div>
+<p class="text-xs font-bold dark:text-white">Jenny Wilson</p>
+<p class="text-[10px] text-slate-400">CRN: #854HG23</p>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-2 bg-slate-50 dark:bg-slate-700/50 p-2 rounded-lg">
+<div class="text-center">
+<p class="text-[10px] text-slate-400 flex items-center justify-center gap-1">
+<span class="material-icons text-[12px] text-primary">near_me</span> 4.5 km
+                            </p>
+</div>
+<div class="text-center">
+<p class="text-[10px] text-slate-400 flex items-center justify-center gap-1">
+<span class="material-icons text-[12px] text-primary">schedule</span> 4 mins
+                            </p>
+</div>
+<div class="text-center">
+<p class="text-[10px] text-slate-400 flex items-center justify-center gap-1">
+<span class="material-icons text-[12px] text-primary">payments</span> ₹12.5/min
+                            </p>
+</div>
+</div>
+<div class="flex justify-between items-center text-[10px]">
+<span class="text-slate-400">Date &amp; Time</span>
+<span class="font-semibold dark:text-white">Oct 18, 2023 | 08:00 AM</span>
+</div>
+<div class="relative pl-6 space-y-4">
+<div class="absolute left-1 top-1 bottom-1 w-0.5 bg-slate-200 dark:bg-slate-600"></div>
+<div class="relative">
+<div class="absolute -left-[23px] top-0 w-3 h-3 rounded-full border-2 border-primary bg-white"></div>
+<p class="text-[10px] font-medium dark:text-white">63/1 MG Road, Bengaluru, Karnataka</p>
+</div>
+<div class="relative">
+<div class="absolute -left-[23px] top-0 w-3 h-3 rounded-full bg-primary"></div>
+<p class="text-[10px] font-medium dark:text-white">19/1 Koramangala, 5th Block</p>
+</div>
+</div>
+<div class="w-full h-24 bg-slate-100 dark:bg-slate-900 rounded-lg overflow-hidden relative border dark:border-slate-700">
+<svg class="absolute inset-0 w-full h-full text-slate-200 dark:text-slate-700" fill="none" preserveAspectRatio="none">
+<path d="M0 20 L280 40 M0 80 L280 60 M40 0 L60 100 M200 0 L180 100" stroke="currentColor" stroke-width="2"></path>
+<path d="M50 80 L120 40 L220 30" stroke="#00685f" stroke-linecap="round" stroke-width="3"></path>
+</svg>
+<div class="absolute left-[45px] top-[75px] w-3 h-3 bg-white border-2 border-primary rounded-full"></div>
+<div class="absolute left-[215px] top-[25px] w-3 h-3 bg-primary rounded-full"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="curved-card bg-surface-light dark:bg-surface-dark flex-shrink-0 pb-12 px-8 flex flex-col items-center text-center z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] pt-8"><h1 class="text-2xl font-bold text-slate-900 dark:text-white leading-tight font-display">
+                Effortlessly Monitor Your <br>
+                <span class="text-primary">Booking Schedule.</span>
+            </h1>
+            <p class="mt-4 text-slate-500 dark:text-slate-400 text-sm leading-relaxed max-w-[260px] font-body">
+                Stay on top of your daily shifts with our intuitive calendar view and real-time ride tracking features.
+            </p>
+            <div class="flex gap-2 mt-10">
+                <div class="w-2 h-2 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+                <div class="w-2 h-2 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+                <div class="w-6 h-2 rounded-full bg-primary"></div>
+            </div>
+            <div class="mt-12 flex items-center justify-between w-full">
+                <button class="w-14 h-14 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors active:scale-95" aria-label="Go back">
+                    <span class="material-icons">arrow_back</span>
+                </button>
+                <button class="w-14 h-14 rounded-full bg-primary flex items-center justify-center text-white shadow-lg shadow-teal-500/20 hover:scale-105 transition-transform active:scale-95" aria-label="Next step">
+                    <span class="material-icons">arrow_forward</span>
+                </button>
+            </div></div>
+<div class="absolute bottom-1 w-full flex justify-center pb-2 z-40">
+<div class="w-32 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full"></div>
+</div>
+</div>
+
+
+
+
+
+</body></html>

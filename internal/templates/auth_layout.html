@@ -7,55 +7,353 @@
     <title>{{.Title}} - Avandab</title>
     <link rel="icon" href="/static/img/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="/static/css/material-icons.css">
+    <link rel="stylesheet" href="/static/css/fonts.css">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&display=swap" rel="stylesheet">
     <script type="module" src="/static/js/datastar.js" defer></script>
-    <script src="/static/js/router.js" defer></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-error": "#ffffff",
+                      "surface-bright": "#f7f9fb",
+                      "surface-container-high": "#e6e8ea",
+                      "on-tertiary-fixed-variant": "#773215",
+                      "on-secondary-fixed-variant": "#3f465c",
+                      "on-primary": "#ffffff",
+                      "surface-container-low": "#f2f4f6",
+                      "background": "#f7f9fb",
+                      "status-alert": "#E11D48",
+                      "tertiary-fixed": "#ffdbce",
+                      "on-secondary-fixed": "#131b2e",
+                      "status-success": "#10B981",
+                      "error-container": "#ffdad6",
+                      "surface": "#f7f9fb",
+                      "secondary": "#565e74",
+                      "tertiary-fixed-dim": "#ffb59a",
+                      "surface-variant": "#e0e3e5",
+                      "status-warning": "#F59E0B",
+                      "outline": "#6d7a77",
+                      "surface-container-highest": "#e0e3e5",
+                      "on-tertiary-container": "#fffbff",
+                      "error": "#ba1a1a",
+                      "outline-variant": "#bcc9c6",
+                      "on-surface": "#191c1e",
+                      "on-tertiary": "#ffffff",
+                      "inverse-on-surface": "#eff1f3",
+                      "secondary-container": "#dae2fd",
+                      "on-tertiary-fixed": "#370e00",
+                      "primary-container": "#008378",
+                      "brand-teal-deep": "#115E59",
+                      "on-background": "#191c1e",
+                      "border-subtle": "#E2E8F0",
+                      "on-error-container": "#93000a",
+                      "primary-fixed-dim": "#6bd8cb",
+                      "surface-container": "#eceef0",
+                      "surface-tint": "#006a61",
+                      "on-primary-fixed": "#00201d",
+                      "text-muted": "#64748B",
+                      "on-secondary-container": "#5c647a",
+                      "surface-container-lowest": "#ffffff",
+                      "status-info": "#4F46E5",
+                      "primary-fixed": "#89f5e7",
+                      "on-primary-container": "#f4fffc",
+                      "on-secondary": "#ffffff",
+                      "tertiary": "#924628",
+                      "secondary-fixed-dim": "#bec6e0",
+                      "secondary-fixed": "#dae2fd",
+                      "surface-dim": "#d8dadc",
+                      "inverse-primary": "#6bd8cb",
+                      "on-primary-fixed-variant": "#005049",
+                      "tertiary-container": "#b05e3d",
+                      "primary": "#00685f",
+                      "on-surface-variant": "#3d4947",
+                      "inverse-surface": "#2d3133"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "container-max": "100%",
+                      "cell-padding-y": "8px",
+                      "section-gap": "24px",
+                      "cell-padding-x": "12px",
+                      "margin-edge": "16px",
+                      "unit": "4px"
+              },
+              "fontFamily": {
+                      "body-md": ["Plus Jakarta Sans"],
+                      "data-mono": ["Plus Jakarta Sans"],
+                      "body-lg": ["Plus Jakarta Sans"],
+                      "headline-lg": ["Outfit"],
+                      "body-sm": ["Plus Jakarta Sans"],
+                      "display": ["Outfit"],
+                      "label-caps": ["Plus Jakarta Sans"],
+                      "headline-md": ["Outfit"]
+              },
+              "fontSize": {
+                      "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                      "data-mono": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                      "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                      "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                      "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }],
+                      "display": ["36px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                      "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                      "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }]
+              }
+            },
+          },
+        };
+    </script>
     <link rel="stylesheet" href="/static/css/tailwind.css">
     <link rel="stylesheet" href="/static/css/app.css">
+
+
     <style>
-        html { opacity: 0; transition: opacity 0.15s ease-in; }
         body {
             font-size: 1rem;
             line-height: 1.5;
+            background-color: #f7f9fb;
+            color: #191c1e;
+            font-family: 'Plus Jakarta Sans', sans-serif;
         }
+        .font-display { font-family: 'Outfit', 'Satoshi', 'Plus Jakarta Sans', sans-serif; }
+
+        /* Full Width Edge-to-Edge Navigation Bar */
+        .header {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+            width: 100%;
+        }
+        .navigation {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 0 1.5rem;
+            height: 80px;
+        }
+        @media (min-width: 768px) {
+            .navigation {
+                padding: 0 3rem;
+            }
+        }
+        .navigation-button-container { display: none; }
+        @media (max-width: 1023px) {
+            .navigation-button-container { display: flex; }
+        }
+        .navigation-button {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Far Left Logo */
+        .navigation-main-logo {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .navigation-main-logo a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+        .logo-icon-box {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background-color: #00685f;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0, 104, 95, 0.2);
+            flex-shrink: 0;
+        }
+
+        /* Center Navigation Links */
+        .navigation-body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+        }
+        @media (max-width: 1023px) {
+            .navigation-body { display: none; }
+        }
+        .navigation-body-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .navigation-top-menu {
+            display: flex;
+            align-items: center;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            gap: 0.5rem;
+        }
+        .navigation-top-menu-item {
+            position: relative;
+        }
+        .navigation-top-menu-label,
+        .navigation-top-menu-link {
+            font-size: 15px;
+            font-weight: 600;
+            color: #2c3e50;
+            text-decoration: none;
+            cursor: pointer;
+            padding: 10px 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.15s ease;
+        }
+        .navigation-top-menu-item:hover > .navigation-top-menu-label,
+        .navigation-top-menu-item:hover > .navigation-top-menu-link {
+            color: #00685f;
+        }
+        .navigation-top-menu-label-arrow::after {
+            content: '';
+            display: inline-block;
+            width: 5px;
+            height: 5px;
+            border-right: 2px solid #7f8c8d;
+            border-bottom: 2px solid #7f8c8d;
+            transform: rotate(45deg);
+            margin-top: -2px;
+            transition: transform 0.2s ease;
+        }
+        .navigation-top-menu-item:hover > .navigation-top-menu-label-arrow::after {
+            transform: rotate(225deg);
+            border-color: #00685f;
+        }
+        /* Dropdown Sublists */
+        .navigation-top-menu-sublist {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            min-width: 220px;
+            background-color: #ffffff;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+            border-radius: 6px;
+            padding: 8px 0;
+            list-style: none;
+            display: none;
+            z-index: 110;
+        }
+        .navigation-top-menu-item:hover > .navigation-top-menu-sublist {
+            display: block;
+        }
+        .navigation-top-menu-sublist .navigation-top-menu-link {
+            padding: 8px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #4b5563;
+            width: 100%;
+            display: block;
+        }
+        .navigation-top-menu-sublist .navigation-top-menu-link:hover {
+            background-color: #f3f4f6;
+            color: #00685f;
+        }
+
+        /* Far Right Action Buttons */
+        .navigation-top-menu-user-actions {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            flex-shrink: 0;
+        }
+        .btn.black-border-button {
+            border: 2px solid #111827;
+            color: #111827;
+            background-color: transparent;
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 14px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        .btn.black-border-button:hover {
+            background-color: #111827;
+            color: #ffffff;
+        }
+        .login-link-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #00685f;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background-color 0.15s ease;
+        }
+        .login-link-button:hover {
+            background-color: #e6f4f1;
+        }
+
+        .footer-ecasb {
+            background-color: #ffffff;
+            border-top: 1px solid #E2E8F0;
+            color: #565e74;
+            font-size: 0.875rem;
+        }
+        .footer-ecasb .footer-top { padding: 3.5rem 0; border-bottom: 1px solid #E2E8F0; }
+        .footer-ecasb .container { max-width: 72rem; margin: 0 auto; padding: 0 1.5rem; }
+        .footer-ecasb .footer-grid { display: grid; grid-template-columns: repeat(1, minmax(0, 1fr)); gap: 2.5rem; }
+        @media (min-width: 640px) { .footer-ecasb .footer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (min-width: 1024px) { .footer-ecasb .footer-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+        .footer-ecasb .footer-col h4 { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 1rem; color: #0F172A; margin-bottom: 1.25rem; }
+        .footer-ecasb .footer-col ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.75rem; }
+        .footer-ecasb .footer-col ul li a { color: #565e74; text-decoration: none; }
+        .footer-ecasb .footer-col ul li a:hover { color: #00685f; }
+        .footer-ecasb .footer-bottom { padding: 1.5rem 0; background-color: #f7f9fb; }
+        .footer-ecasb .footer-bottom-row { display: flex; flex-direction: column; gap: 1rem; align-items: center; justify-content: space-between; }
+        @media (min-width: 640px) { .footer-ecasb .footer-bottom-row { flex-direction: row; } }
     </style>
     <script>
+        document.documentElement.style.opacity = "1";
         document.addEventListener("DOMContentLoaded", function() {
             document.documentElement.style.opacity = "1";
         });
     </script>
 </head>
-<body class="bg-gradient-to-br from-slate-50 to-slate-100 font-sans">
-    <div class="min-h-screen flex items-center justify-center safe-p">
+<body class="bg-[#f7f9fb] font-sans antialiased min-h-screen flex flex-col">
+    <div class="flex-1 w-full flex flex-col">
         {{.Content}}
     </div>
 
     {{if .FlashError}}
     <div class="fixed bottom-4 right-4 safe-bottom safe-right max-w-md w-full bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-lg flex items-start justify-between">
         <span class="flex-1">{{.FlashError}}</span>
-        <button type="button" class="flash-dismiss ml-2 text-red-600 hover:text-red-800 active:text-red-900 focus:outline-none focus:ring-2 focus:ring-red-400 rounded min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label="Dismiss error">
-            <span class="material-icons text-sm">close</span>
+        <button type="button" class="flash-dismiss ml-2 text-red-600 hover:text-red-800 focus:outline-none flex items-center justify-center" aria-label="Dismiss error">
+            <span class="material-symbols-outlined text-sm">close</span>
         </button>
     </div>
     {{end}}
-    {{if .FlashSuccess}}
-    <div class="fixed bottom-4 right-4 safe-bottom safe-right max-w-md w-full bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-lg flex items-start justify-between">
-        <span class="flex-1">{{.FlashSuccess}}</span>
-        <button type="button" class="flash-dismiss ml-2 text-green-600 hover:text-green-800 active:text-green-900 focus:outline-none focus:ring-2 focus:ring-green-400 rounded min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label="Dismiss message">
-            <span class="material-icons text-sm">close</span>
-        </button>
-    </div>
-    {{end}}
-    <script>
-        document.addEventListener('click', function(e) {
-            var btn = e.target.closest('.flash-dismiss');
-            if (btn) {
-                var msg = btn.closest('[class*="fixed bottom-4"]');
-                if (msg) {
-                    msg.classList.add('flash-exit');
-                    setTimeout(function() { msg.remove(); }, 200);
-                }
-            }
-        });
-    </script>
 </body>
 </html>

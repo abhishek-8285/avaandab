@@ -1,0 +1,136 @@
+package handlers
+
+import (
+	"crypto/rand"
+	"fmt"
+	"math/big"
+	"net/http"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
+)
+
+// ContactHandlers handles public contact inquiries and ticket status tracking.
+type ContactHandlers struct {
+	*App
+}
+
+func (h *ContactHandlers) Routes(r chi.Router) {
+	r.Get("/", h.Page)
+	r.Post("/submit", h.Submit)
+	r.Get("/status", h.StatusCheck)
+}
+
+// Ticket struct for data rendering
+type ContactTicket struct {
+	ID           string
+	TicketNumber string
+	Name         string
+	Email        string
+	Phone        string
+	CompanyName  string
+	Subject      string
+	Category     string
+	Message      string
+	Status       string
+	AdminNotes   string
+	CreatedAt    string
+	UpdatedAt    string
+}
+
+func generateTicketNumber() string {
+	n, _ := rand.Int(rand.Reader, big.NewInt(900000))
+	return fmt.Sprintf("AVN-%d", 100000+n.Int64())
+}
+
+// Page renders the contact-us & ticket status page.
+func (h *ContactHandlers) Page(w http.ResponseWriter, r *http.Request) {
+	session, _ := h.getUserFromContext(r)
+	ticketNo := r.URL.Query().Get("ticket")
+
+	var ticket *ContactTicket
+	var searchErr string
+
+	if ticketNo != "" {
+		ticket, searchErr = h.fetchTicketByNumber(ticketNo)
+	}
+
+	pd := PageData{
+		Title: "Contact Us & Support Status",
+		User:  session,
+		Extra: map[string]interface{}{
+			"Ticket":       ticket,
+			"SearchErr":    searchErr,
+			"SearchQuery":  ticketNo,
+			"SubmittedNum": r.URL.Query().Get("submitted"),
+		},
+	}
+
+	// If user is unauthenticated, render standalone page without dashboard sidebar layout
+	if session == nil {
+		h.renderAuthPage(w, "contact.html", pd)
+		return
+	}
+
+	h.renderPage(w, r, "contact.html", pd)
+}
+
+// Submit handles submission of a new inquiry.
+func (h *ContactHandlers) Submit(w http.ResponseWriter, r *http.Request) {
+	name := r.PostFormValue("name")
+	email := r.PostFormValue("email")
+	phone := r.PostFormValue("phone")
+	company := r.PostFormValue("company_name")
+	subject := r.PostFormValue("subject")
+	category := r.PostFormValue("category")
+	message := r.PostFormValue("message")
+
+	if name == "" || email == "" || subject == "" || message == "" {
+		http.Redirect(w, r, "/contact-us?error=Missing+required+fields", http.StatusSeeOther)
+		return
+	}
+
+	id := uuid.New().String()
+	ticketNo := generateTicketNumber()
+
+	_, err := h.DB.Exec(`
+		INSERT INTO contact_submissions (id, ticket_number, name, email, phone, company_name, subject, category, message, status)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+	`, id, ticketNo, name, email, phone, company, subject, category, message)
+
+	if err != nil {
+		http.Error(w, "Failed to submit inquiry: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/contact-us?ticket=%s&submitted=%s", ticketNo, ticketNo), http.StatusSeeOther)
+}
+
+// StatusCheck JSON/fragment endpoint for tracking ticket status.
+func (h *ContactHandlers) StatusCheck(w http.ResponseWriter, r *http.Request) {
+	ticketNo := r.URL.Query().Get("ticket")
+	if ticketNo == "" {
+		http.Redirect(w, r, "/contact-us", http.StatusSeeOther)
+		return
+	}
+	http.Redirect(w, r, "/contact-us?ticket="+ticketNo, http.StatusSeeOther)
+}
+
+func (h *ContactHandlers) fetchTicketByNumber(ticketNo string) (*ContactTicket, string) {
+	var t ContactTicket
+
+	err := h.DB.QueryRow(`
+		SELECT id, ticket_number, name, email, COALESCE(phone, ''), COALESCE(company_name, ''), subject, category, message, status, COALESCE(admin_notes, ''), created_at, updated_at
+		FROM contact_submissions
+		WHERE ticket_number = ? OR email = ?
+		ORDER BY created_at DESC LIMIT 1
+	`, ticketNo, ticketNo).Scan(
+		&t.ID, &t.TicketNumber, &t.Name, &t.Email, &t.Phone, &t.CompanyName, &t.Subject, &t.Category, &t.Message, &t.Status, &t.AdminNotes, &t.CreatedAt, &t.UpdatedAt,
+	)
+
+	if err != nil {
+		return nil, "No support ticket or submission found matching '" + ticketNo + "'."
+	}
+
+	return &t, ""
+}

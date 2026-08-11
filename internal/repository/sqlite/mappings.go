@@ -87,13 +87,94 @@ func toDomainRole(r db.Role) domain.Role {
 	}
 }
 
-func toDomainUserWithRole(u db.User, role domain.Role) domain.User {
+func toCreateUserRowWithRole(u db.CreateUserRow, role domain.Role) domain.User {
 	return domain.User{
 		ID:           domain.UserID(u.ID),
 		Email:        u.Email,
 		PasswordHash: u.PasswordHash,
 		Name:         u.Name,
 		Phone:        fromNullString(u.Phone),
+		Timezone:     "Asia/Kolkata",
+		Role:         role,
+		Status:       domain.UserStatus(u.Status),
+		LastLoginAt:  fromNullTime(u.LastLoginAt),
+		CreatedAt:    u.CreatedAt,
+		UpdatedAt:    u.UpdatedAt,
+	}
+}
+
+func toGetUserByIDRowWithRole(u db.GetUserByIDRow, role domain.Role) domain.User {
+	return domain.User{
+		ID:           domain.UserID(u.ID),
+		Email:        u.Email,
+		PasswordHash: u.PasswordHash,
+		Name:         u.Name,
+		Phone:        fromNullString(u.Phone),
+		Timezone:     "Asia/Kolkata",
+		Role:         role,
+		Status:       domain.UserStatus(u.Status),
+		LastLoginAt:  fromNullTime(u.LastLoginAt),
+		CreatedAt:    u.CreatedAt,
+		UpdatedAt:    u.UpdatedAt,
+	}
+}
+
+func toGetUserByEmailRowWithRole(u db.GetUserByEmailRow, role domain.Role) domain.User {
+	return domain.User{
+		ID:           domain.UserID(u.ID),
+		Email:        u.Email,
+		PasswordHash: u.PasswordHash,
+		Name:         u.Name,
+		Phone:        fromNullString(u.Phone),
+		Timezone:     "Asia/Kolkata",
+		Role:         role,
+		Status:       domain.UserStatus(u.Status),
+		LastLoginAt:  fromNullTime(u.LastLoginAt),
+		CreatedAt:    u.CreatedAt,
+		UpdatedAt:    u.UpdatedAt,
+	}
+}
+
+func toUpdateUserRowWithRole(u db.UpdateUserRow, role domain.Role) domain.User {
+	return domain.User{
+		ID:           domain.UserID(u.ID),
+		Email:        u.Email,
+		PasswordHash: u.PasswordHash,
+		Name:         u.Name,
+		Phone:        fromNullString(u.Phone),
+		Timezone:     "Asia/Kolkata",
+		Role:         role,
+		Status:       domain.UserStatus(u.Status),
+		LastLoginAt:  fromNullTime(u.LastLoginAt),
+		CreatedAt:    u.CreatedAt,
+		UpdatedAt:    u.UpdatedAt,
+	}
+}
+
+func toUpdateUserPasswordRowWithRole(u db.UpdateUserPasswordRow, role domain.Role) domain.User {
+	return domain.User{
+		ID:           domain.UserID(u.ID),
+		Email:        u.Email,
+		PasswordHash: u.PasswordHash,
+		Name:         u.Name,
+		Phone:        fromNullString(u.Phone),
+		Timezone:     "Asia/Kolkata",
+		Role:         role,
+		Status:       domain.UserStatus(u.Status),
+		LastLoginAt:  fromNullTime(u.LastLoginAt),
+		CreatedAt:    u.CreatedAt,
+		UpdatedAt:    u.UpdatedAt,
+	}
+}
+
+func toUpdateUserLastLoginRowWithRole(u db.UpdateUserLastLoginRow, role domain.Role) domain.User {
+	return domain.User{
+		ID:           domain.UserID(u.ID),
+		Email:        u.Email,
+		PasswordHash: u.PasswordHash,
+		Name:         u.Name,
+		Phone:        fromNullString(u.Phone),
+		Timezone:     "Asia/Kolkata",
 		Role:         role,
 		Status:       domain.UserStatus(u.Status),
 		LastLoginAt:  fromNullTime(u.LastLoginAt),

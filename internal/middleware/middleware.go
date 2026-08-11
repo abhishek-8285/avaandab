@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -26,13 +27,6 @@ func RequestID(next http.Handler) http.Handler {
 
 		ctx := context.WithValue(r.Context(), auth.ContextReqID, reqID)
 		w.Header().Set("X-Request-ID", reqID)
-
-		slog.SetDefault(slog.New(slog.NewJSONHandler(nil, nil)))
-		slog.LogAttrs(ctx, slog.LevelInfo, "request started",
-			slog.String("request_id", reqID),
-			slog.String("method", r.Method),
-			slog.String("path", r.URL.Path),
-		)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -248,5 +242,10 @@ func SPAMiddleware(next http.Handler) http.Handler {
 }
 
 func isDownloadPath(path string) bool {
-	return len(path) >= 4 && path[len(path)-4:] == "/pdf"
+	return strings.Contains(path, "/files/") ||
+		strings.HasSuffix(path, "/pdf") ||
+		strings.HasPrefix(path, "/static/") ||
+		strings.HasPrefix(path, "/uploads/") ||
+		path == "/robots.txt" ||
+		path == "/sitemap.xml"
 }

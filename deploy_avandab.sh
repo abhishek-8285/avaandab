@@ -35,9 +35,10 @@ mkdir -p bin
 CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o bin/server_arm64 ./cmd/server/main.go
 echo -e "${GREEN}✅ Compilation successful! Binary size: $(du -sh bin/server_arm64 | cut -f1)${NC}"
 
-# 3. Transfer Assets to Device
 echo -e "\n${CYAN}[3/6] Transferring application binary and assets to Android device...${NC}"
+npx @tailwindcss/cli -i src/input.css -o internal/static/css/tailwind.css --minify 2>/dev/null || true
 adb shell "mkdir -p /data/local/tmp/internal/templates /data/local/tmp/internal/static"
+
 
 echo "Pushing binary..."
 adb push bin/server_arm64 /data/local/tmp/server
@@ -57,22 +58,28 @@ adb push internal/static /data/local/tmp/internal/ > /dev/null
 echo -e "${GREEN}✅ File transfer completed.${NC}"
 
 # 4. Configure ADB Port Forwarding
-echo -e "\n${CYAN}[4/6] Setting up ADB port forwarding (tcp:8090)...${NC}"
-adb forward tcp:8090 tcp:8090 || true
-echo -e "${GREEN}✅ ADB Port forwarding ready (localhost:8090 -> TECNO:8090).${NC}"
+echo -e "\n${CYAN}[4/6] Setting up ADB port forwarding (tcp:8092)...${NC}"
+adb forward tcp:8092 tcp:8092 || true
+echo -e "${GREEN}✅ ADB Port forwarding ready (localhost:8092 -> TECNO:8092).${NC}"
 
 # 5. Start Background Server on Android Device
 echo -e "\n${CYAN}[5/6] Starting Avandab server on TECNO device...${NC}"
 adb shell "pkill -9 server 2>/dev/null || true"
-sleep 1
 cat << 'RUNEOF' > bin/start_device.sh
 #!/system/bin/sh
 cd /data/local/tmp
-export PORT=8090
-export DATABASE_URL='file:mvtms.db?cache=shared&mode=rwc'
+ulimit -n 65535 2>/dev/null || true
+su -c 'sysctl -w net.core.netdev_max_backlog=10000; sysctl -w net.ipv4.tcp_fastopen=3; sysctl -w vm.swappiness=20; sysctl -w vm.vfs_cache_pressure=10; sysctl -w kernel.sched_migration_cost_ns=5000000; sysctl -w kernel.sched_wakeup_granularity_ns=10000000; sysctl -w kernel.sched_min_granularity_ns=5000000; sysctl -w kernel.sched_latency_ns=20000000; sysctl -w net.ipv4.tcp_keepalive_time=30; sysctl -w net.ipv4.tcp_tw_reuse=1; sysctl -w net.ipv4.tcp_fin_timeout=15; sysctl -w net.core.netdev_budget=600; sysctl -w fs.file-max=2097152' 2>/dev/null || true
+
+export GOMAXPROCS=8
+export PORT=8092
+export ENV=production
+export LOG_LEVEL=error
+export GODEBUG=netdns=go+1
+export DATABASE_URL='file:mvtms.db?_journal_mode=WAL&_synchronous=OFF&_temp_store=MEMORY&_busy_timeout=10000&_cache_size=-131072&_mmap_size=536870912&cache=shared&mode=rwc'
 export COOKIE_SECRET='dev-secret-32bytes-for-cookie-signing!'
 export APP_DOMAIN='avandab.com'
-nohup ./server > server_8090.log 2>&1 &
+nohup taskset c0 ./server > /dev/null 2>&1 &
 RUNEOF
 adb push bin/start_device.sh /data/local/tmp/start.sh > /dev/null
 adb shell "chmod +x /data/local/tmp/start.sh"
@@ -81,37 +88,14 @@ sleep 2
 
 sleep 2
 echo -e "${YELLOW}Server Boot Output Log:${NC}"
-adb shell "cat /data/local/tmp/server_8090.log"
+adb shell "cat /data/local/tmp/server_8092.log"
 
-# 6. Ensure Cloudflare Tunnel is Running
-echo -e "\n${CYAN}[6/6] Checking Cloudflare Tunnel status for avandab.com...${NC}"
-CLOUDFLARED_BIN="/home/abhishek/.local/bin/cloudflared"
-
-mkdir -p ~/.cloudflared
-cat << EOF > ~/.cloudflared/config.yml
-tunnel: 16b2fee0-e242-42de-967a-1ed401a5bebc
-credentials-file: /home/abhishek/.cloudflared/16b2fee0-e242-42de-967a-1ed401a5bebc.json
-
-ingress:
-  - hostname: avandab.com
-    service: http://localhost:8090
-  - hostname: www.avandab.com
-    service: http://localhost:8090
-  - service: http_status:404
-EOF
-
-if ! pgrep -f "cloudflared tunnel run avandab-tunnel" > /dev/null; then
-    echo -e "${YELLOW}Starting Cloudflare Tunnel in background...${NC}"
-    nohup $CLOUDFLARED_BIN tunnel run avandab-tunnel > ~/.cloudflared/tunnel.log 2>&1 &
-    sleep 2
-else
-    echo -e "${GREEN}Cloudflare Tunnel is already running.${NC}"
-fi
-
+# 6. Direct Deployment Complete (No Cloudflare Tunnel)
 echo -e "\n${BLUE}==============================================================================${NC}"
-echo -e "${GREEN}🎉 Deployment Complete! Avandab is live on your TECNO device & Cloudflare!${NC}"
+echo -e "${GREEN}🎉 Deployment Complete! Go Server running on TECNO device!${NC}"
 echo -e "${BLUE}==============================================================================${NC}"
-echo -e "Public Web Domain: ${CYAN}https://avandab.com${NC}"
-echo -e "Local Device Port: ${CYAN}http://localhost:8090${NC}"
-echo -e "View live server logs: ${YELLOW}adb shell \"cat /data/local/tmp/server_8090.log\"${NC}"
+echo -e "Device Port: ${CYAN}http://192.168.1.46:8092${NC}"
+echo -e "Public Web Domain: ${CYAN}http://avandab.com:8092${NC} (via Router Port Forwarding)"
+echo -e "View server logs: ${YELLOW}adb shell \"cat /data/local/tmp/server_8092.log\"${NC}"
 echo -e "${BLUE}==============================================================================${NC}\n"
+

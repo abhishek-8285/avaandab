@@ -72,7 +72,7 @@ func (h *PaymentHandlers) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.renderPage(w, "payment_list.html", PageData{
+	h.renderPage(w, r, "payment_list.html", PageData{
 		Title: "Payments",
 		User:  session,
 		Extra: map[string]interface{}{"Payments": res.Payments, "Pagination": pd, "Method": method},
@@ -178,7 +178,7 @@ func (h *PaymentHandlers) View(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Payment not found", http.StatusNotFound)
 		return
 	}
-	h.renderPage(w, "payment_view.html", PageData{Title: "View Payment", Extra: map[string]interface{}{"Payment": payment}})
+	h.renderPage(w, r, "payment_view.html", PageData{Title: "View Payment", Extra: map[string]interface{}{"Payment": payment}})
 }
 
 func (h *PaymentHandlers) Delete(w http.ResponseWriter, r *http.Request) {

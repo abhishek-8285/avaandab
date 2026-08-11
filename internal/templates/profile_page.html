@@ -1,58 +1,264 @@
-<div class="max-w-3xl mx-auto">
-    <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex justify-between items-start mb-4">
-            <div>
-                <h2 class="text-2xl font-bold text-gray-900">My Profile</h2>
-            </div>
-            <a href="/change-password" class="px-3 py-1 min-h-[44px] flex items-center justify-center bg-yellow-600 text-white rounded-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 active:bg-yellow-700">Change Password</a>
+{{ $u := .UserDetail }}
+<div class="max-w-4xl mx-auto space-y-6">
+    <!-- Page Header -->
+    <header class="flex flex-col sm:flex-row sm:items-end justify-between pb-4 border-b border-border-subtle gap-4">
+        <div>
+            <h1 class="font-headline-lg text-headline-lg text-on-surface">My Profile</h1>
+            <p class="font-body-md text-body-md text-on-surface-variant mt-1">Manage your personal information and account settings.</p>
+        </div>
+        <a href="/change-password" class="bg-brand-teal-deep text-on-primary px-4 py-2.5 rounded font-data-mono text-data-mono hover:bg-primary transition-colors inline-flex items-center gap-2 text-decoration-none shrink-0 self-start sm:self-auto">
+            <span class="material-symbols-outlined text-sm">key</span> Change Password
+        </a>
+    </header>
+
+    {{if .FlashSuccess}}
+    <div class="flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-sm text-body-sm font-body-sm">
+        <span class="material-symbols-outlined text-base text-emerald-600">check_circle</span>
+        {{.FlashSuccess}}
+    </div>
+    {{end}}
+    {{if .FlashError}}
+    <div class="flex items-center gap-3 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-sm text-body-sm font-body-sm">
+        <span class="material-symbols-outlined text-base text-red-500">error</span>
+        {{.FlashError}}
+    </div>
+    {{end}}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Column: Profile Form -->
+        <div class="lg:col-span-2 space-y-6">
+            <section class="bg-surface border border-border-subtle p-6 rounded-sm">
+                <h2 class="font-headline-md text-headline-md text-on-surface mb-6 border-b border-border-subtle pb-2">Personal Information</h2>
+
+                <!-- Avatar + Name display -->
+                <div class="flex items-center gap-5 mb-8 p-4 bg-surface-container-low rounded-sm">
+                    <!-- Initials Avatar -->
+                    <div class="w-16 h-16 rounded-full bg-[#e6f4f1] border-2 border-[#00685f] flex items-center justify-center shrink-0 select-none">
+                        <span class="font-bold text-2xl text-[#00685f]">
+                            {{if $u}}{{slice $u.Name 0 1}}{{else}}U{{end}}
+                        </span>
+                    </div>
+                    <div>
+                        <div class="font-display text-lg font-bold text-on-surface">{{if $u}}{{$u.Name}}{{else}}—{{end}}</div>
+                        <div class="font-body-sm text-body-sm text-on-surface-variant capitalize mt-0.5">
+                            {{if and $u $u.Role}}{{$u.Role.Name}}{{else}}Member{{end}}
+                        </div>
+                        <div class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
+                            {{if $u}}{{$u.Email}}{{end}}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Edit Form -->
+                <form method="POST" action="/profile" class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+                    <div class="flex flex-col gap-1">
+                        <label class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">Full Name <span class="text-error">*</span></label>
+                        <input name="name" id="profile-name"
+                            class="border border-border-subtle rounded-sm bg-surface px-3 py-2 text-body-md font-body-md focus:outline-none focus:border-brand-teal-deep focus:ring-1 focus:ring-brand-teal-deep transition-colors w-full"
+                            type="text"
+                            value="{{if $u}}{{$u.Name}}{{end}}"
+                            placeholder="Enter your full name"
+                            required/>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">Role</label>
+                        <input
+                            class="border border-border-subtle rounded-sm bg-surface-container-low px-3 py-2 text-body-md font-body-md text-on-surface-variant cursor-not-allowed w-full capitalize"
+                            disabled type="text"
+                            value="{{if and $u $u.Role}}{{$u.Role.Name}}{{else}}—{{end}}"/>
+                        <span class="text-[11px] text-on-surface-variant mt-0.5">Role is managed by an administrator.</span>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">Email Address</label>
+                        <input
+                            class="border border-border-subtle rounded-sm bg-surface-container-low px-3 py-2 text-body-md font-body-md text-on-surface-variant cursor-not-allowed w-full"
+                            disabled type="email"
+                            value="{{if $u}}{{$u.Email}}{{end}}"/>
+                        <span class="text-[11px] text-on-surface-variant mt-0.5">Email cannot be changed. Contact admin if needed.</span>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">Phone Number</label>
+                        <input name="phone" id="profile-phone"
+                            class="border border-border-subtle rounded-sm bg-surface px-3 py-2 text-body-md font-body-md focus:outline-none focus:border-brand-teal-deep focus:ring-1 focus:ring-brand-teal-deep transition-colors w-full"
+                            type="tel"
+                            value="{{if $u}}{{nullString $u.Phone}}{{end}}"
+                            placeholder="e.g. +91 98765 43210"/>
+                    </div>
+                    <div class="flex flex-col gap-1 md:col-span-2">
+                        <label class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider flex items-center justify-between">
+                            <span>User Timezone</span>
+                            <span class="text-xs normal-case text-brand-teal-deep font-normal cursor-pointer hover:underline" id="btn-detect-tz">⚡ Auto-detect</span>
+                        </label>
+                        <select name="timezone" id="profile-timezone"
+                            class="border border-border-subtle rounded-sm bg-surface px-3 py-2 text-body-md font-body-md focus:outline-none focus:border-brand-teal-deep focus:ring-1 focus:ring-brand-teal-deep transition-colors w-full">
+                            <option value="UTC">UTC (Coordinated Universal Time)</option>
+                            <option value="Asia/Kolkata">Asia/Kolkata (IST - UTC+05:30)</option>
+                            <option value="America/New_York">America/New_York (EDT/EST - UTC-05:00)</option>
+                            <option value="America/Chicago">America/Chicago (CDT/CST - UTC-06:00)</option>
+                            <option value="America/Denver">America/Denver (MDT/MST - UTC-07:00)</option>
+                            <option value="America/Los_Angeles">America/Los_Angeles (PDT/PST - UTC-08:00)</option>
+                            <option value="Europe/London">Europe/London (GMT/BST - UTC+00:00)</option>
+                            <option value="Europe/Paris">Europe/Paris (CEST/CET - UTC+01:00)</option>
+                            <option value="Europe/Berlin">Europe/Berlin (CEST/CET - UTC+01:00)</option>
+                            <option value="Asia/Dubai">Asia/Dubai (GST - UTC+04:00)</option>
+                            <option value="Asia/Singapore">Asia/Singapore (SGT - UTC+08:00)</option>
+                            <option value="Asia/Tokyo">Asia/Tokyo (JST - UTC+09:00)</option>
+                            <option value="Australia/Sydney">Australia/Sydney (AEST - UTC+10:00)</option>
+                        </select>
+                        <span class="text-[11px] text-on-surface-variant mt-0.5">Select your local operational timezone to align schedules, trip departure times, and logs.</span>
+                    </div>
+                    <div class="md:col-span-2 pt-2 flex items-center gap-3">
+                        <button type="submit" id="profile-save-btn"
+                            class="bg-brand-teal-deep text-on-primary px-5 py-2.5 rounded font-data-mono text-data-mono hover:bg-primary transition-colors inline-flex items-center gap-2 cursor-pointer border-0">
+                            <span class="material-symbols-outlined text-sm">save</span> Save Changes
+                        </button>
+                        <a href="/profile" class="text-on-surface-variant hover:text-on-surface font-body-sm text-body-sm transition-colors text-decoration-none">Cancel</a>
+                    </div>
+                </form>
+            </section>
         </div>
 
-        {{ $u := .UserDetail }}
-
-        <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                <dt class="text-sm text-gray-500">Name</dt>
-                <dd class="text-sm font-medium">{{$u.Name}}</dd>
-            </div>
-            <div>
-                <dt class="text-sm text-gray-500">Email</dt>
-                <dd class="text-sm font-medium">{{$u.Email}}</dd>
-            </div>
-            <div>
-                <dt class="text-sm text-gray-500">Phone</dt>
-                <dd class="text-sm font-medium">{{nullString $u.Phone}}</dd>
-            </div>
-            <div>
-                <dt class="text-sm text-gray-500">Role</dt>
-                <dd class="text-sm font-medium">{{$u.Role.Name}}</dd>
-            </div>
-            <div>
-                <dt class="text-sm text-gray-500">Status</dt>
-                <dd class="text-sm font-medium">
-                    <span class="px-2 py-1 text-xs rounded-full {{statusBadge $u.Status}}">{{$u.Status}}</span>
-                </dd>
-            </div>
-            <div>
-                <dt class="text-sm text-gray-500">Last Login</dt>
-                <dd class="text-sm font-medium">{{if $u.LastLoginAt}}{{datetime $u.LastLoginAt}}{{else}}Never{{end}}</dd>
-            </div>
-        </dl>
-
-        <form method="POST" action="/profile" class="mt-6 space-y-4">
-            <h3 class="text-subsection font-semibold text-gray-800">Update Profile</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Name</label>
-                    <input type="text" name="name" value="{{$u.Name}}"
-                        class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+        <!-- Right Column: Account Info -->
+        <div class="space-y-6">
+            <!-- Timezone Live Clock -->
+            <section class="bg-surface border border-border-subtle p-6 rounded-sm">
+                <h2 class="font-headline-md text-headline-md text-on-surface mb-3 border-b border-border-subtle pb-2 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-brand-teal-deep">schedule</span> Local Time Alignment
+                </h2>
+                <div class="p-4 bg-surface-container-low rounded-sm text-center">
+                    <div class="text-2xl font-bold font-mono text-brand-teal-deep tracking-wider" id="tz-clock">--:--:--</div>
+                    <div class="text-xs text-on-surface-variant font-medium mt-1" id="tz-date">--</div>
+                    <div class="inline-block mt-2 px-2.5 py-0.5 bg-brand-teal-deep/10 text-brand-teal-deep text-[11px] font-semibold rounded-full" id="tz-badge">UTC</div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Phone</label>
-                    <input type="tel" name="phone" value="{{nullString $u.Phone}}"
-                        class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            </section>
+
+            <!-- Account Details -->
+            <section class="bg-surface border border-border-subtle p-6 rounded-sm">
+                <h2 class="font-headline-md text-headline-md text-on-surface mb-4 border-b border-border-subtle pb-2">Account Details</h2>
+                <div class="space-y-4">
+                    <div>
+                        <div class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider mb-1">Account ID</div>
+                        <p class="font-mono text-xs text-on-surface-variant bg-surface-container-low px-2 py-1.5 rounded break-all select-all">{{if $u}}{{$u.ID}}{{else}}—{{end}}</p>
+                    </div>
+                    <div class="border-t border-border-subtle pt-4">
+                        <div class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider mb-1.5">Account Status</div>
+                        {{if $u}}
+                            {{if eq (printf "%s" $u.Status) "active"}}
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span> Active
+                                </span>
+                            {{else if eq (printf "%s" $u.Status) "inactive"}}
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-gray-400 inline-block"></span> Inactive
+                                </span>
+                            {{else if eq (printf "%s" $u.Status) "suspended"}}
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-red-500 inline-block"></span> Suspended
+                                </span>
+                            {{else}}
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 capitalize">{{$u.Status}}</span>
+                            {{end}}
+                        {{else}}—{{end}}
+                    </div>
+                    <div class="border-t border-border-subtle pt-4">
+                        <div class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider mb-1">Member Since</div>
+                        <p class="font-body-sm text-body-sm text-on-surface">{{if $u}}{{datetime $u.CreatedAt}}{{else}}—{{end}}</p>
+                    </div>
+                    <div class="border-t border-border-subtle pt-4">
+                        <div class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider mb-1">Last Login</div>
+                        <p class="font-body-sm text-body-sm text-on-surface">
+                            {{if and $u $u.LastLoginAt}}{{datetime $u.LastLoginAt}}{{else}}<span class="text-on-surface-variant">Not recorded</span>{{end}}
+                        </p>
+                    </div>
                 </div>
-            </div>
-            <button type="submit" class="px-4 py-2 min-h-[44px] bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-blue-800">Update</button>
-        </form>
+            </section>
+
+            <!-- Security -->
+            <section class="bg-surface border border-border-subtle p-6 rounded-sm">
+                <h2 class="font-headline-md text-headline-md text-on-surface mb-4 border-b border-border-subtle pb-2">Security</h2>
+                <div class="space-y-3">
+                    <p class="font-body-sm text-body-sm text-on-surface-variant">Keep your account secure by using a strong, unique password.</p>
+                    <a href="/change-password" class="w-full border border-border-subtle text-on-surface px-4 py-2.5 rounded-sm font-data-mono text-data-mono hover:bg-surface-container-low transition-colors flex justify-center items-center gap-2 text-decoration-none">
+                        <span class="material-symbols-outlined text-sm">key</span> Change Password
+                    </a>
+                </div>
+            </section>
+        </div>
     </div>
 </div>
+
+<script>
+(function() {
+    var nameInput = document.getElementById('profile-name');
+    var tzSelect = document.getElementById('profile-timezone');
+    var btnDetect = document.getElementById('btn-detect-tz');
+    var clockEl = document.getElementById('tz-clock');
+    var dateEl = document.getElementById('tz-date');
+    var badgeEl = document.getElementById('tz-badge');
+
+    // Initials avatar preview
+    if (nameInput) {
+        nameInput.addEventListener('input', function() {
+            var val = nameInput.value.trim();
+            var initials = val ? val.charAt(0).toUpperCase() : 'U';
+            document.querySelectorAll('.profile-initial').forEach(function(el) {
+                el.textContent = initials;
+            });
+        });
+    }
+
+    // Saved or detected timezone
+    var savedTz = localStorage.getItem('user_timezone') || Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata';
+    if (tzSelect) {
+        // Set selected timezone
+        var exists = Array.from(tzSelect.options).some(function(opt) { return opt.value === savedTz; });
+        if (!exists) {
+            var opt = document.createElement('option');
+            opt.value = savedTz;
+            opt.textContent = savedTz;
+            tzSelect.appendChild(opt);
+        }
+        tzSelect.value = savedTz;
+
+        tzSelect.addEventListener('change', function() {
+            localStorage.setItem('user_timezone', tzSelect.value);
+            updateClock();
+        });
+    }
+
+    if (btnDetect && tzSelect) {
+        btnDetect.addEventListener('click', function() {
+            var detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            if (detected) {
+                var exists = Array.from(tzSelect.options).some(function(opt) { return opt.value === detected; });
+                if (!exists) {
+                    var opt = document.createElement('option');
+                    opt.value = detected;
+                    opt.textContent = detected;
+                    tzSelect.appendChild(opt);
+                }
+                tzSelect.value = detected;
+                localStorage.setItem('user_timezone', detected);
+                updateClock();
+            }
+        });
+    }
+
+    function updateClock() {
+        var selectedTz = tzSelect ? tzSelect.value : savedTz;
+        try {
+            var now = new Date();
+            var timeStr = now.toLocaleTimeString('en-US', { timeZone: selectedTz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+            var dateStr = now.toLocaleDateString('en-US', { timeZone: selectedTz, weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+            if (clockEl) clockEl.textContent = timeStr;
+            if (dateEl) dateEl.textContent = dateStr;
+            if (badgeEl) badgeEl.textContent = selectedTz;
+        } catch(e) {
+            if (clockEl) clockEl.textContent = now.toLocaleTimeString();
+        }
+    }
+
+    updateClock();
+    setInterval(updateClock, 1000);
+})();
+</script>

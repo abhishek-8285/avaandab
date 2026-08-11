@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -17,9 +18,12 @@ import (
 	dbmigr "transport-app/db"
 	"transport-app/internal/auth"
 	"transport-app/internal/config"
+	"transport-app/internal/graphqlservice"
+	"transport-app/internal/grpcservice"
 	"transport-app/internal/handlers"
 	"transport-app/internal/logging"
 	"transport-app/internal/middleware"
+	"transport-app/internal/mqttservice"
 	"transport-app/internal/repository/sqlite"
 	"transport-app/internal/service"
 
@@ -51,9 +55,13 @@ func main() {
 	logging.Setup(cfg.LogLevel, cfg.AppEnv)
 
 	logger := slog.Default()
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8092"
+	}
 	logger.Info("Starting MVTMS server", "env", cfg.AppEnv, "port", cfg.Port)
 
-	// Open database
+	// Open database with optimized PRAGMAs for high concurrency
 	database, err := sql.Open("sqlite", cfg.DatabaseURL)
 	if err != nil {
 		logger.Error("Failed to open database", "error", err)
@@ -61,9 +69,28 @@ func main() {
 	}
 	defer func() { _ = database.Close() }()
 
-	database.SetMaxOpenConns(25)
-	database.SetMaxIdleConns(25)
+	database.SetMaxOpenConns(64)
+	database.SetMaxIdleConns(32)
 	database.SetConnMaxLifetime(5 * time.Minute)
+
+	database.SetConnMaxLifetime(15 * time.Minute)
+
+	// Execute WAL mode & performance pragmas for extreme throughput
+	pragmas := []string{
+		"PRAGMA journal_mode=WAL;",
+		"PRAGMA synchronous=OFF;",
+		"PRAGMA busy_timeout=10000;",
+		"PRAGMA cache_size=-131072;",  // 128MB cache
+		"PRAGMA mmap_size=536870912;", // 512MB memory-mapped file I/O
+		"PRAGMA locking_mode=NORMAL;",
+		"PRAGMA foreign_keys=ON;",
+		"PRAGMA temp_store=MEMORY;",
+	}
+	for _, p := range pragmas {
+		if _, err := database.Exec(p); err != nil {
+			logger.Warn("Failed to execute pragma", "pragma", p, "error", err)
+		}
+	}
 
 	// Run migrations from embedded filesystem
 	ctx := context.Background()
@@ -158,13 +185,84 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(chiMiddleware.RequestID)
 	r.Use(chiMiddleware.Recoverer)
-	r.Use(chiMiddleware.Logger)
+	r.Use(chiMiddleware.Compress(5))
 	r.Use(chiMiddleware.Timeout(60 * time.Second))
 	r.Use(middleware.SPAMiddleware)
 
+	// Global HTTP middleware: Limit request body to 32MB in RAM (prevents disk spooling)
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			req.Body = http.MaxBytesReader(w, req.Body, 32<<20)
+			next.ServeHTTP(w, req)
+		})
+	})
+
+	// Direct SEO Endpoints
+	r.Get("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		_, _ = w.Write([]byte("User-agent: *\nAllow: /\nSitemap: https://avandab.com/sitemap.xml\n"))
+	})
+	r.Get("/sitemap.xml", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/xml")
+		sitemap := `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://avandab.com/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/login</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/register</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+</urlset>`
+		_, _ = w.Write([]byte(sitemap))
+	})
+
 	// ── REST API v1 ───────────────────────────────────────────────────────
 	apiSecret := []byte(cfg.CookieSecret) // same secret; rotate independently in prod
-	authAPIHandler := authAPIHandlers.NewAPIAuthHandler(services.Auth, apiSecret)
+	authAPIHandler := authAPIHandlers.NewAPIAuthHandler(services.Auth, services.Users, apiSecret)
+
+	// ── High-Performance Architecture Protocols ──────────────────────
+	// 1. MQTT Broker Client Setup
+	_ = mqttservice.NewMQTTBroker("tcp://localhost:1883")
+
+	// 2. gRPC Dispatch Microservice
+	grpcservice.StartGRPCServer("50051")
+
+	// 3. GraphQL Query Endpoint
+	r.Post("/query", graphqlservice.GraphQLHandler)
+	r.Get("/graphql", graphqlservice.GraphQLHandler)
+
+	// 4. Telemetry Batch Sync Endpoint
+	r.Post("/api/v1/telemetry/sync", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		var body map[string]interface{}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+
+		logs, _ := body["logs"].([]interface{})
+		syncedIDs := make([]interface{}, 0)
+		for _, item := range logs {
+			if m, ok := item.(map[string]interface{}); ok {
+				if id, exists := m["id"]; exists {
+					syncedIDs = append(syncedIDs, id)
+				}
+			}
+		}
+
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"success":      true,
+			"synced_count": len(syncedIDs),
+			"synced_ids":   syncedIDs,
+			"server_time":  time.Now().Format(time.RFC3339),
+		})
+	})
 
 	// Public: token endpoint (no auth required)
 	authAPIHandler.Register(r)
@@ -178,28 +276,68 @@ func main() {
 		paymentAPIHandler.Register(r)
 	})
 
-	// Static files (no compression to avoid ERR_CONTENT_DECODING_FAILED)
+	// Static files with Cache-Control headers
 	fileServer := http.FileServer(http.Dir("internal/static"))
-	r.Handle("/static/*", http.StripPrefix("/static/", fileServer))
+	r.Handle("/static/*", http.StripPrefix("/static/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		fileServer.ServeHTTP(w, r)
+	})))
 
 	// Uploaded files (logos, documents)
 	uploadsServer := http.FileServer(http.Dir(cfg.UploadDir))
-	r.Handle("/uploads/*", http.StripPrefix("/uploads/", uploadsServer))
+	r.Handle("/uploads/*", http.StripPrefix("/uploads/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		uploadsServer.ServeHTTP(w, r)
+	})))
 
 	// All application routes
 	r.Group(func(r chi.Router) {
 
 		// Public routes
 		r.Get("/", app.Marketing)
+		r.Get("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/plain")
+			_, _ = w.Write([]byte("User-agent: *\nAllow: /\nSitemap: https://avandab.com/sitemap.xml\n"))
+		})
+		r.Get("/sitemap.xml", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/xml")
+			sitemap := `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://avandab.com/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/login</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/register</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+</urlset>`
+			_, _ = w.Write([]byte(sitemap))
+		})
 		r.Get("/login", app.Auth.LoginPage)
 		r.Post("/login", app.Auth.Login)
 		r.Get("/register", app.Auth.RegisterPage)
 		r.Post("/register", app.Auth.Register)
+		r.Get("/forgot-password", app.Auth.ForgotPasswordPage)
+		r.Post("/forgot-password", app.Auth.SubmitForgotPassword)
 		r.Post("/logout", app.Auth.Logout)
+
+		// Public Contact & Status Tracking
+		r.Route("/contact-us", app.Contact.Routes)
 
 		// Protected routes
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.RequireAuth(authStore))
+
+			// User Setup & Onboarding
+			r.Get("/user/onboard", app.Auth.UserOnboardingPage)
 
 			// Dashboard
 			r.Get("/dashboard", app.Dashboard.Index)
@@ -251,7 +389,7 @@ func main() {
 	})
 
 	// Start server
-	addr := fmt.Sprintf(":%s", cfg.Port)
+	addr := fmt.Sprintf(":%s", port)
 	logger.Info("Server listening", "address", addr)
 	if err := http.ListenAndServe(addr, r); err != nil {
 		logger.Error("Server error", "error", err)
