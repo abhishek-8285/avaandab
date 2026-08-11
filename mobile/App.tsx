@@ -312,6 +312,24 @@ function MainScreen({ onOpenSetup }: { onOpenSetup?: () => void }) {
         </Text>
       </View>
 
+      {/* Non-Blocking Setup Prompt Banner */}
+      <View style={styles.bannerContainer}>
+        <View style={styles.bannerIconBox}>
+          <Text style={styles.bannerIconText}>📋</Text>
+        </View>
+        <View style={styles.bannerTextContainer}>
+          <Text style={styles.bannerTitle}>Complete Profile Setup</Text>
+          <Text style={styles.bannerSub}>Add bank details, profile picture & driver docs.</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.bannerBtn}
+          activeOpacity={0.85}
+          onPress={() => onOpenSetup && onOpenSetup()}
+        >
+          <Text style={styles.bannerBtnText}>Setup</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Tabs */}
       <View style={styles.tabContainer}>
         <TouchableOpacity
@@ -488,6 +506,52 @@ const styles = StyleSheet.create({
     color: Colors.primaryLight,
     fontSize: 13,
     marginTop: 2,
+  },
+  bannerContainer: {
+    backgroundColor: '#fffbe6',
+    borderWidth: 1,
+    borderColor: '#ffe58f',
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 10,
+  },
+  bannerIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#fff1b8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bannerIconText: {
+    fontSize: 16,
+  },
+  bannerTextContainer: {
+    flex: 1,
+  },
+  bannerTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#873800',
+  },
+  bannerSub: {
+    fontSize: 11,
+    color: '#873800',
+    marginTop: 1,
+  },
+  bannerBtn: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  bannerBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
   },
   tabContainer: {
     flexDirection: 'row',
