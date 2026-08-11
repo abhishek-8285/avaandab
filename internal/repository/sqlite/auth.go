@@ -57,7 +57,7 @@ func (r *SQLRepository) CreateUser(ctx context.Context, user domain.User) (domai
 	}
 
 	role, _ := r.Q(ctx).GetRoleByID(ctx, user.Role.ID)
-	return toDomainUserWithRole(created, toDomainRole(role)), nil
+	return toCreateUserRowWithRole(created, toDomainRole(role)), nil
 }
 
 func (r *SQLRepository) GetUserByID(ctx context.Context, id domain.UserID) (domain.User, error) {
@@ -66,7 +66,7 @@ func (r *SQLRepository) GetUserByID(ctx context.Context, id domain.UserID) (doma
 		return domain.User{}, err
 	}
 	role, _ := r.Q(ctx).GetRoleByID(ctx, u.RoleID)
-	return toDomainUserWithRole(u, toDomainRole(role)), nil
+	return toGetUserByIDRowWithRole(u, toDomainRole(role)), nil
 }
 
 func (r *SQLRepository) GetUserByEmail(ctx context.Context, email string) (domain.User, error) {
@@ -75,24 +75,23 @@ func (r *SQLRepository) GetUserByEmail(ctx context.Context, email string) (domai
 		return domain.User{}, err
 	}
 	role, _ := r.Q(ctx).GetRoleByID(ctx, u.RoleID)
-	return toDomainUserWithRole(u, toDomainRole(role)), nil
+	return toGetUserByEmailRowWithRole(u, toDomainRole(role)), nil
 }
 
 func (r *SQLRepository) UpdateUser(ctx context.Context, user domain.User) (domain.User, error) {
 	updated, err := r.Q(ctx).UpdateUser(ctx, db.UpdateUserParams{
-		Email:    user.Email,
-		Name:     user.Name,
-		Phone:    nullString(user.Phone),
-		Timezone: user.Timezone,
-		RoleID:   user.Role.ID,
-		Status:   string(user.Status),
-		ID:       string(user.ID),
+		Email:  user.Email,
+		Name:   user.Name,
+		Phone:  nullString(user.Phone),
+		RoleID: user.Role.ID,
+		Status: string(user.Status),
+		ID:     string(user.ID),
 	})
 	if err != nil {
 		return domain.User{}, err
 	}
 	role, _ := r.Q(ctx).GetRoleByID(ctx, updated.RoleID)
-	return toDomainUserWithRole(updated, toDomainRole(role)), nil
+	return toUpdateUserRowWithRole(updated, toDomainRole(role)), nil
 }
 
 func (r *SQLRepository) UpdateUserPassword(ctx context.Context, userID domain.UserID, passwordHash string) (domain.User, error) {
@@ -104,7 +103,7 @@ func (r *SQLRepository) UpdateUserPassword(ctx context.Context, userID domain.Us
 		return domain.User{}, err
 	}
 	role, _ := r.Q(ctx).GetRoleByID(ctx, updated.RoleID)
-	return toDomainUserWithRole(updated, toDomainRole(role)), nil
+	return toUpdateUserPasswordRowWithRole(updated, toDomainRole(role)), nil
 }
 
 func (r *SQLRepository) UpdateUserLastLogin(ctx context.Context, userID domain.UserID) (domain.User, error) {
@@ -113,7 +112,7 @@ func (r *SQLRepository) UpdateUserLastLogin(ctx context.Context, userID domain.U
 		return domain.User{}, err
 	}
 	role, _ := r.Q(ctx).GetRoleByID(ctx, updated.RoleID)
-	return toDomainUserWithRole(updated, toDomainRole(role)), nil
+	return toUpdateUserLastLoginRowWithRole(updated, toDomainRole(role)), nil
 }
 
 func (r *SQLRepository) DeleteUser(ctx context.Context, userID domain.UserID) error {
