@@ -127,14 +127,14 @@
             });
     }
 
-    // Event Interceptors
+    // Event Interceptors - Allow standard native browser navigation for full CSS & template reliability
     document.addEventListener('click', function(e) {
         const a = e.target.closest('a');
         if (!a) return;
         const href = a.getAttribute('href');
         if (!href) return;
 
-        // 1. Internal page anchor links (#features, #benefits, #comparison, etc.)
+        // Internal page anchor links (#features, #benefits, #comparison, etc.)
         if (href.startsWith('#')) {
             e.preventDefault();
             const target = document.querySelector(href);
@@ -144,26 +144,6 @@
             }
             return;
         }
-
-        const url = new URL(a.href, window.location.href);
-        if (url.origin !== window.location.origin) return;
-        if (a.getAttribute('target') === '_blank') return;
-        if (url.pathname.startsWith('/static/')) return;
-        if (a.hasAttribute('download')) return;
-
-        // 2. Same-page hash navigation (e.g. /#benefits when currently on /)
-        if (url.pathname === window.location.pathname && url.hash) {
-            e.preventDefault();
-            const target = document.querySelector(url.hash);
-            if (target) {
-                target.scrollIntoView({ behavior: 'smooth' });
-                history.pushState(null, '', url.hash);
-            }
-            return;
-        }
-
-        e.preventDefault();
-        loadPage(url.pathname + url.search + url.hash, { pushState: true });
     });
 
     document.addEventListener('submit', function(e) {
