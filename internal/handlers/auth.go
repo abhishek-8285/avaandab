@@ -26,19 +26,16 @@ func (h *AuthHandlers) LoginPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pd := PageData{Title: "Login"}
+	pd := PageData{
+		Title: "Login",
+		Extra: map[string]interface{}{},
+	}
 
 	if cookie, err := r.Cookie("flash_error"); err == nil {
-		if pd.Extra == nil {
-			pd.Extra = map[string]interface{}{}
-		}
 		pd.Extra["Error"] = cookie.Value
 	}
 
 	if cookie, err := r.Cookie("auth_email"); err == nil {
-		if pd.Extra == nil {
-			pd.Extra = map[string]interface{}{}
-		}
 		pd.Extra["Email"] = cookie.Value
 	}
 
