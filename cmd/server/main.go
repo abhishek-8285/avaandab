@@ -284,7 +284,7 @@ func main() {
 	})
 
 	// Static files with Cache-Control headers
-	fileServer := http.FileServer(http.Dir("internal/static"))
+	fileServer := http.FileServer(http.Dir(cfg.StaticDir))
 	r.Handle("/static/*", http.StripPrefix("/static/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// If request has a version query param (?v=...), cache immutably since URL changes on deploy.
 		// Otherwise, use short max-age with revalidation so updates take effect immediately.
