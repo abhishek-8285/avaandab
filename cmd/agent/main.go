@@ -39,7 +39,7 @@ const (
 	workDir              = "/data/local/tmp"
 	backupDir            = "/data/local/tmp/backup_previous"
 	versionFile          = "/data/local/tmp/current_version.txt"
-	githubRepo           = "abhishek-8285/avaandab"
+	githubRepo           = "abhishek-8285/avandab"
 	healthCheckTimeout   = 10 * time.Second
 )
 
