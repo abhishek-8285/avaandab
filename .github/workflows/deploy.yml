@@ -57,19 +57,7 @@ jobs:
           echo "TAR_NAME=${TAR_NAME}" >> $GITHUB_ENV
           echo "SHA256=${SHA256}" >> $GITHUB_ENV
 
-      - name: Create GitHub Release
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: "v${{ env.VERSION }}"
-          name: "Release v${{ env.VERSION }}"
-          draft: false
-          prerelease: false
-          files: ${{ env.TAR_NAME }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Generate & Upload Manifest JSON Asset
+      - name: Generate Manifest JSON Asset
         run: |
           cat << MANIFESTEOF > manifest.json
           {
@@ -79,10 +67,16 @@ jobs:
           }
           MANIFESTEOF
 
-      - name: Update GitHub Release with manifest.json
-        uses: softprops/action-gh-release@v1
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: "v${{ env.VERSION }}"
-          files: manifest.json
+          name: "Release v${{ env.VERSION }}"
+          draft: false
+          prerelease: false
+          files: |
+            ${{ env.TAR_NAME }}
+            manifest.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
