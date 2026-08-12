@@ -51,6 +51,7 @@ func (s *SessionStore) CreateSession(w http.ResponseWriter, userID, roleName, na
 	data := &SessionData{
 		UserID:  userID,
 		Role:    roleName,
+		Name:    name,
 		Expires: time.Now().Add(24 * time.Hour).Unix(),
 	}
 
