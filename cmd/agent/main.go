@@ -217,9 +217,6 @@ func performRollback() error {
 }
 
 func verifyAndRecoverRunningServer() {
-	// Always enforce Airplane Mode ON and Wi-Fi ON to prevent MediaTek empty SIM slot crash loop
-	_ = exec.Command("su", "-c", "settings put global airplane_mode_on 1; am broadcast -a android.intent.action.AIRPLANE_MODE --ez state true; svc wifi enable").Run()
-
 	if !checkServerHealth() {
 		log.Printf("[Agent Recover] Warning: Server is not responding on port 8092. Attempting auto-restart...")
 		_ = exec.Command("pkill", "-9", "server").Run()
