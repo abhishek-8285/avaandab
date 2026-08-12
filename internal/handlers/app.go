@@ -496,7 +496,8 @@ func (a *App) Marketing(w http.ResponseWriter, r *http.Request) {
 		tmpl := a.Templates.Lookup("home.html")
 		if tmpl != nil {
 			var buf bytes.Buffer
-			if err := tmpl.Execute(&buf, nil); err == nil {
+			data := map[string]interface{}{"Version": AppVersion}
+			if err := tmpl.Execute(&buf, data); err == nil {
 				cachedHomeHTML = buf.Bytes()
 			}
 		}
@@ -514,7 +515,8 @@ func (a *App) Marketing(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "home template not found", http.StatusInternalServerError)
 		return
 	}
-	if err := tmpl.Execute(w, nil); err != nil {
+	data := map[string]interface{}{"Version": AppVersion}
+	if err := tmpl.Execute(w, data); err != nil {
 		http.Error(w, fmt.Sprintf("template error: %v", err), http.StatusInternalServerError)
 	}
 }
