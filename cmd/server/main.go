@@ -50,7 +50,14 @@ import (
 	"github.com/pressly/goose/v3"
 )
 
+// Version is set via ldflags during build
+var Version string
+
 func main() {
+	if Version != "" {
+		_ = os.Setenv("APP_VERSION", Version)
+		handlers.AppVersion = Version
+	}
 	cfg := config.Load()
 	logging.Setup(cfg.LogLevel, cfg.AppEnv)
 

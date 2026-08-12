@@ -38,8 +38,10 @@ jobs:
 
       - name: Cross-compile Go server for ARM64
         run: |
+          VERSION=$(date +%Y%m%d%H%M%S)
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
           mkdir -p payload/internal
-          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o payload/server ./cmd/server/main.go
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags "-X main.Version=${VERSION}" -o payload/server ./cmd/server/main.go
           cp -r internal/templates payload/internal/
           cp -r internal/static payload/internal/
 
