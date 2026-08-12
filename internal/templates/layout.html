@@ -59,10 +59,8 @@
         <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-[#E2E8F0] flex flex-col transform -translate-x-full md:translate-x-0 md:relative md:z-0 transition-transform duration-300 ease-in-out sidebar-scroll shrink-0 shadow-sm">
             <div class="h-16 flex items-center px-6 border-b border-[#EAE8E4] shrink-0 bg-white">
                 <a href="/dashboard" class="flex items-center gap-3 group text-decoration-none">
-                    <div class="w-9 h-9 rounded-lg bg-[#00685f] text-white flex items-center justify-center font-extrabold text-base shadow-sm group-hover:bg-[#005049] transition-colors">
-                        <span class="material-symbols-outlined text-xl">local_shipping</span>
-                    </div>
-                    <span class="text-2xl font-black text-[#00685f] font-display tracking-tight group-hover:text-[#005049] transition-colors">Avandab</span>
+    <img src="/static/img/logo-full.png" alt="Avandab" class="h-8 object-contain" onerror="this.style.display='none'; this.parentElement.querySelector('span').style.display='inline';" />
+                    <span class="text-2xl font-black text-[#00685f] font-display tracking-tight group-hover:text-[#005049] transition-colors" style="display:none;">Avandab</span>
                 </a>
             </div>
             <nav id="sidebar-nav" class="flex-1 py-4 flex flex-col gap-1 overflow-y-auto px-2">
@@ -156,31 +154,29 @@
                         <input type="text" name="q" value="{{.Query}}" class="bg-slate-50 border border-slate-200 rounded-md py-2 pl-9 pr-4 text-sm text-slate-800 placeholder-slate-400 w-64 md:w-80 focus:outline-none focus:bg-white focus:border-[#00685f] focus:ring-2 focus:ring-[#00685f]/20 transition-all" placeholder="Search logs, vehicles, drivers..." />
                     </form>
 
-                    <!-- Notifications Dropdown (Hover Enabled) -->
-                    <div class="relative group">
-                        <button type="button" class="hover:bg-slate-100 p-2 rounded-lg transition-colors text-slate-600 hover:text-[#00685f] border-0 bg-transparent cursor-pointer flex items-center justify-center relative">
+                    <!-- Notifications Dropdown (Click Toggle & Compact View) -->
+                    <div class="relative" id="notif-dropdown-wrapper">
+                        <button type="button" id="notif-bell-btn" class="hover:bg-slate-100 p-2 rounded-lg transition-colors text-slate-600 hover:text-[#00685f] border-0 bg-transparent cursor-pointer flex items-center justify-center relative">
                             <span class="material-symbols-outlined text-xl">notifications</span>
-                            {{if .HasUnread}}<span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white"></span>{{end}}
+                            {{if .HasUnread}}<span id="notif-badge" class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white"></span>{{end}}
                         </button>
 
-                        <div class="absolute right-0 top-full mt-2 w-[380px] max-w-[90vw] bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 p-4 text-slate-800">
-                            <div class="flex justify-between items-center pb-3 mb-3 border-b border-slate-100">
-                                <div class="font-bold text-sm text-slate-900 font-display">Notifications</div>
-                                <div class="flex items-center gap-2">
-                                    <button type="button" id="notif-tab-inbox" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-teal-50 text-[#00685f] border-0 flex items-center gap-1 cursor-pointer">
-                                        Inbox {{if .HasUnread}}<span class="bg-[#00685f] text-white rounded-full px-1.5 py-0.2 text-[10px]">{{.UnreadCount}}</span>{{end}}
-                                    </button>
-                                    <button type="button" id="notif-tab-archived" class="text-xs font-semibold px-2.5 py-1 rounded-full border border-slate-200 text-slate-500 bg-transparent cursor-pointer hover:bg-slate-50">
-                                        Archived
-                                    </button>
+                        <div id="notif-menu" class="absolute right-0 top-full mt-2 w-80 max-w-[90vw] bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden hidden p-3 text-slate-800">
+                            <div class="flex justify-between items-center pb-2 mb-2 border-b border-slate-100">
+                                <div class="font-bold text-xs text-slate-900 font-display flex items-center gap-1.5">
+                                    <span>Notifications</span>
+                                    {{if .HasUnread}}<span class="bg-[#00685f]/10 text-[#00685f] rounded-full px-2 py-0.5 text-[10px] font-bold">{{.UnreadCount}} new</span>{{end}}
                                 </div>
+                                <button type="button" id="notif-mark-read" class="text-[11px] font-semibold text-[#00685f] hover:underline bg-transparent border-0 cursor-pointer">
+                                    Mark as read
+                                </button>
                             </div>
 
-                            <div id="notif-container-inbox" class="flex flex-col max-h-[320px] overflow-y-auto divide-y divide-slate-100">
+                            <div id="notif-container-inbox" class="flex flex-col max-h-64 overflow-y-auto divide-y divide-slate-100">
                                 {{if .Notifications}}
                                     {{range .Notifications}}
-                                    <a href="/audit-logs" class="flex items-start gap-3 py-2.5 hover:bg-slate-50 rounded-md px-2 transition-colors cursor-pointer text-decoration-none">
-                                        <div class="w-7 h-7 rounded-full bg-teal-100 flex items-center justify-center shrink-0 mt-0.5">
+                                    <a href="/audit-logs" class="flex items-start gap-2.5 py-2 hover:bg-slate-50 rounded-md px-2 transition-colors cursor-pointer text-decoration-none">
+                                        <div class="w-6 h-6 rounded-full bg-teal-50 flex items-center justify-center shrink-0 mt-0.5">
                                             <span class="material-symbols-outlined text-xs text-[#00685f]">history</span>
                                         </div>
                                         <div class="flex-1 min-w-0">
@@ -192,18 +188,11 @@
                                     </a>
                                     {{end}}
                                 {{else}}
-                                    <div class="p-6 text-center text-slate-400 text-xs flex flex-col items-center gap-2">
-                                        <span class="material-symbols-outlined text-3xl text-slate-300">notifications_none</span>
+                                    <div class="py-6 text-center text-slate-400 text-xs flex flex-col items-center gap-1.5">
+                                        <span class="material-symbols-outlined text-2xl text-slate-300">notifications_none</span>
                                         <span>No new notifications</span>
                                     </div>
                                 {{end}}
-                            </div>
-
-                            <div id="notif-container-archived" class="hidden flex flex-col max-h-[320px] overflow-y-auto">
-                                <div class="p-6 text-center text-slate-400 text-xs flex flex-col items-center gap-2">
-                                    <span class="material-symbols-outlined text-3xl text-slate-300">inventory_2</span>
-                                    <span>No archived notifications</span>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -385,15 +374,35 @@
             });
         });
 
-        // Flash message dismiss
-        document.addEventListener('click', function(e) {
-            var btn = e.target.closest('.flash-dismiss');
-            if (btn) {
-                var msg = btn.closest('[class*="fixed bottom-4"]');
-                if (msg) {
-                    msg.classList.add('flash-exit');
-                    setTimeout(function() { msg.remove(); }, 200);
-                }
+        // Notifications Click Toggle & Mark Read
+        document.addEventListener('DOMContentLoaded', function() {
+            var bellBtn = document.getElementById('notif-bell-btn');
+            var menu = document.getElementById('notif-menu');
+            var wrapper = document.getElementById('notif-dropdown-wrapper');
+            var markReadBtn = document.getElementById('notif-mark-read');
+            var badge = document.getElementById('notif-badge');
+
+            if (bellBtn && menu) {
+                bellBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    menu.classList.toggle('hidden');
+                });
+
+                document.addEventListener('click', function(e) {
+                    if (wrapper && !wrapper.contains(e.target)) {
+                        menu.classList.add('hidden');
+                    }
+                });
+            }
+
+            if (markReadBtn) {
+                markReadBtn.addEventListener('click', function() {
+                    if (badge) badge.remove();
+                    fetch('/api/notifications/read', { method: 'POST' }).catch(function() {});
+                    this.textContent = 'All read';
+                    this.disabled = true;
+                    this.classList.add('opacity-50', 'cursor-not-allowed');
+                });
             }
         });
     </script>
