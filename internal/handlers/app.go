@@ -435,12 +435,14 @@ func (a *App) renderAuthPage(w http.ResponseWriter, name string, data PageData) 
 		User         *auth.SessionData
 		FlashError   string
 		FlashSuccess string
+		Version      string
 	}{
 		Title:        data.Title,
 		Content:      template.HTML(buf.String()),
 		User:         data.User,
 		FlashError:   data.FlashError,
 		FlashSuccess: data.FlashSuccess,
+		Version:      AppVersion,
 	}
 
 	if err := authLayout.Execute(w, pd); err != nil {
