@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -226,6 +227,7 @@ func formatDate(t time.Time) string {
 // PageData is the base data passed to all page templates.
 type PageData struct {
 	Title        string
+	Version      string
 	User         *auth.SessionData
 	UserDetail   interface{}
 	Roles        interface{}
@@ -294,10 +296,23 @@ func newPaginationData(pp PaginationParams, total int64, basePath string) Pagina
 	}
 }
 
+// AppVersion holds the build version string populated from environment or fallback
+var AppVersion = func() string {
+	if v := os.Getenv("APP_VERSION"); v != "" {
+		return v
+	}
+	return fmt.Sprintf("%d", time.Now().Unix())
+}()
+
 // buildTemplateData creates a flat map for templates from PageData.
 func buildTemplateData(data PageData) map[string]interface{} {
+	v := data.Version
+	if v == "" {
+		v = AppVersion
+	}
 	m := map[string]interface{}{
 		"Title":        data.Title,
+		"Version":      v,
 		"User":         data.User,
 		"UserDetail":   data.UserDetail,
 		"Roles":        data.Roles,
