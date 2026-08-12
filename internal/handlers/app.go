@@ -448,10 +448,15 @@ func (a *App) renderAuthPage(w http.ResponseWriter, name string, data PageData) 
 	}
 }
 
-// renderFragment renders just a fragment for Datastar updates.
+// renderFragment renders a fragment or template safely.
 func (a *App) renderFragment(w http.ResponseWriter, name string, data interface{}) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	tmpl := a.Templates.Lookup(name)
+	if tmpl == nil {
+		// Fallback: strip _table suffix if present and attempt main template lookup
+		fallbackName := strings.Replace(name, "_table.html", ".html", 1)
+		tmpl = a.Templates.Lookup(fallbackName)
+	}
 	if tmpl == nil {
 		http.Error(w, fmt.Sprintf("template %q not found", name), http.StatusInternalServerError)
 		return
