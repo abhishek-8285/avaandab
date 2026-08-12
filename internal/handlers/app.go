@@ -164,16 +164,19 @@ func parseTemplates(authSrv auth.AuthorizationService) *template.Template {
 		},
 	})
 
-	_, err := tmpl.ParseGlob("internal/templates/*.html")
+	// Support TEMPLATES_DIR env var for deployments where CWD != repo root
+	templatesDir := os.Getenv("TEMPLATES_DIR")
+	if templatesDir == "" {
+		templatesDir = "internal/templates"
+	}
+	partialsDir := filepath.Join(templatesDir, "partials")
+
+	_, err := tmpl.ParseGlob(filepath.Join(templatesDir, "*.html"))
 	if err != nil {
-		// Try relative path for development
-		_, err2 := tmpl.ParseGlob("internal/templates/*.html")
-		if err2 != nil {
-			panic(fmt.Sprintf("failed to parse templates: %v, %v", err, err2))
-		}
+		panic(fmt.Sprintf("failed to parse templates from %q: %v", templatesDir, err))
 	}
 	// Parse partial templates from subdirectories
-	_, _ = tmpl.ParseGlob("internal/templates/partials/*.html")
+	_, _ = tmpl.ParseGlob(filepath.Join(partialsDir, "*.html"))
 	return tmpl
 }
 
