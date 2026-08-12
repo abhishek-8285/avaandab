@@ -166,8 +166,10 @@ func applyUpdateWithRollback(m *VersionManifest) error {
 
 	// Step 2: Stop old process cleanly
 	log.Printf("[Agent] Terminating existing server process...")
-	_ = exec.Command("pkill", "-9", "server").Run()
-	time.Sleep(1 * time.Second)
+	_ = exec.Command("pkill", "-9", "-f", "server").Run()
+	_ = exec.Command("su", "-c", "pkill -9 -f server").Run()
+	time.Sleep(1500 * time.Millisecond)
+	_ = os.Remove(filepath.Join(workDir, "server"))
 
 	// Step 3: Extract new update
 	log.Printf("[Agent] Extracting updated files...")
