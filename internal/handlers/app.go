@@ -385,6 +385,7 @@ func (a *App) renderPage(w http.ResponseWriter, r *http.Request, name string, da
 		HasUnread     bool
 		FlashError    string
 		FlashSuccess  string
+		Version       string
 	}{
 		Title:         data.Title,
 		Content:       template.HTML(buf.String()),
@@ -395,6 +396,7 @@ func (a *App) renderPage(w http.ResponseWriter, r *http.Request, name string, da
 		HasUnread:     unreadCount > 0,
 		FlashError:    data.FlashError,
 		FlashSuccess:  data.FlashSuccess,
+		Version:       AppVersion,
 	}
 
 	if err := layout.Execute(w, pd); err != nil {
