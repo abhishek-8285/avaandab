@@ -389,17 +389,17 @@ func (s *TripService) DeliverTripWithPOD(ctx context.Context, id domain.TripID, 
 		return domain.Trip{}, fmt.Errorf("e-POD URL is required to mark trip as delivered")
 	}
 
-	trip, err := s.store.GetTripByID(ctx, id)
-	if err != nil {
-		return domain.Trip{}, domain.ErrTripNotFound
-	}
-
-	if err := trip.CanDeliver(); err != nil {
-		return domain.Trip{}, err
-	}
-
 	var delivered domain.Trip
-	err = s.txManager.WithTransaction(ctx, func(ctx context.Context) error {
+	err := s.txManager.WithTransaction(ctx, func(ctx context.Context) error {
+		trip, err := s.store.GetTripByID(ctx, id)
+		if err != nil {
+			return domain.ErrTripNotFound
+		}
+
+		if err := trip.CanDeliver(); err != nil {
+			return err
+		}
+
 		u, err := s.store.UpdateTripStatus(ctx, id, domain.TripDelivered)
 		if err != nil {
 			return err
@@ -413,6 +413,7 @@ func (s *TripService) DeliverTripWithPOD(ctx context.Context, id domain.TripID, 
 	if err != nil {
 		return domain.Trip{}, err
 	}
+
 
 	s.log.Info("trip delivered with e-POD", "trip_id", id, "pod_url", podURL)
 	s.events.Publish(ctx, events.Event{
