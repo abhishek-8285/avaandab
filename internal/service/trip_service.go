@@ -414,7 +414,6 @@ func (s *TripService) DeliverTripWithPOD(ctx context.Context, id domain.TripID, 
 		return domain.Trip{}, err
 	}
 
-
 	s.log.Info("trip delivered with e-POD", "trip_id", id, "pod_url", podURL)
 	s.events.Publish(ctx, events.Event{
 		Type: "TripDelivered",
