@@ -34,6 +34,10 @@ Thumbs.db
 *.out
 coverage.html
 
+# Build output
+dist/
+mobile/package-lock.json
+
 # Logs
 *.log
 
