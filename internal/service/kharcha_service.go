@@ -72,7 +72,7 @@ func (s *KharchaService) ListPendingExpenses(ctx context.Context) ([]KharchaExpe
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	return scanKharchaRows(rows)
 }
 
@@ -113,7 +113,7 @@ func (s *KharchaService) ListLedger(ctx context.Context, tripID string) ([]Kharc
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	return scanKharchaRows(rows)
 }
 

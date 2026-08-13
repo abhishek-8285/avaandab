@@ -74,14 +74,14 @@ func (h *KharchaHandlers) Approve(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.Services.Kharcha.ApproveExpense(ctx, expenseID, session.UserID); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, `<div class="px-6 py-4 bg-red-50 text-red-600 text-sm font-semibold border-l-4 border-red-500">Error: %s</div>`, err.Error())
+		_, _ = fmt.Fprintf(w, `<div class="px-6 py-4 bg-red-50 text-red-600 text-sm font-semibold border-l-4 border-red-500">Error: %s</div>`, err.Error())
 		return
 	}
 
 	expense, err := h.Services.Kharcha.GetExpenseByID(ctx, expenseID)
 	if err != nil {
 		// Silently replace row with approved confirmation
-		fmt.Fprintf(w, `<div class="px-6 py-4 flex items-center gap-3 bg-emerald-50/60"><span class="w-2 h-2 rounded-full bg-emerald-500"></span><span class="text-sm font-semibold text-emerald-700">Expense approved successfully.</span></div>`)
+		_, _ = fmt.Fprintf(w, `<div class="px-6 py-4 flex items-center gap-3 bg-emerald-50/60"><span class="w-2 h-2 rounded-full bg-emerald-500"></span><span class="text-sm font-semibold text-emerald-700">Expense approved successfully.</span></div>`)
 		return
 	}
 
@@ -106,13 +106,13 @@ func (h *KharchaHandlers) Reject(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.Services.Kharcha.RejectExpense(ctx, expenseID, session.UserID, reason); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, `<div class="px-6 py-4 bg-red-50 text-red-600 text-sm font-semibold border-l-4 border-red-500">Error: %s</div>`, err.Error())
+		_, _ = fmt.Fprintf(w, `<div class="px-6 py-4 bg-red-50 text-red-600 text-sm font-semibold border-l-4 border-red-500">Error: %s</div>`, err.Error())
 		return
 	}
 
 	expense, err := h.Services.Kharcha.GetExpenseByID(ctx, expenseID)
 	if err != nil {
-		fmt.Fprintf(w, `<div class="px-6 py-4 flex items-center gap-3 bg-rose-50/60"><span class="w-2 h-2 rounded-full bg-rose-500"></span><span class="text-sm font-semibold text-rose-700">Expense rejected.</span></div>`)
+		_, _ = fmt.Fprintf(w, `<div class="px-6 py-4 flex items-center gap-3 bg-rose-50/60"><span class="w-2 h-2 rounded-full bg-rose-500"></span><span class="text-sm font-semibold text-rose-700">Expense rejected.</span></div>`)
 		return
 	}
 
