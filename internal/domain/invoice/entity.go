@@ -106,3 +106,12 @@ func (i *Invoice) AdjustAmount(subtotal, tax, discount float64) {
 		}
 	}
 }
+
+// Cancel cancels the invoice if it is not paid.
+func (i *Invoice) Cancel() {
+	if i.Status == InvoicePaid {
+		return
+	}
+	i.Status = InvoiceCancelled
+	i.UpdatedAt = time.Now()
+}

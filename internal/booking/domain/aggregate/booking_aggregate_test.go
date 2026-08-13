@@ -144,3 +144,45 @@ func TestBookingAggregate_Complete(t *testing.T) {
 	err = agg.Complete(now)
 	assert.Error(t, err)
 }
+
+func TestBookingAggregate_Update(t *testing.T) {
+	now := time.Now()
+	tenantID := shared.TenantID("1")
+	price, _ := shared.NewMoney(15000, "USD")
+	newPrice, _ := shared.NewMoney(20000, "USD")
+
+	agg := NewBookingAggregate(
+		"bk-123",
+		tenantID,
+		"BK-0001",
+		"cust-123",
+		"route-123",
+		now.Add(24*time.Hour),
+		"Truck",
+		2,
+		nil,
+		price,
+		"initial notes",
+		now,
+	)
+
+	err := agg.Update(
+		"cust-456",
+		"route-456",
+		now.Add(48*time.Hour),
+		"Van",
+		4,
+		nil,
+		newPrice,
+		"updated notes",
+		now,
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, "cust-456", agg.CustomerID)
+	assert.Equal(t, "updated notes", agg.Notes)
+
+	// Cannot update cancelled booking
+	_ = agg.Cancel(now)
+	err = agg.Update("cust-789", "route-1", now, "Van", 1, nil, newPrice, "", now)
+	assert.Error(t, err)
+}

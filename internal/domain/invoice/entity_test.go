@@ -77,3 +77,24 @@ func TestInvoice_AdjustAmount(t *testing.T) {
 		t.Errorf("expected outstanding balance 1220.0, got %f", inv.OutstandingBalance())
 	}
 }
+
+func TestInvoice_Cancel(t *testing.T) {
+	inv := &invoice.Invoice{
+		ID:     types.InvoiceID("inv-cancel"),
+		Status: invoice.InvoiceDraft,
+	}
+
+	inv.Cancel()
+	if inv.Status != invoice.InvoiceCancelled {
+		t.Fatalf("expected status cancelled, got %s", inv.Status)
+	}
+
+	invPaid := &invoice.Invoice{
+		ID:     types.InvoiceID("inv-paid"),
+		Status: invoice.InvoicePaid,
+	}
+	invPaid.Cancel() // Cannot cancel paid invoice
+	if invPaid.Status != invoice.InvoicePaid {
+		t.Fatalf("expected paid invoice status to remain paid")
+	}
+}

@@ -27,8 +27,21 @@ type SyncBatchResponse struct {
 	ServerTime  string  `json:"server_time"`
 }
 
+type TelemetrySnapshotPayload struct {
+	ID        string  `json:"id,omitempty"`
+	TripID    string  `json:"trip_id"`
+	VehicleID string  `json:"vehicle_id"`
+	Timestamp string  `json:"timestamp"`
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+	Speed     float64 `json:"speed"`
+	FuelLevel float64 `json:"fuel_level"`
+	Odometer  float64 `json:"odometer"`
+}
+
 func RegisterTelemetryRoutes(r chi.Router) {
 	r.Post("/api/v1/telemetry/sync", HandleTelemetrySync)
+	r.Post("/api/v1/telemetry/snapshots", HandleTelemetrySnapshots)
 }
 
 func HandleTelemetrySync(w http.ResponseWriter, r *http.Request) {
@@ -54,4 +67,21 @@ func HandleTelemetrySync(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = json.NewEncoder(w).Encode(resp)
+}
+
+func HandleTelemetrySnapshots(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	var snap TelemetrySnapshotPayload
+	if err := json.NewDecoder(r.Body).Decode(&snap); err != nil || snap.TripID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Invalid snapshot payload"})
+		return
+	}
+
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":     true,
+		"snapshot_id": "snap-9001",
+		"server_time": time.Now().Format(time.RFC3339),
+	})
 }

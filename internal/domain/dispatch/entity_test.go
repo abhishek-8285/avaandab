@@ -68,3 +68,25 @@ func TestDispatch_ConvertToTrip(t *testing.T) {
 		t.Errorf("expected trip ID %s, got %v", tripID, d.TripID)
 	}
 }
+
+func TestDispatch_Cancel(t *testing.T) {
+	d := &dispatch.Dispatch{
+		ID:     types.DispatchID("dsp-cancel"),
+		Status: dispatch.DispatchDraft,
+	}
+
+	if err := d.Cancel(); err != nil {
+		t.Fatalf("expected successful cancellation of draft dispatch: %v", err)
+	}
+	if d.Status != dispatch.DispatchCancelled {
+		t.Fatalf("expected status cancelled, got %s", d.Status)
+	}
+
+	dConverted := &dispatch.Dispatch{
+		ID:     types.DispatchID("dsp-conv"),
+		Status: dispatch.DispatchConverted,
+	}
+	if err := dConverted.Cancel(); err == nil {
+		t.Fatalf("expected error when cancelling converted dispatch")
+	}
+}

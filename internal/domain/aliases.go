@@ -99,6 +99,7 @@ const (
 	DriverOnTrip    = driver.DriverOnTrip
 	DriverLeave     = driver.DriverLeave
 	DriverInactive  = driver.DriverInactive
+	DriverBlocked   = driver.DriverBlocked
 
 	// vehicle
 	VehicleTypeTruck     = vehicle.VehicleTypeTruck
@@ -116,6 +117,7 @@ const (
 	VehicleRunning       = vehicle.VehicleRunning
 	VehicleMaintenance   = vehicle.VehicleMaintenance
 	VehicleInactive      = vehicle.VehicleInactive
+	VehicleBlocked       = vehicle.VehicleBlocked
 
 	// booking
 	BookingDraft     = booking.BookingDraft
@@ -135,6 +137,8 @@ const (
 	TripScheduled = trip.TripScheduled
 	TripAssigned  = trip.TripAssigned
 	TripStarted   = trip.TripStarted
+	TripInTransit = trip.TripInTransit
+	TripDelivered = trip.TripDelivered
 	TripCompleted = trip.TripCompleted
 	TripCancelled = trip.TripCancelled
 

@@ -192,3 +192,32 @@ func TestTripAggregate_TimelineEvents(t *testing.T) {
 	_, ok7 := events[6].(TripCompletedEvent)
 	assert.True(t, ok7)
 }
+
+func TestTripAggregate_AssignVehicleAndCancel(t *testing.T) {
+	now := time.Now()
+	tenantID := shared.TenantID("1")
+
+	agg := NewTripAggregate(
+		"tr-123",
+		tenantID,
+		"TR-0001",
+		nil,
+		"route-123",
+		now.Add(2*time.Hour),
+		"",
+		now,
+	)
+
+	assert.NoError(t, agg.AssignVehicle("vehicle-99", now))
+	assert.Equal(t, "vehicle-99", *agg.VehicleID)
+
+	assert.NoError(t, agg.Cancel(now))
+	assert.Equal(t, TripCancelled, agg.Status)
+
+	// Cannot assign driver to cancelled trip
+	assert.Error(t, agg.AssignDriver("driver-1", now))
+	assert.Error(t, agg.AssignVehicle("vehicle-1", now))
+
+	// Cannot schedule non-draft trip
+	assert.Error(t, agg.Schedule(now))
+}

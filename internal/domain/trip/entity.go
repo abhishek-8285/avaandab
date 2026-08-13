@@ -9,18 +9,21 @@ import (
 
 // Trip represents a scheduled transport trip.
 type Trip struct {
-	ID            types.TripID
-	TripNumber    string
-	BookingID     *types.BookingID
-	DriverID      *types.DriverID
-	VehicleID     *types.VehicleID
-	RouteID       types.RouteID
-	DepartureTime time.Time
-	ArrivalTime   *time.Time
-	Status        TripStatus
-	Remarks       *string
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	ID                    types.TripID
+	TripNumber            string
+	BookingID             *types.BookingID
+	DriverID              *types.DriverID
+	VehicleID             *types.VehicleID
+	RouteID               types.RouteID
+	DepartureTime         time.Time
+	ArrivalTime           *time.Time
+	Status                TripStatus
+	EWayBillRef           *string
+	PODURL                *string
+	FinalSettlementAmount float64
+	Remarks               *string
+	CreatedAt             time.Time
+	UpdatedAt             time.Time
 }
 
 // TripStatus represents the lifecycle status of a trip.
@@ -31,6 +34,8 @@ const (
 	TripScheduled TripStatus = "scheduled"
 	TripAssigned  TripStatus = "assigned"
 	TripStarted   TripStatus = "started"
+	TripInTransit TripStatus = "in_transit"
+	TripDelivered TripStatus = "delivered"
 	TripCompleted TripStatus = "completed"
 	TripCancelled TripStatus = "cancelled"
 )
@@ -40,6 +45,8 @@ var ActiveTripStatuses = []TripStatus{
 	TripScheduled,
 	TripAssigned,
 	TripStarted,
+	TripInTransit,
+	TripDelivered,
 }
 
 // CanSchedule validates that a trip can be scheduled (must be in draft status).
@@ -58,10 +65,18 @@ func (t Trip) CanStart() error {
 	return nil
 }
 
-// CanComplete validates that a trip can be completed (must have been started).
+// CanDeliver validates that e-POD can be captured and trip delivered.
+func (t Trip) CanDeliver() error {
+	if t.Status != TripStarted && t.Status != TripInTransit {
+		return fmt.Errorf("only active/started/in_transit trips can be marked delivered; current status: %s", t.Status)
+	}
+	return nil
+}
+
+// CanComplete validates that a trip can be completed (must have been delivered or started).
 func (t Trip) CanComplete() error {
-	if t.Status != TripStarted {
-		return fmt.Errorf("only started trips can be completed; current status: %s", t.Status)
+	if t.Status != TripStarted && t.Status != TripInTransit && t.Status != TripDelivered {
+		return fmt.Errorf("trip must be started or delivered before completion; current status: %s", t.Status)
 	}
 	return nil
 }
