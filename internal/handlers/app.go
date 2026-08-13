@@ -46,6 +46,7 @@ type App struct {
 	SettingsH *SettingsHandlers
 	AuditLogs *AuditLogHandlers
 	Contact   *ContactHandlers
+	Kharcha   *KharchaHandlers
 }
 
 // NewApp creates a new handler app with all handler groups initialized.
@@ -76,6 +77,7 @@ func NewApp(svc *service.Services, cfg *config.Config, authStore *auth.SessionSt
 	app.SettingsH = &SettingsHandlers{App: app}
 	app.AuditLogs = &AuditLogHandlers{App: app}
 	app.Contact = &ContactHandlers{App: app}
+	app.Kharcha = &KharchaHandlers{App: app}
 
 	return app
 }

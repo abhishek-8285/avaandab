@@ -1,0 +1,42 @@
+{{define "epod_success.html"}}
+<div class="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xl p-8 text-center max-w-sm w-full">
+        <!-- Success Icon -->
+        <div class="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-5">
+            <span class="material-symbols-outlined text-4xl text-emerald-600" style="font-size:40px">verified</span>
+        </div>
+        <h2 class="text-2xl font-black text-slate-900 font-display">Delivery Confirmed!</h2>
+        <p class="text-sm text-slate-500 mt-2">
+            Trip <span class="font-mono font-black text-slate-700">{{.TripNumber}}</span> delivered &amp; recorded successfully.
+        </p>
+
+        <!-- Auto-triggered actions -->
+        <div class="mt-6 space-y-2.5 text-left bg-slate-50 rounded-xl p-4">
+            <div class="flex items-center gap-3 text-xs text-slate-600">
+                <span class="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-[10px] text-emerald-600" style="font-size:11px">check</span>
+                </span>
+                Trip status → <strong>Delivered</strong>
+            </div>
+            <div class="flex items-center gap-3 text-xs text-slate-600">
+                <span class="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-[10px] text-emerald-600" style="font-size:11px">check</span>
+                </span>
+                e-POD captured &amp; saved
+            </div>
+            <div class="flex items-center gap-3 text-xs text-slate-600">
+                <span class="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-[10px] text-emerald-600" style="font-size:11px">check</span>
+                </span>
+                Fleet owner notified
+            </div>
+        </div>
+
+        <a href="/driver/trips"
+           class="mt-6 w-full py-3.5 bg-slate-900 text-white text-sm font-extrabold rounded-xl flex items-center justify-center gap-2 hover:bg-slate-800 transition">
+            <span class="material-symbols-outlined text-base" style="font-size:16px">arrow_forward</span>
+            View Next Trip
+        </a>
+    </div>
+</div>
+{{end}}

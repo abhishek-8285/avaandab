@@ -1,0 +1,81 @@
+{{define "kharcha_ledger_rows.html"}}
+{{if .LedgerEntries}}
+<div class="overflow-x-auto">
+<table class="w-full text-sm">
+    <thead>
+        <tr class="bg-slate-50 text-left">
+            <th class="px-6 py-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Driver</th>
+            <th class="px-4 py-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Category</th>
+            <th class="px-4 py-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Trip</th>
+            <th class="px-4 py-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Description</th>
+            <th class="px-4 py-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 text-right">Amount</th>
+            <th class="px-4 py-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Status</th>
+            <th class="px-4 py-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Date</th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-50">
+        {{range .LedgerEntries}}
+        <tr class="hover:bg-slate-50/50 transition-colors">
+            <td class="px-6 py-3 font-semibold text-slate-800">{{.DriverName}}</td>
+            <td class="px-4 py-3">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase
+                    {{if eq .Category "advance"}}bg-blue-50 text-blue-700
+                    {{else if eq .Category "fuel"}}bg-orange-50 text-orange-700
+                    {{else if eq .Category "toll"}}bg-purple-50 text-purple-700
+                    {{else if eq .Category "food"}}bg-green-50 text-green-700
+                    {{else if eq .Category "repair"}}bg-red-50 text-red-700
+                    {{else}}bg-slate-100 text-slate-500{{end}}">
+                    {{.Category}}
+                </span>
+            </td>
+            <td class="px-4 py-3 text-slate-500 font-mono text-xs">{{.TripNumber}}</td>
+            <td class="px-4 py-3 text-slate-500 max-w-xs truncate">{{.Description}}</td>
+            <td class="px-4 py-3 text-right font-extrabold text-slate-800" data-numeric>₹{{priceFormat .Amount}}</td>
+            <td class="px-4 py-3">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase {{statusBadge .Status}}">
+                    {{.Status}}
+                </span>
+            </td>
+            <td class="px-4 py-3 text-slate-400 text-xs">{{datetime .CreatedAt}}</td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+</div>
+{{else}}
+<div class="py-12 text-center">
+    <p class="text-slate-300 text-sm">No expense records found.</p>
+</div>
+{{end}}
+{{end}}
+
+{{define "kharcha_row_approved.html"}}
+<div class="px-6 py-4 flex items-center gap-4 bg-emerald-50/40 border-l-4 border-emerald-500 transition-all"
+     id="expense-row-{{.ID}}">
+    <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+        <span class="material-symbols-outlined text-emerald-600 text-base">check_circle</span>
+    </div>
+    <div class="flex-1 min-w-0">
+        <p class="text-sm font-extrabold text-emerald-800">Approved — {{.DriverName}}</p>
+        <p class="text-xs text-emerald-600 mt-0.5">₹{{priceFormat .Amount}} · {{.Category}} · {{datetime .CreatedAt}}</p>
+    </div>
+    <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-extrabold uppercase tracking-wide">Approved</span>
+</div>
+{{end}}
+
+{{define "kharcha_row_rejected.html"}}
+<div class="px-6 py-4 flex items-center gap-4 bg-rose-50/40 border-l-4 border-rose-400 transition-all"
+     id="expense-row-{{.ID}}">
+    <div class="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center shrink-0">
+        <span class="material-symbols-outlined text-rose-500 text-base">cancel</span>
+    </div>
+    <div class="flex-1 min-w-0">
+        <p class="text-sm font-extrabold text-rose-800">Rejected — {{.DriverName}}</p>
+        <p class="text-xs text-rose-500 mt-0.5 truncate">
+            ₹{{priceFormat .Amount}} · {{.Category}}
+            {{if .RejectedReason}} · Reason: {{nullString .RejectedReason}}{{end}}
+        </p>
+    </div>
+    <span class="px-3 py-1 rounded-full bg-rose-100 text-rose-600 text-[10px] font-extrabold uppercase tracking-wide">Rejected</span>
+</div>
+{{end}}

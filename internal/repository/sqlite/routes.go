@@ -24,7 +24,7 @@ func (r *SQLRepository) CreateRoute(ctx context.Context, route domain.Route) (do
 	if err != nil {
 		return domain.Route{}, err
 	}
-	return toDomainRoute(created), nil
+	return createRouteRowToDomain(created), nil
 }
 
 func (r *SQLRepository) GetRouteByID(ctx context.Context, id domain.RouteID) (domain.Route, error) {
@@ -32,7 +32,7 @@ func (r *SQLRepository) GetRouteByID(ctx context.Context, id domain.RouteID) (do
 	if err != nil {
 		return domain.Route{}, err
 	}
-	return toDomainRoute(route), nil
+	return getRouteByIDRowToDomain(route), nil
 }
 
 func (r *SQLRepository) GetRouteBySourceAndDestination(ctx context.Context, source, destination string) (domain.Route, error) {
@@ -43,7 +43,7 @@ func (r *SQLRepository) GetRouteBySourceAndDestination(ctx context.Context, sour
 	if err != nil {
 		return domain.Route{}, err
 	}
-	return toDomainRoute(route), nil
+	return getRouteBySDRowToDomain(route), nil
 }
 
 func (r *SQLRepository) UpdateRoute(ctx context.Context, route domain.Route) (domain.Route, error) {
@@ -59,7 +59,7 @@ func (r *SQLRepository) UpdateRoute(ctx context.Context, route domain.Route) (do
 	if err != nil {
 		return domain.Route{}, err
 	}
-	return toDomainRoute(updated), nil
+	return updateRouteRowToDomain(updated), nil
 }
 
 func (r *SQLRepository) DeleteRoute(ctx context.Context, id domain.RouteID) error {
@@ -78,7 +78,7 @@ func (r *SQLRepository) SearchRoutes(ctx context.Context, query string, limit, o
 	}
 	result := make([]domain.Route, len(rows))
 	for i, route := range rows {
-		result[i] = toDomainRoute(route)
+		result[i] = searchRoutesRowToDomain(route)
 	}
 	return result, nil
 }

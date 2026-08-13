@@ -8,6 +8,7 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 const countRoutes = `-- name: CountRoutes :one
@@ -44,7 +45,19 @@ type CreateRouteParams struct {
 	Remarks        sql.NullString `json:"remarks"`
 }
 
-func (q *Queries) CreateRoute(ctx context.Context, arg CreateRouteParams) (Route, error) {
+type CreateRouteRow struct {
+	ID             string         `json:"id"`
+	Source         string         `json:"source"`
+	Destination    string         `json:"destination"`
+	Distance       float64        `json:"distance"`
+	EstimatedHours float64        `json:"estimated_hours"`
+	StandardFare   float64        `json:"standard_fare"`
+	Remarks        sql.NullString `json:"remarks"`
+	CreatedAt      time.Time      `json:"created_at"`
+	UpdatedAt      time.Time      `json:"updated_at"`
+}
+
+func (q *Queries) CreateRoute(ctx context.Context, arg CreateRouteParams) (CreateRouteRow, error) {
 	row := q.db.QueryRowContext(ctx, createRoute,
 		arg.ID,
 		arg.Source,
@@ -54,7 +67,7 @@ func (q *Queries) CreateRoute(ctx context.Context, arg CreateRouteParams) (Route
 		arg.StandardFare,
 		arg.Remarks,
 	)
-	var i Route
+	var i CreateRouteRow
 	err := row.Scan(
 		&i.ID,
 		&i.Source,
@@ -83,9 +96,21 @@ SELECT id, source, destination, distance, estimated_hours, standard_fare, remark
 FROM routes WHERE id = ?
 `
 
-func (q *Queries) GetRouteByID(ctx context.Context, id string) (Route, error) {
+type GetRouteByIDRow struct {
+	ID             string         `json:"id"`
+	Source         string         `json:"source"`
+	Destination    string         `json:"destination"`
+	Distance       float64        `json:"distance"`
+	EstimatedHours float64        `json:"estimated_hours"`
+	StandardFare   float64        `json:"standard_fare"`
+	Remarks        sql.NullString `json:"remarks"`
+	CreatedAt      time.Time      `json:"created_at"`
+	UpdatedAt      time.Time      `json:"updated_at"`
+}
+
+func (q *Queries) GetRouteByID(ctx context.Context, id string) (GetRouteByIDRow, error) {
 	row := q.db.QueryRowContext(ctx, getRouteByID, id)
-	var i Route
+	var i GetRouteByIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.Source,
@@ -110,9 +135,21 @@ type GetRouteBySourceAndDestinationParams struct {
 	Destination string `json:"destination"`
 }
 
-func (q *Queries) GetRouteBySourceAndDestination(ctx context.Context, arg GetRouteBySourceAndDestinationParams) (Route, error) {
+type GetRouteBySourceAndDestinationRow struct {
+	ID             string         `json:"id"`
+	Source         string         `json:"source"`
+	Destination    string         `json:"destination"`
+	Distance       float64        `json:"distance"`
+	EstimatedHours float64        `json:"estimated_hours"`
+	StandardFare   float64        `json:"standard_fare"`
+	Remarks        sql.NullString `json:"remarks"`
+	CreatedAt      time.Time      `json:"created_at"`
+	UpdatedAt      time.Time      `json:"updated_at"`
+}
+
+func (q *Queries) GetRouteBySourceAndDestination(ctx context.Context, arg GetRouteBySourceAndDestinationParams) (GetRouteBySourceAndDestinationRow, error) {
 	row := q.db.QueryRowContext(ctx, getRouteBySourceAndDestination, arg.Source, arg.Destination)
-	var i Route
+	var i GetRouteBySourceAndDestinationRow
 	err := row.Scan(
 		&i.ID,
 		&i.Source,
@@ -142,7 +179,19 @@ type SearchRoutesParams struct {
 	Offset  int64          `json:"offset"`
 }
 
-func (q *Queries) SearchRoutes(ctx context.Context, arg SearchRoutesParams) ([]Route, error) {
+type SearchRoutesRow struct {
+	ID             string         `json:"id"`
+	Source         string         `json:"source"`
+	Destination    string         `json:"destination"`
+	Distance       float64        `json:"distance"`
+	EstimatedHours float64        `json:"estimated_hours"`
+	StandardFare   float64        `json:"standard_fare"`
+	Remarks        sql.NullString `json:"remarks"`
+	CreatedAt      time.Time      `json:"created_at"`
+	UpdatedAt      time.Time      `json:"updated_at"`
+}
+
+func (q *Queries) SearchRoutes(ctx context.Context, arg SearchRoutesParams) ([]SearchRoutesRow, error) {
 	rows, err := q.db.QueryContext(ctx, searchRoutes,
 		arg.Column1,
 		arg.Column2,
@@ -153,9 +202,9 @@ func (q *Queries) SearchRoutes(ctx context.Context, arg SearchRoutesParams) ([]R
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Route
+	var items []SearchRoutesRow
 	for rows.Next() {
-		var i Route
+		var i SearchRoutesRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Source,
@@ -198,7 +247,19 @@ type UpdateRouteParams struct {
 	ID             string         `json:"id"`
 }
 
-func (q *Queries) UpdateRoute(ctx context.Context, arg UpdateRouteParams) (Route, error) {
+type UpdateRouteRow struct {
+	ID             string         `json:"id"`
+	Source         string         `json:"source"`
+	Destination    string         `json:"destination"`
+	Distance       float64        `json:"distance"`
+	EstimatedHours float64        `json:"estimated_hours"`
+	StandardFare   float64        `json:"standard_fare"`
+	Remarks        sql.NullString `json:"remarks"`
+	CreatedAt      time.Time      `json:"created_at"`
+	UpdatedAt      time.Time      `json:"updated_at"`
+}
+
+func (q *Queries) UpdateRoute(ctx context.Context, arg UpdateRouteParams) (UpdateRouteRow, error) {
 	row := q.db.QueryRowContext(ctx, updateRoute,
 		arg.Source,
 		arg.Destination,
@@ -208,7 +269,7 @@ func (q *Queries) UpdateRoute(ctx context.Context, arg UpdateRouteParams) (Route
 		arg.Remarks,
 		arg.ID,
 	)
-	var i Route
+	var i UpdateRouteRow
 	err := row.Scan(
 		&i.ID,
 		&i.Source,

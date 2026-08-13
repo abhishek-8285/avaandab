@@ -59,6 +59,16 @@ type CompanySetting struct {
 	FinancialYear sql.NullString `json:"financial_year"`
 }
 
+type ComplianceCheck struct {
+	ID         string         `json:"id"`
+	EntityType string         `json:"entity_type"`
+	EntityID   string         `json:"entity_id"`
+	CheckType  string         `json:"check_type"`
+	Status     string         `json:"status"`
+	Details    sql.NullString `json:"details"`
+	CreatedAt  time.Time      `json:"created_at"`
+}
+
 type ContactSubmission struct {
 	ID           string         `json:"id"`
 	TicketNumber string         `json:"ticket_number"`
@@ -123,6 +133,58 @@ type Driver struct {
 	UpdatedAt             time.Time      `json:"updated_at"`
 	TenantID              string         `json:"tenant_id"`
 	Version               int64          `json:"version"`
+	Blocked               int64          `json:"blocked"`
+	BlockedReason         sql.NullString `json:"blocked_reason"`
+	Aadhaar               sql.NullString `json:"aadhaar"`
+	Pan                   sql.NullString `json:"pan"`
+	BankDetails           sql.NullString `json:"bank_details"`
+}
+
+type DriverExpense struct {
+	ID             string         `json:"id"`
+	TripID         sql.NullString `json:"trip_id"`
+	DriverID       sql.NullString `json:"driver_id"`
+	ExpenseType    string         `json:"expense_type"`
+	Amount         float64        `json:"amount"`
+	Description    sql.NullString `json:"description"`
+	ReceiptUrl     sql.NullString `json:"receipt_url"`
+	Approved       sql.NullInt64  `json:"approved"`
+	CreatedAt      sql.NullTime   `json:"created_at"`
+	Status         string         `json:"status"`
+	Category       string         `json:"category"`
+	RequestedBy    sql.NullString `json:"requested_by"`
+	ApprovedBy     sql.NullString `json:"approved_by"`
+	RejectedReason sql.NullString `json:"rejected_reason"`
+	ApprovedAt     sql.NullTime   `json:"approved_at"`
+}
+
+type DriverSettlement struct {
+	ID              string         `json:"id"`
+	TripID          string         `json:"trip_id"`
+	DriverID        string         `json:"driver_id"`
+	GrossFare       float64        `json:"gross_fare"`
+	AdvancesKharcha float64        `json:"advances_kharcha"`
+	Deductions      float64        `json:"deductions"`
+	NetPayout       float64        `json:"net_payout"`
+	Status          string         `json:"status"`
+	PaymentRef      sql.NullString `json:"payment_ref"`
+	PaidAt          sql.NullTime   `json:"paid_at"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+}
+
+type EwayBill struct {
+	ID             string         `json:"id"`
+	TripID         sql.NullString `json:"trip_id"`
+	EwbNumber      string         `json:"ewb_number"`
+	Irn            sql.NullString `json:"irn"`
+	GenerationDate time.Time      `json:"generation_date"`
+	ValidUntil     time.Time      `json:"valid_until"`
+	TransporterID  sql.NullString `json:"transporter_id"`
+	VehicleNumber  sql.NullString `json:"vehicle_number"`
+	Status         sql.NullString `json:"status"`
+	RawResponse    sql.NullString `json:"raw_response"`
+	CreatedAt      sql.NullTime   `json:"created_at"`
 }
 
 type File struct {
@@ -215,15 +277,17 @@ type RolePermission struct {
 }
 
 type Route struct {
-	ID             string         `json:"id"`
-	Source         string         `json:"source"`
-	Destination    string         `json:"destination"`
-	Distance       float64        `json:"distance"`
-	EstimatedHours float64        `json:"estimated_hours"`
-	StandardFare   float64        `json:"standard_fare"`
-	Remarks        sql.NullString `json:"remarks"`
-	CreatedAt      time.Time      `json:"created_at"`
-	UpdatedAt      time.Time      `json:"updated_at"`
+	ID                  string          `json:"id"`
+	Source              string          `json:"source"`
+	Destination         string          `json:"destination"`
+	Distance            float64         `json:"distance"`
+	EstimatedHours      float64         `json:"estimated_hours"`
+	StandardFare        float64         `json:"standard_fare"`
+	Remarks             sql.NullString  `json:"remarks"`
+	CreatedAt           time.Time       `json:"created_at"`
+	UpdatedAt           time.Time       `json:"updated_at"`
+	ReverseDistance     sql.NullFloat64 `json:"reverse_distance"`
+	ReverseStandardFare sql.NullFloat64 `json:"reverse_standard_fare"`
 }
 
 type Session struct {
@@ -236,26 +300,64 @@ type Session struct {
 	CreatedAt time.Time      `json:"created_at"`
 }
 
+type TelemetryAlert struct {
+	ID        string          `json:"id"`
+	TripID    sql.NullString  `json:"trip_id"`
+	VehicleID sql.NullString  `json:"vehicle_id"`
+	DriverID  sql.NullString  `json:"driver_id"`
+	AlertType string          `json:"alert_type"`
+	Severity  string          `json:"severity"`
+	Details   string          `json:"details"`
+	Latitude  sql.NullFloat64 `json:"latitude"`
+	Longitude sql.NullFloat64 `json:"longitude"`
+	Resolved  int64           `json:"resolved"`
+	CreatedAt time.Time       `json:"created_at"`
+}
+
+type TelemetrySnapshot struct {
+	ID        string          `json:"id"`
+	TripID    sql.NullString  `json:"trip_id"`
+	VehicleID sql.NullString  `json:"vehicle_id"`
+	Timestamp time.Time       `json:"timestamp"`
+	Latitude  sql.NullFloat64 `json:"latitude"`
+	Longitude sql.NullFloat64 `json:"longitude"`
+	Speed     sql.NullFloat64 `json:"speed"`
+	FuelLevel sql.NullFloat64 `json:"fuel_level"`
+	Odometer  sql.NullFloat64 `json:"odometer"`
+}
+
 type Trip struct {
-	ID              string         `json:"id"`
-	TripNumber      string         `json:"trip_number"`
-	BookingID       sql.NullString `json:"booking_id"`
-	DriverID        sql.NullString `json:"driver_id"`
-	VehicleID       sql.NullString `json:"vehicle_id"`
-	RouteID         string         `json:"route_id"`
-	DepartureTime   time.Time      `json:"departure_time"`
-	ArrivalTime     sql.NullTime   `json:"arrival_time"`
-	Status          string         `json:"status"`
-	Remarks         sql.NullString `json:"remarks"`
-	CreatedAt       time.Time      `json:"created_at"`
-	UpdatedAt       time.Time      `json:"updated_at"`
-	Version         int64          `json:"version"`
-	TenantID        string         `json:"tenant_id"`
-	StartedAt       sql.NullTime   `json:"started_at"`
-	ReachedPickupAt sql.NullTime   `json:"reached_pickup_at"`
-	InTransitAt     sql.NullTime   `json:"in_transit_at"`
-	DeliveredAt     sql.NullTime   `json:"delivered_at"`
-	CompletedAt     sql.NullTime   `json:"completed_at"`
+	ID                    string          `json:"id"`
+	TripNumber            string          `json:"trip_number"`
+	BookingID             sql.NullString  `json:"booking_id"`
+	DriverID              sql.NullString  `json:"driver_id"`
+	VehicleID             sql.NullString  `json:"vehicle_id"`
+	RouteID               string          `json:"route_id"`
+	DepartureTime         time.Time       `json:"departure_time"`
+	ArrivalTime           sql.NullTime    `json:"arrival_time"`
+	Status                string          `json:"status"`
+	Remarks               sql.NullString  `json:"remarks"`
+	CreatedAt             time.Time       `json:"created_at"`
+	UpdatedAt             time.Time       `json:"updated_at"`
+	Version               int64           `json:"version"`
+	TenantID              string          `json:"tenant_id"`
+	StartedAt             sql.NullTime    `json:"started_at"`
+	ReachedPickupAt       sql.NullTime    `json:"reached_pickup_at"`
+	InTransitAt           sql.NullTime    `json:"in_transit_at"`
+	DeliveredAt           sql.NullTime    `json:"delivered_at"`
+	CompletedAt           sql.NullTime    `json:"completed_at"`
+	EwayBillRef           sql.NullString  `json:"eway_bill_ref"`
+	PodUrl                sql.NullString  `json:"pod_url"`
+	FinalSettlementAmount float64         `json:"final_settlement_amount"`
+	PodPhotoUrl           sql.NullString  `json:"pod_photo_url"`
+	PodSignatureUrl       sql.NullString  `json:"pod_signature_url"`
+	PodConsigneeName      sql.NullString  `json:"pod_consignee_name"`
+	PodConsigneePhone     sql.NullString  `json:"pod_consignee_phone"`
+	PodOtpVerified        int64           `json:"pod_otp_verified"`
+	PodCapturedAt         sql.NullTime    `json:"pod_captured_at"`
+	PodLat                sql.NullFloat64 `json:"pod_lat"`
+	PodLng                sql.NullFloat64 `json:"pod_lng"`
+	PodNotes              sql.NullString  `json:"pod_notes"`
 }
 
 type User struct {
@@ -293,4 +395,8 @@ type Vehicle struct {
 	UpdatedAt          time.Time       `json:"updated_at"`
 	TenantID           string          `json:"tenant_id"`
 	Version            int64           `json:"version"`
+	Blocked            int64           `json:"blocked"`
+	BlockedReason      sql.NullString  `json:"blocked_reason"`
+	RcExpiry           sql.NullTime    `json:"rc_expiry"`
+	Odometer           float64         `json:"odometer"`
 }

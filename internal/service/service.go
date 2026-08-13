@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"transport-app/internal/config"
+	"transport-app/internal/domain"
 	bookingevents "transport-app/internal/domain/booking"
 	tripevents "transport-app/internal/domain/trip"
 	"transport-app/internal/events"
@@ -35,21 +36,25 @@ type Store interface {
 
 // Services holds all service instances and shared dependencies.
 type Services struct {
-	Auth      *AuthService
-	Users     *UserService
-	Drivers   *DriverService
-	Vehicles  *VehicleService
-	Customers *CustomerService
-	Routes    *RouteService
-	Bookings  *BookingService
-	Trips     *TripService
-	Invoices  *InvoiceService
-	Payments  *PaymentService
-	Settings  *CompanySettingsService
-	Dashboard *DashboardService
-	Files     *FileService
-	Audit     *AuditLogService
-	Founder   *founder.FounderService
+	Auth        *AuthService
+	Users       *UserService
+	Drivers     *DriverService
+	Vehicles    *VehicleService
+	Customers   *CustomerService
+	Routes      *RouteService
+	Bookings    *BookingService
+	Trips       *TripService
+	Invoices    *InvoiceService
+	Payments    *PaymentService
+	Settings    *CompanySettingsService
+	Dashboard   *DashboardService
+	Files       *FileService
+	Audit       *AuditLogService
+	Founder     *founder.FounderService
+	Compliance  *ComplianceService
+	Settlements *DriverSettlementService
+	Telemetry   *TelemetryService
+	Kharcha     *KharchaService
 
 	store Store
 	cfg   *config.Config
@@ -82,6 +87,10 @@ func NewServices(store Store, cfg *config.Config, log *slog.Logger) *Services {
 	s.Dashboard = &DashboardService{baseService: bs}
 	s.Files = &FileService{baseService: bs}
 	s.Audit = &AuditLogService{baseService: bs}
+	s.Compliance = &ComplianceService{baseService: bs}
+	s.Settlements = &DriverSettlementService{baseService: bs}
+	s.Telemetry = &TelemetryService{baseService: bs}
+	s.Kharcha = &KharchaService{baseService: bs}
 
 	// Instantiate Telegram Bot Notifier if token configured, otherwise graceful fallback
 	var founderNotifier founder.Notifier = alerts.NewTelegramBotNotifier(nil, 0)
@@ -126,6 +135,25 @@ func (s *Services) initEventHandlers() {
 			return nil
 		}
 		_, _ = s.Invoices.GenerateInvoiceFromTrip(ctx, evt.TripID)
+		return nil
+	})
+
+	// Rule 2: TripDelivered → Auto-generate GST Invoice + Driver Settlement Statement
+	bus.Subscribe("TripDelivered", func(ctx context.Context, e events.Event) error {
+		payload, ok := e.Payload.(map[string]interface{})
+		if !ok {
+			return nil
+		}
+		tripIDVal, exists := payload["trip_id"]
+		if !exists {
+			return nil
+		}
+		tripID, ok := tripIDVal.(domain.TripID)
+		if !ok {
+			return nil
+		}
+		_, _ = s.Invoices.GenerateInvoiceFromTrip(ctx, tripID)
+		_, _ = s.Settlements.CreateSettlementForTrip(ctx, tripID, 1200.0, 200.0, 50.0)
 		return nil
 	})
 }

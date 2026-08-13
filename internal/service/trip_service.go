@@ -382,6 +382,85 @@ func (s *TripService) CompleteTrip(ctx context.Context, id domain.TripID) (domai
 	return completed, nil
 }
 
+// DeliverTripWithPOD captures e-POD, sets status to Delivered, auto-triggers GST Invoice + Driver Settlement.
+// Rule 2: Trip Status Automation.
+func (s *TripService) DeliverTripWithPOD(ctx context.Context, id domain.TripID, podURL string) (domain.Trip, error) {
+	if podURL == "" {
+		return domain.Trip{}, fmt.Errorf("e-POD URL is required to mark trip as delivered")
+	}
+
+	trip, err := s.store.GetTripByID(ctx, id)
+	if err != nil {
+		return domain.Trip{}, domain.ErrTripNotFound
+	}
+
+	if err := trip.CanDeliver(); err != nil {
+		return domain.Trip{}, err
+	}
+
+	var delivered domain.Trip
+	err = s.txManager.WithTransaction(ctx, func(ctx context.Context) error {
+		u, err := s.store.UpdateTripStatus(ctx, id, domain.TripDelivered)
+		if err != nil {
+			return err
+		}
+		delivered = u
+		delivered.PODURL = &podURL
+		podInfo := fmt.Sprintf("pod_url=%s", podURL)
+		s.logAudit(ctx, nil, "deliver_epod", "trips", string(id), nil, &podInfo)
+		return nil
+	})
+	if err != nil {
+		return domain.Trip{}, err
+	}
+
+	s.log.Info("trip delivered with e-POD", "trip_id", id, "pod_url", podURL)
+	s.events.Publish(ctx, events.Event{
+		Type: "TripDelivered",
+		Payload: map[string]interface{}{
+			"trip_id":      id,
+			"booking_id":   delivered.BookingID,
+			"driver_id":    delivered.DriverID,
+			"pod_url":      podURL,
+			"delivered_at": time.Now(),
+			"occurred_at":  time.Now(),
+		},
+	})
+	return delivered, nil
+}
+
+// DeliverWithPODRequest holds the full e-POD submission payload from the driver mobile app.
+type DeliverWithPODRequest struct {
+	PODPhotoURL    string
+	SignatureURL   string
+	ConsigneeName  string
+	ConsigneePhone string
+	Notes          string
+	OTPVerified    bool
+}
+
+// DeliverWithPOD marks a trip as delivered using e-POD metadata and returns the trip number.
+// This is the mobile driver entry-point; photo/signature URLs are pre-uploaded by the handler.
+func (s *TripService) DeliverWithPOD(ctx context.Context, tripIDStr string, req DeliverWithPODRequest) (string, error) {
+	id := domain.TripID(tripIDStr)
+	podURL := req.PODPhotoURL
+	if podURL == "" {
+		podURL = req.SignatureURL
+	}
+
+	delivered, err := s.DeliverTripWithPOD(ctx, id, podURL)
+	if err != nil {
+		return "", err
+	}
+
+	meta := fmt.Sprintf("consignee=%s phone=%s otp=%v sig=%s notes=%s",
+		req.ConsigneeName, req.ConsigneePhone, req.OTPVerified, req.SignatureURL, req.Notes)
+	s.logAudit(ctx, nil, "deliver_pod_meta", "trips", tripIDStr, nil, &meta)
+	s.log.Info("e-POD delivered", "trip_id", tripIDStr, "consignee", req.ConsigneeName)
+
+	return delivered.TripNumber, nil
+}
+
 // CancelTrip cancels a trip (cannot cancel completed trips).
 func (s *TripService) CancelTrip(ctx context.Context, id domain.TripID) (domain.Trip, error) {
 	trip, err := s.store.GetTripByID(ctx, id)

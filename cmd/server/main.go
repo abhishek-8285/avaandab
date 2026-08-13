@@ -393,6 +393,12 @@ func main() {
 			// Audit Logs
 			r.Route("/audit-logs", app.AuditLogs.Routes)
 
+			// Kharcha Ledger (driver expense approvals)
+			r.Route("/kharcha", app.Kharcha.Routes)
+
+			// e-POD delivery from driver mobile
+			r.Post("/trips/{id}/deliver-pod", app.Kharcha.DeliverWithPOD)
+
 			// Profile (auth)
 			r.Get("/profile", app.Auth.ProfilePage)
 			r.Post("/profile", app.Auth.UpdateProfile)

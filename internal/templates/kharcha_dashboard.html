@@ -1,0 +1,157 @@
+{{define "kharcha_dashboard.html"}}
+<div class="space-y-6">
+
+    <!-- Page Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-black text-slate-900 font-display">Kharcha Ledger</h1>
+            <p class="text-sm text-slate-400 mt-0.5">Driver advance &amp; expense approvals · real-time settlement deduction</p>
+        </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white rounded-xl border border-amber-200/60 p-5 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-[11px] font-bold text-amber-600 uppercase tracking-wider">Pending</span>
+                <span class="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-amber-500 text-base">pending</span>
+                </span>
+            </div>
+            <p class="text-3xl font-black text-slate-900">{{.Stats.PendingCount}}</p>
+            <p class="text-xs text-slate-400 mt-0.5">awaiting approval</p>
+        </div>
+        <div class="bg-white rounded-xl border border-emerald-200/60 p-5 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Today</span>
+                <span class="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-emerald-500 text-base">check_circle</span>
+                </span>
+            </div>
+            <p class="text-3xl font-black text-slate-900">{{.Stats.ApprovedToday}}</p>
+            <p class="text-xs text-slate-400 mt-0.5">approved today</p>
+        </div>
+        <div class="bg-white rounded-xl border border-blue-200/60 p-5 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-[11px] font-bold text-blue-600 uppercase tracking-wider">Month</span>
+                <span class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-blue-500 text-base">account_balance_wallet</span>
+                </span>
+            </div>
+            <p class="text-3xl font-black text-slate-900">₹{{priceFormat .Stats.MonthTotal}}</p>
+            <p class="text-xs text-slate-400 mt-0.5">this month</p>
+        </div>
+        <div class="bg-white rounded-xl border border-rose-200/60 p-5 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-[11px] font-bold text-rose-600 uppercase tracking-wider">Unsettled</span>
+                <span class="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-rose-500 text-base">warning</span>
+                </span>
+            </div>
+            <p class="text-3xl font-black text-slate-900">₹{{priceFormat .Stats.UnsettledTotal}}</p>
+            <p class="text-xs text-slate-400 mt-0.5">outstanding balance</p>
+        </div>
+    </div>
+
+    <!-- Pending Approvals Queue -->
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <div>
+                <h2 class="text-base font-extrabold text-slate-900">Pending Approvals</h2>
+                <p class="text-xs text-slate-400 mt-0.5">Approve or reject driver expense requests</p>
+            </div>
+            <span class="text-[10px] font-bold text-slate-400 flex items-center gap-1.5 cursor-default"
+                  hx-get="/kharcha/pending"
+                  hx-trigger="every 30s"
+                  hx-target="#kharcha-queue"
+                  hx-swap="innerHTML">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                LIVE · auto-refreshes
+            </span>
+        </div>
+        <div id="kharcha-queue" class="divide-y divide-slate-50">
+            {{template "kharcha_queue.html" .}}
+        </div>
+    </div>
+
+    <!-- Full Ledger Table -->
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between flex-wrap gap-3">
+            <h2 class="text-base font-extrabold text-slate-900">Kharcha Ledger</h2>
+            <div class="flex items-center gap-2">
+                <select id="ledger-trip-filter"
+                        name="trip_id"
+                        hx-get="/kharcha/ledger"
+                        hx-trigger="change"
+                        hx-target="#ledger-body"
+                        hx-swap="innerHTML"
+                        hx-include="#ledger-trip-filter"
+                        class="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white font-semibold text-slate-600 focus:outline-none focus:ring-2 focus:ring-[#00685f]/20">
+                    <option value="">All Trips</option>
+                    {{range .ActiveTrips}}
+                    <option value="{{.ID}}">{{.TripNumber}}</option>
+                    {{end}}
+                </select>
+            </div>
+        </div>
+        <div id="ledger-body">
+            {{template "kharcha_ledger_rows.html" .}}
+        </div>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div id="reject-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div id="reject-backdrop" class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="closeRejectModal()"></div>
+    <div class="relative bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl animate-fade-in">
+        <h3 class="text-lg font-extrabold text-slate-900">Reject Expense</h3>
+        <p class="text-sm text-slate-500 mt-1">
+            Rejecting <strong id="reject-amount" class="text-slate-800"></strong> from <strong id="reject-driver" class="text-slate-800"></strong>
+        </p>
+        <form id="reject-form" method="POST" class="mt-4">
+            <textarea name="reason" id="reject-reason" rows="3"
+                      class="w-full border border-slate-200 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/30 resize-none"
+                      placeholder="Reason for rejection (required)..." required></textarea>
+            <div class="flex justify-end gap-3 mt-4">
+                <button type="button" onclick="closeRejectModal()"
+                        class="px-4 py-2 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-lg transition">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-extrabold rounded-lg transition">
+                    Reject Expense
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openRejectModal(expenseID, driverName, amount) {
+    document.getElementById('reject-driver').textContent = driverName;
+    document.getElementById('reject-amount').textContent = '₹' + amount;
+    document.getElementById('reject-reason').value = '';
+    document.getElementById('reject-form').action = '/kharcha/' + expenseID + '/reject';
+
+    // Wire HTMX swap on the target row
+    document.getElementById('reject-form').setAttribute('hx-post', '/kharcha/' + expenseID + '/reject');
+    document.getElementById('reject-form').setAttribute('hx-target', '#expense-row-' + expenseID);
+    document.getElementById('reject-form').setAttribute('hx-swap', 'outerHTML');
+
+    var modal = document.getElementById('reject-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    htmx.process(document.getElementById('reject-form'));
+}
+
+function closeRejectModal() {
+    var modal = document.getElementById('reject-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+document.getElementById('reject-form').addEventListener('htmx:afterRequest', function() {
+    closeRejectModal();
+});
+</script>
+{{end}}

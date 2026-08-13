@@ -249,17 +249,45 @@ func toDomainCustomer(c db.Customer) domain.Customer {
 	}
 }
 
-func toDomainRoute(r db.Route) domain.Route {
+// sqlc v1.31+ generates a distinct *Row type per query; these helpers normalise them.
+
+func createRouteRowToDomain(r db.CreateRouteRow) domain.Route {
 	return domain.Route{
-		ID:             domain.RouteID(r.ID),
-		Source:         r.Source,
-		Destination:    r.Destination,
-		Distance:       r.Distance,
-		EstimatedHours: r.EstimatedHours,
-		StandardFare:   r.StandardFare,
-		Remarks:        fromNullString(r.Remarks),
-		CreatedAt:      r.CreatedAt,
-		UpdatedAt:      r.UpdatedAt,
+		ID: domain.RouteID(r.ID), Source: r.Source, Destination: r.Destination,
+		Distance: r.Distance, EstimatedHours: r.EstimatedHours, StandardFare: r.StandardFare,
+		Remarks: fromNullString(r.Remarks), CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt,
+	}
+}
+
+func getRouteByIDRowToDomain(r db.GetRouteByIDRow) domain.Route {
+	return domain.Route{
+		ID: domain.RouteID(r.ID), Source: r.Source, Destination: r.Destination,
+		Distance: r.Distance, EstimatedHours: r.EstimatedHours, StandardFare: r.StandardFare,
+		Remarks: fromNullString(r.Remarks), CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt,
+	}
+}
+
+func getRouteBySDRowToDomain(r db.GetRouteBySourceAndDestinationRow) domain.Route {
+	return domain.Route{
+		ID: domain.RouteID(r.ID), Source: r.Source, Destination: r.Destination,
+		Distance: r.Distance, EstimatedHours: r.EstimatedHours, StandardFare: r.StandardFare,
+		Remarks: fromNullString(r.Remarks), CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt,
+	}
+}
+
+func updateRouteRowToDomain(r db.UpdateRouteRow) domain.Route {
+	return domain.Route{
+		ID: domain.RouteID(r.ID), Source: r.Source, Destination: r.Destination,
+		Distance: r.Distance, EstimatedHours: r.EstimatedHours, StandardFare: r.StandardFare,
+		Remarks: fromNullString(r.Remarks), CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt,
+	}
+}
+
+func searchRoutesRowToDomain(r db.SearchRoutesRow) domain.Route {
+	return domain.Route{
+		ID: domain.RouteID(r.ID), Source: r.Source, Destination: r.Destination,
+		Distance: r.Distance, EstimatedHours: r.EstimatedHours, StandardFare: r.StandardFare,
+		Remarks: fromNullString(r.Remarks), CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt,
 	}
 }
 
