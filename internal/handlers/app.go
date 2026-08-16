@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"html"
 	"html/template"
 	"log/slog"
 	"net/http"
@@ -601,7 +602,9 @@ func (a *App) renderError(w http.ResponseWriter, statusCode int, title string, m
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(statusCode)
 
-	fallback := fmt.Sprintf("%d - %s: %s", statusCode, title, message)
+	escapedTitle := html.EscapeString(title)
+	escapedMessage := html.EscapeString(message)
+	fallback := fmt.Sprintf("<!DOCTYPE html><html><head><title>%d - %s</title></head><body><h1>%d - %s</h1><p>%s</p></body></html>", statusCode, escapedTitle, statusCode, escapedTitle, escapedMessage)
 
 	errTmpl := a.Templates.Lookup("error.html")
 	if errTmpl == nil {

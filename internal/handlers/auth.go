@@ -97,10 +97,6 @@ func (h *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	targetURL := "/dashboard"
-	// Check if company settings are configured, if not redirect to company onboarding
-	if company, err := h.Services.Settings.GetSettings(r.Context()); err == nil && company.CompanyName == "" {
-		targetURL = "/company/onboard"
-	}
 
 	if isDatastarRequest(r) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -127,6 +123,8 @@ func (h *AuthHandlers) renderRegisterError(w http.ResponseWriter, r *http.Reques
 		Value:    errMsg,
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   h.Config.CookieSecure,
+		SameSite: http.SameSiteLaxMode,
 		MaxAge:   30,
 	})
 	http.Redirect(w, r, "/register", http.StatusSeeOther)
@@ -161,6 +159,8 @@ func (h *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 			Value:    err.Error(),
 			Path:     "/",
 			HttpOnly: true,
+			Secure:   h.Config.CookieSecure,
+			SameSite: http.SameSiteLaxMode,
 			MaxAge:   30,
 		})
 		http.SetCookie(w, &http.Cookie{
@@ -168,6 +168,8 @@ func (h *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 			Value:    email,
 			Path:     "/",
 			HttpOnly: true,
+			Secure:   h.Config.CookieSecure,
+			SameSite: http.SameSiteLaxMode,
 			MaxAge:   30,
 		})
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -182,6 +184,8 @@ func (h *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   h.Config.CookieSecure,
+		SameSite: http.SameSiteLaxMode,
 		MaxAge:   -1,
 	})
 	http.SetCookie(w, &http.Cookie{
@@ -189,15 +193,19 @@ func (h *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   h.Config.CookieSecure,
+		SameSite: http.SameSiteLaxMode,
 		MaxAge:   -1,
 	})
 
 	targetURL := "/dashboard"
-	// Check if user has incomplete setup profile (or company onboarding needed)
+	// Check if user has incomplete setup profile (or admin company onboarding needed)
 	if result.User.Phone == nil || *result.User.Phone == "" {
 		targetURL = "/user/onboard"
-	} else if company, err := h.Services.Settings.GetSettings(r.Context()); err == nil && company.CompanyName == "" {
-		targetURL = "/company/onboard"
+	} else if result.User.Role.Name == "admin" {
+		if company, err := h.Services.Settings.GetSettings(r.Context()); err == nil && company.CompanyName == "" {
+			targetURL = "/company/onboard"
+		}
 	}
 
 	if isDatastarRequest(r) {

@@ -32,6 +32,8 @@ func (h *AuditLogHandlers) MarkAllRead(w http.ResponseWriter, r *http.Request) {
 		Value:    "1",
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   h.Config.CookieSecure,
+		SameSite: http.SameSiteLaxMode,
 		MaxAge:   86400 * 30, // 30 days
 	})
 	w.Header().Set("Content-Type", "application/json")

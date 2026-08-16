@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 
@@ -171,8 +172,23 @@ func (h *InvoiceHandlers) DownloadPDF(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/pdf")
-	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.pdf"`, invDTO.InvoiceNumber))
+	safeNum := sanitizeHeaderFilename(invDTO.InvoiceNumber)
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.pdf"`, safeNum))
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(pdfBytes)))
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(pdfBytes)
+}
+
+func sanitizeHeaderFilename(name string) string {
+	var b strings.Builder
+	for _, r := range name {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_' || r == '.' {
+			b.WriteRune(r)
+		}
+	}
+	res := b.String()
+	if res == "" {
+		return "invoice"
+	}
+	return res
 }

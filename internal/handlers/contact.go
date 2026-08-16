@@ -39,8 +39,12 @@ type ContactTicket struct {
 }
 
 func generateTicketNumber() string {
-	n, _ := rand.Int(rand.Reader, big.NewInt(900000))
-	return fmt.Sprintf("AVN-%d", 100000+n.Int64())
+	b := make([]byte, 8)
+	if _, err := rand.Read(b); err != nil {
+		n, _ := rand.Int(rand.Reader, big.NewInt(1<<62))
+		return fmt.Sprintf("AVN-%X", n.Int64())
+	}
+	return fmt.Sprintf("AVN-%X", b)
 }
 
 // Page renders the contact-us & ticket status page.

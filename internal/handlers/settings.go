@@ -22,12 +22,16 @@ type SettingsHandlers struct {
 func (h *SettingsHandlers) Routes(r chi.Router) {
 	r.With(middleware.ResourcePermission(h.AuthSrv, "settings", "read")).Get("/", h.Index)
 	r.With(middleware.ResourcePermission(h.AuthSrv, "settings", "update")).Post("/update", h.Update)
-	r.Get("/onboard", h.OnboardPage)
-	r.Post("/onboard", h.SaveOnboard)
+	r.With(middleware.ResourcePermission(h.AuthSrv, "settings", "update")).Get("/onboard", h.OnboardPage)
+	r.With(middleware.ResourcePermission(h.AuthSrv, "settings", "update")).Post("/onboard", h.SaveOnboard)
 }
 
 func (h *SettingsHandlers) OnboardPage(w http.ResponseWriter, r *http.Request) {
-	session, _ := h.getUserFromContext(r)
+	session, ok := h.getUserFromContext(r)
+	if !ok || session == nil || session.Role != "admin" {
+		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+		return
+	}
 	settings, err := h.Services.Settings.GetSettings(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -41,16 +45,10 @@ func (h *SettingsHandlers) OnboardPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *SettingsHandlers) SaveOnboard(w http.ResponseWriter, r *http.Request) {
-	// Onboarding is a one-time write: allowed for any authenticated user only
-	// while the company is not yet configured. Once configured, modifying
-	// settings requires the settings:update permission (admin).
-	current, err := h.Services.Settings.GetSettings(r.Context())
-	if err == nil && current.CompanyName != "" {
-		session, ok := h.getUserFromContext(r)
-		if !ok || session == nil || !h.AuthSrv.Can(session.UserID, "settings", "update") {
-			http.Error(w, "Forbidden", http.StatusForbidden)
-			return
-		}
+	session, ok := h.getUserFromContext(r)
+	if !ok || session == nil || session.Role != "admin" {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
 	}
 	h.Update(w, r)
 }

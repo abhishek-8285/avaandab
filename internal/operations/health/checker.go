@@ -41,13 +41,14 @@ func (c *Checker) HealthHandler(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
 		defer cancel()
 		if err := c.db.PingContext(ctx); err != nil {
+			slog.Default().Error("database health check ping failed", "error", err)
 			dbStatus.Healthy = false
-			dbStatus.Message = err.Error()
+			dbStatus.Message = "database unavailable"
 			resp.Status = "DOWN"
 		}
 	} else {
 		dbStatus.Healthy = false
-		dbStatus.Message = "database connection uninitialized"
+		dbStatus.Message = "database uninitialized"
 		resp.Status = "DOWN"
 	}
 	resp.Components = append(resp.Components, dbStatus)
