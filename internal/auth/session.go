@@ -28,13 +28,17 @@ const (
 type SessionStore struct {
 	cookieName string
 	signer     *securecookie.SecureCookie
+	secure     bool
 }
 
 // NewSessionStore creates a new session store with the given secret.
-func NewSessionStore(cookieSecret string) *SessionStore {
+// secure controls the Secure attribute of the session cookie; it should be
+// true in production (HTTPS) and can be false for plain-HTTP development.
+func NewSessionStore(cookieSecret string, secure bool) *SessionStore {
 	return &SessionStore{
 		cookieName: "session",
 		signer:     securecookie.New([]byte(cookieSecret), nil),
+		secure:     secure,
 	}
 }
 
@@ -44,6 +48,14 @@ type SessionData struct {
 	Role    string `json:"role"`
 	Name    string `json:"name"`
 	Expires int64  `json:"expires"`
+}
+
+// HasSession reports whether the request carries a session cookie, without
+// decoding it. Used by CSRF protection to detect browser-authenticated
+// requests.
+func (s *SessionStore) HasSession(r *http.Request) bool {
+	_, err := r.Cookie(s.cookieName)
+	return err == nil
 }
 
 // CreateSession creates and signs a session cookie for a user.
@@ -60,7 +72,7 @@ func (s *SessionStore) CreateSession(w http.ResponseWriter, userID, roleName, na
 		Value:    s.mustEncode(data),
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   s.secure,
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   86400,
 	})
@@ -100,7 +112,7 @@ func (s *SessionStore) ClearSession(w http.ResponseWriter) {
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   s.secure,
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   -1,
 	})

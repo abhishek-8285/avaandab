@@ -2,10 +2,13 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 
 	"transport-app/internal/auth"
 	"transport-app/internal/domain"
+	userdomain "transport-app/internal/domain/user"
 	"transport-app/internal/repository"
 )
 
@@ -14,7 +17,17 @@ type UserService struct {
 	baseService
 }
 
-// CreateUser creates a new user with a default password.
+// generateTemporaryPassword returns a cryptographically random 16-character
+// temporary password used for newly created or reset accounts.
+func generateTemporaryPassword() (string, error) {
+	buf := make([]byte, 12)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(buf), nil
+}
+
+// CreateUser creates a new user with a randomly generated temporary password.
 func (s *UserService) CreateUser(ctx context.Context, email, name, phone string, roleID int64, status domain.UserStatus) (domain.User, error) {
 	if email == "" {
 		return domain.User{}, domain.ErrUserEmailRequired
@@ -31,7 +44,12 @@ func (s *UserService) CreateUser(ctx context.Context, email, name, phone string,
 		return domain.User{}, fmt.Errorf("invalid role")
 	}
 
-	hashed, err := auth.HashPassword(email + "-changeme")
+	tempPassword, err := generateTemporaryPassword()
+	if err != nil {
+		return domain.User{}, err
+	}
+
+	hashed, err := auth.HashPassword(tempPassword)
 	if err != nil {
 		return domain.User{}, err
 	}
@@ -62,6 +80,9 @@ func (s *UserService) CreateUserWithPassword(ctx context.Context, email, name, p
 	}
 	if phone == "" {
 		return domain.User{}, domain.ErrUserPhoneRequired
+	}
+	if len(password) < userdomain.MinPasswordLength {
+		return domain.User{}, domain.ErrWeakPassword
 	}
 
 	if _, err := s.store.GetUserByEmail(ctx, email); err == nil {
@@ -162,9 +183,13 @@ func (s *UserService) ListRoles(ctx context.Context) ([]domain.Role, error) {
 	return s.store.ListRoles(ctx)
 }
 
-// ResetPassword resets a user's password to a default value.
+// ResetPassword resets a user's password to a randomly generated temporary value.
 func (s *UserService) ResetPassword(ctx context.Context, id domain.UserID) error {
-	hashed, err := auth.HashPassword("changeme")
+	tempPassword, err := generateTemporaryPassword()
+	if err != nil {
+		return err
+	}
+	hashed, err := auth.HashPassword(tempPassword)
 	if err != nil {
 		return err
 	}

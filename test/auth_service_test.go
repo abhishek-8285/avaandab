@@ -11,14 +11,26 @@ import (
 	"transport-app/internal/service"
 )
 
+// createTestAdmin provisions an admin user directly through the service,
+// mirroring the env-based bootstrap flow (migrations no longer seed one).
+func createTestAdmin(t *testing.T, svc *service.Services) domain.User {
+	t.Helper()
+	ctx := context.Background()
+
+	created, err := svc.Users.CreateUserWithPassword(ctx, "admin@transport.local", "Admin User", "555-0100", "admin12345", 1, domain.UserStatusActive)
+	require.NoError(t, err)
+	return created
+}
+
 func TestAuthService_Login(t *testing.T) {
 	db := NewTestDB(t)
 	svc := NewTestServices(t, db)
+	createTestAdmin(t, svc)
 	ctx := context.Background()
 
 	result, err := svc.Auth.Login(ctx, service.LoginRequest{
 		Email:    "admin@transport.local",
-		Password: "admin123",
+		Password: "admin12345",
 	})
 
 	require.NoError(t, err)
@@ -29,6 +41,7 @@ func TestAuthService_Login(t *testing.T) {
 func TestAuthService_Login_InvalidCredentials(t *testing.T) {
 	db := NewTestDB(t)
 	svc := NewTestServices(t, db)
+	createTestAdmin(t, svc)
 
 	_, err := svc.Auth.Login(context.Background(), service.LoginRequest{
 		Email:    "admin@transport.local",
@@ -41,8 +54,9 @@ func TestAuthService_Login_InvalidCredentials(t *testing.T) {
 func TestAuthService_GetProfile(t *testing.T) {
 	db := NewTestDB(t)
 	svc := NewTestServices(t, db)
+	admin := createTestAdmin(t, svc)
 
-	user, err := svc.Auth.GetProfile(context.Background(), domain.UserID("765f6e4e-3b2a-4c1d-9e0f-1a2b3c4d5e6f"))
+	user, err := svc.Auth.GetProfile(context.Background(), admin.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "admin@transport.local", user.Email)
 	assert.Equal(t, "Admin User", user.Name)

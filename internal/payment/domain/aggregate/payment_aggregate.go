@@ -18,17 +18,18 @@ const (
 
 // PaymentAggregate is the aggregate root representing a payment transaction.
 type PaymentAggregate struct {
-	ID          PaymentID
-	TenantID    shared.TenantID
-	InvoiceID   string
-	PaymentDate time.Time
-	Amount      float64
-	Method      PaymentMethod
-	Reference   *string
-	Remarks     *string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	events      []any
+	ID             PaymentID
+	TenantID       shared.TenantID
+	InvoiceID      string
+	PaymentDate    time.Time
+	Amount         float64
+	Method         PaymentMethod
+	Reference      *string
+	Remarks        *string
+	IdempotencyKey string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	events         []any
 }
 
 // NewPaymentAggregate constructs a new PaymentAggregate and records a received event.

@@ -1,5 +1,6 @@
-import { getBackendHost } from '../constants/network';
+import { getApiBaseURL } from '../constants/network';
 import { DB } from './storage';
+import { useAuthStore } from '../stores/authStore';
 
 class SyncEngineService {
   private syncTimer: NodeJS.Timeout | null = null;
@@ -33,14 +34,15 @@ class SyncEngineService {
         return { syncedCount: 0, error: null };
       }
 
-      const host = getBackendHost();
-      const syncEndpoint = `http://${host}:8080/api/v1/telemetry/sync`;
-
-      console.log(`[SYNC ENGINE] Syncing ${unsyncedLogs.length} offline GPS records to ${syncEndpoint}`);
+      const syncEndpoint = `${getApiBaseURL()}/api/v1/telemetry/sync`;
+      const token = useAuthStore.getState().token;
 
       const response = await fetch(syncEndpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           driver_id: driverId,
           logs: unsyncedLogs,

@@ -23,8 +23,17 @@ func (s *PaymentService) RecordPayment(ctx context.Context, invoiceID domain.Inv
 	}
 
 	// Validate invoice exists
-	if _, err := s.store.GetInvoiceByID(ctx, invoiceID); err != nil {
+	invoice, err := s.store.GetInvoiceByID(ctx, invoiceID)
+	if err != nil {
 		return domain.Payment{}, domain.ErrInvoiceNotFound
+	}
+
+	paid, err := s.store.SumPaymentsByInvoice(ctx, invoiceID)
+	if err != nil {
+		return domain.Payment{}, err
+	}
+	if paid+amount > invoice.Total+0.01 {
+		return domain.Payment{}, fmt.Errorf("payment exceeds invoice outstanding balance")
 	}
 
 	payDate, err := parseDateTime(paymentDate)

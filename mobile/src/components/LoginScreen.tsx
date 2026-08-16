@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, TextInput, TouchableOpacity, ActivityIndicator,
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '../constants/theme';
-import { getBackendHost } from '../constants/network';
+import { getApiBaseURL } from '../constants/network';
 import { useAuthStore } from '../stores/authStore';
 
 interface LoginScreenProps {
@@ -27,13 +27,9 @@ export function LoginScreen({ onLoginSuccess, onForgotPassword, onRegisterLink }
     }
 
     setLoading(true);
-    console.log('[AUTH REQUEST] Initiating login request to Go backend...', { email });
 
     try {
-      // Connect to Go Backend REST /api/v1/auth/token endpoint
-      const host = getBackendHost();
-      const targetUrl = `http://${host}:8080/api/v1/auth/token`;
-      console.log('[AUTH CONNECTING] Target URL:', targetUrl);
+      const targetUrl = `${getApiBaseURL()}/api/v1/auth/token`;
 
       const response = await fetch(targetUrl, {
         method: 'POST',
@@ -41,49 +37,32 @@ export function LoginScreen({ onLoginSuccess, onForgotPassword, onRegisterLink }
         body: JSON.stringify({ email, password }),
       });
 
-      console.log('[AUTH RESPONSE STATUS]:', response.status, response.statusText);
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('[AUTH RESPONSE DATA - SUCCESS]: Received JWT Token payload:', data);
-
-        await setAuth(data.token, {
-          id: data.user?.id || 'DRV-9042',
-          name: data.user?.name || 'Rajesh Kumar',
-          role: 'DRIVER',
-          email: email,
-        });
-        console.log('[AUTH SECURE STORE] Saved JWT token to Expo SecureStore successfully');
-        setLoading(false);
-        onLoginSuccess();
-      } else {
+      if (!response.ok) {
         const errText = await response.text();
-        console.log('[AUTH RESPONSE DATA - ERROR]: Server returned error:', errText);
-        
-        // Fallback for dev mode testing
-        console.log('[AUTH DEV FALLBACK] Initializing dev driver session...');
-        await setAuth('jwt-driver-token-9942', {
-          id: 'DRV-9042',
-          name: 'Rajesh Kumar',
-          role: 'DRIVER',
-          email: email,
-        });
         setLoading(false);
-        onLoginSuccess();
+        Alert.alert('Sign In Failed', errText || `Server returned HTTP ${response.status}.`);
+        return;
       }
-    } catch (err: any) {
-      console.log('[AUTH NETWORK ERROR]: Connection failed:', err?.message || err);
 
-      // Offline / Direct Session Login fallback
-      console.log('[AUTH OFFLINE FALLBACK] Initializing offline driver session...');
-      await setAuth('jwt-driver-token-9942', {
-        id: 'DRV-9042',
-        name: 'Rajesh Kumar',
+      const data = await response.json();
+
+      if (!data.token) {
+        setLoading(false);
+        Alert.alert('Sign In Failed', 'Server response did not include an authentication token.');
+        return;
+      }
+
+      await setAuth(data.token, {
+        id: data.user?.id || '',
+        name: data.user?.name || '',
         role: 'DRIVER',
         email: email,
       });
       setLoading(false);
       onLoginSuccess();
+    } catch (err: any) {
+      setLoading(false);
+      Alert.alert('Sign In Failed', err?.message || 'Unable to reach the server. Please try again.');
     }
   };
 

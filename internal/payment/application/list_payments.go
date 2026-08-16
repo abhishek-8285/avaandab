@@ -76,3 +76,56 @@ func (uc *ListPaymentsUseCase) Execute(ctx context.Context, q ListPaymentsQuery)
 
 	return res, err
 }
+
+type ListPaymentsByInvoiceQuery struct {
+	TenantID  shared.TenantID
+	InvoiceID string
+}
+
+type ListPaymentsByInvoiceUseCase struct {
+	uow ports.UnitOfWork
+}
+
+func NewListPaymentsByInvoiceUseCase(uow ports.UnitOfWork) *ListPaymentsByInvoiceUseCase {
+	return &ListPaymentsByInvoiceUseCase{uow: uow}
+}
+
+func (uc *ListPaymentsByInvoiceUseCase) Execute(ctx context.Context, q ListPaymentsByInvoiceQuery) ([]PaymentResponseDTO, error) {
+	if q.InvoiceID == "" {
+		return nil, errors.New("invoice ID is required")
+	}
+
+	var dtos []PaymentResponseDTO
+
+	err := uc.uow.Execute(ctx, func(txCtx ports.TxContext) error {
+		repo, ok := txCtx.Repositories().Payments().(domain.PaymentRepository)
+		if !ok {
+			return errors.New("failed to retrieve payment repository")
+		}
+
+		rows, err := repo.GetPaymentsByInvoice(txCtx, q.InvoiceID, q.TenantID)
+		if err != nil {
+			return err
+		}
+
+		dtos = make([]PaymentResponseDTO, len(rows))
+		for i, p := range rows {
+			dtos[i] = PaymentResponseDTO{
+				ID:            p.ID,
+				InvoiceID:     p.InvoiceID,
+				InvoiceNumber: p.InvoiceNumber,
+				PaymentDate:   p.PaymentDate,
+				Amount:        p.Amount,
+				Method:        p.Method,
+				Reference:     p.Reference,
+				Remarks:       p.Remarks,
+				CreatedAt:     p.CreatedAt,
+				UpdatedAt:     p.UpdatedAt,
+			}
+		}
+
+		return nil
+	})
+
+	return dtos, err
+}

@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -18,14 +17,17 @@ import (
 	dbmigr "transport-app/db"
 	"transport-app/internal/auth"
 	"transport-app/internal/config"
+	"transport-app/internal/domain"
 	"transport-app/internal/graphqlservice"
 	"transport-app/internal/grpcservice"
 	"transport-app/internal/handlers"
 	"transport-app/internal/logging"
 	"transport-app/internal/middleware"
 	"transport-app/internal/mqttservice"
+	"transport-app/internal/pnl"
 	"transport-app/internal/repository/sqlite"
 	"transport-app/internal/service"
+	"transport-app/internal/telemetry"
 
 	// Vertical-slice use cases
 	bookingApp "transport-app/internal/booking/application"
@@ -62,6 +64,10 @@ func main() {
 	logging.Setup(cfg.LogLevel, cfg.AppEnv)
 
 	logger := slog.Default()
+	if cfg.IsProduction() && cfg.UsingKnownDefaultSecret() {
+		logger.Error("Refusing to start in production with known default secrets. Set strong, unique COOKIE_SECRET, API_SECRET and RAZORPAY_* values in the environment.")
+		os.Exit(1)
+	}
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8092"
@@ -127,7 +133,7 @@ func main() {
 	services := service.NewServices(repo, cfg, logger)
 
 	// Initialize auth store
-	authStore := auth.NewSessionStore(cfg.CookieSecret)
+	authStore := auth.NewSessionStore(cfg.CookieSecret, cfg.CookieSecure)
 
 	// Initialize Casbin authorization service
 	authSvc, err := auth.NewCasbinAuthorizationService(database)
@@ -135,6 +141,10 @@ func main() {
 		logger.Error("Failed to initialize Casbin authorization service", "error", err)
 		os.Exit(1)
 	}
+
+	// Create the initial admin account from env vars (optional; skipped when
+	// an admin already exists or the vars are unset).
+	bootstrapAdmin(ctx, services, authSvc, cfg, logger)
 
 	// Initialize handlers app
 	app := handlers.NewApp(services, cfg, authStore, database, authSvc)
@@ -172,11 +182,14 @@ func main() {
 	generateInvoice := invoiceApp.NewGenerateInvoiceUseCase(sqlUoW, idGen, realClock)
 	getInvoice := invoiceApp.NewGetInvoiceUseCase(sqlUoW)
 	listInvoices := invoiceApp.NewListInvoicesUseCase(sqlUoW)
+	voidInvoice := invoiceApp.NewVoidInvoiceUseCase(sqlUoW, realClock)
 
 	// Sprint 4 – Payment use cases
 	recordPayment := paymentApp.NewRecordPaymentUseCase(sqlUoW, idGen, realClock)
 	getPayment := paymentApp.NewGetPaymentUseCase(sqlUoW)
 	listPayments := paymentApp.NewListPaymentsUseCase(sqlUoW)
+	reversePayment := paymentApp.NewReversePaymentUseCase(sqlUoW, idGen, realClock)
+	listPaymentsByInvoice := paymentApp.NewListPaymentsByInvoiceUseCase(sqlUoW)
 
 	// ── API handlers ──────────────────────────────────────────────────────
 	bookingAPIHandler := bookingHandlers.NewAPIBookingHandler(
@@ -184,9 +197,11 @@ func main() {
 		authSvc,
 	)
 	tripAPIHandler := tripHandlers.NewAPITripHandler(
-		createTrip, assignDriver, assignVehicle, scheduleTrip, startTrip, reachPickup, startTransit, deliver, completeTrip, cancelTrip, getTrip, listTrips)
-	invoiceAPIHandler := invoiceHandlers.NewAPIInvoiceHandler(generateInvoice, getInvoice, listInvoices)
-	paymentAPIHandler := paymentHandlers.NewAPIPaymentHandler(recordPayment, getPayment, listPayments)
+		createTrip, assignDriver, assignVehicle, scheduleTrip, startTrip, reachPickup, startTransit, deliver, completeTrip, cancelTrip, getTrip, listTrips,
+		authSvc,
+	)
+	invoiceAPIHandler := invoiceHandlers.NewAPIInvoiceHandler(generateInvoice, getInvoice, listInvoices, voidInvoice, authSvc)
+	paymentAPIHandler := paymentHandlers.NewAPIPaymentHandler(recordPayment, getPayment, listPayments, reversePayment, listPaymentsByInvoice, authSvc)
 
 	// Setup router
 	r := chi.NewRouter()
@@ -203,6 +218,11 @@ func main() {
 			next.ServeHTTP(w, req)
 		})
 	})
+
+	// CSRF defense-in-depth: reject cross-site state-changing requests that
+	// carry a session cookie (complements SameSite=Lax). Bearer-token API
+	// requests and cookie-less requests are unaffected.
+	r.Use(middleware.CSRFProtect(authStore))
 
 	// Direct SEO Endpoints
 	r.Get("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
@@ -233,7 +253,11 @@ func main() {
 	})
 
 	// ── REST API v1 ───────────────────────────────────────────────────────
-	apiSecret := []byte(cfg.CookieSecret) // same secret; rotate independently in prod
+	// Prefer a dedicated API-token secret over reusing the cookie secret.
+	apiSecret := []byte(cfg.APITokenSecret)
+	if len(apiSecret) == 0 {
+		apiSecret = []byte(cfg.CookieSecret)
+	}
 	authAPIHandler := authAPIHandlers.NewAPIAuthHandler(services.Auth, services.Users, apiSecret)
 
 	// ── High-Performance Architecture Protocols ──────────────────────
@@ -244,39 +268,20 @@ func main() {
 	grpcservice.StartGRPCServer("50051")
 
 	// 3. GraphQL Query Endpoint
-	r.Post("/query", graphqlservice.GraphQLHandler)
-	r.Get("/graphql", graphqlservice.GraphQLHandler)
+	graphqlH := graphqlservice.NewGraphQLHandler(listTrips)
+	r.Post("/query", graphqlH.ServeHTTP)
+	r.Get("/graphql", graphqlH.ServeHTTP)
 
-	// 4. Telemetry Batch Sync Endpoint
-	r.Post("/api/v1/telemetry/sync", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		var body map[string]interface{}
-		_ = json.NewDecoder(r.Body).Decode(&body)
+	// 4. Telemetry ingestion and live trip P&L.
+	telemetry.RegisterTelemetryRoutes(r, database)
 
-		logs, _ := body["logs"].([]interface{})
-		syncedIDs := make([]interface{}, 0)
-		for _, item := range logs {
-			if m, ok := item.(map[string]interface{}); ok {
-				if id, exists := m["id"]; exists {
-					syncedIDs = append(syncedIDs, id)
-				}
-			}
-		}
-
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"success":      true,
-			"synced_count": len(syncedIDs),
-			"synced_ids":   syncedIDs,
-			"server_time":  time.Now().Format(time.RFC3339),
-		})
-	})
-
-	// Public: token endpoint (no auth required)
-	authAPIHandler.Register(r)
+	// Public: token endpoint (no auth required) — rate-limited against brute force
+	authAPIHandler.Register(r.With(middleware.RateLimit(10)))
 
 	// Protected: all other /api/v1/* routes require a valid session or Bearer token
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.RequireAPIAuth(authStore, apiSecret))
+		pnl.RegisterRoutes(r, pnl.NewService(database), authSvc)
 		bookingAPIHandler.Register(r)
 		tripAPIHandler.Register(r)
 		invoiceAPIHandler.Register(r)
@@ -300,6 +305,7 @@ func main() {
 	uploadsServer := http.FileServer(http.Dir(cfg.UploadDir))
 	r.Handle("/uploads/*", http.StripPrefix("/uploads/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "public, max-age=86400")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
 		uploadsServer.ServeHTTP(w, r)
 	})))
 
@@ -335,9 +341,9 @@ func main() {
 			_, _ = w.Write([]byte(sitemap))
 		})
 		r.Get("/login", app.Auth.LoginPage)
-		r.Post("/login", app.Auth.Login)
+		r.With(middleware.RateLimit(10)).Post("/login", app.Auth.Login)
 		r.Get("/register", app.Auth.RegisterPage)
-		r.Post("/register", app.Auth.Register)
+		r.With(middleware.RateLimit(10)).Post("/register", app.Auth.Register)
 		r.Get("/forgot-password", app.Auth.ForgotPasswordPage)
 		r.Post("/forgot-password", app.Auth.SubmitForgotPassword)
 		r.Post("/logout", app.Auth.Logout)
@@ -414,4 +420,39 @@ func main() {
 		logger.Error("Server error", "error", err)
 		os.Exit(1)
 	}
+}
+
+// bootstrapAdmin creates the initial admin account from environment config.
+// It runs only when BOOTSTRAP_ADMIN_EMAIL and BOOTSTRAP_ADMIN_PASSWORD are
+// set, no admin account exists yet, and the password meets the policy.
+// Admin provisioning otherwise happens through the authenticated user
+// management interface.
+func bootstrapAdmin(ctx context.Context, services *service.Services, authSvc auth.AuthorizationService, cfg *config.Config, logger *slog.Logger) {
+	ba := cfg.BootstrapAdmin
+	if ba.Email == "" || ba.Password == "" {
+		logger.Info("bootstrap admin skipped: BOOTSTRAP_ADMIN_EMAIL / BOOTSTRAP_ADMIN_PASSWORD not set")
+		return
+	}
+
+	users, _, err := services.Users.ListUsers(ctx, "", "", 100, 0)
+	if err != nil {
+		logger.Error("bootstrap admin failed: cannot list users", "error", err)
+		return
+	}
+	for _, u := range users {
+		if u.RoleID == 1 {
+			logger.Info("bootstrap admin skipped: an admin account already exists")
+			return
+		}
+	}
+
+	user, err := services.Users.CreateUserWithPassword(ctx, ba.Email, ba.Name, "", ba.Password, 1, domain.UserStatusActive)
+	if err != nil {
+		logger.Error("bootstrap admin failed", "error", err)
+		return
+	}
+	if err := authSvc.AddRoleForUser(user.ID.String(), "admin"); err != nil {
+		logger.Warn("bootstrap admin created but RBAC role assignment failed", "error", err)
+	}
+	logger.Info("bootstrap admin created", "email", ba.Email)
 }

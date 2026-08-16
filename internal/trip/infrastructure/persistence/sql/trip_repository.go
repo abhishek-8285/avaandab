@@ -191,6 +191,60 @@ func (r *tripRepository) Exists(ctx context.Context, id aggregate.TripID, tenant
 	return true, nil
 }
 
+func (r *tripRepository) CheckDriverConflict(ctx context.Context, driverID string, tenantID shared.TenantID, excludeTripID string) ([]domain.ConflictInfo, error) {
+	rows, err := r.Q(ctx).CheckDriverConflict(ctx, db.CheckDriverConflictParams{
+		DriverID: sql.NullString{String: driverID, Valid: driverID != ""},
+		TenantID: string(tenantID),
+		Column3:  excludeTripID,
+		ID:       excludeTripID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	conflicts := make([]domain.ConflictInfo, 0, len(rows))
+	for _, row := range rows {
+		var arrival *time.Time
+		if row.ArrivalTime.Valid {
+			arrival = &row.ArrivalTime.Time
+		}
+		conflicts = append(conflicts, domain.ConflictInfo{
+			ID:            row.ID,
+			TripNumber:    row.TripNumber,
+			Status:        row.Status,
+			DepartureTime: row.DepartureTime,
+			ArrivalTime:   arrival,
+		})
+	}
+	return conflicts, nil
+}
+
+func (r *tripRepository) CheckVehicleConflict(ctx context.Context, vehicleID string, tenantID shared.TenantID, excludeTripID string) ([]domain.ConflictInfo, error) {
+	rows, err := r.Q(ctx).CheckVehicleConflict(ctx, db.CheckVehicleConflictParams{
+		VehicleID: sql.NullString{String: vehicleID, Valid: vehicleID != ""},
+		TenantID:  string(tenantID),
+		Column3:   excludeTripID,
+		ID:        excludeTripID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	conflicts := make([]domain.ConflictInfo, 0, len(rows))
+	for _, row := range rows {
+		var arrival *time.Time
+		if row.ArrivalTime.Valid {
+			arrival = &row.ArrivalTime.Time
+		}
+		conflicts = append(conflicts, domain.ConflictInfo{
+			ID:            row.ID,
+			TripNumber:    row.TripNumber,
+			Status:        row.Status,
+			DepartureTime: row.DepartureTime,
+			ArrivalTime:   arrival,
+		})
+	}
+	return conflicts, nil
+}
+
 func (r *tripRepository) GetReadModel(ctx context.Context, id aggregate.TripID, tenantID shared.TenantID) (domain.TripReadModel, error) {
 	row, err := r.Q(ctx).GetTripByID(ctx, db.GetTripByIDParams{
 		ID:       string(id),

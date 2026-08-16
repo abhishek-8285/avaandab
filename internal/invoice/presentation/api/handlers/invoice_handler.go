@@ -7,8 +7,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"transport-app/internal/auth"
 	"transport-app/internal/invoice/application"
 	"transport-app/internal/invoice/domain/aggregate"
+	"transport-app/internal/middleware"
 	"transport-app/internal/shared"
 )
 
@@ -17,6 +19,8 @@ type APIInvoiceHandler struct {
 	generateUC *application.GenerateInvoiceUseCase
 	getUC      *application.GetInvoiceUseCase
 	listUC     *application.ListInvoicesUseCase
+	voidUC     *application.VoidInvoiceUseCase
+	authSrv    auth.AuthorizationService
 }
 
 // NewAPIInvoiceHandler constructs an APIInvoiceHandler.
@@ -24,16 +28,19 @@ func NewAPIInvoiceHandler(
 	generateUC *application.GenerateInvoiceUseCase,
 	getUC *application.GetInvoiceUseCase,
 	listUC *application.ListInvoicesUseCase,
+	voidUC *application.VoidInvoiceUseCase,
+	authSrv auth.AuthorizationService,
 ) *APIInvoiceHandler {
-	return &APIInvoiceHandler{generateUC: generateUC, getUC: getUC, listUC: listUC}
+	return &APIInvoiceHandler{generateUC: generateUC, getUC: getUC, listUC: listUC, voidUC: voidUC, authSrv: authSrv}
 }
 
 // Register mounts all invoice routes.
 func (h *APIInvoiceHandler) Register(r chi.Router) {
 	r.Route("/api/v1/invoices", func(r chi.Router) {
-		r.Post("/", h.Generate)
-		r.Get("/", h.List)
-		r.Get("/{id}", h.Get)
+		r.With(middleware.RequirePermission(h.authSrv, "invoices", "create")).Post("/", h.Generate)
+		r.With(middleware.RequirePermission(h.authSrv, "invoices", "read")).Get("/", h.List)
+		r.With(middleware.RequirePermission(h.authSrv, "invoices", "read")).Get("/{id}", h.Get)
+		r.With(middleware.RequirePermission(h.authSrv, "invoices", "delete")).Post("/{id}/void", h.Void)
 	})
 }
 
@@ -100,4 +107,28 @@ func (h *APIInvoiceHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = json.NewEncoder(w).Encode(res)
+}
+
+func (h *APIInvoiceHandler) Void(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	err := h.voidUC.Execute(r.Context(), application.VoidInvoiceCommand{
+		TenantID: shared.TenantIDFromContext(r.Context()),
+		ID:       aggregate.InvoiceID(id),
+	})
+	if err != nil {
+		switch err {
+		case application.ErrInvoiceAlreadyCancelled:
+			http.Error(w, err.Error(), http.StatusConflict)
+		case application.ErrInvoiceCannotVoid:
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		default:
+			if err.Error() == "invoice not found" {
+				http.Error(w, err.Error(), http.StatusNotFound)
+			} else {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+			}
+		}
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }

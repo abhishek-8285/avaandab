@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"crypto/sha256"
-	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -102,10 +101,7 @@ func checkAndUpdate(manifestURL string) {
 }
 
 func fetchManifest(url string) (*VersionManifest, error) {
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	client := &http.Client{Timeout: 10 * time.Second, Transport: tr}
+	client := &http.Client{Timeout: 10 * time.Second}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
@@ -146,16 +142,18 @@ func applyUpdateWithRollback(m *VersionManifest) error {
 		return fmt.Errorf("download error: %w", err)
 	}
 
-	if m.SHA256 != "" {
-		hash, err := fileSHA256(tmpTar)
-		if err != nil {
-			return fmt.Errorf("hash calculation error: %w", err)
-		}
-		if !strings.EqualFold(hash, m.SHA256) {
-			return fmt.Errorf("hash mismatch: expected %s, got %s", m.SHA256, hash)
-		}
-		log.Printf("[Agent] SHA256 verified successfully")
+	if m.SHA256 == "" {
+		return fmt.Errorf("manifest does not include required sha256 checksum")
 	}
+
+	hash, err := fileSHA256(tmpTar)
+	if err != nil {
+		return fmt.Errorf("hash calculation error: %w", err)
+	}
+	if !strings.EqualFold(hash, m.SHA256) {
+		return fmt.Errorf("hash mismatch: expected %s, got %s", m.SHA256, hash)
+	}
+	log.Printf("[Agent] SHA256 verified successfully")
 
 	// Step 1: Backup current working binary and assets before replacing
 	log.Printf("[Agent] Backing up current deployment before upgrade...")
@@ -279,10 +277,7 @@ func downloadFile(filepath string, url string) error {
 	}
 	req.Header.Set("User-Agent", "TecnoPova2-AutoUpdateAgent")
 
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	client := &http.Client{Timeout: 60 * time.Second, Transport: tr}
+	client := &http.Client{Timeout: 60 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
@@ -351,7 +346,10 @@ func untarGz(src string, dest string) error {
 			return err
 		}
 
-		target := filepath.Join(dest, header.Name)
+		target, err := safeExtractPath(dest, header.Name)
+		if err != nil {
+			return err
+		}
 		switch header.Typeflag {
 		case tar.TypeDir:
 			if err := os.MkdirAll(target, 0755); err != nil {
@@ -373,4 +371,28 @@ func untarGz(src string, dest string) error {
 		}
 	}
 	return nil
+}
+
+func safeExtractPath(dest, name string) (string, error) {
+	if name == "" {
+		return "", fmt.Errorf("tar entry has empty name")
+	}
+	if filepath.IsAbs(name) {
+		return "", fmt.Errorf("tar entry has absolute path: %s", name)
+	}
+	clean := filepath.Clean(name)
+	for _, part := range strings.Split(clean, string(filepath.Separator)) {
+		if part == ".." {
+			return "", fmt.Errorf("tar entry path traversal blocked: %s", name)
+		}
+	}
+	target := filepath.Join(dest, clean)
+	rel, err := filepath.Rel(dest, target)
+	if err != nil {
+		return "", err
+	}
+	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("tar entry escapes destination: %s", name)
+	}
+	return target, nil
 }

@@ -281,7 +281,7 @@ func TestSync4_FinancialSettlement(t *testing.T) {
 // ============================================================================
 
 func TestSec1_2_AuthCookies(t *testing.T) {
-	store := auth.NewSessionStore("test-secret-32bytes-long-enough!")
+	store := auth.NewSessionStore("test-secret-32bytes-long-enough!", false)
 
 	// SEC-1: Missing Cookie
 	req1 := httptest.NewRequest("GET", "/api/v1/invoices", nil)

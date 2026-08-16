@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"fmt"
+	"html/template"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 
+	"transport-app/internal/domain"
 	"transport-app/internal/middleware"
 	"transport-app/internal/service"
 )
@@ -74,7 +76,7 @@ func (h *KharchaHandlers) Approve(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.Services.Kharcha.ApproveExpense(ctx, expenseID, session.UserID); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = fmt.Fprintf(w, `<div class="px-6 py-4 bg-red-50 text-red-600 text-sm font-semibold border-l-4 border-red-500">Error: %s</div>`, err.Error())
+		_, _ = fmt.Fprintf(w, `<div class="px-6 py-4 bg-red-50 text-red-600 text-sm font-semibold border-l-4 border-red-500">Error: %s</div>`, template.HTMLEscapeString(err.Error()))
 		return
 	}
 
@@ -106,7 +108,7 @@ func (h *KharchaHandlers) Reject(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.Services.Kharcha.RejectExpense(ctx, expenseID, session.UserID, reason); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = fmt.Fprintf(w, `<div class="px-6 py-4 bg-red-50 text-red-600 text-sm font-semibold border-l-4 border-red-500">Error: %s</div>`, err.Error())
+		_, _ = fmt.Fprintf(w, `<div class="px-6 py-4 bg-red-50 text-red-600 text-sm font-semibold border-l-4 border-red-500">Error: %s</div>`, template.HTMLEscapeString(err.Error()))
 		return
 	}
 
@@ -125,15 +127,31 @@ func (h *KharchaHandlers) DeliverWithPOD(w http.ResponseWriter, r *http.Request)
 	ctx := r.Context()
 	tripID := chi.URLParam(r, "id")
 
+	session, ok := h.getUserFromContext(r)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
 		http.Error(w, "form parse error", http.StatusBadRequest)
+		return
+	}
+
+	trip, err := h.Services.Trips.GetTrip(ctx, domain.TripID(tripID))
+	if err != nil {
+		http.Error(w, "trip not found", http.StatusNotFound)
+		return
+	}
+
+	if trip.DriverID == nil || string(*trip.DriverID) != session.UserID {
+		http.Error(w, "forbidden: trip is not assigned to this user", http.StatusForbidden)
 		return
 	}
 
 	consigneeName := r.FormValue("consignee_name")
 	consigneePhone := r.FormValue("consignee_phone")
 	notes := r.FormValue("notes")
-	otpVerified := r.FormValue("otp_verified") == "1"
 
 	// Upload POD photo using existing UploadFile if provided
 	var podPhotoURL string
@@ -147,7 +165,6 @@ func (h *KharchaHandlers) DeliverWithPOD(w http.ResponseWriter, r *http.Request)
 		ConsigneeName:  consigneeName,
 		ConsigneePhone: consigneePhone,
 		Notes:          notes,
-		OTPVerified:    otpVerified,
 		PODPhotoURL:    podPhotoURL,
 	}
 

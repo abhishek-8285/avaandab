@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"transport-app/internal/shared"
 	"transport-app/internal/shared/ports"
@@ -37,6 +38,13 @@ func (uc *AssignVehicleUseCase) Execute(ctx context.Context, cmd AssignVehicleCo
 		t, err := repo.Find(txCtx, cmd.TripID, cmd.TenantID)
 		if err != nil {
 			return err
+		}
+		conflicts, err := repo.CheckVehicleConflict(txCtx, cmd.VehicleID, cmd.TenantID, string(cmd.TripID))
+		if err != nil {
+			return err
+		}
+		if len(conflicts) > 0 {
+			return fmt.Errorf("vehicle %s has conflicting trips: %s", cmd.VehicleID, conflicts[0].TripNumber)
 		}
 		if err := t.AssignVehicle(cmd.VehicleID, uc.clock.Now()); err != nil {
 			return err

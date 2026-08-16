@@ -1,4 +1,5 @@
 import { getGraphQLURL } from '../constants/network';
+import { useAuthStore } from '../stores/authStore';
 
 export interface GraphQLTripResponse {
   data: {
@@ -17,7 +18,7 @@ export interface GraphQLTripResponse {
 class GraphQLClient {
   async fetchActiveTrips(): Promise<GraphQLTripResponse> {
     const endpoint = getGraphQLURL();
-    console.log('[GRAPHQL FETCH] Target Endpoint:', endpoint);
+    const token = useAuthStore.getState().token;
 
     const query = `
       query GetActiveTrips {
@@ -35,7 +36,10 @@ class GraphQLClient {
 
     const res = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       body: JSON.stringify({ query }),
     });
 

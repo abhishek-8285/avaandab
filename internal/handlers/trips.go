@@ -11,6 +11,7 @@ import (
 	"transport-app/internal/domain/types"
 	invoiceApp "transport-app/internal/invoice/application"
 	"transport-app/internal/middleware"
+	"transport-app/internal/pnl"
 	"transport-app/internal/service"
 	clock "transport-app/internal/shared/clock"
 	id "transport-app/internal/shared/id"
@@ -197,6 +198,7 @@ func (h *TripHandlers) View(w http.ResponseWriter, r *http.Request) {
 		availableDrivers, _, _ = h.Services.Drivers.ListDrivers(r.Context(), "", "available", 1000, 0)
 		availableVehicles, _, _ = h.Services.Vehicles.ListVehicles(r.Context(), "", "available", 1000, 0)
 	}
+	tripPnL, _ := pnl.NewService(h.DB).Calculate(r.Context(), id)
 
 	h.renderPage(w, r, "trip_view.html", PageData{
 		Title: "View Trip",
@@ -204,6 +206,7 @@ func (h *TripHandlers) View(w http.ResponseWriter, r *http.Request) {
 			"Trip":              trip,
 			"AvailableDrivers":  availableDrivers,
 			"AvailableVehicles": availableVehicles,
+			"PnL":               tripPnL,
 		},
 	})
 }

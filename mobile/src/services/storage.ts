@@ -3,27 +3,13 @@ import * as SQLite from 'expo-sqlite';
 import { Trip, Driver } from '../types/api';
 
 const KEYS = {
-  AUTH_TOKEN: '@avandab_auth_token',
-  USER_SESSION: '@avandab_user_session',
   OFFLINE_TRIPS: '@avandab_offline_trips',
 };
 
 // ==========================================
-// 1. Key-Value Storage (Auth Tokens & User Prefs)
+// 1. Key-Value Storage (User Prefs)
 // ==========================================
 export const Storage = {
-  async setAuthToken(token: string): Promise<void> {
-    await AsyncStorage.setItem(KEYS.AUTH_TOKEN, token);
-  },
-
-  async getAuthToken(): Promise<string | null> {
-    return await AsyncStorage.getItem(KEYS.AUTH_TOKEN);
-  },
-
-  async clearAuthToken(): Promise<void> {
-    await AsyncStorage.removeItem(KEYS.AUTH_TOKEN);
-  },
-
   async saveOfflineTrips(trips: Trip[]): Promise<void> {
     await AsyncStorage.setItem(KEYS.OFFLINE_TRIPS, JSON.stringify(trips));
   },

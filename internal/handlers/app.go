@@ -273,6 +273,9 @@ func parsePaginationParams(r *http.Request) PaginationParams {
 	if limit < 1 {
 		limit = 20
 	}
+	if limit > 100 {
+		limit = 100
+	}
 	page := 1
 	_, _ = fmt.Sscanf(r.URL.Query().Get("page"), "%d", &page)
 	if page < 1 {

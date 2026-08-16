@@ -12,13 +12,24 @@ type Config struct {
 	Port              string
 	DatabaseURL       string
 	CookieSecret      string
+	APITokenSecret    string
 	SessionMaxAge     time.Duration
+	CookieSecure      bool
 	LogLevel          string
 	UploadDir         string
 	StaticDir         string
 	MaxUploadSize     int64
 	RazorpayKeyID     string
 	RazorpayKeySecret string
+	BootstrapAdmin    BootstrapAdminConfig
+}
+
+// BootstrapAdminConfig configures the initial admin account created at
+// startup when no admin exists yet. Intentionally not set by default.
+type BootstrapAdminConfig struct {
+	Email    string
+	Name     string
+	Password string
 }
 
 // Load reads configuration from environment variables.
@@ -42,18 +53,30 @@ func Load() *Config {
 		}
 	}
 
+	cookieSecure := env == "production"
+	if v := os.Getenv("COOKIE_SECURE"); v != "" {
+		cookieSecure = v == "true" || v == "1"
+	}
+
 	return &Config{
 		AppEnv:            env,
 		Port:              getEnv("PORT", "8080"),
 		DatabaseURL:       getEnv("DATABASE_URL", "file:transport.db?mode=rwc&cache=shared&_foreign_keys=on&_journal_mode=WAL"),
 		CookieSecret:      getEnv("COOKIE_SECRET", "dev-secret-key-change-in-production-32b!"),
+		APITokenSecret:    getEnv("API_SECRET", ""),
 		SessionMaxAge:     sessionMaxAge,
+		CookieSecure:      cookieSecure,
 		LogLevel:          getEnv("LOG_LEVEL", "info"),
 		UploadDir:         getEnv("UPLOAD_DIR", "./uploads"),
 		StaticDir:         getEnv("STATIC_DIR", "internal/static"),
 		MaxUploadSize:     maxUpload,
 		RazorpayKeyID:     getEnv("RAZORPAY_KEY_ID", "rzp_test_TMdP3QXQq2L67c"),
 		RazorpayKeySecret: getEnv("RAZORPAY_KEY_SECRET", "Fv17NyJHioQluynfHY59F0da"),
+		BootstrapAdmin: BootstrapAdminConfig{
+			Email:    os.Getenv("BOOTSTRAP_ADMIN_EMAIL"),
+			Name:     getEnv("BOOTSTRAP_ADMIN_NAME", "Admin"),
+			Password: os.Getenv("BOOTSTRAP_ADMIN_PASSWORD"),
+		},
 	}
 }
 
@@ -72,4 +95,22 @@ func (c *Config) IsProduction() bool {
 // IsDevelopment returns true if the app is running in development.
 func (c *Config) IsDevelopment() bool {
 	return c.AppEnv == "development"
+}
+
+// UsingKnownDefaultSecret returns true when production would rely on known,
+// committed default values for secrets instead of environment-provided ones.
+func (c *Config) UsingKnownDefaultSecret() bool {
+	if c.CookieSecret == "dev-secret-key-change-in-production-32b!" {
+		return true
+	}
+	if c.CookieSecret == "dev-secret-32bytes-for-cookie-signing!" {
+		return true
+	}
+	if c.APITokenSecret == "" && c.CookieSecret != "" {
+		return true
+	}
+	if c.RazorpayKeyID == "rzp_test_TMdP3QXQq2L67c" && c.RazorpayKeySecret == "Fv17NyJHioQluynfHY59F0da" {
+		return true
+	}
+	return false
 }

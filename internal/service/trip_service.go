@@ -441,11 +441,21 @@ type DeliverWithPODRequest struct {
 
 // DeliverWithPOD marks a trip as delivered using e-POD metadata and returns the trip number.
 // This is the mobile driver entry-point; photo/signature URLs are pre-uploaded by the handler.
+// OTPVerified is never trusted from a client flag: it is recorded only when the trip record
+// already confirms a consignee-accepted POD on the server side.
 func (s *TripService) DeliverWithPOD(ctx context.Context, tripIDStr string, req DeliverWithPODRequest) (string, error) {
 	id := domain.TripID(tripIDStr)
 	podURL := req.PODPhotoURL
 	if podURL == "" {
 		podURL = req.SignatureURL
+	}
+
+	trip, err := s.store.GetTripByID(ctx, id)
+	if err != nil {
+		return "", domain.ErrTripNotFound
+	}
+	if trip.PODURL == nil {
+		req.OTPVerified = false
 	}
 
 	delivered, err := s.DeliverTripWithPOD(ctx, id, podURL)

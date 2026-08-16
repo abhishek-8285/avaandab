@@ -2,14 +2,20 @@ package application
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"time"
 
+	invoiceDomain "transport-app/internal/invoice/domain"
+	invoiceAgg "transport-app/internal/invoice/domain/aggregate"
 	"transport-app/internal/payment/domain"
-	"transport-app/internal/payment/domain/aggregate"
+	paymentagg "transport-app/internal/payment/domain/aggregate"
 	"transport-app/internal/shared"
 	"transport-app/internal/shared/ports"
 )
+
+var ErrInvoiceNotFound = errors.New("invoice not found")
+var ErrPaymentExceedsBalance = errors.New("payment exceeds invoice outstanding balance")
 
 // RecordPaymentCommand contains parameters to register a payment.
 type RecordPaymentCommand struct {
@@ -17,7 +23,7 @@ type RecordPaymentCommand struct {
 	InvoiceID   string
 	PaymentDate time.Time
 	Amount      float64
-	Method      aggregate.PaymentMethod
+	Method      paymentagg.PaymentMethod
 	Reference   *string
 	Remarks     *string
 }
@@ -35,7 +41,7 @@ func NewRecordPaymentUseCase(uow ports.UnitOfWork, idGen ports.IDGenerator, cloc
 }
 
 // Execute performs validation, creates the aggregate, and saves it.
-func (uc *RecordPaymentUseCase) Execute(ctx context.Context, cmd RecordPaymentCommand) (aggregate.PaymentID, error) {
+func (uc *RecordPaymentUseCase) Execute(ctx context.Context, cmd RecordPaymentCommand) (paymentagg.PaymentID, error) {
 	if cmd.InvoiceID == "" {
 		return "", errors.New("invoice ID is required")
 	}
@@ -43,30 +49,66 @@ func (uc *RecordPaymentUseCase) Execute(ctx context.Context, cmd RecordPaymentCo
 		return "", errors.New("payment amount must be greater than zero")
 	}
 
-	id := aggregate.PaymentID(uc.idGen.GenerateUUID())
-
-	payment := aggregate.NewPaymentAggregate(
-		id,
-		cmd.TenantID,
-		cmd.InvoiceID,
-		cmd.PaymentDate,
-		cmd.Amount,
-		cmd.Method,
-		cmd.Reference,
-		cmd.Remarks,
-		uc.clock.Now(),
-	)
+	var id paymentagg.PaymentID
 
 	err := uc.uow.Execute(ctx, func(txCtx ports.TxContext) error {
-		repo, ok := txCtx.Repositories().Payments().(domain.PaymentRepository)
+		invoiceRepo, ok := txCtx.Repositories().Invoices().(invoiceDomain.InvoiceRepository)
+		if !ok {
+			return errors.New("failed to retrieve invoice repository")
+		}
+
+		payRepo, ok := txCtx.Repositories().Payments().(domain.PaymentRepository)
 		if !ok {
 			return errors.New("failed to retrieve payment repository")
 		}
-		return repo.Save(txCtx, payment)
+
+		inv, err := invoiceRepo.Find(txCtx, invoiceAgg.InvoiceID(cmd.InvoiceID), cmd.TenantID)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return ErrInvoiceNotFound
+			}
+			return err
+		}
+		if inv == nil {
+			return ErrInvoiceNotFound
+		}
+
+		if err := inv.ApplyPayment(cmd.Amount, uc.clock.Now()); err != nil {
+			return err
+		}
+
+		if err := invoiceRepo.Save(txCtx, inv); err != nil {
+			return err
+		}
+
+		payment := paymentagg.NewPaymentAggregate(
+			paymentagg.PaymentID(uc.idGen.GenerateUUID()),
+			cmd.TenantID,
+			cmd.InvoiceID,
+			cmd.PaymentDate,
+			cmd.Amount,
+			cmd.Method,
+			cmd.Reference,
+			cmd.Remarks,
+			uc.clock.Now(),
+		)
+
+		if err := payRepo.Save(txCtx, payment); err != nil {
+			return err
+		}
+		id = payment.ID
+		return nil
 	})
 
 	if err != nil {
-		return "", err
+		switch err.Error() {
+		case ErrInvoiceNotFound.Error():
+			return "", ErrInvoiceNotFound
+		case ErrPaymentExceedsBalance.Error():
+			return "", ErrPaymentExceedsBalance
+		default:
+			return "", err
+		}
 	}
 
 	return id, nil

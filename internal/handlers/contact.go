@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
+	"net/url"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -33,7 +34,6 @@ type ContactTicket struct {
 	Category     string
 	Message      string
 	Status       string
-	AdminNotes   string
 	CreatedAt    string
 	UpdatedAt    string
 }
@@ -47,22 +47,25 @@ func generateTicketNumber() string {
 func (h *ContactHandlers) Page(w http.ResponseWriter, r *http.Request) {
 	session, _ := h.getUserFromContext(r)
 	ticketNo := r.URL.Query().Get("ticket")
+	email := r.URL.Query().Get("email")
 
 	var ticket *ContactTicket
 	var searchErr string
 
 	if ticketNo != "" {
-		ticket, searchErr = h.fetchTicketByNumber(ticketNo)
+		ticket, searchErr = h.fetchTicketByNumber(ticketNo, email)
 	}
 
 	pd := PageData{
 		Title: "Contact Us & Support Status",
 		User:  session,
 		Extra: map[string]interface{}{
-			"Ticket":       ticket,
-			"SearchErr":    searchErr,
-			"SearchQuery":  ticketNo,
-			"SubmittedNum": r.URL.Query().Get("submitted"),
+			"Ticket":         ticket,
+			"SearchErr":      searchErr,
+			"SearchQuery":    ticketNo,
+			"SearchEmail":    email,
+			"SubmittedNum":   r.URL.Query().Get("submitted"),
+			"SubmittedEmail": email,
 		},
 	}
 
@@ -103,7 +106,11 @@ func (h *ContactHandlers) Submit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, fmt.Sprintf("/contact-us?ticket=%s&submitted=%s", ticketNo, ticketNo), http.StatusSeeOther)
+	query := url.Values{}
+	query.Set("ticket", ticketNo)
+	query.Set("email", email)
+	query.Set("submitted", ticketNo)
+	http.Redirect(w, r, "/contact-us?"+query.Encode(), http.StatusSeeOther)
 }
 
 // StatusCheck JSON/fragment endpoint for tracking ticket status.
@@ -113,23 +120,32 @@ func (h *ContactHandlers) StatusCheck(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/contact-us", http.StatusSeeOther)
 		return
 	}
-	http.Redirect(w, r, "/contact-us?ticket="+ticketNo, http.StatusSeeOther)
+	query := url.Values{}
+	query.Set("ticket", ticketNo)
+	if email := r.URL.Query().Get("email"); email != "" {
+		query.Set("email", email)
+	}
+	http.Redirect(w, r, "/contact-us?"+query.Encode(), http.StatusSeeOther)
 }
 
-func (h *ContactHandlers) fetchTicketByNumber(ticketNo string) (*ContactTicket, string) {
+func (h *ContactHandlers) fetchTicketByNumber(ticketNo, email string) (*ContactTicket, string) {
+	if ticketNo == "" || email == "" {
+		return nil, "Enter both your ticket number and the email address you used to submit it."
+	}
+
 	var t ContactTicket
 
 	err := h.DB.QueryRow(`
-		SELECT id, ticket_number, name, email, COALESCE(phone, ''), COALESCE(company_name, ''), subject, category, message, status, COALESCE(admin_notes, ''), created_at, updated_at
+		SELECT id, ticket_number, name, email, COALESCE(phone, ''), COALESCE(company_name, ''), subject, category, message, status, created_at, updated_at
 		FROM contact_submissions
-		WHERE ticket_number = ? OR email = ?
+		WHERE ticket_number = ? AND email = ?
 		ORDER BY created_at DESC LIMIT 1
-	`, ticketNo, ticketNo).Scan(
-		&t.ID, &t.TicketNumber, &t.Name, &t.Email, &t.Phone, &t.CompanyName, &t.Subject, &t.Category, &t.Message, &t.Status, &t.AdminNotes, &t.CreatedAt, &t.UpdatedAt,
+	`, ticketNo, email).Scan(
+		&t.ID, &t.TicketNumber, &t.Name, &t.Email, &t.Phone, &t.CompanyName, &t.Subject, &t.Category, &t.Message, &t.Status, &t.CreatedAt, &t.UpdatedAt,
 	)
 
 	if err != nil {
-		return nil, "No support ticket or submission found matching '" + ticketNo + "'."
+		return nil, "No support ticket found for the ticket number and email provided."
 	}
 
 	return &t, ""

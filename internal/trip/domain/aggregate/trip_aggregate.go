@@ -118,6 +118,9 @@ func (t *TripAggregate) AssignDriver(driverID string, now time.Time) error {
 
 // AssignVehicle associates a vehicle.
 func (t *TripAggregate) AssignVehicle(vehicleID string, now time.Time) error {
+	if t.DriverID == nil || *t.DriverID == "" {
+		return errors.New("driver must be assigned before vehicle")
+	}
 	if t.Status == TripCompleted || t.Status == TripCancelled {
 		return errors.New("cannot assign vehicle to completed or cancelled trip")
 	}
@@ -181,6 +184,7 @@ func (t *TripAggregate) Deliver(now time.Time) error {
 	}
 	t.Status = TripDelivered
 	t.DeliveredAt = &now
+	t.ArrivalTime = &now
 	t.UpdatedAt = now
 	t.RecordEvent(TripDeliveredEvent{
 		TripID:     t.ID,
@@ -200,7 +204,6 @@ func (t *TripAggregate) Complete(now time.Time) error {
 	}
 	t.Status = TripCompleted
 	t.CompletedAt = &now
-	t.ArrivalTime = &now
 	t.UpdatedAt = now
 	t.RecordEvent(TripCompletedEvent{
 		TripID:     t.ID,

@@ -1,9 +1,9 @@
 package handlers
 
 import (
+	"bytes"
 	"fmt"
 	"io"
-	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -41,6 +41,17 @@ func (h *SettingsHandlers) OnboardPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *SettingsHandlers) SaveOnboard(w http.ResponseWriter, r *http.Request) {
+	// Onboarding is a one-time write: allowed for any authenticated user only
+	// while the company is not yet configured. Once configured, modifying
+	// settings requires the settings:update permission (admin).
+	current, err := h.Services.Settings.GetSettings(r.Context())
+	if err == nil && current.CompanyName != "" {
+		session, ok := h.getUserFromContext(r)
+		if !ok || session == nil || !h.AuthSrv.Can(session.UserID, "settings", "update") {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+	}
 	h.Update(w, r)
 }
 
@@ -74,10 +85,10 @@ func (h *SettingsHandlers) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Handle logo upload
-	if file, header, err := r.FormFile("logo"); err == nil {
+	if file, _, err := r.FormFile("logo"); err == nil {
 		defer func() { _ = file.Close() }()
 
-		uploaded, upErr := saveLogo(file, header, h.Config.UploadDir)
+		uploaded, upErr := saveLogo(file, h.Config.UploadDir)
 		if upErr != nil {
 			http.Error(w, upErr.Error(), http.StatusBadRequest)
 			return
@@ -113,15 +124,39 @@ func (h *SettingsHandlers) Update(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/settings", http.StatusSeeOther)
 }
 
+// logoMimeExt maps detected MIME types to safe server-generated extensions.
+var logoMimeExt = map[string]string{
+	"image/png":  ".png",
+	"image/jpeg": ".jpg",
+	"image/webp": ".webp",
+	"image/gif":  ".gif",
+}
+
 // saveLogo writes an uploaded logo file to the uploads directory and returns
 // the relative path (from UploadDir) that should be stored in logo_path.
-func saveLogo(file io.Reader, header *multipart.FileHeader, uploadDir string) (string, error) {
+// The file type is validated by magic bytes, never by the client filename.
+func saveLogo(file io.Reader, uploadDir string) (string, error) {
 	subdir := filepath.Join(uploadDir, "company")
 	if err := os.MkdirAll(subdir, 0o755); err != nil {
 		return "", err
 	}
 
-	ext := filepath.Ext(header.Filename)
+	head := make([]byte, 512)
+	n, err := io.ReadFull(file, head)
+	if err != nil && err != io.ErrUnexpectedEOF {
+		return "", err
+	}
+	head = head[:n]
+
+	contentType := http.DetectContentType(head)
+	if contentType == "image/svg+xml" {
+		return "", fmt.Errorf("SVG logo uploads are not allowed")
+	}
+	ext, ok := logoMimeExt[contentType]
+	if !ok {
+		return "", fmt.Errorf("unsupported logo file type: %s", contentType)
+	}
+
 	filename := uuid.NewString() + ext
 	dest := filepath.Join(subdir, filename)
 
@@ -131,7 +166,7 @@ func saveLogo(file io.Reader, header *multipart.FileHeader, uploadDir string) (s
 	}
 	defer func() { _ = out.Close() }()
 
-	if _, err := io.Copy(out, file); err != nil {
+	if _, err := io.Copy(out, io.MultiReader(bytes.NewReader(head), file)); err != nil {
 		return "", err
 	}
 

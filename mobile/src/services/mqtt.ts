@@ -1,5 +1,6 @@
 import mqtt from 'mqtt';
 import { getMQTTBrokerURL } from '../constants/network';
+import { useAuthStore } from '../stores/authStore';
 
 class MQTTTelemetryService {
   private client: mqtt.MqttClient | null = null;
@@ -8,14 +9,20 @@ class MQTTTelemetryService {
   connect(driverId: string): void {
     try {
       const brokerUrl = getMQTTBrokerURL();
-      console.log('[MQTT CONNECTING] Target Broker URL:', brokerUrl);
+      const token = useAuthStore.getState().token;
 
-      // Connect to MQTT Broker over WebSockets
-      this.client = mqtt.connect(brokerUrl, {
+      const options: mqtt.IClientOptions = {
         clientId: `driver_${driverId}_${Math.random().toString(16).substring(2, 8)}`,
         keepalive: 60,
         reconnectPeriod: 5000,
-      });
+        username: driverId,
+      };
+      if (token) {
+        options.password = token;
+      }
+
+      // Connect to MQTT Broker over WebSockets
+      this.client = mqtt.connect(brokerUrl, options);
 
       this.client.on('connect', () => {
         this.isConnected = true;

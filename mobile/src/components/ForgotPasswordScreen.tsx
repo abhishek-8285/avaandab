@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, TextInput, TouchableOpacity, ActivityIndicator,
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '../constants/theme';
-import { getBackendHost } from '../constants/network';
+import { getApiBaseURL } from '../constants/network';
 
 interface ForgotPasswordScreenProps {
   onBackToLogin: () => void;
@@ -21,11 +21,9 @@ export function ForgotPasswordScreen({ onBackToLogin }: ForgotPasswordScreenProp
     }
 
     setLoading(true);
-    console.log('[FORGOT PASSWORD REQUEST] Initiating password reset...', { email });
 
     try {
-      const host = getBackendHost();
-      const targetUrl = `http://${host}:8080/forgot-password`;
+      const targetUrl = `${getApiBaseURL()}/forgot-password`;
       await fetch(targetUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

@@ -76,18 +76,21 @@ func (h *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// New onboarded user is set as Admin (Role ID 1)
-	user, err := h.Services.Users.CreateUserWithPassword(r.Context(), email, name, phone, password, 1, domain.UserStatusActive)
+	// Self-onboarded users start with the least-privilege viewer role.
+	// Privileged roles (admin, dispatcher, accountant) are assigned only
+	// by an admin through the authenticated user management interface.
+	roleID := domain.DefaultRoleID(domain.RoleViewer)
+	user, err := h.Services.Users.CreateUserWithPassword(r.Context(), email, name, phone, password, roleID, domain.UserStatusActive)
 	if err != nil {
 		h.renderRegisterError(w, r, err.Error(), email, name, phone)
 		return
 	}
 
-	// Update Casbin policy so user gets admin permissions immediately
-	_ = h.AuthSrv.AddRoleForUser(user.ID.String(), "admin")
+	// Update Casbin policy so user gets viewer permissions immediately
+	_ = h.AuthSrv.AddRoleForUser(user.ID.String(), string(domain.RoleViewer))
 
 	// Automatically log in the user upon onboarding
-	h.AuthStore.CreateSession(w, user.ID.String(), "admin", user.Name)
+	h.AuthStore.CreateSession(w, user.ID.String(), string(domain.RoleViewer), user.Name)
 
 	targetURL := "/dashboard"
 	// Check if company settings are configured, if not redirect to company onboarding

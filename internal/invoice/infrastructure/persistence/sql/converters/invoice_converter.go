@@ -1,6 +1,8 @@
 package converters
 
 import (
+	"time"
+
 	db "transport-app/db/generated/sqlite"
 	"transport-app/internal/invoice/domain"
 	"transport-app/internal/invoice/domain/aggregate"
@@ -14,7 +16,17 @@ func ToDomain(i db.Invoice) *aggregate.InvoiceAggregate {
 		tripID = &i.TripID.String
 	}
 
-	return aggregate.NewInvoiceAggregate(
+	invoiceStatus := aggregate.InvoiceStatus(i.Status)
+	if invoiceStatus == "" {
+		invoiceStatus = aggregate.InvoiceStatusOutstanding
+	}
+
+	var dueDate *time.Time
+	if i.DueDate.Valid {
+		dueDate = &i.DueDate.Time
+	}
+
+	return aggregate.RehydrateInvoiceAggregate(
 		aggregate.InvoiceID(i.ID),
 		shared.TenantID(i.TenantID),
 		i.InvoiceNumber,
@@ -26,7 +38,15 @@ func ToDomain(i db.Invoice) *aggregate.InvoiceAggregate {
 		i.Discount,
 		i.Total,
 		aggregate.PaymentStatus(i.PaymentStatus),
+		invoiceStatus,
+		i.PaidAmount,
+		0,
+		dueDate,
+		"",
+		"",
 		i.CreatedAt,
+		i.UpdatedAt,
+		i.Version,
 	)
 }
 

@@ -3,12 +3,29 @@ package application
 import (
 	"context"
 	"errors"
+	"math"
 
+	bookingdomain "transport-app/internal/booking/domain"
+	bookingaggregate "transport-app/internal/booking/domain/aggregate"
+	companydomain "transport-app/internal/domain/company"
 	"transport-app/internal/invoice/domain"
 	"transport-app/internal/invoice/domain/aggregate"
 	"transport-app/internal/shared"
 	"transport-app/internal/shared/ports"
 )
+
+const moneyEpsilon = 0.01
+
+type PricingResolver interface {
+	GetCompanySettings(ctx context.Context) (companydomain.CompanySettings, error)
+}
+
+type derivedPricing struct {
+	subtotal float64
+	tax      float64
+	discount float64
+	total    float64
+}
 
 // GenerateInvoiceCommand contains parameters to create a new invoice.
 type GenerateInvoiceCommand struct {
@@ -42,9 +59,6 @@ func (uc *GenerateInvoiceUseCase) Execute(ctx context.Context, cmd GenerateInvoi
 	if cmd.CustomerID == "" {
 		return "", errors.New("customer ID is required")
 	}
-	if cmd.Total < 0 {
-		return "", errors.New("total cannot be negative")
-	}
 
 	var existingID aggregate.InvoiceID
 
@@ -60,6 +74,13 @@ func (uc *GenerateInvoiceUseCase) Execute(ctx context.Context, cmd GenerateInvoi
 			return nil
 		}
 
+		subtotal, tax, discount, total := cmd.Subtotal, cmd.Tax, cmd.Discount, cmd.Total
+		if pricing, ok := resolveBookingPricing(txCtx, cmd.TenantID, cmd.BookingID); ok {
+			subtotal, tax, discount, total = pricing.subtotal, pricing.tax, pricing.discount, pricing.total
+		} else if err := validateInvoiceAmounts(subtotal, tax, discount, total); err != nil {
+			return err
+		}
+
 		id := aggregate.InvoiceID(uc.idGen.GenerateUUID())
 		num := uc.idGen.GenerateDisplayID("INV")
 
@@ -70,10 +91,10 @@ func (uc *GenerateInvoiceUseCase) Execute(ctx context.Context, cmd GenerateInvoi
 			cmd.BookingID,
 			cmd.CustomerID,
 			cmd.TripID,
-			cmd.Subtotal,
-			cmd.Tax,
-			cmd.Discount,
-			cmd.Total,
+			subtotal,
+			tax,
+			discount,
+			total,
 			aggregate.PaymentStatusPending,
 			uc.clock.Now(),
 		)
@@ -90,4 +111,53 @@ func (uc *GenerateInvoiceUseCase) Execute(ctx context.Context, cmd GenerateInvoi
 	}
 
 	return existingID, nil
+}
+
+// resolveBookingPricing derives invoice money from the booking price and
+// company tax settings, overriding any client-supplied amounts.
+func resolveBookingPricing(txCtx ports.TxContext, tenantID shared.TenantID, bookingID string) (derivedPricing, bool) {
+	bookingRepo, ok := txCtx.Repositories().Bookings().(bookingdomain.BookingRepository)
+	if !ok {
+		return derivedPricing{}, false
+	}
+
+	booking, err := bookingRepo.GetReadModel(txCtx, bookingaggregate.BookingID(bookingID), tenantID)
+	if err != nil {
+		return derivedPricing{}, false
+	}
+
+	subtotalMinor := int64(math.Round(booking.Price * 100))
+	if subtotalMinor < 0 {
+		subtotalMinor = 0
+	}
+
+	var taxMinor int64
+	if settingsRepo, ok := txCtx.Repositories().AuditLogs().(PricingResolver); ok {
+		settings, err := settingsRepo.GetCompanySettings(txCtx)
+		if err == nil && settings.GSTEnabled {
+			taxMinor = int64(math.Round(float64(subtotalMinor) * settings.GSTRate / 100.0))
+		}
+	}
+
+	subtotal := float64(subtotalMinor) / 100.0
+	tax := float64(taxMinor) / 100.0
+	var discount float64
+	total := subtotal + tax - discount
+
+	return derivedPricing{subtotal: subtotal, tax: tax, discount: discount, total: total}, true
+}
+
+// validateInvoiceAmounts rejects client-supplied money that is negative or
+// arithmetically inconsistent, using a small float epsilon.
+func validateInvoiceAmounts(subtotal, tax, discount, total float64) error {
+	if total < 0 {
+		return errors.New("total cannot be negative")
+	}
+	if subtotal < 0 || tax < 0 || discount < 0 {
+		return errors.New("invoice amounts cannot be negative")
+	}
+	if math.Abs(total-(subtotal+tax-discount)) > moneyEpsilon {
+		return errors.New("invoice total does not match subtotal plus tax minus discount")
+	}
+	return nil
 }

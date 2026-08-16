@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strconv"
+	"strings"
 
 	db "transport-app/db/generated/sqlite"
 	"transport-app/internal/payment/domain"
@@ -37,6 +39,16 @@ func (r *paymentRepository) Q(ctx context.Context) *db.Queries {
 }
 
 func (r *paymentRepository) Save(ctx context.Context, p *aggregate.PaymentAggregate) error {
+	key := idempotencyKey(p)
+
+	if key != "" {
+		existingID, err := r.findIDByIdempotencyKey(ctx, p.TenantID, key)
+		if err == nil && existingID != "" {
+			p.ID = aggregate.PaymentID(existingID)
+			return nil
+		}
+	}
+
 	var reference, remarks sql.NullString
 	if p.Reference != nil {
 		reference = sql.NullString{String: *p.Reference, Valid: true}
@@ -51,18 +63,31 @@ func (r *paymentRepository) Save(ctx context.Context, p *aggregate.PaymentAggreg
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			_, err = r.Q(ctx).CreatePayment(ctx, db.CreatePaymentParams{
-				ID:          string(p.ID),
-				InvoiceID:   p.InvoiceID,
-				PaymentDate: p.PaymentDate,
-				Amount:      p.Amount,
-				Method:      string(p.Method),
-				Reference:   reference,
-				Remarks:     remarks,
-				TenantID:    string(p.TenantID),
-			})
-			if err != nil {
-				return err
+			if key != "" {
+				err = r.insertPayment(ctx, p, key)
+				if err != nil && isIdempotencyConflict(err) {
+					if existingID, e := r.findIDByIdempotencyKey(ctx, p.TenantID, key); e == nil && existingID != "" {
+						p.ID = aggregate.PaymentID(existingID)
+						return nil
+					}
+				}
+				if err != nil {
+					return err
+				}
+			} else {
+				_, err = r.Q(ctx).CreatePayment(ctx, db.CreatePaymentParams{
+					ID:          string(p.ID),
+					InvoiceID:   p.InvoiceID,
+					PaymentDate: p.PaymentDate,
+					Amount:      p.Amount,
+					Method:      string(p.Method),
+					Reference:   reference,
+					Remarks:     remarks,
+					TenantID:    string(p.TenantID),
+				})
+				if err != nil {
+					return err
+				}
 			}
 		} else {
 			return err
@@ -77,6 +102,76 @@ func (r *paymentRepository) Save(ctx context.Context, p *aggregate.PaymentAggreg
 	}
 	p.ClearEvents()
 	return nil
+}
+
+const insertPaymentSQL = `
+INSERT INTO payments (id, invoice_id, payment_date, amount, method, reference, remarks, tenant_id, idempotency_key)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+`
+
+const findPaymentIDByKeySQL = `
+SELECT id FROM payments WHERE tenant_id = ? AND idempotency_key = ? LIMIT 1
+`
+
+func (r *paymentRepository) insertPayment(ctx context.Context, p *aggregate.PaymentAggregate, key string) error {
+	var reference, remarks any = nil, nil
+	if p.Reference != nil {
+		reference = *p.Reference
+	}
+	if p.Remarks != nil {
+		remarks = *p.Remarks
+	}
+	_, err := r.exec(ctx).ExecContext(ctx, insertPaymentSQL,
+		string(p.ID),
+		p.InvoiceID,
+		p.PaymentDate,
+		p.Amount,
+		string(p.Method),
+		reference,
+		remarks,
+		string(p.TenantID),
+		key,
+	)
+	return err
+}
+
+func (r *paymentRepository) findIDByIdempotencyKey(ctx context.Context, tenantID shared.TenantID, key string) (string, error) {
+	var id string
+	err := r.exec(ctx).QueryRowContext(ctx, findPaymentIDByKeySQL, string(tenantID), key).Scan(&id)
+	if err != nil {
+		return "", err
+	}
+	return id, nil
+}
+
+func (r *paymentRepository) exec(ctx context.Context) interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+} {
+	if tx := repository.TxFromContext(ctx); tx != nil {
+		return tx
+	}
+	return r.dbConn
+}
+
+// idempotencyKey derives a stable key for duplicate detection: a client-supplied
+// reference when present, otherwise a key built from invoice and amount.
+func idempotencyKey(p *aggregate.PaymentAggregate) string {
+	if p.Reference != nil {
+		if ref := strings.TrimSpace(*p.Reference); ref != "" {
+			return "ref:" + ref
+		}
+	}
+	amount := shared.FloatToMoney(p.Amount, "INR").MoneyToFloat()
+	return "inv:" + p.InvoiceID + ":amt:" + strconv.FormatFloat(amount, 'f', 2, 64)
+}
+
+func isIdempotencyConflict(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "UNIQUE constraint failed") && strings.Contains(msg, "idempotency_key")
 }
 
 func (r *paymentRepository) Find(ctx context.Context, id aggregate.PaymentID, tenantID shared.TenantID) (*aggregate.PaymentAggregate, error) {

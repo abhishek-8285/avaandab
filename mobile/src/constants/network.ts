@@ -1,16 +1,24 @@
-import Constants from 'expo-constants';
+export const API_SCHEME = 'http';
+export const MQTT_SCHEME = 'ws';
+export const BACKEND_HOST = '127.0.0.1';
+export const API_PORT = 8080;
+export const MQTT_BROKER_PORT = 9001;
+
+export const API_BASE_URL = `${API_SCHEME}://${BACKEND_HOST}:${API_PORT}`;
+export const MQTT_BROKER_URL = `${MQTT_SCHEME}://${BACKEND_HOST}:${MQTT_BROKER_PORT}`;
 
 export function getBackendHost(): string {
-  // Always use 127.0.0.1 since adb reverse forwards tcp:8080 & tcp:9001 directly over USB
-  return '127.0.0.1';
+  return BACKEND_HOST;
+}
+
+export function getApiBaseURL(): string {
+  return API_BASE_URL;
 }
 
 export function getGraphQLURL(): string {
-  const host = getBackendHost();
-  return `http://${host}:8080/query`;
+  return `${API_BASE_URL}/query`;
 }
 
 export function getMQTTBrokerURL(): string {
-  const host = getBackendHost();
-  return `ws://${host}:9001`;
+  return MQTT_BROKER_URL;
 }

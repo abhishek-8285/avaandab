@@ -200,6 +200,16 @@ type File struct {
 	Category       string         `json:"category"`
 }
 
+type FuelPrice struct {
+	ID          string         `json:"id"`
+	TenantID    string         `json:"tenant_id"`
+	State       string         `json:"state"`
+	City        sql.NullString `json:"city"`
+	DieselPrice float64        `json:"diesel_price"`
+	PetrolPrice float64        `json:"petrol_price"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+}
+
 type Invoice struct {
 	ID            string         `json:"id"`
 	InvoiceNumber string         `json:"invoice_number"`
@@ -243,16 +253,17 @@ type OutboxEvent struct {
 }
 
 type Payment struct {
-	ID          string         `json:"id"`
-	InvoiceID   string         `json:"invoice_id"`
-	PaymentDate time.Time      `json:"payment_date"`
-	Amount      float64        `json:"amount"`
-	Method      string         `json:"method"`
-	Reference   sql.NullString `json:"reference"`
-	Remarks     sql.NullString `json:"remarks"`
-	CreatedAt   time.Time      `json:"created_at"`
-	UpdatedAt   time.Time      `json:"updated_at"`
-	TenantID    string         `json:"tenant_id"`
+	ID             string         `json:"id"`
+	InvoiceID      string         `json:"invoice_id"`
+	PaymentDate    time.Time      `json:"payment_date"`
+	Amount         float64        `json:"amount"`
+	Method         string         `json:"method"`
+	Reference      sql.NullString `json:"reference"`
+	Remarks        sql.NullString `json:"remarks"`
+	CreatedAt      time.Time      `json:"created_at"`
+	UpdatedAt      time.Time      `json:"updated_at"`
+	TenantID       string         `json:"tenant_id"`
+	IdempotencyKey sql.NullString `json:"idempotency_key"`
 }
 
 type Permission struct {
@@ -358,6 +369,16 @@ type Trip struct {
 	PodLat                sql.NullFloat64 `json:"pod_lat"`
 	PodLng                sql.NullFloat64 `json:"pod_lng"`
 	PodNotes              sql.NullString  `json:"pod_notes"`
+	EstimatedMargin       float64         `json:"estimated_margin"`
+	FuelConsumedLiters    float64         `json:"fuel_consumed_liters"`
+	TollCosts             float64         `json:"toll_costs"`
+	LastPnlUpdate         sql.NullTime    `json:"last_pnl_update"`
+	FuelCostLow           float64         `json:"fuel_cost_low"`
+	FuelCostHigh          float64         `json:"fuel_cost_high"`
+	MarginLow             float64         `json:"margin_low"`
+	MarginHigh            float64         `json:"margin_high"`
+	PnlConfidence         string          `json:"pnl_confidence"`
+	FuelCostStatus        string          `json:"fuel_cost_status"`
 }
 
 type User struct {

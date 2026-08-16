@@ -182,11 +182,12 @@ function MainScreen({ onOpenSetup }: { onOpenSetup?: () => void }) {
   const { user, loadSession } = useAuthStore();
 
   useEffect(() => {
-    loadSession();
     Analytics.init();
     Analytics.identify(user?.id || 'DRV-9042', { role: 'fleet_driver' });
-    MQTT.connect(user?.id || 'DRV-9042');
-    SyncEngine.startAutoSync(user?.id || 'DRV-9042', 15000);
+    loadSession().then(() => {
+      MQTT.connect(user?.id || 'DRV-9042');
+      SyncEngine.startAutoSync(user?.id || 'DRV-9042', 15000);
+    });
     return () => SyncEngine.stopAutoSync();
   }, []);
 

@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Activi
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '../constants/theme';
-import { getBackendHost } from '../constants/network';
+import { getApiBaseURL } from '../constants/network';
 import { useAuthStore } from '../stores/authStore';
 
 interface RegisterScreenProps {
@@ -28,11 +28,9 @@ export function RegisterScreen({ onRegisterSuccess, onBackToLogin }: RegisterScr
     }
 
     setLoading(true);
-    console.log('[REGISTER REQUEST] Submitting driver registration...', { fullName, email });
 
     try {
-      const host = getBackendHost();
-      const targetUrl = `http://${host}:8080/api/v1/auth/register`;
+      const targetUrl = `${getApiBaseURL()}/api/v1/auth/register`;
       const response = await fetch(targetUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -45,42 +43,32 @@ export function RegisterScreen({ onRegisterSuccess, onBackToLogin }: RegisterScr
         }),
       });
 
-      console.log('[REGISTER RESPONSE STATUS]:', response.status);
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('[REGISTER SUCCESS]: Registered driver payload:', data);
-
-        await setAuth(data.token || 'jwt-registered-driver-token', {
-          id: data.user?.id || 'DRV-NEW',
-          name: fullName,
-          role: 'DRIVER',
-          email,
-        });
+      if (!response.ok) {
+        const errText = await response.text();
         setLoading(false);
-        onRegisterSuccess();
-      } else {
-        // Fallback for dev mode
-        console.log('[REGISTER DEV FALLBACK] Initializing driver account...');
-        await setAuth('jwt-registered-driver-token', {
-          id: 'DRV-NEW',
-          name: fullName,
-          role: 'DRIVER',
-          email,
-        });
-        setLoading(false);
-        onRegisterSuccess();
+        Alert.alert('Registration Failed', errText || `Server returned HTTP ${response.status}.`);
+        return;
       }
-    } catch (err: any) {
-      console.log('[REGISTER NETWORK FALLBACK]: Initializing local session:', err?.message || err);
-      await setAuth('jwt-registered-driver-token', {
-        id: 'DRV-NEW',
+
+      const data = await response.json();
+
+      if (!data.token) {
+        setLoading(false);
+        Alert.alert('Registration Failed', 'Server response did not include an authentication token.');
+        return;
+      }
+
+      await setAuth(data.token, {
+        id: data.user?.id || '',
         name: fullName,
         role: 'DRIVER',
         email,
       });
       setLoading(false);
       onRegisterSuccess();
+    } catch (err: any) {
+      setLoading(false);
+      Alert.alert('Registration Failed', err?.message || 'Unable to reach the server. Please try again.');
     }
   };
 

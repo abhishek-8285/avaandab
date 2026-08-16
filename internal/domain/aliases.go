@@ -176,6 +176,7 @@ var (
 	ErrSessionExpired     = user.ErrSessionExpired
 	ErrUserEmailRequired  = user.ErrUserEmailRequired
 	ErrUserPhoneRequired  = user.ErrUserPhoneRequired
+	ErrWeakPassword       = user.ErrWeakPassword
 
 	// Entity errors
 	ErrDriverNotFound     = driver.ErrDriverNotFound

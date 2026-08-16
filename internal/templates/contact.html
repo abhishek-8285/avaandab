@@ -29,7 +29,7 @@
             </p>
         </div>
     </div>
-    <a href="/contact-us?ticket={{.SubmittedNum}}" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-none transition-colors shrink-0">
+    <a href="/contact-us?ticket={{.SubmittedNum}}{{if .SubmittedEmail}}&amp;email={{.SubmittedEmail}}{{end}}" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-none transition-colors shrink-0">
         View Ticket Status
     </a>
 </div>
@@ -103,6 +103,7 @@
 <p class="font-body-sm text-body-sm text-on-surface-variant mb-4">Track real-time progress of your submitted support ticket.</p>
 <form method="GET" action="/contact-us" class="flex gap-2">
 <input name="ticket" value="{{.SearchQuery}}" class="flex-grow bg-surface-bright border-outline-variant focus:border-brand-teal-deep focus:ring-1 focus:ring-brand-teal-deep text-on-surface font-body-md p-2 rounded-none" placeholder="Ticket ID (e.g. TKT-123)" type="text">
+<input name="email" value="{{.SearchEmail}}" class="flex-grow bg-surface-bright border-outline-variant focus:border-brand-teal-deep focus:ring-1 focus:ring-brand-teal-deep text-on-surface font-body-md p-2 rounded-none" placeholder="Email used at submission" type="email">
 <button type="submit" class="bg-secondary text-on-primary px-4 py-2 font-label-caps text-label-caps uppercase hover:bg-outline transition-colors inline-flex items-center gap-1 cursor-pointer">
 <span class="material-symbols-outlined text-[16px]">search</span> Check
                         </button>

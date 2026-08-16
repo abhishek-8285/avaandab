@@ -60,9 +60,9 @@ else
     go run github.com/sqlc-dev/sqlc/cmd/sqlc@latest generate
 fi
 
-if [ -n "$(git status --porcelain db/generated/)" ]; then
+if [ -n "$(git diff --name-only db/generated/)" ]; then
     echo -e "${RED}❌ Error: sqlc generated files are out of date.${NC}"
-    git status --porcelain db/generated/
+    git diff db/generated/
     echo -e "${YELLOW}Run 'sqlc generate' and commit the updated files.${NC}"
     exit 1
 fi

@@ -8,6 +8,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"transport-app/internal/auth"
+	"transport-app/internal/middleware"
 	"transport-app/internal/shared"
 	"transport-app/internal/trip/application"
 	"transport-app/internal/trip/domain/aggregate"
@@ -27,6 +29,7 @@ type APITripHandler struct {
 	cancelUC        *application.CancelTripUseCase
 	getUC           *application.GetTripUseCase
 	listUC          *application.ListTripsUseCase
+	authSrv         auth.AuthorizationService
 }
 
 // NewAPITripHandler constructs an APITripHandler.
@@ -43,6 +46,7 @@ func NewAPITripHandler(
 	cancelUC *application.CancelTripUseCase,
 	getUC *application.GetTripUseCase,
 	listUC *application.ListTripsUseCase,
+	authSrv auth.AuthorizationService,
 ) *APITripHandler {
 	return &APITripHandler{
 		createUC:        createUC,
@@ -57,24 +61,25 @@ func NewAPITripHandler(
 		cancelUC:        cancelUC,
 		getUC:           getUC,
 		listUC:          listUC,
+		authSrv:         authSrv,
 	}
 }
 
 // Register mounts all trip routes.
 func (h *APITripHandler) Register(r chi.Router) {
 	r.Route("/api/v1/trips", func(r chi.Router) {
-		r.Post("/", h.Create)
-		r.Get("/", h.List)
-		r.Get("/{id}", h.Get)
-		r.Post("/{id}/assign-driver", h.AssignDriver)
-		r.Post("/{id}/assign-vehicle", h.AssignVehicle)
-		r.Post("/{id}/schedule", h.Schedule)
-		r.Post("/{id}/start", h.Start)
-		r.Post("/{id}/reach-pickup", h.ReachPickup)
-		r.Post("/{id}/in-transit", h.StartTransit)
-		r.Post("/{id}/deliver", h.Deliver)
-		r.Post("/{id}/complete", h.Complete)
-		r.Post("/{id}/cancel", h.Cancel)
+		r.With(middleware.RequirePermission(h.authSrv, "trips", "create")).Post("/", h.Create)
+		r.With(middleware.RequirePermission(h.authSrv, "trips", "read")).Get("/", h.List)
+		r.With(middleware.RequirePermission(h.authSrv, "trips", "read")).Get("/{id}", h.Get)
+		r.With(middleware.RequirePermission(h.authSrv, "trips", "assign")).Post("/{id}/assign-driver", h.AssignDriver)
+		r.With(middleware.RequirePermission(h.authSrv, "trips", "assign")).Post("/{id}/assign-vehicle", h.AssignVehicle)
+		r.With(middleware.RequirePermission(h.authSrv, "trips", "update")).Post("/{id}/schedule", h.Schedule)
+		r.With(middleware.RequirePermission(h.authSrv, "trips", "update")).Post("/{id}/start", h.Start)
+		r.With(middleware.RequirePermission(h.authSrv, "trips", "update")).Post("/{id}/reach-pickup", h.ReachPickup)
+		r.With(middleware.RequirePermission(h.authSrv, "trips", "update")).Post("/{id}/in-transit", h.StartTransit)
+		r.With(middleware.RequirePermission(h.authSrv, "trips", "update")).Post("/{id}/deliver", h.Deliver)
+		r.With(middleware.RequirePermission(h.authSrv, "trips", "update")).Post("/{id}/complete", h.Complete)
+		r.With(middleware.RequirePermission(h.authSrv, "trips", "update")).Post("/{id}/cancel", h.Cancel)
 	})
 }
 

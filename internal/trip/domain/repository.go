@@ -36,6 +36,15 @@ type TripReadModel struct {
 	CompletedAt               *time.Time
 }
 
+// ConflictInfo describes a trip that conflicts with a proposed assignment.
+type ConflictInfo struct {
+	ID            string
+	TripNumber    string
+	Status        string
+	DepartureTime time.Time
+	ArrivalTime   *time.Time
+}
+
 // TripRepository defines the contract for persisting and retrieving TripAggregates and Read Models.
 type TripRepository interface {
 	Save(ctx context.Context, t *aggregate.TripAggregate) error
@@ -46,4 +55,8 @@ type TripRepository interface {
 	// Read Model Queries
 	GetReadModel(ctx context.Context, id aggregate.TripID, tenantID shared.TenantID) (TripReadModel, error)
 	SearchReadModels(ctx context.Context, tenantID shared.TenantID, query string, status string, limit int, offset int) ([]TripReadModel, int64, error)
+
+	// Conflict Checks
+	CheckDriverConflict(ctx context.Context, driverID string, tenantID shared.TenantID, excludeTripID string) ([]ConflictInfo, error)
+	CheckVehicleConflict(ctx context.Context, vehicleID string, tenantID shared.TenantID, excludeTripID string) ([]ConflictInfo, error)
 }

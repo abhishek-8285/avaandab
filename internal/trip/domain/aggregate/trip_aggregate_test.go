@@ -86,8 +86,9 @@ func TestTripAggregate_ExecutionWorkflow(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, TripDelivered, agg.Status)
 	assert.NotNil(t, agg.DeliveredAt)
+	assert.NotNil(t, agg.ArrivalTime) // ArrivalTime now set on Deliver, not Complete
 
-	// Delivered -> Completed (timeline: completed_at set, arrival_time set)
+	// Delivered -> Completed (timeline: completed_at set; arrival_time already set on Deliver)
 	err = agg.Complete(now)
 	assert.NoError(t, err)
 	assert.Equal(t, TripCompleted, agg.Status)
@@ -208,6 +209,8 @@ func TestTripAggregate_AssignVehicleAndCancel(t *testing.T) {
 		now,
 	)
 
+	// Must assign driver before vehicle
+	assert.NoError(t, agg.AssignDriver("driver-1", now))
 	assert.NoError(t, agg.AssignVehicle("vehicle-99", now))
 	assert.Equal(t, "vehicle-99", *agg.VehicleID)
 
@@ -220,4 +223,13 @@ func TestTripAggregate_AssignVehicleAndCancel(t *testing.T) {
 
 	// Cannot schedule non-draft trip
 	assert.Error(t, agg.Schedule(now))
+}
+
+func TestTripAggregate_AssignVehicleRequiresDriver(t *testing.T) {
+	now := time.Now()
+	tenantID := shared.TenantID("1")
+	agg := NewTripAggregate("tr-123", tenantID, "TR-0001", nil, "route-123", now.Add(2*time.Hour), "", now)
+	err := agg.AssignVehicle("vehicle-1", now)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "driver must be assigned")
 }

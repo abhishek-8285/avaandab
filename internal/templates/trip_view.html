@@ -106,6 +106,23 @@
             </div>
         </dl>
 
+        {{if .PnL.TripID}}
+        <section class="mt-6 border-t pt-5" aria-labelledby="trip-pnl-heading">
+            <div class="flex items-center justify-between mb-3">
+                <h3 id="trip-pnl-heading" class="text-lg font-semibold text-gray-900">Live Trip P&amp;L</h3>
+                {{if .PnL.MarginAvailable}}{{if .PnL.LowMargin}}<span class="text-xs font-semibold text-red-700 bg-red-50 px-2 py-1 rounded">Margin risk above 10%</span>{{end}}{{else}}<span class="text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-1 rounded">Pending fuel verification</span>{{end}}
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <div><dt class="text-xs text-gray-500">Quoted fare</dt><dd class="font-semibold">{{printf "%.2f" .PnL.QuotedFare}}</dd></div>
+                <div><dt class="text-xs text-gray-500">Fuel cost (estimated)</dt><dd class="font-semibold">{{if .PnL.MarginAvailable}}{{printf "%.2f–%.2f" .PnL.FuelCostLow .PnL.FuelCostHigh}}{{else}}Pending{{end}}</dd></div>
+                <div><dt class="text-xs text-gray-500">Tolls</dt><dd class="font-semibold">{{printf "%.2f" .PnL.TollCost}}</dd></div>
+                <div><dt class="text-xs text-gray-500">Approved kharcha</dt><dd class="font-semibold">{{printf "%.2f" .PnL.KharchaApproved}}</dd></div>
+                <div><dt class="text-xs text-gray-500">Estimated margin</dt><dd class="font-semibold {{if .PnL.LowMargin}}text-red-700{{else}}text-emerald-700{{end}}">{{if .PnL.MarginAvailable}}{{printf "%.2f–%.2f" .PnL.MarginLow .PnL.MarginHigh}} ({{printf "%.1f" .PnL.MarginPercentage}}%){{else}}Pending verification{{end}}</dd></div>
+            </div>
+            <p class="text-xs text-gray-500 mt-3">Fuel consumed estimate: {{printf "%.1f" .PnL.FuelConsumedLiters}} L · Confidence: {{.PnL.Confidence}}</p>
+        </section>
+        {{end}}
+
         {{if .Trip.Remarks}}
         <div class="mt-4">
             <dt class="text-sm text-gray-500">Remarks</dt>

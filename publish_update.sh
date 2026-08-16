@@ -16,7 +16,7 @@ cd "$SCRIPT_DIR"
 
 # Config / Target Directory (Can be local web directory or public server directory)
 DIST_DIR="${DIST_DIR:-$SCRIPT_DIR/dist}"
-BASE_URL="${BASE_URL:-http://avandab.com:8092/dist}"
+BASE_URL="${BASE_URL:-https://avandab.com:8092/dist}"
 
 VERSION="$(date +%Y%m%d%H%M%S)"
 

@@ -1,6 +1,7 @@
 package telemetry
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -39,9 +40,47 @@ type TelemetrySnapshotPayload struct {
 	Odometer  float64 `json:"odometer"`
 }
 
-func RegisterTelemetryRoutes(r chi.Router) {
+func RegisterTelemetryRoutes(r chi.Router, databases ...*sql.DB) {
+	var database *sql.DB
+	if len(databases) > 0 {
+		database = databases[0]
+	}
 	r.Post("/api/v1/telemetry/sync", HandleTelemetrySync)
-	r.Post("/api/v1/telemetry/snapshots", HandleTelemetrySnapshots)
+	r.Post("/api/v1/telemetry/snapshots", snapshotHandler(database))
+}
+
+func snapshotHandler(database *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		var snap TelemetrySnapshotPayload
+		if err := json.NewDecoder(r.Body).Decode(&snap); err != nil || snap.TripID == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Invalid snapshot payload"})
+			return
+		}
+		id := snap.ID
+		if id == "" {
+			id = generateSnapshotID()
+		}
+		if database != nil {
+			at, err := time.Parse(time.RFC3339, snap.Timestamp)
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Invalid timestamp"})
+				return
+			}
+			if _, err := database.ExecContext(r.Context(), `INSERT OR REPLACE INTO telemetry_snapshots (id, trip_id, vehicle_id, timestamp, latitude, longitude, speed, fuel_level, odometer) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, id, snap.TripID, snap.VehicleID, at, snap.Latitude, snap.Longitude, snap.Speed, snap.FuelLevel, snap.Odometer); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Failed to store snapshot"})
+				return
+			}
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "snapshot_id": id, "server_time": time.Now().Format(time.RFC3339)})
+	}
+}
+
+func generateSnapshotID() string {
+	return "snap-" + time.Now().UTC().Format("20060102150405.000000000")
 }
 
 func HandleTelemetrySync(w http.ResponseWriter, r *http.Request) {

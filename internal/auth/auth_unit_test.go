@@ -72,7 +72,7 @@ func TestAPIToken_IssueAndParse(t *testing.T) {
 
 func TestSessionStore_CreateValidateClear(t *testing.T) {
 	secret := "test-secret-key-32-bytes-long-!"
-	store := auth.NewSessionStore(secret)
+	store := auth.NewSessionStore(secret, false)
 
 	rec := httptest.NewRecorder()
 	store.CreateSession(rec, "usr-1", "admin", "Admin User")

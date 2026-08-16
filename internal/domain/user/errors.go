@@ -11,4 +11,8 @@ var (
 	ErrSessionExpired     = errors.New("session has expired")
 	ErrUserEmailRequired  = errors.New("email is required")
 	ErrUserPhoneRequired  = errors.New("phone number is required")
+	ErrWeakPassword       = errors.New("password must be at least 8 characters")
 )
+
+// MinPasswordLength is the minimum accepted password length.
+const MinPasswordLength = 8

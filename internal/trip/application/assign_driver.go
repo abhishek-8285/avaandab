@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"transport-app/internal/shared"
 	"transport-app/internal/shared/ports"
@@ -37,6 +38,13 @@ func (uc *AssignDriverUseCase) Execute(ctx context.Context, cmd AssignDriverComm
 		t, err := repo.Find(txCtx, cmd.TripID, cmd.TenantID)
 		if err != nil {
 			return err
+		}
+		conflicts, err := repo.CheckDriverConflict(txCtx, cmd.DriverID, cmd.TenantID, string(cmd.TripID))
+		if err != nil {
+			return err
+		}
+		if len(conflicts) > 0 {
+			return fmt.Errorf("driver %s has conflicting trips: %s", cmd.DriverID, conflicts[0].TripNumber)
 		}
 		if err := t.AssignDriver(cmd.DriverID, uc.clock.Now()); err != nil {
 			return err

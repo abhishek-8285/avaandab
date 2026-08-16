@@ -6,6 +6,7 @@ import (
 
 	"transport-app/internal/auth"
 	"transport-app/internal/domain"
+	userdomain "transport-app/internal/domain/user"
 )
 
 // AuthService handles user authentication and session management.
@@ -90,6 +91,10 @@ func (s *AuthService) ChangePassword(ctx context.Context, userID domain.UserID, 
 
 	if err := auth.CheckPassword(oldPassword, user.PasswordHash); err != nil {
 		return domain.ErrInvalidCredentials
+	}
+
+	if len(newPassword) < userdomain.MinPasswordLength {
+		return domain.ErrWeakPassword
 	}
 
 	hashed, err := auth.HashPassword(newPassword)

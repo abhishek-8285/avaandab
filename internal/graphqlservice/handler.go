@@ -4,15 +4,17 @@ import (
 	"encoding/json"
 	"net/http"
 	"time"
+
+	"transport-app/internal/shared"
+	"transport-app/internal/trip/application"
 )
 
-type TripSchema struct {
-	ID          string  `json:"id"`
-	DriverName  string  `json:"driver_name"`
-	Origin      string  `json:"origin"`
-	Destination string  `json:"destination"`
-	Status      string  `json:"status"`
-	CargoWeight float64 `json:"cargo_weight_kg"`
+type GraphQLHandler struct {
+	listTripsUC *application.ListTripsUseCase
+}
+
+func NewGraphQLHandler(listTripsUC *application.ListTripsUseCase) *GraphQLHandler {
+	return &GraphQLHandler{listTripsUC: listTripsUC}
 }
 
 type GraphQLQuery struct {
@@ -20,36 +22,45 @@ type GraphQLQuery struct {
 	Variables map[string]interface{} `json:"variables"`
 }
 
-func GraphQLHandler(w http.ResponseWriter, r *http.Request) {
+func (h *GraphQLHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-
 	var q GraphQLQuery
 	_ = json.NewDecoder(r.Body).Decode(&q)
 
-	// Mock GraphQL Query Response
-	response := map[string]interface{}{
-		"data": map[string]interface{}{
-			"activeTrips": []TripSchema{
-				{
-					ID:          "TRIP-8842",
-					DriverName:  "Vikram Singh",
-					Origin:      "Mumbai Port Terminal 2",
-					Destination: "Pune Logistics Hub Hub B",
-					Status:      "IN_TRANSIT",
-					CargoWeight: 4200.5,
-				},
-				{
-					ID:          "TRIP-9921",
-					DriverName:  "Rajesh Kumar",
-					Origin:      "Bhiwandi Warehouse A",
-					Destination: "Nashik Distribution Depot",
-					Status:      "DISPATCHED",
-					CargoWeight: 1850.0,
-				},
-			},
-			"serverTime": time.Now().Format(time.RFC3339),
-		},
+	tenantID := shared.TenantIDFromContext(r.Context())
+	res, err := h.listTripsUC.Execute(r.Context(), application.ListTripsQuery{
+		TenantID: tenantID,
+		Page:     1,
+		Limit:    50,
+		Status:   "",
+	})
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"errors": []string{err.Error()}})
+		return
 	}
 
-	_ = json.NewEncoder(w).Encode(response)
+	activeTrips := make([]map[string]interface{}, 0, len(res.Trips))
+	for _, t := range res.Trips {
+		if t.Status == "completed" || t.Status == "cancelled" {
+			continue
+		}
+		activeTrips = append(activeTrips, map[string]interface{}{
+			"id":             t.ID,
+			"trip_number":    t.TripNumber,
+			"driver_name":    t.DriverFirstName + " " + t.DriverLastName,
+			"origin":         t.RouteSource,
+			"destination":    t.RouteDestination,
+			"status":         t.Status,
+			"departure_time": t.DepartureTime.Format(time.RFC3339),
+			"vehicle_number": t.VehicleRegistrationNumber,
+		})
+	}
+
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"data": map[string]interface{}{
+			"activeTrips": activeTrips,
+			"serverTime":  time.Now().Format(time.RFC3339),
+		},
+	})
 }

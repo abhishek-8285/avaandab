@@ -1,18 +1,10 @@
 -- +goose Up
--- Seed an admin user for initial login (dev only)
--- Password: admin123
-INSERT OR IGNORE INTO users (id, email, password_hash, name, phone, role_id, status, created_at, updated_at)
-VALUES (
-    '765f6e4e-3b2a-4c1d-9e0f-1a2b3c4d5e6f',
-    'admin@transport.local',
-    '$2a$10$4iu79R3QI9SFJpbyyu5RN..eKYXNetETGcS8bQXFdsVJ5.CtjrMC.',
-    'Admin User',
-    NULL,
-    1,
-    'active',
-    datetime('now'),
-    datetime('now')
-);
+-- The default admin is no longer seeded with a hardcoded password.
+-- Create the initial admin at startup via BOOTSTRAP_ADMIN_EMAIL /
+-- BOOTSTRAP_ADMIN_NAME / BOOTSTRAP_ADMIN_PASSWORD environment variables.
+-- Migration 00035 removes any previously seeded admin that still uses the
+-- known default credentials.
+SELECT 1;
 
 -- +goose Down
 DELETE FROM users WHERE email = 'admin@transport.local';

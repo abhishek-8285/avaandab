@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -30,7 +31,8 @@ func (h *APIAuthHandler) Register(r chi.Router) {
 	r.Post("/api/v1/auth/register", h.RegisterUser)
 }
 
-// RegisterUser handles universal REST user registration across all client roles (Driver, Dispatcher, Admin).
+// RegisterUser handles public REST user registration. Only the least-privilege
+// viewer role may be self-requested; privileged role requests are rejected.
 func (h *APIAuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Name          string `json:"name"`
@@ -49,25 +51,22 @@ func (h *APIAuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Privileged roles (admin, dispatcher, accountant, fleet/cargo owner) can
+	// never be self-requested on a public endpoint. Public registration is
+	// restricted to the least-privilege viewer role; privileged accounts are
+	// created only by an authenticated admin.
 	var roleID int64
 	var roleName string
-
-	switch req.Role {
-	case "admin", "ADMIN":
-		roleID = 1
-		roleName = "admin"
-	case "dispatcher", "DISPATCHER":
-		roleID = 2
-		roleName = "dispatcher"
-	case "fleet_owner", "FLEET_OWNER":
-		roleID = 3
-		roleName = "fleet_owner"
-	case "cargo_owner", "CARGO_OWNER":
-		roleID = 4
-		roleName = "cargo_owner"
+	switch strings.ToLower(req.Role) {
+	case "":
+		roleID = domain.DefaultRoleID(domain.RoleViewer)
+		roleName = string(domain.RoleViewer)
+	case "viewer":
+		roleID = domain.DefaultRoleID(domain.RoleViewer)
+		roleName = string(domain.RoleViewer)
 	default:
-		roleID = 5
-		roleName = "driver"
+		apiError(w, http.StatusForbidden, "self-registration is limited to viewer accounts; privileged roles are assigned by an admin")
+		return
 	}
 
 	// Register user in database

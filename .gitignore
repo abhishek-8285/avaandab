@@ -9,6 +9,8 @@ mvtms
 /server
 server_*
 cookies.txt
+c.txt
+c2.txt
 
 # Test binary
 *.test
