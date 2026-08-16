@@ -167,7 +167,7 @@ func (h *InvoiceHandlers) DownloadPDF(w http.ResponseWriter, r *http.Request) {
 	pdfBytes, err := pdfgen.GenerateInvoicePDF(invEntity, "Apex Transport Ltd")
 	if err != nil {
 		fmt.Printf("[DownloadPDF Error] PDF generation failed: %v\n", err)
-		http.Error(w, "Failed to generate PDF: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to generate PDF", http.StatusInternalServerError)
 		return
 	}
 

@@ -74,7 +74,7 @@ func (h *BookingHandlers) List(w http.ResponseWriter, r *http.Request) {
 		Status:   pp.Status,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to list bookings", http.StatusInternalServerError)
 		return
 	}
 

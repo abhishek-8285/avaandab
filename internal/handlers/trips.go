@@ -93,7 +93,7 @@ func (h *TripHandlers) List(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		fmt.Printf("[Trips Error] Failed to list trips: %v\n", err)
-		http.Error(w, "Failed to load trips: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to load trips", http.StatusInternalServerError)
 		return
 	}
 

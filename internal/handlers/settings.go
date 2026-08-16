@@ -34,7 +34,7 @@ func (h *SettingsHandlers) OnboardPage(w http.ResponseWriter, r *http.Request) {
 	}
 	settings, err := h.Services.Settings.GetSettings(r.Context())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to load settings", http.StatusInternalServerError)
 		return
 	}
 	h.renderPage(w, r, "company_onboard.html", PageData{
@@ -58,7 +58,7 @@ func (h *SettingsHandlers) Index(w http.ResponseWriter, r *http.Request) {
 
 	settings, err := h.Services.Settings.GetSettings(r.Context())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to load settings", http.StatusInternalServerError)
 		return
 	}
 

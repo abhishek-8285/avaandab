@@ -36,7 +36,7 @@ func (h *InvoiceWebHandler) List(w http.ResponseWriter, r *http.Request) {
 		Status:   r.URL.Query().Get("status"),
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to list invoices", http.StatusInternalServerError)
 		return
 	}
 	vms := viewmodels.FromDTOs(res.Invoices)
@@ -57,7 +57,7 @@ func (h *InvoiceWebHandler) View(w http.ResponseWriter, r *http.Request) {
 		TenantID: shared.TenantIDFromContext(r.Context()),
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, "Invoice not found", http.StatusNotFound)
 		return
 	}
 	vm := viewmodels.FromDTO(res)
