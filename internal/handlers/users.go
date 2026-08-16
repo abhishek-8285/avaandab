@@ -32,7 +32,7 @@ func (h *UserHandlers) List(w http.ResponseWriter, r *http.Request) {
 
 	list, total, err := h.Services.Users.ListUsers(r.Context(), pp.Query, pp.Status, pp.Limit, pp.Offset)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to list users", http.StatusInternalServerError)
 		return
 	}
 

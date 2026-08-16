@@ -57,7 +57,7 @@ func (h *PaymentHandlers) List(w http.ResponseWriter, r *http.Request) {
 		Method:   method,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to list payments", http.StatusInternalServerError)
 		return
 	}
 

@@ -90,7 +90,7 @@ func (h *APIInvoiceHandler) List(w http.ResponseWriter, r *http.Request) {
 		Status:   r.URL.Query().Get("status"),
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to list invoices", http.StatusInternalServerError)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{"invoices": res.Invoices, "total": res.Total})
@@ -103,7 +103,7 @@ func (h *APIInvoiceHandler) Get(w http.ResponseWriter, r *http.Request) {
 		TenantID: shared.TenantIDFromContext(r.Context()),
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, "Invoice not found", http.StatusNotFound)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(res)

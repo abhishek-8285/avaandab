@@ -31,7 +31,7 @@ func (h *CustomerHandlers) List(w http.ResponseWriter, r *http.Request) {
 
 	list, total, err := h.Services.Customers.ListCustomers(r.Context(), pp.Query, pp.Limit, pp.Offset)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to list customers", http.StatusInternalServerError)
 		return
 	}
 

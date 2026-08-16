@@ -62,7 +62,7 @@ func (h *VehicleHandlers) List(w http.ResponseWriter, r *http.Request) {
 		Status:   pp.Status,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to list vehicles", http.StatusInternalServerError)
 		return
 	}
 

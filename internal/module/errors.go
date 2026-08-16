@@ -79,5 +79,5 @@ func WriteError(w http.ResponseWriter, err error) {
 		http.Error(w, ae.Message, ae.HTTPStatus())
 		return
 	}
-	http.Error(w, err.Error(), http.StatusInternalServerError)
+	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 }

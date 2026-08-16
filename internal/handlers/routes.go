@@ -31,7 +31,7 @@ func (h *RouteHandlers) List(w http.ResponseWriter, r *http.Request) {
 
 	list, total, err := h.Services.Routes.ListRoutes(r.Context(), pp.Query, pp.Limit, pp.Offset)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to list routes", http.StatusInternalServerError)
 		return
 	}
 

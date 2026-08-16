@@ -60,7 +60,7 @@ func (h *InvoiceHandlers) List(w http.ResponseWriter, r *http.Request) {
 		Status:   pp.Status,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to list invoices", http.StatusInternalServerError)
 		return
 	}
 

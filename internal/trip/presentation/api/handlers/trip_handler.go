@@ -129,7 +129,7 @@ func (h *APITripHandler) List(w http.ResponseWriter, r *http.Request) {
 		Status:   r.URL.Query().Get("status"),
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to list trips", http.StatusInternalServerError)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{"trips": res.Trips, "total": res.Total})
@@ -142,7 +142,7 @@ func (h *APITripHandler) Get(w http.ResponseWriter, r *http.Request) {
 		TenantID: shared.TenantIDFromContext(r.Context()),
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, "Trip not found", http.StatusNotFound)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(res)
