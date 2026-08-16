@@ -3,6 +3,7 @@ package main
 import (
 	"archive/tar"
 	"compress/gzip"
+	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -23,6 +24,7 @@ type VersionManifest struct {
 	Version     string `json:"version"`
 	DownloadURL string `json:"download_url"`
 	SHA256      string `json:"sha256"`
+	Signature   string `json:"signature,omitempty"`
 }
 
 type GitHubAsset struct {
@@ -139,6 +141,30 @@ func getCurrentVersion() string {
 func applyUpdateWithRollback(m *VersionManifest) error {
 	tmpTar := filepath.Join(workDir, "update.tar.gz")
 	defer func() { _ = os.Remove(tmpTar) }()
+
+	if !strings.HasPrefix(m.DownloadURL, "https://") {
+		return fmt.Errorf("insecure download URL rejected: HTTPS is required (got %s)", m.DownloadURL)
+	}
+
+	pubKeyHex := os.Getenv("UPDATE_PUBLIC_KEY")
+	if pubKeyHex != "" {
+		if m.Signature == "" {
+			return fmt.Errorf("update signature missing: code signing is required")
+		}
+		pubKeyBytes, err := hex.DecodeString(pubKeyHex)
+		if err != nil || len(pubKeyBytes) != ed25519.PublicKeySize {
+			return fmt.Errorf("invalid UPDATE_PUBLIC_KEY format")
+		}
+		sigBytes, err := hex.DecodeString(m.Signature)
+		if err != nil {
+			return fmt.Errorf("invalid manifest signature encoding: %w", err)
+		}
+		msg := []byte(fmt.Sprintf("%s:%s", m.Version, m.SHA256))
+		if !ed25519.Verify(pubKeyBytes, msg, sigBytes) {
+			return fmt.Errorf("code signing signature verification failed")
+		}
+		log.Printf("[Agent] Code signature verified successfully")
+	}
 
 	log.Printf("[Agent] Downloading payload from %s...", m.DownloadURL)
 	if err := downloadFile(tmpTar, m.DownloadURL); err != nil {

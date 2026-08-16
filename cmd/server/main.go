@@ -320,11 +320,6 @@ func main() {
 
 	// 3. GraphQL Query Endpoint
 	graphqlH := graphqlservice.NewGraphQLHandler(listTrips)
-	r.Post("/query", graphqlH.ServeHTTP)
-	r.Get("/graphql", graphqlH.ServeHTTP)
-
-	// 4. Telemetry ingestion and live trip P&L.
-	telemetry.RegisterTelemetryRoutes(r, database)
 
 	// Public: token endpoint (no auth required) — rate-limited against brute force
 	authAPIHandler.Register(r.With(middleware.RateLimit(10)))
@@ -333,9 +328,12 @@ func main() {
 	// the authenticated API group.
 	r.Post("/api/v1/payments/razorpay-webhook", paymentAPIHandler.RazorpayWebhook)
 
-	// Protected: all other /api/v1/* routes require a valid session or Bearer token
+	// Protected: GraphQL, Telemetry, and all /api/v1/* routes require a valid session or Bearer token
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.RequireAPIAuth(authStore, apiSecret))
+		r.Post("/query", graphqlH.ServeHTTP)
+		r.Get("/graphql", graphqlH.ServeHTTP)
+		telemetry.RegisterTelemetryRoutes(r, database)
 		pnl.RegisterRoutes(r, pnl.NewService(database), authSvc)
 		bookingAPIHandler.Register(r)
 		tripAPIHandler.Register(r)

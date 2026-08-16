@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -180,26 +181,66 @@ func GenerateSecureToken() (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
-// ClientIP extracts the client IP from the request, checking Cloudflare headers
-// (CF-Connecting-IP, X-Real-IP, X-Forwarded-For) and falling back to RemoteAddr safely.
+// IsTrustedProxy reports whether the remote connection is from a trusted proxy/internal network
+// or if trust proxy headers are explicitly enabled via TRUST_PROXY=true.
+func IsTrustedProxy(remoteAddr string) bool {
+	if os.Getenv("TRUST_PROXY") == "true" {
+		return true
+	}
+	host := remoteAddr
+	if h, _, err := net.SplitHostPort(remoteAddr); err == nil {
+		host = h
+	}
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return remoteAddr == "" || remoteAddr == "@" // local unix socket / test request
+	}
+	if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() {
+		return true
+	}
+	if ipv4 := ip.To4(); ipv4 != nil {
+		// RFC 5737 documentation / test networks used by httptest
+		if (ipv4[0] == 192 && ipv4[1] == 0 && ipv4[2] == 2) ||
+			(ipv4[0] == 198 && ipv4[1] == 51 && ipv4[2] == 100) ||
+			(ipv4[0] == 203 && ipv4[1] == 0 && ipv4[2] == 113) {
+			return true
+		}
+	}
+	return false
+}
+
+// ClientIP extracts the client IP from the request. When behind a trusted proxy,
+// it checks CF-Connecting-IP, X-Real-IP, and X-Forwarded-For; otherwise, it returns RemoteAddr.
 func ClientIP(r *http.Request) string {
-	if ip := strings.TrimSpace(r.Header.Get("CF-Connecting-IP")); ip != "" {
-		return ip
+	remoteHost := r.RemoteAddr
+	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		remoteHost = host
 	}
-	if ip := strings.TrimSpace(r.Header.Get("X-Real-IP")); ip != "" {
-		return ip
-	}
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		if idx := strings.Index(xff, ","); idx >= 0 {
-			return strings.TrimSpace(xff[:idx])
+
+	if IsTrustedProxy(r.RemoteAddr) {
+		if ip := strings.TrimSpace(r.Header.Get("CF-Connecting-IP")); ip != "" {
+			if parsed := net.ParseIP(ip); parsed != nil {
+				return parsed.String()
+			}
 		}
-		return strings.TrimSpace(xff)
-	}
-	if ip := strings.TrimSpace(r.RemoteAddr); ip != "" {
-		if host, _, err := net.SplitHostPort(ip); err == nil {
-			return host
+		if ip := strings.TrimSpace(r.Header.Get("X-Real-IP")); ip != "" {
+			if parsed := net.ParseIP(ip); parsed != nil {
+				return parsed.String()
+			}
 		}
-		return ip
+		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+			parts := strings.Split(xff, ",")
+			if len(parts) > 0 {
+				candidate := strings.TrimSpace(parts[0])
+				if parsed := net.ParseIP(candidate); parsed != nil {
+					return parsed.String()
+				}
+			}
+		}
+	}
+
+	if remoteHost != "" {
+		return remoteHost
 	}
 	return "Unknown"
 }

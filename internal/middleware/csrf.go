@@ -86,8 +86,8 @@ func hasOriginHeader(r *http.Request) bool {
 // Referer is allowed: non-browser clients (curl, server-to-server) and
 // same-origin navigation requests may omit both.
 //
-// Under a reverse proxy r.Host may differ from the origin host seen by the
-// browser, so X-Forwarded-Host (set by the proxy) is preferred when present.
+// Under a trusted reverse proxy r.Host may differ from the origin host seen by the
+// browser, so X-Forwarded-Host (set by the proxy) is accepted only if from a trusted proxy.
 func sameOrigin(r *http.Request) bool {
 	origin := r.Header.Get("Origin")
 	if origin == "" {
@@ -103,8 +103,14 @@ func sameOrigin(r *http.Request) bool {
 	}
 
 	host := r.Host
-	if xfh := r.Header.Get("X-Forwarded-Host"); xfh != "" {
-		host = xfh
+	if auth.IsTrustedProxy(r.RemoteAddr) {
+		if xfh := r.Header.Get("X-Forwarded-Host"); xfh != "" {
+			if idx := strings.Index(xfh, ","); idx >= 0 {
+				host = strings.TrimSpace(xfh[:idx])
+			} else {
+				host = strings.TrimSpace(xfh)
+			}
+		}
 	}
 	return strings.EqualFold(u.Host, host)
 }
