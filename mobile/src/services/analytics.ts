@@ -4,9 +4,14 @@ class AnalyticsService {
   private posthog: PostHog | null = null;
 
   async init(): Promise<void> {
+    const apiKey = process.env.EXPO_PUBLIC_POSTHOG_API_KEY;
+    if (!apiKey) {
+      console.log('[POSTHOG INFO] EXPO_PUBLIC_POSTHOG_API_KEY not set, using console fallback');
+      return;
+    }
     try {
-      this.posthog = new PostHog('phc_avandab_demo_api_key_placeholder', {
-        host: 'https://us.i.posthog.com',
+      this.posthog = new PostHog(apiKey, {
+        host: process.env.EXPO_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
         flushInterval: 10,
         flushAt: 1,
       });

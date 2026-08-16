@@ -81,14 +81,19 @@ func (r *Reporter) Report(ctx context.Context, report ErrorReport) (ErrorReport,
 	if report.AppVersion == "" {
 		report.AppVersion = r.appVersion
 	}
-	if report.Severity == "" {
-		report.Severity = SeverityHigh
-	}
+	const maxStoredErrors = 500
+	const maxStoredIncidents = 200
 
+	if len(r.errors) >= maxStoredErrors {
+		r.errors = r.errors[1:]
+	}
 	r.errors = append(r.errors, report)
 
 	// Automatically create an incident for Critical/High errors
 	if report.Severity == SeverityCritical || report.Severity == SeverityHigh {
+		if len(r.incidents) >= maxStoredIncidents {
+			r.incidents = r.incidents[1:]
+		}
 		inc := Incident{
 			ID:       fmt.Sprintf("inc_%d", time.Now().UnixNano()),
 			ErrorID:  report.ID,

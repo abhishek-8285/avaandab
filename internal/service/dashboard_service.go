@@ -55,7 +55,17 @@ func (s *DashboardService) GetDashboardData(ctx context.Context) (DashboardData,
 	}
 	s.cacheMu.RUnlock()
 
-	data := DashboardData{}
+	var (
+		todaysTripsCount, activeTripsCount, completedTripsCount, cancelledTripsCount int64
+		availVehiclesCount, availDriversCount                                        int64
+		pendingPaymentsCount                                                         int
+		monthlyRevenue                                                               float64
+		upcomingTrips                                                                []repository.TripWithJoins
+		recentBookings                                                               []repository.BookingWithJoins
+		recentPayments                                                               []repository.PaymentWithInvoice
+		recentActivity                                                               []repository.AuditLogWithUser
+	)
+
 	today := time.Now().Format("2006-01-02")
 	g, ctx := errgroup.WithContext(ctx)
 
@@ -63,12 +73,12 @@ func (s *DashboardService) GetDashboardData(ctx context.Context) (DashboardData,
 	g.Go(func() error {
 		statusCounts, err := s.store.CountTripsByStatusForDate(ctx, today)
 		if err == nil {
-			data.TodaysTripsCount = statusCounts[domain.TripScheduled] + statusCounts[domain.TripAssigned] +
+			todaysTripsCount = statusCounts[domain.TripScheduled] + statusCounts[domain.TripAssigned] +
 				statusCounts[domain.TripStarted] + statusCounts[domain.TripCompleted] + statusCounts[domain.TripCancelled] +
 				statusCounts[domain.TripDraft]
-			data.ActiveTripsCount = statusCounts[domain.TripScheduled] + statusCounts[domain.TripAssigned] + statusCounts[domain.TripStarted]
-			data.CompletedTripsCount = statusCounts[domain.TripCompleted]
-			data.CancelledTripsCount = statusCounts[domain.TripCancelled]
+			activeTripsCount = statusCounts[domain.TripScheduled] + statusCounts[domain.TripAssigned] + statusCounts[domain.TripStarted]
+			completedTripsCount = statusCounts[domain.TripCompleted]
+			cancelledTripsCount = statusCounts[domain.TripCancelled]
 		}
 		return nil
 	})
@@ -77,7 +87,7 @@ func (s *DashboardService) GetDashboardData(ctx context.Context) (DashboardData,
 	g.Go(func() error {
 		vehicles, err := s.store.GetAvailableVehicles(ctx)
 		if err == nil {
-			data.AvailableVehiclesCount = int64(len(vehicles))
+			availVehiclesCount = int64(len(vehicles))
 		}
 		return nil
 	})
@@ -86,7 +96,7 @@ func (s *DashboardService) GetDashboardData(ctx context.Context) (DashboardData,
 	g.Go(func() error {
 		drivers, err := s.store.GetAvailableDrivers(ctx)
 		if err == nil {
-			data.AvailableDriversCount = int64(len(drivers))
+			availDriversCount = int64(len(drivers))
 		}
 		return nil
 	})
@@ -95,7 +105,7 @@ func (s *DashboardService) GetDashboardData(ctx context.Context) (DashboardData,
 	g.Go(func() error {
 		pendingInvoices, err := s.store.GetPendingInvoices(ctx)
 		if err == nil {
-			data.PendingPaymentsCount = len(pendingInvoices)
+			pendingPaymentsCount = len(pendingInvoices)
 		}
 		return nil
 	})
@@ -107,7 +117,7 @@ func (s *DashboardService) GetDashboardData(ctx context.Context) (DashboardData,
 			currentMonth := time.Now().Format("2006-01")
 			for _, rev := range monthlyRev {
 				if rev.Month == currentMonth {
-					data.MonthlyRevenue = rev.Total
+					monthlyRevenue = rev.Total
 					break
 				}
 			}
@@ -117,49 +127,64 @@ func (s *DashboardService) GetDashboardData(ctx context.Context) (DashboardData,
 
 	// 6. Upcoming trips
 	g.Go(func() error {
-		upcomingTrips, err := s.store.GetTripsByDate(ctx, today)
+		trips, err := s.store.GetTripsByDate(ctx, today)
 		if err == nil {
-			data.UpcomingTrips = upcomingTrips
+			upcomingTrips = trips
 		} else {
-			data.UpcomingTrips = []repository.TripWithJoins{}
+			upcomingTrips = []repository.TripWithJoins{}
 		}
 		return nil
 	})
 
 	// 7. Recent bookings
 	g.Go(func() error {
-		recentBookings, err := s.store.SearchBookings(ctx, "", "", 10, 0)
+		bookings, err := s.store.SearchBookings(ctx, "", "", 10, 0)
 		if err == nil {
-			data.RecentBookings = recentBookings
+			recentBookings = bookings
 		} else {
-			data.RecentBookings = []repository.BookingWithJoins{}
+			recentBookings = []repository.BookingWithJoins{}
 		}
 		return nil
 	})
 
 	// 8. Recent payments
 	g.Go(func() error {
-		recentPayments, err := s.store.SearchPayments(ctx, "", 10, 0)
+		payments, err := s.store.SearchPayments(ctx, "", 10, 0)
 		if err == nil {
-			data.RecentPayments = recentPayments
+			recentPayments = payments
 		} else {
-			data.RecentPayments = []repository.PaymentWithInvoice{}
+			recentPayments = []repository.PaymentWithInvoice{}
 		}
 		return nil
 	})
 
 	// 9. Recent activity
 	g.Go(func() error {
-		recentLogs, err := s.store.ListAuditLogs(ctx, 10, 0)
+		logs, err := s.store.ListAuditLogs(ctx, 10, 0)
 		if err == nil {
-			data.RecentActivity = recentLogs
+			recentActivity = logs
 		} else {
-			data.RecentActivity = []repository.AuditLogWithUser{}
+			recentActivity = []repository.AuditLogWithUser{}
 		}
 		return nil
 	})
 
 	_ = g.Wait()
+
+	data := DashboardData{
+		TodaysTripsCount:       todaysTripsCount,
+		ActiveTripsCount:       activeTripsCount,
+		CompletedTripsCount:    completedTripsCount,
+		CancelledTripsCount:    cancelledTripsCount,
+		AvailableVehiclesCount: availVehiclesCount,
+		AvailableDriversCount:  availDriversCount,
+		PendingPaymentsCount:   pendingPaymentsCount,
+		MonthlyRevenue:         monthlyRevenue,
+		UpcomingTrips:          upcomingTrips,
+		RecentBookings:         recentBookings,
+		RecentPayments:         recentPayments,
+		RecentActivity:         recentActivity,
+	}
 
 	s.cacheMu.Lock()
 	s.cachedData = data

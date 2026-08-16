@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"transport-app/internal/shared/ports"
@@ -22,8 +23,11 @@ type Notification struct {
 }
 
 type Service struct {
+	mu         sync.Mutex
 	inAppStore map[string][]Notification
 }
+
+const maxInAppPerKey = 100
 
 func NewService() *Service {
 	return &Service{
@@ -32,8 +36,8 @@ func NewService() *Service {
 }
 
 func (s *Service) SendEmail(ctx context.Context, msg ports.NotificationMessage) error {
-	// Logger / Email Adapter stub ready for SMTP/SendGrid driver
-	log.Printf("[NOTIFICATION:EMAIL] To: %s | Subject: %s | Body: %s", msg.Recipient, msg.Subject, msg.Body)
+	// Logger / Email Adapter stub - log metadata only, avoid leaking email bodies
+	log.Printf("[NOTIFICATION:EMAIL] To: %s | Subject: %s", msg.Recipient, msg.Subject)
 	return nil
 }
 
@@ -54,7 +58,14 @@ func (s *Service) SendInApp(ctx context.Context, msg ports.NotificationMessage) 
 	if key == "" {
 		key = msg.TenantID
 	}
+
+	s.mu.Lock()
+	if len(s.inAppStore[key]) >= maxInAppPerKey {
+		s.inAppStore[key] = s.inAppStore[key][1:]
+	}
 	s.inAppStore[key] = append(s.inAppStore[key], notif)
+	s.mu.Unlock()
+
 	log.Printf("[NOTIFICATION:IN_APP] User/Tenant: %s | Subject: %s", key, msg.Subject)
 	return nil
 }

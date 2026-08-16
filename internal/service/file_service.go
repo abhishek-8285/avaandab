@@ -155,10 +155,16 @@ func (s *FileService) DeleteFile(ctx context.Context, id domain.FileID) error {
 		return err
 	}
 
-	// Delete from disk
+	// Delete from disk safely (validate path is within upload directory)
 	if f.Path != "" {
-		path := filepath.Join(uploadDir(s), f.Path)
-		_ = os.Remove(path)
+		baseDir := filepath.Clean(uploadDir(s))
+		if baseDir == "." {
+			baseDir = ""
+		}
+		cleanPath := filepath.Clean(filepath.Join(baseDir, f.Path))
+		if baseDir == "" || strings.HasPrefix(cleanPath, baseDir+string(os.PathSeparator)) || cleanPath == baseDir {
+			_ = os.Remove(cleanPath)
+		}
 	}
 
 	// Delete from database
