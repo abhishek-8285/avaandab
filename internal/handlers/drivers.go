@@ -237,7 +237,7 @@ func (h *DriverHandlers) Update(w http.ResponseWriter, r *http.Request) {
 func (h *DriverHandlers) Delete(w http.ResponseWriter, r *http.Request) {
 	id := domain.DriverID(chi.URLParam(r, "id"))
 	if err := h.Services.Drivers.DeleteDriver(r.Context(), id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to delete driver", http.StatusInternalServerError)
 		return
 	}
 	if isDatastarRequest(r) {

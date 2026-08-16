@@ -136,7 +136,7 @@ func (h *RouteHandlers) Update(w http.ResponseWriter, r *http.Request) {
 func (h *RouteHandlers) Delete(w http.ResponseWriter, r *http.Request) {
 	id := domain.RouteID(chi.URLParam(r, "id"))
 	if err := h.Services.Routes.DeleteRoute(r.Context(), id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to delete route", http.StatusInternalServerError)
 		return
 	}
 	http.Redirect(w, r, "/routes", http.StatusSeeOther)

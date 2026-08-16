@@ -153,7 +153,7 @@ func (h *APIPaymentHandler) List(w http.ResponseWriter, r *http.Request) {
 		Method:   r.URL.Query().Get("method"),
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to list payments", http.StatusInternalServerError)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{"payments": res.Payments, "total": res.Total})
@@ -166,7 +166,7 @@ func (h *APIPaymentHandler) Get(w http.ResponseWriter, r *http.Request) {
 		TenantID: shared.TenantIDFromContext(r.Context()),
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, "Payment not found", http.StatusNotFound)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(res)
@@ -179,7 +179,7 @@ func (h *APIPaymentHandler) ListByInvoice(w http.ResponseWriter, r *http.Request
 		InvoiceID: invoiceID,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Failed to list payments for invoice", http.StatusInternalServerError)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{"payments": payments})

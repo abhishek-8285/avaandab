@@ -64,12 +64,12 @@ func (h *Handler) Register(r chi.Router) {
 func (h *Handler) GenerateEWayBill(w http.ResponseWriter, r *http.Request) {
 	var req ewaybill.GenerateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 	res, err := h.ewaybill.Generate(r.Context(), req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+		http.Error(w, "E-Way Bill service unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
@@ -80,7 +80,7 @@ func (h *Handler) GetEWayBill(w http.ResponseWriter, r *http.Request) {
 	ewbNumber := chi.URLParam(r, "ewbNumber")
 	res, err := h.ewaybill.Get(r.Context(), ewbNumber)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+		http.Error(w, "E-Way Bill service unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(res)
@@ -92,12 +92,12 @@ func (h *Handler) CancelEWayBill(w http.ResponseWriter, r *http.Request) {
 		Reason    string `json:"reason"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 	res, err := h.ewaybill.Cancel(r.Context(), req.EwbNumber, req.Reason)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+		http.Error(w, "E-Way Bill service unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(res)
@@ -107,7 +107,7 @@ func (h *Handler) ValidateGSTIN(w http.ResponseWriter, r *http.Request) {
 	gstin := chi.URLParam(r, "gstin")
 	res, err := h.gstn.ValidateGSTIN(r.Context(), gstin)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+		http.Error(w, "GSTN service unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(res)
@@ -118,7 +118,7 @@ func (h *Handler) GSTR1Summary(w http.ResponseWriter, r *http.Request) {
 	period := r.URL.Query().Get("period")
 	res, err := h.gstn.FetchGSTR1Summary(r.Context(), gstin, period)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+		http.Error(w, "GSTN service unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(res)
@@ -129,7 +129,7 @@ func (h *Handler) GSTR3BSummary(w http.ResponseWriter, r *http.Request) {
 	period := r.URL.Query().Get("period")
 	res, err := h.gstn.FetchGSTR3BSummary(r.Context(), gstin, period)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+		http.Error(w, "GSTN service unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(res)
@@ -140,7 +140,7 @@ func (h *Handler) GetFASTagBalance(w http.ResponseWriter, r *http.Request) {
 	tagID := r.URL.Query().Get("tag_id")
 	res, err := h.fastag.GetBalance(r.Context(), vehicle, tagID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+		http.Error(w, "FASTag service unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(res)
@@ -149,12 +149,12 @@ func (h *Handler) GetFASTagBalance(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) DeductToll(w http.ResponseWriter, r *http.Request) {
 	var req fastag.DeductTollRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 	res, err := h.fastag.DeductToll(r.Context(), req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+		http.Error(w, "FASTag service unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(res)
@@ -165,7 +165,7 @@ func (h *Handler) ListFASTagTransactions(w http.ResponseWriter, r *http.Request)
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	res, err := h.fastag.ListTransactions(r.Context(), vehicle, limit)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+		http.Error(w, "FASTag service unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{"transactions": res})
@@ -174,12 +174,12 @@ func (h *Handler) ListFASTagTransactions(w http.ResponseWriter, r *http.Request)
 func (h *Handler) ExportInvoice(w http.ResponseWriter, r *http.Request) {
 	var req accounting.ExportedInvoice
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 	res, err := h.accounting.ExportInvoice(r.Context(), req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+		http.Error(w, "Accounting service unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(res)
@@ -190,12 +190,12 @@ func (h *Handler) SyncContacts(w http.ResponseWriter, r *http.Request) {
 		Contacts []accounting.Contact `json:"contacts"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 	res, err := h.accounting.SyncContacts(r.Context(), req.Contacts)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+		http.Error(w, "Accounting service unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(res)
@@ -204,12 +204,12 @@ func (h *Handler) SyncContacts(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) PushJournalEntry(w http.ResponseWriter, r *http.Request) {
 	var req accounting.JournalEntry
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 	res, err := h.accounting.PushJournalEntry(r.Context(), req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+		http.Error(w, "Accounting service unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(res)

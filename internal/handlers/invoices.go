@@ -125,7 +125,7 @@ func (h *InvoiceHandlers) ViewByNumber(w http.ResponseWriter, r *http.Request) {
 
 func (h *InvoiceHandlers) Delete(w http.ResponseWriter, r *http.Request) {
 	if err := h.Services.Invoices.DeleteInvoice(r.Context(), domain.InvoiceID(chi.URLParam(r, "id"))); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to delete invoice", http.StatusInternalServerError)
 		return
 	}
 	http.Redirect(w, r, "/invoices", http.StatusSeeOther)

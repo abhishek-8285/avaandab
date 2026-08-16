@@ -186,7 +186,7 @@ func (h *PaymentHandlers) View(w http.ResponseWriter, r *http.Request) {
 func (h *PaymentHandlers) Delete(w http.ResponseWriter, r *http.Request) {
 	id := domain.PaymentID(chi.URLParam(r, "id"))
 	if err := h.Services.Payments.DeletePayment(r.Context(), id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to delete payment", http.StatusInternalServerError)
 		return
 	}
 	http.Redirect(w, r, "/payments", http.StatusSeeOther)

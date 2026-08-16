@@ -117,7 +117,7 @@ func (h *APIBookingHandler) List(w http.ResponseWriter, r *http.Request) {
 		Status:   status,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to list bookings", http.StatusInternalServerError)
 		return
 	}
 
@@ -153,7 +153,7 @@ func (h *APIBookingHandler) Get(w http.ResponseWriter, r *http.Request) {
 		TenantID:  shared.TenantIDFromContext(r.Context()),
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, "Booking not found", http.StatusNotFound)
 		return
 	}
 
