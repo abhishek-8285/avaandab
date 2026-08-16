@@ -2,6 +2,12 @@ import React from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
 import { Colors } from '../constants/theme';
+import {
+  DEFAULT_DESTINATION_LATITUDE,
+  DEFAULT_DESTINATION_LONGITUDE,
+  DEFAULT_LATITUDE,
+  DEFAULT_LONGITUDE,
+} from '../constants/network';
 
 interface LiveDriverTrackingMapProps {
   driverLatitude: number;
@@ -15,10 +21,10 @@ interface LiveDriverTrackingMapProps {
 export function LiveDriverTrackingMap({
   driverLatitude,
   driverLongitude,
-  pickupLatitude = 18.5204,
-  pickupLongitude = 73.8567,
-  destinationLatitude = 18.5308,
-  destinationLongitude = 73.8474,
+  pickupLatitude = DEFAULT_LATITUDE,
+  pickupLongitude = DEFAULT_LONGITUDE,
+  destinationLatitude = DEFAULT_DESTINATION_LATITUDE,
+  destinationLongitude = DEFAULT_DESTINATION_LONGITUDE,
 }: LiveDriverTrackingMapProps) {
   const routeCoordinates = [
     { latitude: pickupLatitude, longitude: pickupLongitude },

@@ -1,11 +1,14 @@
 package auth
 
 import (
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gorilla/securecookie"
@@ -35,6 +38,7 @@ type SessionStore struct {
 // secure controls the Secure attribute of the session cookie; it should be
 // true in production (HTTPS) and can be false for plain-HTTP development.
 func NewSessionStore(cookieSecret string, secure bool) *SessionStore {
+	SetTokenSecret([]byte(cookieSecret))
 	return &SessionStore{
 		cookieName: "session",
 		signer:     securecookie.New([]byte(cookieSecret), nil),
@@ -166,14 +170,53 @@ func ClientLocation(r *http.Request) string {
 	return "Unknown"
 }
 
-// HashToken hashes a session token for storage.
-func HashToken(token string) string {
-	return hex.EncodeToString([]byte(token))
+// tokenSecret keys the HMAC used to hash session and API tokens before they
+// are stored. SetTokenSecret (wired automatically by NewSessionStore from the
+// cookie secret) must be called before tokens are hashed. The fallback below
+// only applies to code paths that hash without a store; replace it with a
+// dedicated secret in production.
+var (
+	tokenSecretMu sync.Mutex
+	tokenSecret   = []byte("transport-app-fallback-token-secret-change-me")
+)
+
+// SetTokenSecret configures the secret used to hash session/API tokens for
+// storage. Empty secrets are ignored so a blank cookie secret cannot disable
+// token hashing.
+func SetTokenSecret(secret []byte) {
+	if len(secret) == 0 {
+		return
+	}
+	tokenSecretMu.Lock()
+	tokenSecret = append(tokenSecret[:0], secret...)
+	tokenSecretMu.Unlock()
 }
 
-// CompareToken compares a token against its hash.
+func currentTokenSecret() []byte {
+	tokenSecretMu.Lock()
+	defer tokenSecretMu.Unlock()
+	return append([]byte(nil), tokenSecret...)
+}
+
+// HashToken hashes a session token for storage. The returned value is the
+// hex-encoded HMAC-SHA256 of the raw token, so a database leak does not expose
+// usable tokens.
+func HashToken(token string) string {
+	mac := hmac.New(sha256.New, currentTokenSecret())
+	mac.Write([]byte(token))
+	return hex.EncodeToString(mac.Sum(nil))
+}
+
+// CompareToken compares a presented token against its stored hash in constant
+// time by recomputing the HMAC over the token.
 func CompareToken(token, hash string) bool {
-	return token == hash
+	stored, err := hex.DecodeString(hash)
+	if err != nil {
+		return false
+	}
+	mac := hmac.New(sha256.New, currentTokenSecret())
+	mac.Write([]byte(token))
+	return hmac.Equal(stored, mac.Sum(nil))
 }
 
 // Role hierarchy: lower number = more privilege

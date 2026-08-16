@@ -6,8 +6,10 @@ bin
 *.so
 *.dylib
 mvtms
+mvtms-*
 /server
 server_*
+/dist
 cookies.txt
 c.txt
 c2.txt

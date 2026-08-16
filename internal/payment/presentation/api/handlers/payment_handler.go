@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -23,6 +24,7 @@ type APIPaymentHandler struct {
 	listUC          *application.ListPaymentsUseCase
 	reverseUC       *application.ReversePaymentUseCase
 	listByInvoiceUC *application.ListPaymentsByInvoiceUseCase
+	webhookUC       *application.RazorpayWebhookUseCase
 	authSrv         auth.AuthorizationService
 }
 
@@ -33,16 +35,22 @@ func NewAPIPaymentHandler(
 	listUC *application.ListPaymentsUseCase,
 	reverseUC *application.ReversePaymentUseCase,
 	listByInvoiceUC *application.ListPaymentsByInvoiceUseCase,
+	webhookUC *application.RazorpayWebhookUseCase,
 	authSrv auth.AuthorizationService,
 ) *APIPaymentHandler {
-	return &APIPaymentHandler{
+	h := &APIPaymentHandler{
 		recordUC:        recordUC,
 		getUC:           getUC,
 		listUC:          listUC,
 		reverseUC:       reverseUC,
 		listByInvoiceUC: listByInvoiceUC,
+		webhookUC:       webhookUC,
 		authSrv:         authSrv,
 	}
+	if h.webhookUC != nil {
+		h.webhookUC.SetReversePaymentUseCase(reverseUC)
+	}
+	return h
 }
 
 // Register mounts all payment routes.
@@ -53,7 +61,43 @@ func (h *APIPaymentHandler) Register(r chi.Router) {
 		r.With(middleware.RequirePermission(h.authSrv, "payments", "read")).Get("/{id}", h.Get)
 		r.With(middleware.RequirePermission(h.authSrv, "payments", "read")).Get("/by-invoice/{invoiceID}", h.ListByInvoice)
 		r.With(middleware.RequirePermission(h.authSrv, "payments", "create")).Post("/{id}/reverse", h.Reverse)
+		r.With(middleware.RequirePermission(h.authSrv, "payments", "read")).Get("/razorpay-webhook/status", h.RazorpayWebhookStatus)
 	})
+}
+
+// RazorpayWebhook handles Razorpay payment webhooks. Intentionally mounted
+// outside the authenticated API group by cmd/server/main.go.
+func (h *APIPaymentHandler) RazorpayWebhook(w http.ResponseWriter, r *http.Request) {
+	if h.webhookUC == nil {
+		http.Error(w, "webhook not configured", http.StatusServiceUnavailable)
+		return
+	}
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var ev application.RazorpayWebhookEvent
+	if err := json.Unmarshal(body, &ev); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	id, err := h.webhookUC.ExecuteEvent(r.Context(), body, r.Header.Get("X-Razorpay-Signature"), r.Header.Get("X-Razorpay-Event-Id"), ev)
+	if err != nil {
+		switch {
+		case errors.Is(err, application.ErrWebhookNotConfigured):
+			http.Error(w, err.Error(), http.StatusServiceUnavailable)
+		case errors.Is(err, application.ErrWebhookInvalidSignature):
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+		default:
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+		return
+	}
+
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{"received": true, "payment_id": string(id)})
 }
 
 func (h *APIPaymentHandler) Record(w http.ResponseWriter, r *http.Request) {
@@ -167,4 +211,14 @@ func (h *APIPaymentHandler) Reverse(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(map[string]string{"id": string(id)})
+}
+
+// RazorpayWebhookStatus returns the last webhook received timestamp and counts by event type.
+func (h *APIPaymentHandler) RazorpayWebhookStatus(w http.ResponseWriter, r *http.Request) {
+	if h.webhookUC == nil {
+		http.Error(w, "webhook not configured", http.StatusServiceUnavailable)
+		return
+	}
+	status := h.webhookUC.Status()
+	_ = json.NewEncoder(w).Encode(status)
 }

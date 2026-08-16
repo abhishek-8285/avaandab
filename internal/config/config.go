@@ -1,8 +1,12 @@
 package config
 
 import (
+	"fmt"
+	"log/slog"
+	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -21,6 +25,7 @@ type Config struct {
 	MaxUploadSize     int64
 	RazorpayKeyID     string
 	RazorpayKeySecret string
+	RazorpayWebhook   string
 	BootstrapAdmin    BootstrapAdminConfig
 }
 
@@ -36,7 +41,10 @@ type BootstrapAdminConfig struct {
 func Load() *Config {
 	maxUpload := int64(10 << 20) // 10 MB default
 	if v := os.Getenv("MAX_UPLOAD_SIZE"); v != "" {
-		if parsed, err := strconv.ParseInt(v, 10, 64); err == nil {
+		parsed, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			slog.Error("invalid MAX_UPLOAD_SIZE", "value", v, "error", err)
+		} else {
 			maxUpload = parsed << 20
 		}
 	}
@@ -58,7 +66,7 @@ func Load() *Config {
 		cookieSecure = v == "true" || v == "1"
 	}
 
-	return &Config{
+	cfg := &Config{
 		AppEnv:            env,
 		Port:              getEnv("PORT", "8080"),
 		DatabaseURL:       getEnv("DATABASE_URL", "file:transport.db?mode=rwc&cache=shared&_foreign_keys=on&_journal_mode=WAL"),
@@ -70,14 +78,45 @@ func Load() *Config {
 		UploadDir:         getEnv("UPLOAD_DIR", "./uploads"),
 		StaticDir:         getEnv("STATIC_DIR", "internal/static"),
 		MaxUploadSize:     maxUpload,
-		RazorpayKeyID:     getEnv("RAZORPAY_KEY_ID", "rzp_test_TMdP3QXQq2L67c"),
-		RazorpayKeySecret: getEnv("RAZORPAY_KEY_SECRET", "Fv17NyJHioQluynfHY59F0da"),
+		RazorpayKeyID:     getEnv("RAZORPAY_KEY_ID", ""),
+		RazorpayKeySecret: getEnv("RAZORPAY_KEY_SECRET", ""),
+		RazorpayWebhook:   os.Getenv("RAZORPAY_WEBHOOK_SECRET"),
 		BootstrapAdmin: BootstrapAdminConfig{
 			Email:    os.Getenv("BOOTSTRAP_ADMIN_EMAIL"),
 			Name:     getEnv("BOOTSTRAP_ADMIN_NAME", "Admin"),
 			Password: os.Getenv("BOOTSTRAP_ADMIN_PASSWORD"),
 		},
 	}
+
+	if err := cfg.Validate(); err != nil {
+		slog.Error("invalid configuration", "error", err)
+	}
+
+	return cfg
+}
+
+func validateDatabaseURL(raw string) error {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return fmt.Errorf("DATABASE_URL: invalid value %q: %w", raw, err)
+	}
+	if u.Scheme == "" {
+		if !strings.HasSuffix(strings.ToLower(raw), ".db") &&
+			!strings.HasSuffix(strings.ToLower(raw), ".sqlite") &&
+			!strings.HasSuffix(strings.ToLower(raw), ".sqlite3") {
+			return fmt.Errorf("DATABASE_URL: plain file path %q must end in .db, .sqlite or .sqlite3", raw)
+		}
+		return nil
+	}
+	if u.Scheme != "file" {
+		return fmt.Errorf("DATABASE_URL: unsupported scheme %q in %q; use a plain file path or a file: URI", u.Scheme, raw)
+	}
+	return nil
+}
+
+// Validate checks the configuration for invalid values.
+func (c *Config) Validate() error {
+	return validateDatabaseURL(c.DatabaseURL)
 }
 
 func getEnv(key, fallback string) string {

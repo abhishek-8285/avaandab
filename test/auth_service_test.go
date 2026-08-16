@@ -2,6 +2,8 @@ package test
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,26 +13,36 @@ import (
 	"transport-app/internal/service"
 )
 
+// randomPassword returns a cryptographically random 16-byte hex string.
+func randomPassword(t *testing.T) string {
+	t.Helper()
+	b := make([]byte, 16)
+	_, err := rand.Read(b)
+	require.NoError(t, err)
+	return hex.EncodeToString(b)
+}
+
 // createTestAdmin provisions an admin user directly through the service,
 // mirroring the env-based bootstrap flow (migrations no longer seed one).
-func createTestAdmin(t *testing.T, svc *service.Services) domain.User {
+func createTestAdmin(t *testing.T, svc *service.Services) (domain.User, string) {
 	t.Helper()
 	ctx := context.Background()
+	password := randomPassword(t)
 
-	created, err := svc.Users.CreateUserWithPassword(ctx, "admin@transport.local", "Admin User", "555-0100", "admin12345", 1, domain.UserStatusActive)
+	created, err := svc.Users.CreateUserWithPassword(ctx, "admin@transport.local", "Admin User", "555-0100", password, 1, domain.UserStatusActive)
 	require.NoError(t, err)
-	return created
+	return created, password
 }
 
 func TestAuthService_Login(t *testing.T) {
 	db := NewTestDB(t)
 	svc := NewTestServices(t, db)
-	createTestAdmin(t, svc)
+	_, password := createTestAdmin(t, svc)
 	ctx := context.Background()
 
 	result, err := svc.Auth.Login(ctx, service.LoginRequest{
 		Email:    "admin@transport.local",
-		Password: "admin12345",
+		Password: password,
 	})
 
 	require.NoError(t, err)
@@ -41,11 +53,11 @@ func TestAuthService_Login(t *testing.T) {
 func TestAuthService_Login_InvalidCredentials(t *testing.T) {
 	db := NewTestDB(t)
 	svc := NewTestServices(t, db)
-	createTestAdmin(t, svc)
+	_, _ = createTestAdmin(t, svc)
 
 	_, err := svc.Auth.Login(context.Background(), service.LoginRequest{
 		Email:    "admin@transport.local",
-		Password: "wrongpassword",
+		Password: "wrongpassword-that-does-not-match",
 	})
 
 	assert.Error(t, err)
@@ -54,7 +66,7 @@ func TestAuthService_Login_InvalidCredentials(t *testing.T) {
 func TestAuthService_GetProfile(t *testing.T) {
 	db := NewTestDB(t)
 	svc := NewTestServices(t, db)
-	admin := createTestAdmin(t, svc)
+	admin, _ := createTestAdmin(t, svc)
 
 	user, err := svc.Auth.GetProfile(context.Background(), admin.ID)
 	require.NoError(t, err)

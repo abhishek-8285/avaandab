@@ -47,10 +47,10 @@ adb shell "su -c 'chown -R shell:shell /data/local/tmp/internal /data/local/tmp/
 
 # 6. Restart Server on Android
 echo -e "${CYAN}[6/6] Restarting MVTMS server on Android VPS...${NC}"
-# Kill existing instance if running
-adb shell "su -c 'pkill -f mvtms || true'"
-# Launch server in background
-adb shell "su -c 'cd /data/local/tmp && nohup ./mvtms >/data/local/tmp/mvtms.log 2>&1 &'"
+# Kill existing instance by PID file to avoid broad pkill
+adb shell "su -c 'PID=\$(cat /data/local/tmp/mvtms.pid 2>/dev/null); [ -n \"\$PID\" ] && kill -9 \$PID 2>/dev/null || true'"
+# Launch server in background and record PID
+adb shell "su -c 'cd /data/local/tmp && nohup ./mvtms >/data/local/tmp/mvtms.log 2>&1 & echo \$! > /data/local/tmp/mvtms.pid'"
 
 # Wait for server to boot and read log status
 sleep 2

@@ -2,10 +2,16 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 
 	"transport-app/internal/domain"
 )
+
+// ErrDuplicateCustomerEmail is returned when a customer update would use an
+// email already assigned to another customer.
+var ErrDuplicateCustomerEmail = errors.New("customer with this email already exists")
 
 // CustomerService handles customer management.
 type CustomerService struct {
@@ -71,6 +77,19 @@ func (s *CustomerService) UpdateCustomer(ctx context.Context, id domain.Customer
 	// Check phone uniqueness for other customers
 	if existing, err := s.store.GetCustomerByPhone(ctx, phone); err == nil && existing.ID != id {
 		return domain.Customer{}, fmt.Errorf("customer with phone number %s already exists", phone)
+	}
+
+	// Check email uniqueness for other customers when the email is being changed
+	if email != "" && (customer.Email == nil || !strings.EqualFold(*customer.Email, email)) {
+		matches, err := s.store.SearchCustomers(ctx, email, 1000, 0)
+		if err != nil {
+			return domain.Customer{}, err
+		}
+		for _, c := range matches {
+			if c.ID != id && c.Email != nil && strings.EqualFold(*c.Email, email) {
+				return domain.Customer{}, ErrDuplicateCustomerEmail
+			}
+		}
 	}
 
 	customer.Name = name

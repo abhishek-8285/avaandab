@@ -14,6 +14,7 @@ const (
 	PaymentMethodUPI          PaymentMethod = "upi"
 	PaymentMethodBankTransfer PaymentMethod = "bank_transfer"
 	PaymentMethodCheque       PaymentMethod = "cheque"
+	PaymentMethodRazorpay     PaymentMethod = "razorpay"
 )
 
 // PaymentAggregate is the aggregate root representing a payment transaction.

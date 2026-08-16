@@ -28,7 +28,18 @@ type DriverSettlementRecord struct {
 // DriverSettlementService handles driver payout calculation and financial settlements.
 type DriverSettlementService struct {
 	baseService
+	defaultFare       float64
+	defaultAdvances   float64
+	defaultDeductions float64
 }
+
+// Defaults used when the settlement service is constructed without
+// explicit values (e.g. zero-value struct in tests).
+const (
+	defaultSettlementFare       = 1000.0
+	defaultSettlementAdvances   = 200.0
+	defaultSettlementDeductions = 50.0
+)
 
 // CreateSettlementForTrip calculates initial net payout for a trip.
 // Net Payout = Fare - Advances (Kharcha) - Deductions.
@@ -83,15 +94,24 @@ func (s *DriverSettlementService) ProcessFinancialSettlement(ctx context.Context
 	}
 
 	// Calculate net payout (Fare - Kharcha - Advances)
-	fare := 1000.0 // Default or extracted from booking/trip fare
+	fare := s.defaultFare
+	if fare <= 0 {
+		fare = defaultSettlementFare
+	}
 	if trip.BookingID != nil {
 		if bk, err := s.store.GetBookingByID(ctx, *trip.BookingID); err == nil {
 			fare = bk.Price
 		}
 	}
 
-	advances := 200.0  // Example kharcha advance
-	deductions := 50.0 // Example toll / fee deduction
+	advances := s.defaultAdvances
+	if advances <= 0 {
+		advances = defaultSettlementAdvances
+	}
+	deductions := s.defaultDeductions
+	if deductions <= 0 {
+		deductions = defaultSettlementDeductions
+	}
 	netPayout := fare - advances - deductions
 
 	now := time.Now()

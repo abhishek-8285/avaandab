@@ -26,6 +26,7 @@ type PaymentReadModel struct {
 type PaymentRepository interface {
 	Save(ctx context.Context, p *aggregate.PaymentAggregate) error
 	Find(ctx context.Context, id aggregate.PaymentID, tenantID shared.TenantID) (*aggregate.PaymentAggregate, error)
+	FindByReference(ctx context.Context, reference string, tenantID shared.TenantID) (aggregate.PaymentID, error)
 	GetReadModel(ctx context.Context, id aggregate.PaymentID, tenantID shared.TenantID) (PaymentReadModel, error)
 	GetPaymentsByInvoice(ctx context.Context, invoiceID string, tenantID shared.TenantID) ([]PaymentReadModel, error)
 	SearchReadModels(ctx context.Context, tenantID shared.TenantID, method string, limit int, offset int) ([]PaymentReadModel, int64, error)

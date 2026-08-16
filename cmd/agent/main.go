@@ -13,7 +13,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -38,6 +40,7 @@ const (
 	workDir              = "/data/local/tmp"
 	backupDir            = "/data/local/tmp/backup_previous"
 	versionFile          = "/data/local/tmp/current_version.txt"
+	pidFile              = "/data/local/tmp/mvtms_server.pid"
 	githubRepo           = "abhishek-8285/avandab"
 	healthCheckTimeout   = 10 * time.Second
 )
@@ -162,10 +165,9 @@ func applyUpdateWithRollback(m *VersionManifest) error {
 	_ = copyFile(filepath.Join(workDir, "server"), filepath.Join(backupDir, "server"))
 	_ = copyFile(versionFile, filepath.Join(backupDir, "current_version.txt"))
 
-	// Step 2: Stop old process cleanly
+	// Step 2: Stop old process cleanly using its PID file
 	log.Printf("[Agent] Terminating existing server process...")
-	_ = exec.Command("pkill", "-9", "-f", "server").Run()
-	_ = exec.Command("su", "-c", "pkill -9 -f server").Run()
+	stopServerByPID()
 	time.Sleep(1500 * time.Millisecond)
 	_ = os.Remove(filepath.Join(workDir, "server"))
 
@@ -196,7 +198,7 @@ func performRollback() error {
 		return fmt.Errorf("no backup binary found to restore")
 	}
 
-	_ = exec.Command("pkill", "-9", "server").Run()
+	stopServerByPID()
 	time.Sleep(1 * time.Second)
 
 	if err := copyFile(backupServer, filepath.Join(workDir, "server")); err != nil {
@@ -217,7 +219,7 @@ func performRollback() error {
 func verifyAndRecoverRunningServer() {
 	if !checkServerHealth() {
 		log.Printf("[Agent Recover] Warning: Server is not responding on port 8092. Attempting auto-restart...")
-		_ = exec.Command("pkill", "-9", "server").Run()
+		stopServerByPID()
 		time.Sleep(1 * time.Second)
 		restartServer()
 	}
@@ -259,9 +261,44 @@ func launchServerDirectly() {
 	cmd.Env = append(os.Environ(),
 		"PORT=8092",
 		"ENV=production",
-		"DATABASE_URL=file:mvtms.db?_journal_mode=WAL&_synchronous=OFF&cache=shared&mode=rwc",
+		"DATABASE_URL=file:mvtms.db?_journal_mode=WAL&_synchronous=NORMAL&cache=shared&mode=rwc",
 	)
-	_ = cmd.Start()
+	if err := cmd.Start(); err != nil {
+		log.Printf("[Agent Error] Failed to start server: %v", err)
+		return
+	}
+	if err := os.WriteFile(pidFile, []byte(strconv.Itoa(cmd.Process.Pid)), 0644); err != nil {
+		log.Printf("[Agent Warning] Failed to write PID file: %v", err)
+	}
+}
+
+// stopServerByPID terminates the server recorded in pidFile, if any. This
+// avoids the broad "pkill -f server" pattern that could kill unrelated
+// processes.
+func stopServerByPID() {
+	data, err := os.ReadFile(pidFile)
+	if err != nil {
+		log.Printf("[Agent Warning] No PID file found; server may already be stopped")
+		return
+	}
+	pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
+	if err != nil {
+		log.Printf("[Agent Warning] Invalid PID file contents: %v", err)
+		_ = os.Remove(pidFile)
+		return
+	}
+	proc, err := os.FindProcess(pid)
+	if err != nil {
+		log.Printf("[Agent Warning] Could not find server process %d: %v", pid, err)
+		_ = os.Remove(pidFile)
+		return
+	}
+	if err := proc.Signal(syscall.SIGTERM); err != nil {
+		log.Printf("[Agent Warning] SIGTERM failed for process %d: %v; using SIGKILL", pid, err)
+		_ = proc.Kill()
+	}
+	time.Sleep(500 * time.Millisecond)
+	_ = os.Remove(pidFile)
 }
 
 func downloadFile(filepath string, url string) error {

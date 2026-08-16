@@ -34,7 +34,7 @@ echo -e "${GREEN}Compilation successful! Binary size: $(du -sh bin/mvtms-arm64 |
 
 # 3. Clean existing running instances on remote device
 echo -e "${CYAN}[3/5] Terminating previous server process on TECNO phone...${NC}"
-ssh -F ~/.ssh/config "${SSH_HOST}" "pkill -9 mvtms-arm64 2>/dev/null || true; pkill -9 server 2>/dev/null || true; mkdir -p ${REMOTE_PATH}/internal"
+ssh -F ~/.ssh/config "${SSH_HOST}" "PID=\$(cat ${REMOTE_PATH}/mvtms_server.pid 2>/dev/null); [ -n \"\$PID\" ] && kill -9 \$PID 2>/dev/null || true; mkdir -p ${REMOTE_PATH}/internal"
 
 # 4. Copy binary, DB & assets via scp
 echo -e "${CYAN}[4/5] Syncing updated binary, templates, static files & DB to remote device...${NC}"
@@ -52,7 +52,11 @@ echo -e "${GREEN}Asset transfer completed.${NC}"
 
 # 5. Start the server daemon cleanly
 echo -e "${CYAN}[5/5] Launching fresh server process (Port ${PORT})...${NC}"
-ssh -F ~/.ssh/config "${SSH_HOST}" "chmod +x ${REMOTE_PATH}/mvtms-arm64 && cd ${REMOTE_PATH} && PORT=${PORT} DATABASE_URL='file:mvtms.db?cache=shared&mode=rwc' COOKIE_SECRET='dev-secret-32bytes-for-cookie-signing!' APP_DOMAIN='avandab.com' nohup ./mvtms-arm64 > server.log 2>&1 &"
+if [ -z "${COOKIE_SECRET}" ]; then
+    echo -e "${RED}Error: COOKIE_SECRET environment variable is not set.${NC}"
+    exit 1
+fi
+ssh -F ~/.ssh/config "${SSH_HOST}" "chmod +x ${REMOTE_PATH}/mvtms-arm64 && cd ${REMOTE_PATH} && PORT=${PORT} DATABASE_URL='file:mvtms.db?cache=shared&mode=rwc' COOKIE_SECRET='${COOKIE_SECRET}' APP_DOMAIN='avandab.com' nohup ./mvtms-arm64 > server.log 2>&1 & echo \$! > ${REMOTE_PATH}/mvtms_server.pid"
 
 sleep 3
 echo -e "${YELLOW}Remote Server Boot Output Log:${NC}"

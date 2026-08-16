@@ -1,5 +1,6 @@
 import * as Location from 'expo-location';
 import { Camera } from 'expo-camera';
+import { DEFAULT_LATITUDE, DEFAULT_LONGITUDE } from '../constants/network';
 import { DB } from './storage';
 
 export interface LocationState {
@@ -46,8 +47,8 @@ class TelemetryService {
       } catch {}
 
       if (!coords) {
-        // Instant active location coordinates
-        coords = { latitude: 18.5204, longitude: 73.8567 };
+        // Configurable demo fallback when GPS data is unavailable.
+        coords = { latitude: DEFAULT_LATITUDE || 18.5204, longitude: DEFAULT_LONGITUDE || 73.8567 };
       }
 
       // Log telemetry event to offline SQLite database

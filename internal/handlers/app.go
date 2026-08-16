@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 	"html/template"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -51,7 +52,11 @@ type App struct {
 
 // NewApp creates a new handler app with all handler groups initialized.
 func NewApp(svc *service.Services, cfg *config.Config, authStore *auth.SessionStore, db *sql.DB, authSrv auth.AuthorizationService) *App {
-	templates := parseTemplates(authSrv)
+	templates, err := parseTemplates(authSrv)
+	if err != nil {
+		slog.Error("failed to parse templates; serving with minimal template set", "error", err)
+		templates = template.New("")
+	}
 
 	app := &App{
 		Services:  svc,
@@ -83,7 +88,7 @@ func NewApp(svc *service.Services, cfg *config.Config, authStore *auth.SessionSt
 }
 
 // parseTemplates loads and parses all HTML templates with custom functions.
-func parseTemplates(authSrv auth.AuthorizationService) *template.Template {
+func parseTemplates(authSrv auth.AuthorizationService) (*template.Template, error) {
 	tmpl := template.New("").Funcs(template.FuncMap{
 		"can": func(user interface{}, resource string, action string) bool {
 			if user == nil {
@@ -175,11 +180,13 @@ func parseTemplates(authSrv auth.AuthorizationService) *template.Template {
 
 	_, err := tmpl.ParseGlob(filepath.Join(templatesDir, "*.html"))
 	if err != nil {
-		panic(fmt.Sprintf("failed to parse templates from %q: %v", templatesDir, err))
+		return nil, fmt.Errorf("failed to parse templates from %q: %w", templatesDir, err)
 	}
 	// Parse partial templates from subdirectories
-	_, _ = tmpl.ParseGlob(filepath.Join(partialsDir, "*.html"))
-	return tmpl
+	if _, err := tmpl.ParseGlob(filepath.Join(partialsDir, "*.html")); err != nil {
+		return nil, fmt.Errorf("failed to parse partial templates from %q: %w", partialsDir, err)
+	}
+	return tmpl, nil
 }
 
 func statusBadgeClass(status interface{}) string {
@@ -231,15 +238,16 @@ func formatDate(t time.Time) string {
 
 // PageData is the base data passed to all page templates.
 type PageData struct {
-	Title        string
-	Version      string
-	User         *auth.SessionData
-	UserDetail   interface{}
-	Roles        interface{}
-	Settings     interface{}
-	FlashError   string
-	FlashSuccess string
-	Extra        map[string]interface{}
+	Title         string
+	Version       string
+	User          *auth.SessionData
+	UserDetail    interface{}
+	Roles         interface{}
+	Settings      interface{}
+	FlashError    string
+	FlashSuccess  string
+	RazorpayKeyID string
+	Extra         map[string]interface{}
 }
 
 // PaginationData contains pagination data for templates.
@@ -493,28 +501,35 @@ func (a *App) renderForm(w http.ResponseWriter, r *http.Request, name string, da
 	a.renderPage(w, r, name, data)
 }
 
+const homeCacheTTL = 15 * time.Minute
+
 var (
+	homeCacheMu    sync.Mutex
 	cachedHomeHTML []byte
-	cachedHomeOnce sync.Once
+	cachedHomeAt   time.Time
 )
 
-// Marketing renders the landing homepage using zero-alloc in-memory byte cache.
+// Marketing renders the landing homepage using an in-memory cache with TTL.
 func (a *App) Marketing(w http.ResponseWriter, r *http.Request) {
-	cachedHomeOnce.Do(func() {
+	homeCacheMu.Lock()
+	if len(cachedHomeHTML) == 0 || time.Since(cachedHomeAt) > homeCacheTTL {
 		tmpl := a.Templates.Lookup("home.html")
 		if tmpl != nil {
 			var buf bytes.Buffer
 			data := map[string]interface{}{"Version": AppVersion}
 			if err := tmpl.Execute(&buf, data); err == nil {
 				cachedHomeHTML = buf.Bytes()
+				cachedHomeAt = time.Now()
 			}
 		}
-	})
+	}
+	html := cachedHomeHTML
+	homeCacheMu.Unlock()
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800")
-	if len(cachedHomeHTML) > 0 {
-		_, _ = w.Write(cachedHomeHTML)
+	if len(html) > 0 {
+		_, _ = w.Write(html)
 		return
 	}
 
@@ -532,13 +547,32 @@ func (a *App) Marketing(w http.ResponseWriter, r *http.Request) {
 // DownloadFile serves an uploaded file by ID.
 func (a *App) DownloadFile(w http.ResponseWriter, r *http.Request) {
 	id := filepath.Base(r.URL.Path)
+	if !isValidFileID(id) {
+		a.renderError(w, http.StatusBadRequest, "Invalid File ID", "The requested file identifier is invalid.", nil)
+		return
+	}
 	file, err := a.Services.Files.GetFile(r.Context(), domain.FileID(id))
 	if err != nil {
 		a.renderError(w, http.StatusNotFound, "File Not Found", "The requested document or file does not exist.", nil)
 		return
 	}
-	filePath := filepath.Join(a.Config.UploadDir, file.Path)
+	uploadDir := filepath.Clean(a.Config.UploadDir)
+	if uploadDir == "." {
+		uploadDir = ""
+	}
+	filePath := filepath.Clean(filepath.Join(uploadDir, file.Path))
+	if uploadDir != "" && !strings.HasPrefix(filePath, uploadDir+string(os.PathSeparator)) && filePath != uploadDir {
+		a.renderError(w, http.StatusBadRequest, "Invalid File Path", "The requested file path is invalid.", nil)
+		return
+	}
 	http.ServeFile(w, r, filePath)
+}
+
+func isValidFileID(id string) bool {
+	if id == "" || id == "." || id == ".." {
+		return false
+	}
+	return !strings.ContainsAny(id, `/\`) && !strings.Contains(id, "..")
 }
 
 // renderError renders a friendly user-facing error screen using error.html and layout.html.
@@ -546,18 +580,24 @@ func (a *App) renderError(w http.ResponseWriter, statusCode int, title string, m
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(statusCode)
 
+	fallback := fmt.Sprintf("%d - %s: %s", statusCode, title, message)
+
 	errTmpl := a.Templates.Lookup("error.html")
 	if errTmpl == nil {
-		http.Error(w, fmt.Sprintf("%d - %s: %s", statusCode, title, message), statusCode)
+		_, _ = w.Write([]byte(fallback))
 		return
 	}
 
 	var buf strings.Builder
-	_ = errTmpl.Execute(&buf, map[string]interface{}{
+	if err := errTmpl.Execute(&buf, map[string]interface{}{
 		"StatusCode": statusCode,
 		"Title":      title,
 		"Message":    message,
-	})
+	}); err != nil {
+		slog.Error("error template execution failed", "statusCode", statusCode, "title", title, "error", err)
+		_, _ = w.Write([]byte(fallback))
+		return
+	}
 
 	layout := a.Templates.Lookup("layout.html")
 	if layout == nil {
@@ -565,7 +605,7 @@ func (a *App) renderError(w http.ResponseWriter, statusCode int, title string, m
 		return
 	}
 
-	_ = layout.Execute(w, struct {
+	if err := layout.Execute(w, struct {
 		Title        string
 		Content      template.HTML
 		User         *auth.SessionData
@@ -575,5 +615,8 @@ func (a *App) renderError(w http.ResponseWriter, statusCode int, title string, m
 		Title:   title,
 		Content: template.HTML(buf.String()),
 		User:    user,
-	})
+	}); err != nil {
+		slog.Error("error layout execution failed", "statusCode", statusCode, "title", title, "error", err)
+		_, _ = w.Write([]byte(fallback))
+	}
 }

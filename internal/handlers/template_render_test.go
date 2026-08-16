@@ -29,7 +29,10 @@ func TestAllTemplatesRenderCleanly(t *testing.T) {
 		_ = os.Chdir("../..")
 	}
 
-	tmpl := parseTemplates(&mockAuthSvc{})
+	tmpl, err := parseTemplates(&mockAuthSvc{})
+	if err != nil {
+		t.Fatalf("Failed to parse templates: %v", err)
+	}
 
 	sampleTripDTO := tripapp.TripResponseDTO{
 		ID:                        "trip-1",

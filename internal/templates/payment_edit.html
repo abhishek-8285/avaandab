@@ -61,7 +61,7 @@
 document.getElementById('razorpay-btn').onclick = function(e) {
     e.preventDefault();
     var options = {
-        "key": "rzp_test_TMdP3QXQq2L67c",
+        "key": "{{.RazorpayKeyID}}",
         "amount": Math.round(parseFloat("{{if gt .Balance 0.0}}{{.Balance}}{{else}}1.00{{end}}") * 100),
         "currency": "INR",
         "name": "FlyFleet SaaS",

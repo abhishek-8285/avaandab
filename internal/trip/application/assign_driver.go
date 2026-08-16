@@ -4,7 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
+	driverDomain "transport-app/internal/driver/domain"
+	driverAgg "transport-app/internal/driver/domain/aggregate"
 	"transport-app/internal/shared"
 	"transport-app/internal/shared/ports"
 	"transport-app/internal/trip/domain"
@@ -39,6 +42,9 @@ func (uc *AssignDriverUseCase) Execute(ctx context.Context, cmd AssignDriverComm
 		if err != nil {
 			return err
 		}
+		if err := uc.checkDriverCompliance(txCtx, cmd.DriverID, cmd.TenantID); err != nil {
+			return err
+		}
 		conflicts, err := repo.CheckDriverConflict(txCtx, cmd.DriverID, cmd.TenantID, string(cmd.TripID))
 		if err != nil {
 			return err
@@ -55,4 +61,22 @@ func (uc *AssignDriverUseCase) Execute(ctx context.Context, cmd AssignDriverComm
 		logAudit(txCtx, ActionAssign, string(t.ID), nil, nil)
 		return nil
 	})
+}
+
+func (uc *AssignDriverUseCase) checkDriverCompliance(ctx ports.TxContext, driverID string, tenantID shared.TenantID) error {
+	driverRepo, ok := ctx.Repositories().Drivers().(driverDomain.DriverRepository)
+	if !ok {
+		return errors.New("failed to retrieve driver repository")
+	}
+	d, err := driverRepo.Find(ctx, driverAgg.DriverID(driverID), tenantID)
+	if err != nil {
+		return fmt.Errorf("driver %s not found: %w", driverID, err)
+	}
+	if d.Status == driverAgg.DriverInactive || d.Status == driverAgg.DriverLeave {
+		return fmt.Errorf("driver %s is not assignable (status: %s)", driverID, d.Status)
+	}
+	if !d.LicenseExpiry.IsZero() && d.LicenseExpiry.Before(uc.clock.Now().Truncate(24*time.Hour)) {
+		return fmt.Errorf("driver %s license expired on %s", driverID, d.LicenseExpiry.Format("2006-01-02"))
+	}
+	return nil
 }

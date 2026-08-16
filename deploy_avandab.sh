@@ -64,7 +64,7 @@ echo -e "${GREEN}✅ ADB Port forwarding ready (localhost:8092 -> TECNO:8092).${
 
 # 5. Start Background Server on Android Device
 echo -e "\n${CYAN}[5/6] Starting Avandab server on TECNO device...${NC}"
-adb shell "pkill -9 server 2>/dev/null || true"
+adb shell "PID=\$(cat /data/local/tmp/mvtms_server.pid 2>/dev/null); [ -n \"\$PID\" ] && kill -9 \$PID 2>/dev/null || true"
 cat << 'RUNEOF' > bin/start_device.sh
 #!/system/bin/sh
 cd /data/local/tmp
@@ -76,10 +76,15 @@ export PORT=8092
 export ENV=production
 export LOG_LEVEL=error
 export GODEBUG=netdns=go+1
-export DATABASE_URL='file:mvtms.db?_journal_mode=WAL&_synchronous=OFF&_temp_store=MEMORY&_busy_timeout=10000&_cache_size=-131072&_mmap_size=536870912&cache=shared&mode=rwc'
-export COOKIE_SECRET='dev-secret-32bytes-for-cookie-signing!'
+export DATABASE_URL='file:mvtms.db?_journal_mode=WAL&_synchronous=NORMAL&_temp_store=MEMORY&_busy_timeout=10000&_cache_size=-131072&_mmap_size=536870912&cache=shared&mode=rwc'
 export APP_DOMAIN='avandab.com'
+if [ -z "${COOKIE_SECRET}" ]; then
+  echo "COOKIE_SECRET is not set" >&2
+  exit 1
+fi
+export COOKIE_SECRET
 nohup taskset c0 ./server > /dev/null 2>&1 &
+echo $! > /data/local/tmp/mvtms_server.pid
 RUNEOF
 adb push bin/start_device.sh /data/local/tmp/start.sh > /dev/null
 adb shell "chmod +x /data/local/tmp/start.sh"

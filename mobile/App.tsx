@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { Colors } from './src/constants/theme';
+import { DEFAULT_DRIVER_ID, DEFAULT_LATITUDE, DEFAULT_LONGITUDE } from './src/constants/network';
 import { TripCard, SkeletonLoader } from './src/components/TripCard';
 import { LiveDriverTrackingMap } from './src/components/LiveDriverTrackingMap';
 import { SplashScreen } from './src/components/SplashScreen';
@@ -28,6 +29,11 @@ import { Trip } from './src/types/api';
 import { CameraView } from 'expo-camera';
 
 const queryClient = new QueryClient();
+
+// Configurable demo fallbacks; override via EXPO_PUBLIC_* env vars.
+const DEMO_DRIVER_ID = DEFAULT_DRIVER_ID || 'DRV-9042';
+const DEMO_LATITUDE = DEFAULT_LATITUDE || 18.5204;
+const DEMO_LONGITUDE = DEFAULT_LONGITUDE || 73.8567;
 
 export default function App() {
   const { isAuthenticated, isLoading, loadSession } = useAuthStore();
@@ -183,10 +189,10 @@ function MainScreen({ onOpenSetup }: { onOpenSetup?: () => void }) {
 
   useEffect(() => {
     Analytics.init();
-    Analytics.identify(user?.id || 'DRV-9042', { role: 'fleet_driver' });
+    Analytics.identify(user?.id || DEMO_DRIVER_ID, { role: 'fleet_driver' });
     loadSession().then(() => {
-      MQTT.connect(user?.id || 'DRV-9042');
-      SyncEngine.startAutoSync(user?.id || 'DRV-9042', 15000);
+      MQTT.connect(user?.id || DEMO_DRIVER_ID);
+      SyncEngine.startAutoSync(user?.id || DEMO_DRIVER_ID, 15000);
     });
     return () => SyncEngine.stopAutoSync();
   }, []);
@@ -194,7 +200,7 @@ function MainScreen({ onOpenSetup }: { onOpenSetup?: () => void }) {
   const handleManualSync = async () => {
     try {
       Analytics.track('driver_manual_sync_clicked');
-      const res = await SyncEngine.syncPendingLogs(user?.id || 'DRV-9042');
+      const res = await SyncEngine.syncPendingLogs(user?.id || DEMO_DRIVER_ID);
       if (res.error) {
         Alert.alert('Sync Warning', res.error);
       } else {
@@ -215,8 +221,8 @@ function MainScreen({ onOpenSetup }: { onOpenSetup?: () => void }) {
       
       const finalLoc = {
         granted: true,
-        latitude: loc.latitude || 18.5204,
-        longitude: loc.longitude || 73.8567,
+        latitude: loc.latitude || DEMO_LATITUDE,
+        longitude: loc.longitude || DEMO_LONGITUDE,
         error: loc.error,
       };
 
@@ -224,13 +230,13 @@ function MainScreen({ onOpenSetup }: { onOpenSetup?: () => void }) {
       Analytics.track('driver_gps_location_acquired', { lat: finalLoc.latitude, lng: finalLoc.longitude });
       
       // Stream live location over MQTT protocol
-      MQTT.publishLocation(user?.id || 'DRV-9042', finalLoc.latitude, finalLoc.longitude);
+      MQTT.publishLocation(user?.id || DEMO_DRIVER_ID, finalLoc.latitude, finalLoc.longitude);
 
       Alert.alert('GPS Access Granted', `Latitude: ${finalLoc.latitude.toFixed(4)}, Longitude: ${finalLoc.longitude.toFixed(4)}\nStreamed over MQTT & Saved to SQLite.`);
       
       Telemetry.startLiveLocationTracking((lat, lng) => {
         setLocationState((prev) => ({ ...prev, latitude: lat, longitude: lng }));
-        MQTT.publishLocation(user?.id || 'DRV-9042', lat, lng);
+        MQTT.publishLocation(user?.id || DEMO_DRIVER_ID, lat, lng);
       });
     } catch (e: any) {
       Analytics.track('driver_gps_error', { error: e.message });
@@ -403,7 +409,7 @@ function MainScreen({ onOpenSetup }: { onOpenSetup?: () => void }) {
                   {/* Uber-Style Live Interactive Map */}
                   <LiveDriverTrackingMap
                     driverLatitude={locationState.latitude}
-                    driverLongitude={locationState.longitude || 73.8567}
+                    driverLongitude={locationState.longitude || DEMO_LONGITUDE}
                   />
 
                   <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>

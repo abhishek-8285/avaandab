@@ -1,0 +1,1507 @@
+openapi: 3.0.3
+info:
+  title: MVTMS REST API
+  description: |
+    OpenAPI specification for the MVTMS REST API v1. Authentication is via
+    a signed Bearer token (`Authorization: Bearer <token>`) or an existing
+    session cookie. The token endpoints are public; all other `/api/v1/*`
+    routes require a valid principal plus Casbin RBAC permissions.
+  version: "1.0.0"
+  contact:
+    name: MVTMS Support
+    url: https://avandab.com
+servers:
+  - url: /
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Auth
+    description: Public token and registration endpoints.
+  - name: Bookings
+    description: Booking lifecycle management.
+  - name: Trips
+    description: Trip planning, assignment, and lifecycle.
+  - name: Invoices
+    description: Invoice generation and voiding.
+  - name: Payments
+    description: Payment recording, reversal, and Razorpay webhooks.
+  - name: Profit & Loss
+    description: Live trip P&L estimates.
+  - name: Telemetry
+    description: GPS log sync and telemetry snapshots.
+
+paths:
+  /api/v1/auth/token:
+    post:
+      tags: [Auth]
+      summary: Issue API token
+      description: Authenticate with email and password to receive a signed Bearer token.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRequest'
+      responses:
+        '200':
+          description: Signed token issued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      description: |
+        Public self-registration. Only the `viewer` role can be requested;
+        privileged roles must be assigned by an administrator.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '200':
+          description: User registered and token issued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/bookings:
+    get:
+      tags: [Bookings]
+      summary: List bookings
+      description: Requires `bookings:read` permission.
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SearchParam'
+        - $ref: '#/components/parameters/StatusParam'
+      responses:
+        '200':
+          description: Paginated list of bookings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Bookings]
+      summary: Create a booking
+      description: Requires `bookings:create` permission.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingRequest'
+      responses:
+        '201':
+          description: Booking created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IDResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/bookings/{id}:
+    get:
+      tags: [Bookings]
+      summary: Get a booking
+      description: Requires `bookings:read` permission.
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '200':
+          description: Booking details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Bookings]
+      summary: Update a booking
+      description: Requires `bookings:update` permission.
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBookingRequest'
+      responses:
+        '200':
+          description: Booking updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    delete:
+      tags: [Bookings]
+      summary: Delete a booking
+      description: Requires `bookings:delete` permission.
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '204':
+          description: Booking deleted.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/bookings/{id}/confirm:
+    post:
+      tags: [Bookings]
+      summary: Confirm a booking
+      description: Requires `bookings:approve` permission.
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '200':
+          description: Booking confirmed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/bookings/{id}/cancel:
+    post:
+      tags: [Bookings]
+      summary: Cancel a booking
+      description: Requires `bookings:cancel` permission.
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '200':
+          description: Booking cancelled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/bookings/{id}/complete:
+    post:
+      tags: [Bookings]
+      summary: Complete a booking
+      description: Requires `bookings:update` permission.
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '200':
+          description: Booking completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/trips:
+    get:
+      tags: [Trips]
+      summary: List trips
+      description: Requires `trips:read` permission.
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SearchParam'
+        - $ref: '#/components/parameters/StatusParam'
+      responses:
+        '200':
+          description: Paginated list of trips.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Trips]
+      summary: Create a trip
+      description: Requires `trips:create` permission.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTripRequest'
+      responses:
+        '201':
+          description: Trip created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IDResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/trips/{id}:
+    get:
+      tags: [Trips]
+      summary: Get a trip
+      description: Requires `trips:read` permission.
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '200':
+          description: Trip details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/trips/{id}/assign-driver:
+    post:
+      tags: [Trips]
+      summary: Assign a driver
+      description: Requires `trips:assign` permission.
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignDriverRequest'
+      responses:
+        '200':
+          description: Driver assigned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/trips/{id}/assign-vehicle:
+    post:
+      tags: [Trips]
+      summary: Assign a vehicle
+      description: Requires `trips:assign` permission.
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignVehicleRequest'
+      responses:
+        '200':
+          description: Vehicle assigned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/trips/{id}/schedule:
+    post:
+      tags: [Trips]
+      summary: Schedule a trip
+      description: Requires `trips:update` permission.
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '200':
+          description: Trip scheduled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/trips/{id}/start:
+    post:
+      tags: [Trips]
+      summary: Start a trip
+      description: Requires `trips:update` permission.
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '200':
+          description: Trip started.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/trips/{id}/reach-pickup:
+    post:
+      tags: [Trips]
+      summary: Mark trip reached pickup
+      description: Requires `trips:update` permission.
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '200':
+          description: Trip reached pickup.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/trips/{id}/in-transit:
+    post:
+      tags: [Trips]
+      summary: Mark trip in transit
+      description: Requires `trips:update` permission.
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '200':
+          description: Trip in transit.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/trips/{id}/deliver:
+    post:
+      tags: [Trips]
+      summary: Mark trip delivered
+      description: Requires `trips:update` permission.
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '200':
+          description: Trip delivered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/trips/{id}/complete:
+    post:
+      tags: [Trips]
+      summary: Complete a trip
+      description: Requires `trips:update` permission.
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '200':
+          description: Trip completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/trips/{id}/cancel:
+    post:
+      tags: [Trips]
+      summary: Cancel a trip
+      description: Requires `trips:cancel` permission.
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '200':
+          description: Trip cancelled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/trips/{id}/pnl:
+    get:
+      tags: [Profit & Loss]
+      summary: Get live trip P&L
+      description: Requires `trips:read` permission.
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '200':
+          description: Live P&L estimate for the trip.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LivePnL'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/invoices:
+    get:
+      tags: [Invoices]
+      summary: List invoices
+      description: Requires `invoices:read` permission.
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SearchParam'
+        - $ref: '#/components/parameters/StatusParam'
+      responses:
+        '200':
+          description: Paginated list of invoices.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Invoices]
+      summary: Generate an invoice
+      description: Requires `invoices:create` permission.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateInvoiceRequest'
+      responses:
+        '201':
+          description: Invoice generated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IDResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/invoices/{id}:
+    get:
+      tags: [Invoices]
+      summary: Get an invoice
+      description: Requires `invoices:read` permission.
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '200':
+          description: Invoice details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/invoices/{id}/void:
+    post:
+      tags: [Invoices]
+      summary: Void an invoice
+      description: Requires `invoices:delete` permission.
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '204':
+          description: Invoice voided.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/payments:
+    get:
+      tags: [Payments]
+      summary: List payments
+      description: Requires `payments:read` permission.
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: method
+          in: query
+          schema:
+            type: string
+          description: Filter by payment method.
+      responses:
+        '200':
+          description: Paginated list of payments.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Payments]
+      summary: Record a payment
+      description: Requires `payments:create` permission.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordPaymentRequest'
+      responses:
+        '201':
+          description: Payment recorded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IDResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/payments/{id}:
+    get:
+      tags: [Payments]
+      summary: Get a payment
+      description: Requires `payments:read` permission.
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      responses:
+        '200':
+          description: Payment details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/payments/by-invoice/{invoiceID}:
+    get:
+      tags: [Payments]
+      summary: List payments for an invoice
+      description: Requires `payments:read` permission.
+      parameters:
+        - name: invoiceID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Payments for the invoice.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  payments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Payment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/payments/{id}/reverse:
+    post:
+      tags: [Payments]
+      summary: Reverse a payment
+      description: Requires `payments:create` permission.
+      parameters:
+        - $ref: '#/components/parameters/IDParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReversePaymentRequest'
+      responses:
+        '201':
+          description: Reversal payment recorded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IDResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/payments/razorpay-webhook:
+    post:
+      tags: [Payments]
+      summary: Razorpay webhook
+      description: |
+        Public Razorpay webhook. Verifies `X-Razorpay-Signature` and records
+        `payment.captured` events idempotently.
+      security: []
+      parameters:
+        - name: X-Razorpay-Signature
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RazorpayWebhookEvent'
+      responses:
+        '200':
+          description: Webhook acknowledged.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  received:
+                    type: boolean
+                  payment_id:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /api/v1/telemetry/sync:
+    post:
+      tags: [Telemetry]
+      summary: Sync GPS log batch
+      description: Public endpoint for mobile clients to upload buffered GPS logs.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncBatchRequest'
+      responses:
+        '200':
+          description: Logs accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncBatchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/telemetry/snapshots:
+    post:
+      tags: [Telemetry]
+      summary: Submit telemetry snapshot
+      description: Public endpoint for live vehicle telemetry snapshots.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TelemetrySnapshotPayload'
+      responses:
+        '200':
+          description: Snapshot stored.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Signed API token returned by `POST /api/v1/auth/token`.
+
+  parameters:
+    IDParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 1
+      description: Page number (1-based).
+    LimitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        default: 10
+      description: Items per page.
+    SearchParam:
+      name: search
+      in: query
+      schema:
+        type: string
+      description: Free-text search filter.
+    StatusParam:
+      name: status
+      in: query
+      schema:
+        type: string
+      description: Status filter.
+
+  schemas:
+    TokenRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    TokenResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+        user_id:
+          type: string
+        role:
+          type: string
+
+    RegisterRequest:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        password:
+          type: string
+          format: password
+        role:
+          type: string
+          description: Only `viewer` is allowed for public registration.
+          default: viewer
+        vehicle_number:
+          type: string
+
+    RegisterResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+        user:
+          $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+
+    IDResponse:
+      type: object
+      properties:
+        id:
+          type: string
+
+    StatusResponse:
+      type: object
+      properties:
+        status:
+          type: string
+
+    CreateBookingRequest:
+      type: object
+      required: [customer_id, route_id, vehicle_type, passengers, price]
+      properties:
+        customer_id:
+          type: string
+        route_id:
+          type: string
+        pickup_date:
+          type: string
+          example: "2026-08-20"
+          description: |
+            Accepts `YYYY-MM-DD`, RFC3339, `YYYY-MM-DD HH:MM`, or
+            `YYYY-MM-DD HH:MM:SS`.
+        vehicle_type:
+          type: string
+        passengers:
+          type: integer
+          minimum: 1
+        cargo_weight:
+          type: number
+          nullable: true
+        price:
+          type: number
+          minimum: 0
+        notes:
+          type: string
+
+    UpdateBookingRequest:
+      allOf:
+        - $ref: '#/components/schemas/CreateBookingRequest'
+
+    Booking:
+      type: object
+      properties:
+        id:
+          type: string
+        booking_number:
+          type: string
+        customer_id:
+          type: string
+        route_id:
+          type: string
+        pickup_date:
+          type: string
+          format: date-time
+        vehicle_type:
+          type: string
+        passengers:
+          type: integer
+        cargo_weight:
+          type: number
+          nullable: true
+        price:
+          type: number
+        notes:
+          type: string
+        status:
+          type: string
+          enum: [draft, pending, confirmed, cancelled, completed]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    BookingList:
+      type: object
+      properties:
+        bookings:
+          type: array
+          items:
+            $ref: '#/components/schemas/Booking'
+        total:
+          type: integer
+          format: int64
+
+    CreateTripRequest:
+      type: object
+      required: [route_id, departure_time]
+      properties:
+        booking_id:
+          type: string
+          nullable: true
+        route_id:
+          type: string
+        departure_time:
+          type: string
+          format: date-time
+        remarks:
+          type: string
+
+    Trip:
+      type: object
+      properties:
+        id:
+          type: string
+        trip_number:
+          type: string
+        booking_id:
+          type: string
+          nullable: true
+        driver_id:
+          type: string
+          nullable: true
+        driver_display_id:
+          type: string
+        driver_first_name:
+          type: string
+        driver_last_name:
+          type: string
+        vehicle_id:
+          type: string
+          nullable: true
+        vehicle_registration_number:
+          type: string
+        vehicle_number:
+          type: string
+        route_id:
+          type: string
+        route_source:
+          type: string
+        route_destination:
+          type: string
+        departure_time:
+          type: string
+          format: date-time
+        arrival_time:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          type: string
+          enum: [draft, scheduled, assigned, started, reached_pickup, in_transit, delivered, completed, cancelled]
+        remarks:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+        reached_pickup_at:
+          type: string
+          format: date-time
+          nullable: true
+        in_transit_at:
+          type: string
+          format: date-time
+          nullable: true
+        delivered_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    TripList:
+      type: object
+      properties:
+        trips:
+          type: array
+          items:
+            $ref: '#/components/schemas/Trip'
+        total:
+          type: integer
+          format: int64
+
+    AssignDriverRequest:
+      type: object
+      required: [driver_id]
+      properties:
+        driver_id:
+          type: string
+
+    AssignVehicleRequest:
+      type: object
+      required: [vehicle_id]
+      properties:
+        vehicle_id:
+          type: string
+
+    GenerateInvoiceRequest:
+      type: object
+      required: [booking_id, customer_id]
+      properties:
+        booking_id:
+          type: string
+        customer_id:
+          type: string
+        trip_id:
+          type: string
+          nullable: true
+        subtotal:
+          type: number
+          minimum: 0
+        tax:
+          type: number
+          minimum: 0
+        discount:
+          type: number
+          minimum: 0
+        total:
+          type: number
+          minimum: 0
+
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: string
+        invoice_number:
+          type: string
+        booking_id:
+          type: string
+        booking_number:
+          type: string
+        customer_id:
+          type: string
+        customer_name:
+          type: string
+        customer_company:
+          type: string
+        trip_id:
+          type: string
+          nullable: true
+        trip_number:
+          type: string
+        subtotal:
+          type: number
+        tax:
+          type: number
+        discount:
+          type: number
+        total:
+          type: number
+        payment_status:
+          type: string
+          enum: [pending, paid, partially_paid]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    InvoiceList:
+      type: object
+      properties:
+        invoices:
+          type: array
+          items:
+            $ref: '#/components/schemas/Invoice'
+        total:
+          type: integer
+          format: int64
+
+    RecordPaymentRequest:
+      type: object
+      required: [invoice_id, payment_date, amount, method]
+      properties:
+        invoice_id:
+          type: string
+        payment_date:
+          type: string
+          format: date-time
+        amount:
+          type: number
+          exclusiveMinimum: 0
+        method:
+          type: string
+          enum: [cash, upi, bank_transfer, cheque, razorpay]
+        reference:
+          type: string
+          nullable: true
+        remarks:
+          type: string
+          nullable: true
+
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+        invoice_id:
+          type: string
+        invoice_number:
+          type: string
+        payment_date:
+          type: string
+          format: date-time
+        amount:
+          type: number
+        method:
+          type: string
+          enum: [cash, upi, bank_transfer, cheque, razorpay]
+        reference:
+          type: string
+          nullable: true
+        remarks:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    PaymentList:
+      type: object
+      properties:
+        payments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Payment'
+        total:
+          type: integer
+          format: int64
+
+    ReversePaymentRequest:
+      type: object
+      required: [original_payment_id, reason]
+      properties:
+        original_payment_id:
+          type: string
+        reason:
+          type: string
+
+    RazorpayWebhookEvent:
+      type: object
+      properties:
+        event:
+          type: string
+        payload:
+          type: object
+          properties:
+            payment:
+              type: object
+              properties:
+                entity:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    order_id:
+                      type: string
+                    amount:
+                      type: integer
+                      description: Amount in smallest currency unit.
+                    currency:
+                      type: string
+                    status:
+                      type: string
+                    notes:
+                      type: object
+                      properties:
+                        invoice_id:
+                          type: string
+
+    LivePnL:
+      type: object
+      properties:
+        trip_id:
+          type: string
+        quoted_fare:
+          type: number
+        fuel_cost:
+          type: number
+        fuel_cost_low:
+          type: number
+        fuel_cost_high:
+          type: number
+        toll_cost:
+          type: number
+        kharcha_approved:
+          type: number
+        fuel_consumed_liters:
+          type: number
+        estimated_margin:
+          type: number
+        margin_percentage:
+          type: number
+        margin_low:
+          type: number
+        margin_high:
+          type: number
+        low_margin:
+          type: boolean
+        margin_available:
+          type: boolean
+        fuel_cost_status:
+          type: string
+        confidence:
+          type: string
+        last_update:
+          type: string
+          format: date-time
+
+    GPSLogPayload:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        latitude:
+          type: number
+        longitude:
+          type: number
+        timestamp:
+          type: string
+
+    SyncBatchRequest:
+      type: object
+      required: [driver_id, logs]
+      properties:
+        driver_id:
+          type: string
+        logs:
+          type: array
+          items:
+            $ref: '#/components/schemas/GPSLogPayload'
+
+    SyncBatchResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        synced_count:
+          type: integer
+        synced_ids:
+          type: array
+          items:
+            type: integer
+            format: int64
+        server_time:
+          type: string
+          format: date-time
+
+    TelemetrySnapshotPayload:
+      type: object
+      required: [trip_id, timestamp, latitude, longitude]
+      properties:
+        id:
+          type: string
+        trip_id:
+          type: string
+        vehicle_id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        latitude:
+          type: number
+        longitude:
+          type: number
+        speed:
+          type: number
+        fuel_level:
+          type: number
+        odometer:
+          type: number
+
+    SnapshotResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        snapshot_id:
+          type: string
+        server_time:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Bad request.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Authentication required or invalid credentials.
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Insufficient RBAC permissions.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Resource already in the requested state.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ServiceUnavailable:
+      description: Service unavailable or webhook not configured.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InternalError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

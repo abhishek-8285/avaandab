@@ -19,7 +19,7 @@ func StartGRPCServer(port string) {
 		return
 	}
 	s := grpc.NewServer()
-	log.Printf("[gRPC SUCCESS] gRPC Dispatch Microservice listening on :%s", port)
+	log.Printf("[gRPC WARNING] gRPC server is a stub: no services are registered on port %s", port)
 	go func() {
 		if err := s.Serve(lis); err != nil {
 			log.Printf("[gRPC ERROR] Failed to serve: %v", err)

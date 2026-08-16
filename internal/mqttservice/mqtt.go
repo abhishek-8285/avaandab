@@ -28,9 +28,9 @@ func NewMQTTBroker(brokerURL string) *MQTTBroker {
 
 	client := mqtt.NewClient(opts)
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		log.Printf("[MQTT WARNING] Could not connect to MQTT Broker (%s): %v (Running fallback mode)", brokerURL, token.Error())
+		log.Printf("[MQTT WARNING] Could not connect to MQTT Broker (%s): %v (running fallback mode)", brokerURL, token.Error())
 	} else {
-		log.Println("[MQTT SUCCESS] Connected to MQTT Telemetry Broker at", brokerURL)
+		log.Printf("[MQTT WARNING] Connected to MQTT broker at %s but integration is a stub (telemetry is logged only)", brokerURL)
 	}
 
 	b := &MQTTBroker{client: client}

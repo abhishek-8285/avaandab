@@ -2,9 +2,12 @@ package test
 
 import (
 	"database/sql"
+	"fmt"
 	"io"
 	"log/slog"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/pressly/goose/v3"
 	_ "modernc.org/sqlite"
@@ -18,7 +21,12 @@ import (
 func NewTestDB(t *testing.T) *sql.DB {
 	t.Helper()
 
-	db, err := sql.Open("sqlite", ":memory:?cache=shared&_pragma=journal_mode(WAL)")
+	// A unique named in-memory DB (not plain ":memory:"): with ":memory:?cache=shared"
+	// the database is not reliably shared across pooled connections, which
+	// manifests as "no such table" when a write lands on a different
+	// connection than the read.
+	name := fmt.Sprintf("test_%s_%d", strings.ReplaceAll(t.Name(), "/", "_"), time.Now().UnixNano())
+	db, err := sql.Open("sqlite", "file:"+name+"?mode=memory&cache=shared&_pragma=journal_mode(WAL)")
 	if err != nil {
 		t.Fatalf("failed to open in-memory database: %v", err)
 	}

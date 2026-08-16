@@ -452,7 +452,7 @@ Draft → Scheduled → Assigned → Started → ReachedPickup → InTransit →
 
 ## 5. Database Schema
 
-SQLite database with 32 goose migrations. PRAGMAs: `journal_mode=WAL`, `synchronous=OFF`, `cache_size=-131072` (128MB), `mmap_size=536870912` (512MB), `foreign_keys=ON`, `temp_store=MEMORY`.
+SQLite database with 32 goose migrations. PRAGMAs: `journal_mode=WAL`, `synchronous=NORMAL`, `cache_size=-131072` (128MB), `mmap_size=536870912` (512MB), `foreign_keys=ON`, `temp_store=MEMORY`.
 
 ### Core Auth Tables
 
@@ -1252,9 +1252,9 @@ database.SetMaxOpenConns(64)
 database.SetMaxIdleConns(32)
 database.SetConnMaxLifetime(5 * time.Minute)
 
-// PRAGMAs for high throughput
+// PRAGMAs for high throughput (durability preserved with synchronous=NORMAL)
 PRAGMA journal_mode=WAL;
-PRAGMA synchronous=OFF;
+PRAGMA synchronous=NORMAL;
 PRAGMA busy_timeout=10000;
 PRAGMA cache_size=-131072;   // 128MB
 PRAGMA mmap_size=536870912;  // 512MB

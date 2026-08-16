@@ -144,6 +144,17 @@ func (r *paymentRepository) findIDByIdempotencyKey(ctx context.Context, tenantID
 	return id, nil
 }
 
+func (r *paymentRepository) FindByReference(ctx context.Context, reference string, tenantID shared.TenantID) (aggregate.PaymentID, error) {
+	if strings.TrimSpace(reference) == "" {
+		return "", sql.ErrNoRows
+	}
+	id, err := r.findIDByIdempotencyKey(ctx, tenantID, "ref:"+reference)
+	if err != nil {
+		return "", err
+	}
+	return aggregate.PaymentID(id), nil
+}
+
 func (r *paymentRepository) exec(ctx context.Context) interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row

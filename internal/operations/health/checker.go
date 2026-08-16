@@ -3,8 +3,9 @@ package health
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
+	"log/slog"
 	"net/http"
-	"sync"
 	"time"
 )
 
@@ -61,7 +62,10 @@ func (c *Checker) HealthHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.WriteHeader(http.StatusOK)
 	}
-	_ = writeJSON(w, resp)
+	if err := writeJSON(w, resp); err != nil {
+		logger := slog.Default()
+		logger.Error("failed to write health response", "error", err)
+	}
 }
 
 func (c *Checker) LivenessHandler(w http.ResponseWriter, r *http.Request) {
@@ -83,11 +87,6 @@ func (c *Checker) ReadinessHandler(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte("READY"))
 }
 
-var jsonMu sync.Mutex
-
 func writeJSON(w http.ResponseWriter, v interface{}) error {
-	jsonMu.Lock()
-	defer jsonMu.Unlock()
-	w.Header().Set("Content-Type", "application/json")
-	return nil
+	return json.NewEncoder(w).Encode(v)
 }

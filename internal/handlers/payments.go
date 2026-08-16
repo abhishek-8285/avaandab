@@ -91,8 +91,9 @@ func (h *PaymentHandlers) New(w http.ResponseWriter, r *http.Request) {
 	balance, _ := h.Services.Invoices.GetBalance(r.Context(), domain.InvoiceID(invoiceID))
 
 	h.renderForm(w, r, "payment_edit.html", PageData{
-		Title: "Record Payment",
-		User:  session,
+		Title:         "Record Payment",
+		User:          session,
+		RazorpayKeyID: h.Config.RazorpayKeyID,
 		Extra: map[string]interface{}{
 			"InvoiceID": invoiceID,
 			"Invoice":   invoice,
@@ -146,9 +147,10 @@ func (h *PaymentHandlers) Create(w http.ResponseWriter, r *http.Request) {
 		balance, _ := h.Services.Invoices.GetBalance(r.Context(), domain.InvoiceID(invoiceID))
 
 		h.renderForm(w, r, "payment_edit.html", PageData{
-			Title:      "Record Payment",
-			User:       session,
-			FlashError: err.Error(),
+			Title:         "Record Payment",
+			User:          session,
+			FlashError:    err.Error(),
+			RazorpayKeyID: h.Config.RazorpayKeyID,
 			Extra: map[string]interface{}{
 				"InvoiceID": invoiceID,
 				"Invoice":   invoice,

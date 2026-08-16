@@ -3,16 +3,23 @@ package main
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"io/fs"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
+
+	"gopkg.in/telebot.v3"
 	_ "modernc.org/sqlite"
+	"transport-app/internal/apiversion"
 
 	dbmigr "transport-app/db"
 	"transport-app/internal/auth"
@@ -21,9 +28,16 @@ import (
 	"transport-app/internal/graphqlservice"
 	"transport-app/internal/grpcservice"
 	"transport-app/internal/handlers"
+	"transport-app/internal/integration"
 	"transport-app/internal/logging"
 	"transport-app/internal/middleware"
 	"transport-app/internal/mqttservice"
+	"transport-app/internal/openapispec"
+	"transport-app/internal/operations/audit"
+	"transport-app/internal/operations/dashboard"
+	opserrors "transport-app/internal/operations/errors"
+	"transport-app/internal/operations/health"
+	"transport-app/internal/operations/notifications"
 	"transport-app/internal/pnl"
 	"transport-app/internal/repository/sqlite"
 	"transport-app/internal/service"
@@ -45,8 +59,13 @@ import (
 	tripHandlers "transport-app/internal/trip/presentation/api/handlers"
 
 	// Shared infrastructure
+	"transport-app/internal/events"
+	founder "transport-app/internal/founder"
+	founderAlerts "transport-app/internal/founder/alerts"
+	"transport-app/internal/founder/digest"
 	"transport-app/internal/shared/clock"
 	"transport-app/internal/shared/id"
+	"transport-app/internal/shared/outbox"
 	"transport-app/internal/shared/uow"
 
 	"github.com/pressly/goose/v3"
@@ -84,14 +103,13 @@ func main() {
 
 	database.SetMaxOpenConns(64)
 	database.SetMaxIdleConns(32)
-	database.SetConnMaxLifetime(5 * time.Minute)
-
 	database.SetConnMaxLifetime(15 * time.Minute)
 
-	// Execute WAL mode & performance pragmas for extreme throughput
+	// Execute WAL mode & performance pragmas. synchronous=NORMAL keeps
+	// WAL durability while avoiding the FULL sync penalty on every commit.
 	pragmas := []string{
 		"PRAGMA journal_mode=WAL;",
-		"PRAGMA synchronous=OFF;",
+		"PRAGMA synchronous=NORMAL;",
 		"PRAGMA busy_timeout=10000;",
 		"PRAGMA cache_size=-131072;",  // 128MB cache
 		"PRAGMA mmap_size=536870912;", // 512MB memory-mapped file I/O
@@ -149,6 +167,16 @@ func main() {
 	// Initialize handlers app
 	app := handlers.NewApp(services, cfg, authStore, database, authSvc)
 
+	// ── Ops: error reporting, login audit, dashboard ─────────────────────
+	notifSvc := notifications.NewService()
+	reporter := opserrors.NewReporter(notifSvc, cfg.AppEnv, Version)
+	loginAuditSvc := audit.NewLoginAuditService(notifSvc, audit.SecurityPolicy{
+		NotifyOnNewDevice: true,
+		NotifyOnNewIP:     true,
+	})
+	dashboardHandler := dashboard.NewDashboardHandler(reporter, loginAuditSvc)
+	healthChecker := health.NewChecker(database)
+
 	// ── Vertical-slice infrastructure ────────────────────────────────────
 	sqlUoW := uow.NewSQLUnitOfWork(database)
 	idGen := id.NewUUIDGenerator()
@@ -201,12 +229,16 @@ func main() {
 		authSvc,
 	)
 	invoiceAPIHandler := invoiceHandlers.NewAPIInvoiceHandler(generateInvoice, getInvoice, listInvoices, voidInvoice, authSvc)
-	paymentAPIHandler := paymentHandlers.NewAPIPaymentHandler(recordPayment, getPayment, listPayments, reversePayment, listPaymentsByInvoice, authSvc)
+	razorpayWebhookUC := paymentApp.NewRazorpayWebhookUseCase(recordPayment, sqlUoW, cfg.RazorpayWebhook, realClock)
+	paymentAPIHandler := paymentHandlers.NewAPIPaymentHandler(recordPayment, getPayment, listPayments, reversePayment, listPaymentsByInvoice, razorpayWebhookUC, authSvc)
+	integrationHandler := integration.NewHandler(integration.LoadConfig(), authSvc)
 
 	// Setup router
 	r := chi.NewRouter()
 	r.Use(chiMiddleware.RequestID)
-	r.Use(chiMiddleware.Recoverer)
+	r.Use(apiversion.Middleware)
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer(reporter))
 	r.Use(chiMiddleware.Compress(5))
 	r.Use(chiMiddleware.Timeout(60 * time.Second))
 	r.Use(middleware.SPAMiddleware)
@@ -221,8 +253,14 @@ func main() {
 
 	// CSRF defense-in-depth: reject cross-site state-changing requests that
 	// carry a session cookie (complements SameSite=Lax). Bearer-token API
-	// requests and cookie-less requests are unaffected.
-	r.Use(middleware.CSRFProtect(authStore))
+	// requests and cookie-less requests are unaffected. Strict mode rejects
+	// browser requests that omit both Origin and Referer.
+	r.Use(middleware.CSRFProtectStrict(authStore))
+
+	// Ops: liveness, health, readiness (no auth — probe endpoints)
+	r.Get("/healthz", healthChecker.LivenessHandler)
+	r.Get("/health", healthChecker.HealthHandler)
+	r.Get("/readyz", healthChecker.ReadinessHandler)
 
 	// Direct SEO Endpoints
 	r.Get("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
@@ -252,6 +290,10 @@ func main() {
 		_, _ = w.Write([]byte(sitemap))
 	})
 
+	// API discovery and OpenAPI spec (public)
+	r.Get("/api/versions", apiversion.VersionsHandler)
+	openapispec.RegisterRoutes(r)
+
 	// ── REST API v1 ───────────────────────────────────────────────────────
 	// Prefer a dedicated API-token secret over reusing the cookie secret.
 	apiSecret := []byte(cfg.APITokenSecret)
@@ -262,10 +304,18 @@ func main() {
 
 	// ── High-Performance Architecture Protocols ──────────────────────
 	// 1. MQTT Broker Client Setup
-	_ = mqttservice.NewMQTTBroker("tcp://localhost:1883")
+	mqttURL := os.Getenv("MQTT_URL")
+	if mqttURL == "" {
+		mqttURL = "tcp://localhost:1883"
+	}
+	_ = mqttservice.NewMQTTBroker(mqttURL)
 
 	// 2. gRPC Dispatch Microservice
-	grpcservice.StartGRPCServer("50051")
+	grpcPort := os.Getenv("GRPC_PORT")
+	if grpcPort == "" {
+		grpcPort = "50051"
+	}
+	grpcservice.StartGRPCServer(grpcPort)
 
 	// 3. GraphQL Query Endpoint
 	graphqlH := graphqlservice.NewGraphQLHandler(listTrips)
@@ -278,6 +328,10 @@ func main() {
 	// Public: token endpoint (no auth required) — rate-limited against brute force
 	authAPIHandler.Register(r.With(middleware.RateLimit(10)))
 
+	// Public: Razorpay webhook — signature-verified, deliberately outside
+	// the authenticated API group.
+	r.Post("/api/v1/payments/razorpay-webhook", paymentAPIHandler.RazorpayWebhook)
+
 	// Protected: all other /api/v1/* routes require a valid session or Bearer token
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.RequireAPIAuth(authStore, apiSecret))
@@ -286,7 +340,13 @@ func main() {
 		tripAPIHandler.Register(r)
 		invoiceAPIHandler.Register(r)
 		paymentAPIHandler.Register(r)
+		integrationHandler.Register(r)
 	})
+
+	// Deprecated v2 alias routes (rewrite to v1) plus /api/v2/health.
+	// Aliased routes require the same API auth as v1; the public health check
+	// is mounted separately so probes stay unauthenticated.
+	apiversion.MountV2(r, middleware.RequireAPIAuth(authStore, apiSecret), http.HandlerFunc(healthChecker.HealthHandler), bookingAPIHandler, tripAPIHandler, invoiceAPIHandler, paymentAPIHandler)
 
 	// Static files with Cache-Control headers
 	fileServer := http.FileServer(http.Dir(cfg.StaticDir))
@@ -362,6 +422,9 @@ func main() {
 			r.Get("/dashboard", app.Dashboard.Index)
 			r.Get("/files/{id}", app.DownloadFile)
 
+			// Ops dashboard (errors & incidents, login audit)
+			r.Get("/ops/dashboard", dashboardHandler.ServeHTTP)
+
 			// Users (Admin only)
 			r.Route("/users", app.Users.Routes)
 
@@ -413,12 +476,41 @@ func main() {
 		})
 	})
 
-	// Start server
+	// Start server with graceful shutdown
 	addr := fmt.Sprintf(":%s", port)
-	logger.Info("Server listening", "address", addr)
-	if err := http.ListenAndServe(addr, r); err != nil {
-		logger.Error("Server error", "error", err)
-		os.Exit(1)
+	srv := &http.Server{
+		Addr:              addr,
+		Handler:           r,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	// ── Outbox relay & founder notifications ──────────────────────────
+	eventBus := events.NewInMemoryBus()
+	founderSvc := founder.NewFounderService(newFounderNotifier(logger))
+	founderSvc.RegisterEventHandlers(eventBus)
+	if founderConfigured() {
+		go runDailyDigest(ctx, founderSvc, logger)
+	}
+	outboxRelay := outbox.NewRelay(database, eventBus, logger)
+	go outboxRelay.Run(ctx)
+
+	go func() {
+		logger.Info("Server listening", "address", addr)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("Server error", "error", err)
+			stop()
+		}
+	}()
+
+	<-ctx.Done()
+	logger.Info("Shutting down server")
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		logger.Error("Graceful shutdown failed", "error", err)
 	}
 }
 
@@ -455,4 +547,64 @@ func bootstrapAdmin(ctx context.Context, services *service.Services, authSvc aut
 		logger.Warn("bootstrap admin created but RBAC role assignment failed", "error", err)
 	}
 	logger.Info("bootstrap admin created", "email", ba.Email)
+}
+
+// noopNotifier drops alerts; used when Telegram is not configured.
+type noopNotifier struct{}
+
+func (noopNotifier) SendAlert(founderAlerts.AlertEvent) error { return nil }
+
+// founderConfigured reports whether Telegram founder alerting is configured.
+func founderConfigured() bool {
+	return os.Getenv("FOUNDER_TELEGRAM_BOT_TOKEN") != "" && os.Getenv("FOUNDER_TELEGRAM_CHAT_ID") != ""
+}
+
+// newFounderNotifier builds the Telegram notifier from env config,
+// falling back to a noop notifier when Telegram is not configured.
+func newFounderNotifier(logger *slog.Logger) founder.Notifier {
+	token := os.Getenv("FOUNDER_TELEGRAM_BOT_TOKEN")
+	chatID, err := strconv.ParseInt(os.Getenv("FOUNDER_TELEGRAM_CHAT_ID"), 10, 64)
+	if token == "" || err != nil || chatID == 0 {
+		if token != "" {
+			logger.Warn("founder telegram notifier disabled: invalid FOUNDER_TELEGRAM_CHAT_ID")
+		}
+		return noopNotifier{}
+	}
+	bot, err := telebot.NewBot(telebot.Settings{Token: token})
+	if err != nil {
+		logger.Warn("founder telegram notifier unavailable", "error", err)
+		return noopNotifier{}
+	}
+	logger.Info("founder telegram notifier enabled")
+	return founderAlerts.NewTelegramBotNotifier(bot, chatID)
+}
+
+// runDailyDigest sends a daily founder report at FOUNDER_DIGEST_HOUR
+// (default 9, UTC) until ctx is cancelled. Report metrics are zero-valued
+// until a data source exists; the notification service is wired for
+// future population.
+func runDailyDigest(ctx context.Context, svc *founder.FounderService, logger *slog.Logger) {
+	hour := 9
+	if v := os.Getenv("FOUNDER_DIGEST_HOUR"); v != "" {
+		if h, err := strconv.Atoi(v); err == nil && h >= 0 && h < 24 {
+			hour = h
+		}
+	}
+	logger.Info("daily founder digest scheduled", "hour", hour)
+	for {
+		next := time.Now().Truncate(24 * time.Hour).Add(time.Duration(hour) * time.Hour)
+		if !next.After(time.Now()) {
+			next = next.Add(24 * time.Hour)
+		}
+		timer := time.NewTimer(time.Until(next))
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return
+		case <-timer.C:
+			if err := svc.SendDailyDigest(digest.DailyDigestReport{Date: time.Now()}); err != nil {
+				logger.Error("daily founder digest failed", "error", err)
+			}
+		}
+	}
 }

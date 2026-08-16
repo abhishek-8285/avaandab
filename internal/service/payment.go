@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"math"
 	"time"
 
 	"transport-app/internal/domain"
@@ -22,20 +23,6 @@ func (s *PaymentService) RecordPayment(ctx context.Context, invoiceID domain.Inv
 		return domain.Payment{}, fmt.Errorf("payment amount must be greater than zero")
 	}
 
-	// Validate invoice exists
-	invoice, err := s.store.GetInvoiceByID(ctx, invoiceID)
-	if err != nil {
-		return domain.Payment{}, domain.ErrInvoiceNotFound
-	}
-
-	paid, err := s.store.SumPaymentsByInvoice(ctx, invoiceID)
-	if err != nil {
-		return domain.Payment{}, err
-	}
-	if paid+amount > invoice.Total+0.01 {
-		return domain.Payment{}, fmt.Errorf("payment exceeds invoice outstanding balance")
-	}
-
 	payDate, err := parseDateTime(paymentDate)
 	if err != nil {
 		payDate = time.Now()
@@ -52,7 +39,36 @@ func (s *PaymentService) RecordPayment(ctx context.Context, invoiceID domain.Inv
 		Remarks:     strPtr(remarks),
 	}
 
-	created, err := s.store.CreatePayment(ctx, payment)
+	// Validate invoice and outstanding balance atomically with the insert so
+	// concurrent payments cannot both pass the duplicate/balance check.
+	var created domain.Payment
+	insertPayment := func(ctx context.Context) error {
+		invoice, err := s.store.GetInvoiceByID(ctx, invoiceID)
+		if err != nil {
+			return domain.ErrInvoiceNotFound
+		}
+
+		paid, err := s.store.SumPaymentsByInvoice(ctx, invoiceID)
+		if err != nil {
+			return err
+		}
+
+		totalPaisa := int64(math.Round(invoice.Total * 100))
+		paidPaisa := int64(math.Round(paid * 100))
+		amountPaisa := int64(math.Round(amount * 100))
+		if paidPaisa+amountPaisa > totalPaisa+1 {
+			return fmt.Errorf("payment exceeds invoice outstanding balance")
+		}
+
+		created, err = s.store.CreatePayment(ctx, payment)
+		return err
+	}
+
+	if s.txManager != nil {
+		err = s.txManager.WithTransaction(ctx, insertPayment)
+	} else {
+		err = insertPayment(ctx)
+	}
 	if err != nil {
 		return domain.Payment{}, err
 	}

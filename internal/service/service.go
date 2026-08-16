@@ -88,7 +88,12 @@ func NewServices(store Store, cfg *config.Config, log *slog.Logger) *Services {
 	s.Files = &FileService{baseService: bs}
 	s.Audit = &AuditLogService{baseService: bs}
 	s.Compliance = &ComplianceService{baseService: bs}
-	s.Settlements = &DriverSettlementService{baseService: bs}
+	s.Settlements = &DriverSettlementService{
+		baseService:       bs,
+		defaultFare:       defaultSettlementFare,
+		defaultAdvances:   defaultSettlementAdvances,
+		defaultDeductions: defaultSettlementDeductions,
+	}
 	s.Telemetry = &TelemetryService{baseService: bs}
 	s.Kharcha = &KharchaService{baseService: bs}
 

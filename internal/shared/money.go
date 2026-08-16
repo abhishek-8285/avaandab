@@ -1,6 +1,9 @@
 package shared
 
-import "errors"
+import (
+	"errors"
+	"math"
+)
 
 // Money represents a monetary value with a currency.
 type Money struct {
@@ -19,7 +22,7 @@ func NewMoney(amount int64, currency string) (Money, error) {
 // FloatToMoney converts a float64 to minor units (multiplies by 100).
 func FloatToMoney(val float64, currency string) Money {
 	return Money{
-		Amount:   int64(val * 100),
+		Amount:   int64(math.Round(val * 100)),
 		Currency: currency,
 	}
 }
