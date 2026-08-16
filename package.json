@@ -9,7 +9,8 @@
   },
   "scripts": {
     "build:css": "npx @tailwindcss/cli -i src/input.css -o internal/static/css/tailwind.css --minify",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test:ui": "playwright test"
   },
   "keywords": [],
   "author": "",
@@ -20,5 +21,8 @@
     "@tailwindcss/container-queries": "^0.1.1",
     "@tailwindcss/forms": "^0.5.11",
     "tailwindcss": "^4.3.3"
+  },
+  "dependencies": {
+    "@playwright/test": "^1.62.1"
   }
 }

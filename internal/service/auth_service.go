@@ -76,6 +76,77 @@ func (s *AuthService) Login(ctx context.Context, req LoginRequest) (*LoginResult
 	}, nil
 }
 
+// CreateSessionForUser generates a new server-side session for a user.
+func (s *AuthService) CreateSessionForUser(ctx context.Context, userID domain.UserID) (*LoginResult, error) {
+	user, err := s.store.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if user.Status != domain.UserStatusActive {
+		return nil, domain.ErrUnauthorized
+	}
+
+	token, err := auth.GenerateSecureToken()
+	if err != nil {
+		return nil, err
+	}
+	tokenHash := auth.HashToken(token)
+
+	session := domain.Session{
+		ID:        domain.SessionID(generateID()),
+		UserID:    user.ID,
+		TokenHash: tokenHash,
+		ExpiresAt: time.Now().Add(24 * time.Hour),
+	}
+	if _, err := s.store.CreateSession(ctx, session); err != nil {
+		return nil, err
+	}
+
+	return &LoginResult{
+		User:         user,
+		SessionToken: token,
+	}, nil
+}
+
+// ValidateSessionToken checks that the session token exists in DB, is unexpired, and belongs to an active user.
+func (s *AuthService) ValidateSessionToken(ctx context.Context, token string) (*auth.SessionData, error) {
+	tokenHash := auth.HashToken(token)
+	sess, err := s.store.GetSessionByToken(ctx, tokenHash)
+	if err != nil {
+		return nil, err
+	}
+	if time.Now().After(sess.ExpiresAt) {
+		return nil, domain.ErrUnauthorized
+	}
+	if sess.UserStatus != string(domain.UserStatusActive) {
+		return nil, domain.ErrUnauthorized
+	}
+	return &auth.SessionData{
+		UserID:  string(sess.UserID),
+		Role:    sess.RoleName,
+		Name:    sess.UserName,
+		Expires: sess.ExpiresAt.Unix(),
+		Token:   token,
+	}, nil
+}
+
+// RevokeSessionToken deletes the session from the DB.
+func (s *AuthService) RevokeSessionToken(ctx context.Context, token string) error {
+	return s.Logout(ctx, token)
+}
+
+// ValidateAPITokenUser verifies that the API token's UserID exists and is active, returning the user's current live role.
+func (s *AuthService) ValidateAPITokenUser(ctx context.Context, userID string) (string, bool, error) {
+	user, err := s.store.GetUserByID(ctx, domain.UserID(userID))
+	if err != nil {
+		return "", false, err
+	}
+	if user.Status != domain.UserStatusActive {
+		return "", false, nil
+	}
+	return string(user.Role.Name), true, nil
+}
+
 // Logout deletes a user's session.
 func (s *AuthService) Logout(ctx context.Context, token string) error {
 	tokenHash := auth.HashToken(token)

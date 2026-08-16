@@ -83,7 +83,11 @@ func (c *RazorpayClient) VerifyPaymentSignature(orderID, paymentID, signature st
 	data := orderID + "|" + paymentID
 	h := hmac.New(sha256.New, []byte(c.keySecret))
 	h.Write([]byte(data))
-	expectedSignature := hex.EncodeToString(h.Sum(nil))
+	expectedSignature := h.Sum(nil)
+	sigBytes, err := hex.DecodeString(signature)
+	if err != nil {
+		return false
+	}
 
-	return expectedSignature == signature
+	return hmac.Equal(expectedSignature, sigBytes)
 }

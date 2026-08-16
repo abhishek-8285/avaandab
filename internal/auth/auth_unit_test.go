@@ -1,6 +1,8 @@
 package auth_test
 
 import (
+	"context"
+	"errors"
 	"net/http/httptest"
 	"testing"
 	"time"
@@ -96,6 +98,58 @@ func TestSessionStore_CreateValidateClear(t *testing.T) {
 	clearCookies := clearRec.Result().Cookies()
 	if len(clearCookies) == 0 || clearCookies[0].MaxAge != -1 {
 		t.Fatalf("expected clear session cookie with MaxAge=-1")
+	}
+}
+
+type mockValidator struct {
+	validToken string
+	revoked    bool
+}
+
+func (m *mockValidator) ValidateSessionToken(ctx context.Context, token string) (*auth.SessionData, error) {
+	if m.revoked || token != m.validToken {
+		return nil, errors.New("invalid session")
+	}
+	return &auth.SessionData{UserID: "usr-val", Role: "admin", Name: "Validated User"}, nil
+}
+
+func (m *mockValidator) RevokeSessionToken(ctx context.Context, token string) error {
+	m.revoked = true
+	return nil
+}
+
+func (m *mockValidator) ValidateAPITokenUser(ctx context.Context, userID string) (string, bool, error) {
+	if m.revoked {
+		return "", false, nil
+	}
+	return "admin", true, nil
+}
+
+func TestSessionStore_WithValidator(t *testing.T) {
+	secret := "test-secret-key-32-bytes-long-!"
+	store := auth.NewSessionStore(secret, false)
+	mv := &mockValidator{validToken: "token-123"}
+	store.SetValidator(mv)
+
+	rec := httptest.NewRecorder()
+	store.CreateSessionWithToken(rec, "usr-val", "viewer", "Validated User", "token-123")
+
+	req := httptest.NewRequest("GET", "/", nil)
+	req.AddCookie(rec.Result().Cookies()[0])
+
+	data, ok := store.ValidateSession(req)
+	if !ok || data.Role != "admin" {
+		t.Fatalf("expected validator to upgrade role to admin and validate session, got ok=%v, data=%+v", ok, data)
+	}
+
+	// Revoke session
+	revokeRec := httptest.NewRecorder()
+	store.RevokeSession(req, revokeRec)
+
+	// Now validation should fail
+	_, ok = store.ValidateSession(req)
+	if ok {
+		t.Fatalf("expected validation to fail after revocation")
 	}
 }
 

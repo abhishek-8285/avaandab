@@ -89,8 +89,12 @@ func (h *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	// Update Casbin policy so user gets viewer permissions immediately
 	_ = h.AuthSrv.AddRoleForUser(user.ID.String(), string(domain.RoleViewer))
 
-	// Automatically log in the user upon onboarding
-	h.AuthStore.CreateSession(w, user.ID.String(), string(domain.RoleViewer), user.Name)
+	// Automatically log in the user upon onboarding with server-side session
+	if sessResult, err := h.Services.Auth.CreateSessionForUser(r.Context(), user.ID); err == nil && sessResult != nil {
+		h.AuthStore.CreateSessionWithToken(w, user.ID.String(), string(domain.RoleViewer), user.Name, sessResult.SessionToken)
+	} else {
+		h.AuthStore.CreateSession(w, user.ID.String(), string(domain.RoleViewer), user.Name)
+	}
 
 	targetURL := "/dashboard"
 	// Check if company settings are configured, if not redirect to company onboarding
@@ -170,7 +174,7 @@ func (h *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.AuthStore.CreateSession(w, result.User.ID.String(), string(result.User.Role.Name), result.User.Name)
+	h.AuthStore.CreateSessionWithToken(w, result.User.ID.String(), string(result.User.Role.Name), result.User.Name, result.SessionToken)
 
 	// Clear flash cookies so old errors don't show after successful login
 	http.SetCookie(w, &http.Cookie{
@@ -205,9 +209,9 @@ func (h *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, targetURL, http.StatusSeeOther)
 }
 
-// Logout handles user logout.
+// Logout handles user logout with server-side revocation.
 func (h *AuthHandlers) Logout(w http.ResponseWriter, r *http.Request) {
-	h.AuthStore.ClearSession(w)
+	h.AuthStore.RevokeSession(r, w)
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 

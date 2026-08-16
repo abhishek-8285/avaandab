@@ -75,9 +75,21 @@ func resolveAPIPrincipal(r *http.Request, store *auth.SessionStore, secret []byt
 		if err != nil {
 			return apiPrincipal{}, err
 		}
+
+		role := claims.Role
+		if store != nil && store.Validator() != nil {
+			liveRole, active, err := store.Validator().ValidateAPITokenUser(r.Context(), claims.UserID)
+			if err != nil || !active {
+				return apiPrincipal{}, auth.ErrTokenRevoked
+			}
+			if liveRole != "" {
+				role = liveRole
+			}
+		}
+
 		return apiPrincipal{
 			UserID:   claims.UserID,
-			Role:     claims.Role,
+			Role:     role,
 			TenantID: shared.TenantID(claims.TenantID),
 		}, nil
 	}

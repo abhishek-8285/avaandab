@@ -544,8 +544,14 @@ func (a *App) Marketing(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// DownloadFile serves an uploaded file by ID.
+// DownloadFile serves an uploaded file by ID with authentication and ownership authorization.
 func (a *App) DownloadFile(w http.ResponseWriter, r *http.Request) {
+	session, ok := a.getUserFromContext(r)
+	if !ok || session == nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
 	id := filepath.Base(r.URL.Path)
 	if !isValidFileID(id) {
 		a.renderError(w, http.StatusBadRequest, "Invalid File ID", "The requested file identifier is invalid.", nil)
@@ -556,6 +562,20 @@ func (a *App) DownloadFile(w http.ResponseWriter, r *http.Request) {
 		a.renderError(w, http.StatusNotFound, "File Not Found", "The requested document or file does not exist.", nil)
 		return
 	}
+
+	// Role-based authorization:
+	// - Staff roles (Admin, Dispatcher, Accountant) have broad operational access.
+	// - Public tenant assets ("company_logo", "logo") are accessible to all authenticated users.
+	// - Specific uploads owned by the user (matching UploadableID).
+	isStaff := session.Role == "admin" || session.Role == "dispatcher" || session.Role == "accountant"
+	isPublicAsset := file.UploadableType == "company_logo" || file.UploadableType == "logo"
+	isOwner := file.UploadableID != nil && *file.UploadableID == session.UserID
+
+	if !isStaff && !isPublicAsset && !isOwner {
+		a.renderError(w, http.StatusForbidden, "Access Denied", "You do not have permission to access this file.", nil)
+		return
+	}
+
 	uploadDir := filepath.Clean(a.Config.UploadDir)
 	if uploadDir == "." {
 		uploadDir = ""
@@ -565,6 +585,7 @@ func (a *App) DownloadFile(w http.ResponseWriter, r *http.Request) {
 		a.renderError(w, http.StatusBadRequest, "Invalid File Path", "The requested file path is invalid.", nil)
 		return
 	}
+	w.Header().Set("X-Content-Type-Options", "nosniff")
 	http.ServeFile(w, r, filePath)
 }
 

@@ -41,6 +41,8 @@ coverage.html
 # Build output
 dist/
 mobile/package-lock.json
+playwright-report/
+test-results/
 
 # Logs
 *.log

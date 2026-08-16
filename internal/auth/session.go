@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
@@ -27,11 +28,19 @@ const (
 	ContextLocation ContextKey = "location"
 )
 
+// SessionValidator validates and revokes sessions against server-side storage.
+type SessionValidator interface {
+	ValidateSessionToken(ctx context.Context, token string) (*SessionData, error)
+	RevokeSessionToken(ctx context.Context, token string) error
+	ValidateAPITokenUser(ctx context.Context, userID string) (role string, active bool, err error)
+}
+
 // SessionStore manages secure cookie-based sessions.
 type SessionStore struct {
 	cookieName string
 	signer     *securecookie.SecureCookie
 	secure     bool
+	validator  SessionValidator
 }
 
 // NewSessionStore creates a new session store with the given secret.
@@ -46,12 +55,23 @@ func NewSessionStore(cookieSecret string, secure bool) *SessionStore {
 	}
 }
 
+// SetValidator attaches a server-side session validator to the store.
+func (s *SessionStore) SetValidator(v SessionValidator) {
+	s.validator = v
+}
+
+// Validator returns the currently configured SessionValidator, if any.
+func (s *SessionStore) Validator() SessionValidator {
+	return s.validator
+}
+
 // SessionData holds the data stored in a session cookie.
 type SessionData struct {
 	UserID  string `json:"user_id"`
 	Role    string `json:"role"`
 	Name    string `json:"name"`
 	Expires int64  `json:"expires"`
+	Token   string `json:"token,omitempty"`
 }
 
 // HasSession reports whether the request carries a session cookie, without
@@ -64,11 +84,17 @@ func (s *SessionStore) HasSession(r *http.Request) bool {
 
 // CreateSession creates and signs a session cookie for a user.
 func (s *SessionStore) CreateSession(w http.ResponseWriter, userID, roleName, name string) {
+	s.CreateSessionWithToken(w, userID, roleName, name, "")
+}
+
+// CreateSessionWithToken creates and signs a session cookie bound to a server-side session token.
+func (s *SessionStore) CreateSessionWithToken(w http.ResponseWriter, userID, roleName, name, token string) {
 	data := &SessionData{
 		UserID:  userID,
 		Role:    roleName,
 		Name:    name,
 		Expires: time.Now().Add(24 * time.Hour).Unix(),
+		Token:   token,
 	}
 
 	http.SetCookie(w, &http.Cookie{
@@ -90,7 +116,7 @@ func (s *SessionStore) mustEncode(data *SessionData) string {
 	return encoded
 }
 
-// ValidateSession validates and decodes the session cookie.
+// ValidateSession validates and decodes the session cookie, verifying against server-side session store if configured.
 func (s *SessionStore) ValidateSession(r *http.Request) (*SessionData, bool) {
 	cookie, err := r.Cookie(s.cookieName)
 	if err != nil {
@@ -104,6 +130,16 @@ func (s *SessionStore) ValidateSession(r *http.Request) (*SessionData, bool) {
 
 	if time.Now().Unix() > data.Expires {
 		return nil, false
+	}
+
+	if s.validator != nil && data.Token != "" {
+		validated, err := s.validator.ValidateSessionToken(r.Context(), data.Token)
+		if err != nil || validated == nil {
+			return nil, false
+		}
+		data.Role = validated.Role
+		data.Name = validated.Name
+		data.UserID = validated.UserID
 	}
 
 	return &data, true
@@ -120,6 +156,19 @@ func (s *SessionStore) ClearSession(w http.ResponseWriter) {
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   -1,
 	})
+}
+
+// RevokeSession revokes server-side session in storage and removes the cookie.
+func (s *SessionStore) RevokeSession(r *http.Request, w http.ResponseWriter) {
+	if s.validator != nil {
+		if cookie, err := r.Cookie(s.cookieName); err == nil {
+			var data SessionData
+			if err := s.signer.Decode(s.cookieName, cookie.Value, &data); err == nil && data.Token != "" {
+				_ = s.validator.RevokeSessionToken(r.Context(), data.Token)
+			}
+		}
+	}
+	s.ClearSession(w)
 }
 
 // GenerateSecureToken generates a cryptographically secure random token.

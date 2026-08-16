@@ -87,9 +87,9 @@ func main() {
 		logger.Error("Refusing to start in production with known default secrets. Set strong, unique COOKIE_SECRET, API_SECRET and RAZORPAY_* values in the environment.")
 		os.Exit(1)
 	}
-	port := os.Getenv("PORT")
+	port := cfg.Port
 	if port == "" {
-		port = "8092"
+		port = "8080"
 	}
 	logger.Info("Starting MVTMS server", "env", cfg.AppEnv, "port", cfg.Port)
 
@@ -152,6 +152,7 @@ func main() {
 
 	// Initialize auth store
 	authStore := auth.NewSessionStore(cfg.CookieSecret, cfg.CookieSecure)
+	authStore.SetValidator(services.Auth)
 
 	// Initialize Casbin authorization service
 	authSvc, err := auth.NewCasbinAuthorizationService(database)
@@ -361,10 +362,10 @@ func main() {
 		fileServer.ServeHTTP(w, r)
 	})))
 
-	// Uploaded files (logos, documents)
+	// Uploaded files (logos, documents) - require authentication
 	uploadsServer := http.FileServer(http.Dir(cfg.UploadDir))
-	r.Handle("/uploads/*", http.StripPrefix("/uploads/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Cache-Control", "public, max-age=86400")
+	r.With(middleware.RequireAuth(authStore)).Handle("/uploads/*", http.StripPrefix("/uploads/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "private, no-cache")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		uploadsServer.ServeHTTP(w, r)
 	})))
@@ -422,8 +423,8 @@ func main() {
 			r.Get("/dashboard", app.Dashboard.Index)
 			r.Get("/files/{id}", app.DownloadFile)
 
-			// Ops dashboard (errors & incidents, login audit)
-			r.Get("/ops/dashboard", dashboardHandler.ServeHTTP)
+			// Ops dashboard (errors & incidents, login audit) - Admin only
+			r.With(middleware.RoleRequired(domain.DefaultRoleID(domain.RoleAdmin))).Get("/ops/dashboard", dashboardHandler.ServeHTTP)
 
 			// Users (Admin only)
 			r.Route("/users", app.Users.Routes)
