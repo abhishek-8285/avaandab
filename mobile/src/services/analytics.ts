@@ -26,7 +26,9 @@ class AnalyticsService {
     if (this.posthog) {
       this.posthog.capture(eventName, properties);
     }
-    console.log(`[ANALYTICS EVENT] ${eventName}:`, JSON.stringify(properties || {}));
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
+      console.log(`[ANALYTICS EVENT] ${eventName}:`, JSON.stringify(properties || {}));
+    }
   }
 
   // Identify driver user session
@@ -34,7 +36,9 @@ class AnalyticsService {
     if (this.posthog) {
       this.posthog.identify(driverId, traits);
     }
-    console.log(`[ANALYTICS IDENTIFY] Driver: ${driverId}`, JSON.stringify(traits || {}));
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
+      console.log(`[ANALYTICS IDENTIFY] Driver: ${driverId}`, JSON.stringify(traits || {}));
+    }
   }
 }
 

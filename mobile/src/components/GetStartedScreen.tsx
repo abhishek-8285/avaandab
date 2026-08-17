@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { StyleSheet, Text, View, Image, TouchableOpacity, Animated, Dimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Colors } from '../constants/theme';
+import { Colors, Font, Radius, Spacing } from '../constants/theme';
 
 interface GetStartedScreenProps {
   onGetStarted: () => void;
@@ -12,35 +12,19 @@ interface GetStartedScreenProps {
 const { width } = Dimensions.get('window');
 
 export function GetStartedScreen({ onGetStarted, onSignIn }: GetStartedScreenProps) {
-  const floatAnim1 = useRef(new Animated.Value(0)).current;
-  const floatAnim2 = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(floatAnim1, {
-          toValue: -12,
-          duration: 2500,
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1200,
           useNativeDriver: true,
         }),
-        Animated.timing(floatAnim1, {
+        Animated.timing(pulseAnim, {
           toValue: 0,
-          duration: 2500,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(floatAnim2, {
-          toValue: -16,
-          duration: 3000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(floatAnim2, {
-          toValue: 0,
-          duration: 3000,
+          duration: 1200,
           useNativeDriver: true,
         }),
       ])
@@ -50,8 +34,8 @@ export function GetStartedScreen({ onGetStarted, onSignIn }: GetStartedScreenPro
   return (
     <View style={styles.container}>
       <StatusBar style="light" translucent backgroundColor="transparent" />
-      
-      {/* Top Hero Section */}
+
+      {/* Hero with dark overlay + operational HUD */}
       <View style={styles.heroSection}>
         <Image
           source={require('../../assets/driver_hero.png')}
@@ -60,53 +44,86 @@ export function GetStartedScreen({ onGetStarted, onSignIn }: GetStartedScreenPro
         />
         <View style={styles.heroOverlay} />
 
-        {/* Floating Icons from Stitch Spec */}
-        <Animated.View style={[styles.floatingBadge, styles.badge1, { transform: [{ translateY: floatAnim1 }] }]}>
-          <MaterialCommunityIcons name="map-marker" size={26} color="#ffffff" />
-        </Animated.View>
+        {/* Top status strip */}
+        <View style={styles.statusStrip}>
+          <View style={styles.statusItem}>
+            <Animated.View
+              style={[
+                styles.statusDot,
+                {
+                  opacity: pulseAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.4, 1],
+                  }),
+                },
+              ]}
+            />
+            <Text style={styles.statusText}>NETWORK ONLINE</Text>
+          </View>
+          <Text style={styles.timestamp}>14:32 IST</Text>
+        </View>
 
-        <Animated.View style={[styles.floatingBadge, styles.badge2, { transform: [{ translateY: floatAnim2 }] }]}>
-          <MaterialCommunityIcons name="message-text" size={22} color="#ffffff" />
-        </Animated.View>
-
-        <Animated.View style={[styles.floatingBadge, styles.badge3, { transform: [{ translateY: floatAnim1 }] }]}>
-          <MaterialCommunityIcons name="phone" size={22} color="#ffffff" />
-        </Animated.View>
-
-        <Animated.View style={[styles.floatingBadge, styles.badge4, { transform: [{ translateY: floatAnim2 }] }]}>
-          <MaterialCommunityIcons name="account-circle" size={32} color="#ffffff" />
-        </Animated.View>
+        {/* Bottom hero overlay stats */}
+        <View style={styles.heroStats}>
+          <View style={styles.heroStat}>
+            <Text style={styles.heroStatValue}>2,847</Text>
+            <Text style={styles.heroStatLabel}>ACTIVE DRIVERS</Text>
+          </View>
+          <View style={styles.heroStatDivider} />
+          <View style={styles.heroStat}>
+            <Text style={styles.heroStatValue}>₹1.5K</Text>
+            <Text style={styles.heroStatLabel}>AVG DAILY EARN</Text>
+          </View>
+          <View style={styles.heroStatDivider} />
+          <View style={styles.heroStat}>
+            <Text style={styles.heroStatValue}>24/7</Text>
+            <Text style={styles.heroStatLabel}>DISPATCH</Text>
+          </View>
+        </View>
       </View>
 
-      {/* Bottom Content Sheet */}
+      {/* Bottom Content Panel */}
       <View style={styles.contentSheet}>
-        <View style={styles.sheetHandle} />
-
-        <Text style={styles.headline}>Earn Money With This Driver App</Text>
+        <Text style={styles.headline}>JOIN THE FLEET</Text>
+        <View style={styles.titleUnderline} />
 
         <Text style={styles.description}>
-          Join the Avandab Transport Intelligence network. Stream live GPS telemetry, execute regional freight routes, and secure instant digital proof-of-delivery.
+          Stream live GPS telemetry, execute regional freight routes, and secure instant digital proof-of-delivery on the Avandab network.
         </Text>
 
-        <View style={styles.actionContainer}>
-          <TouchableOpacity
-            style={styles.primaryButton}
-            activeOpacity={0.88}
-            onPress={onGetStarted}
-          >
-            <Text style={styles.primaryButtonText}>Let's Get Started</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.signInButton}
-            activeOpacity={0.7}
-            onPress={onSignIn}
-          >
-            <Text style={styles.signInText}>
-              Already have an account? <Text style={styles.signInLink}>Sign In</Text>
-            </Text>
-          </TouchableOpacity>
+        <View style={styles.featureList}>
+          <View style={styles.featureRow}>
+            <MaterialCommunityIcons name="radar" size={14} color={Colors.primary} />
+            <Text style={styles.featureText}>MQTT live location streaming</Text>
+          </View>
+          <View style={styles.featureRow}>
+            <MaterialCommunityIcons name="barcode-scan" size={14} color={Colors.primary} />
+            <Text style={styles.featureText}>Barcode POD verification</Text>
+          </View>
+          <View style={styles.featureRow}>
+            <MaterialCommunityIcons name="bank-transfer" size={14} color={Colors.primary} />
+            <Text style={styles.featureText}>Instant settlement payouts</Text>
+          </View>
         </View>
+
+        <TouchableOpacity
+          style={styles.primaryButton}
+          activeOpacity={0.88}
+          onPress={onGetStarted}
+        >
+          <Text style={styles.primaryButtonText}>GET STARTED</Text>
+          <MaterialCommunityIcons name="arrow-right" size={16} color={Colors.textOnPrimary} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.signInButton}
+          activeOpacity={0.7}
+          onPress={onSignIn}
+        >
+          <Text style={styles.signInText}>
+            Already registered? <Text style={styles.signInLink}>SIGN IN</Text>
+          </Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -115,13 +132,13 @@ export function GetStartedScreen({ onGetStarted, onSignIn }: GetStartedScreenPro
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.chrome,
   },
   heroSection: {
-    height: '52%',
+    height: '48%',
     width: '100%',
     position: 'relative',
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.chrome,
   },
   heroImage: {
     width: '100%',
@@ -129,118 +146,158 @@ const styles = StyleSheet.create({
   },
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 40, 35, 0.25)',
+    backgroundColor: 'rgba(15, 23, 42, 0.7)',
   },
-  floatingBadge: {
+  statusStrip: {
     position: 'absolute',
-    backgroundColor: Colors.primary,
-    borderRadius: 30,
+    top: 56,
+    left: Spacing.lg,
+    right: Spacing.lg,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 8,
   },
-  badge1: {
-    top: '20%',
-    left: '10%',
-    width: 48,
-    height: 48,
+  statusItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
-  badge2: {
-    top: '28%',
-    right: '12%',
-    width: 44,
-    height: 44,
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#22c55e',
   },
-  badge3: {
-    bottom: '24%',
-    left: '18%',
-    width: 44,
-    height: 44,
+  statusText: {
+    color: Colors.textOnChrome,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1,
+    fontFamily: Font.mono,
   },
-  badge4: {
-    bottom: '18%',
-    right: '18%',
-    width: 54,
-    height: 54,
-    borderWidth: 3,
-    borderColor: '#ffffff',
+  timestamp: {
+    color: Colors.textOnChromeMuted,
+    fontSize: 10,
+    fontWeight: '600',
+    fontFamily: Font.mono,
+    letterSpacing: 1,
+  },
+  heroStats: {
+    position: 'absolute',
+    bottom: Spacing.lg,
+    left: Spacing.lg,
+    right: Spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    borderWidth: 1,
+    borderColor: Colors.chromeBorder,
+    borderRadius: Radius.lg,
+    paddingVertical: 10,
+    paddingHorizontal: Spacing.md,
+  },
+  heroStat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  heroStatDivider: {
+    width: 1,
+    height: 22,
+    backgroundColor: Colors.chromeBorder,
+  },
+  heroStatValue: {
+    color: Colors.textOnChrome,
+    fontSize: 16,
+    fontWeight: '800',
+    fontFamily: Font.mono,
+  },
+  heroStatLabel: {
+    color: Colors.textOnChromeMuted,
+    fontSize: 8,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    marginTop: 2,
+    fontFamily: Font.mono,
   },
   contentSheet: {
     flex: 1,
-    marginTop: -32,
-    backgroundColor: '#ffffff',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 24,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 10,
-  },
-  sheetHandle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#e0e0e0',
-    marginBottom: 20,
+    backgroundColor: Colors.surface,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.xxl,
+    borderTopLeftRadius: Radius.lg,
+    borderTopRightRadius: Radius.lg,
   },
   headline: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#0b1c30',
-    textAlign: 'center',
-    marginBottom: 12,
-    lineHeight: 32,
+    fontSize: 22,
+    fontWeight: '900',
+    color: Colors.textPrimary,
+    letterSpacing: 2,
+    fontFamily: Font.mono,
+  },
+  titleUnderline: {
+    width: 32,
+    height: 2,
+    backgroundColor: Colors.primary,
+    marginTop: 6,
+    marginBottom: Spacing.md,
   },
   description: {
-    fontSize: 14,
-    color: '#565e74',
-    textAlign: 'center',
-    lineHeight: 22,
-    paddingHorizontal: 8,
-    marginBottom: 24,
+    fontSize: 13,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: Spacing.lg,
+  },
+  featureList: {
+    gap: 8,
+    marginBottom: Spacing.xl,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  featureText: {
+    fontSize: 12,
+    color: Colors.textPrimary,
+    fontWeight: '600',
   },
   actionContainer: {
     width: '100%',
     alignItems: 'center',
-    gap: 16,
+    gap: Spacing.md,
   },
   primaryButton: {
     width: '100%',
-    height: 54,
-    borderRadius: 27,
+    height: 50,
+    borderRadius: Radius.md,
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    flexDirection: 'row',
+    gap: 8,
   },
   primaryButtonText: {
-    color: '#ffffff',
-    fontSize: 17,
-    fontWeight: '600',
+    color: Colors.textOnPrimary,
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    fontFamily: Font.mono,
   },
   signInButton: {
-    paddingVertical: 8,
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+    marginTop: 8,
   },
   signInText: {
-    fontSize: 14,
-    color: '#565e74',
+    fontSize: 12,
+    color: Colors.textSecondary,
+    fontFamily: Font.mono,
+    letterSpacing: 0.5,
   },
   signInLink: {
     color: Colors.primary,
-    fontWeight: '700',
-    textDecorationLine: 'underline',
+    fontWeight: '800',
   },
 });

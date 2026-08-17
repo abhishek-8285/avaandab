@@ -17,7 +17,7 @@ type AuditLogHandlers struct {
 
 func (h *AuditLogHandlers) Routes(r chi.Router) {
 	r.With(middleware.ResourcePermission(h.AuthSrv, "audit_logs", "read")).Get("/", h.List)
-	r.Post("/read-all", h.MarkAllRead)
+	r.With(middleware.ResourcePermission(h.AuthSrv, "audit_logs", "read")).Post("/read-all", h.MarkAllRead)
 }
 
 func (h *AuditLogHandlers) MarkAllRead(w http.ResponseWriter, r *http.Request) {

@@ -31,12 +31,12 @@ type LoginResult struct {
 func (s *AuthService) Login(ctx context.Context, req LoginRequest) (*LoginResult, error) {
 	user, err := s.store.GetUserByEmail(ctx, req.Email)
 	if err != nil {
-		s.log.Error("login failed: user not found", "email", req.Email)
+		s.log.Warn("login failed: invalid credentials")
 		return nil, domain.ErrInvalidCredentials
 	}
 
 	if err := auth.CheckPassword(req.Password, user.PasswordHash); err != nil {
-		s.log.Error("login failed: bad password", "email", req.Email)
+		s.log.Warn("login failed: invalid credentials", "user_id", user.ID)
 		return nil, domain.ErrInvalidCredentials
 	}
 
@@ -92,11 +92,16 @@ func (s *AuthService) CreateSessionForUser(ctx context.Context, userID domain.Us
 	}
 	tokenHash := auth.HashToken(token)
 
+	maxAge := 24 * time.Hour
+	if s.cfg != nil && s.cfg.SessionMaxAge > 0 {
+		maxAge = s.cfg.SessionMaxAge
+	}
+
 	session := domain.Session{
 		ID:        domain.SessionID(generateID()),
 		UserID:    user.ID,
 		TokenHash: tokenHash,
-		ExpiresAt: time.Now().Add(24 * time.Hour),
+		ExpiresAt: time.Now().Add(maxAge),
 	}
 	if _, err := s.store.CreateSession(ctx, session); err != nil {
 		return nil, err

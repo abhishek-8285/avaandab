@@ -60,7 +60,7 @@ func (h *APIPaymentHandler) Register(r chi.Router) {
 		r.With(middleware.RequirePermission(h.authSrv, "payments", "read")).Get("/", h.List)
 		r.With(middleware.RequirePermission(h.authSrv, "payments", "read")).Get("/{id}", h.Get)
 		r.With(middleware.RequirePermission(h.authSrv, "payments", "read")).Get("/by-invoice/{invoiceID}", h.ListByInvoice)
-		r.With(middleware.RequirePermission(h.authSrv, "payments", "create")).Post("/{id}/reverse", h.Reverse)
+		r.With(middleware.RequirePermission(h.authSrv, "payments", "delete")).Post("/{id}/reverse", h.Reverse)
 		r.With(middleware.RequirePermission(h.authSrv, "payments", "read")).Get("/razorpay-webhook/status", h.RazorpayWebhookStatus)
 	})
 }
@@ -74,13 +74,13 @@ func (h *APIPaymentHandler) RazorpayWebhook(w http.ResponseWriter, r *http.Reque
 	}
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	var ev application.RazorpayWebhookEvent
 	if err := json.Unmarshal(body, &ev); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
 
@@ -88,11 +88,11 @@ func (h *APIPaymentHandler) RazorpayWebhook(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		switch {
 		case errors.Is(err, application.ErrWebhookNotConfigured):
-			http.Error(w, err.Error(), http.StatusServiceUnavailable)
+			http.Error(w, "webhook not configured", http.StatusServiceUnavailable)
 		case errors.Is(err, application.ErrWebhookInvalidSignature):
-			http.Error(w, err.Error(), http.StatusUnauthorized)
+			http.Error(w, "invalid webhook signature", http.StatusUnauthorized)
 		default:
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, "failed to process webhook", http.StatusBadRequest)
 		}
 		return
 	}
@@ -110,7 +110,14 @@ func (h *APIPaymentHandler) Record(w http.ResponseWriter, r *http.Request) {
 		Remarks     *string `json:"remarks"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	switch aggregate.PaymentMethod(req.Method) {
+	case aggregate.PaymentMethodCash, aggregate.PaymentMethodUPI, aggregate.PaymentMethodBankTransfer, aggregate.PaymentMethodCheque, aggregate.PaymentMethodRazorpay:
+	default:
+		http.Error(w, "invalid payment method", http.StatusBadRequest)
 		return
 	}
 
@@ -131,10 +138,10 @@ func (h *APIPaymentHandler) Record(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, application.ErrInvoiceNotFound) {
-			http.Error(w, err.Error(), http.StatusNotFound)
+			http.Error(w, "Invoice not found", http.StatusNotFound)
 			return
 		}
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Failed to record payment", http.StatusBadRequest)
 		return
 	}
 
@@ -145,6 +152,12 @@ func (h *APIPaymentHandler) Record(w http.ResponseWriter, r *http.Request) {
 func (h *APIPaymentHandler) List(w http.ResponseWriter, r *http.Request) {
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	if page < 1 {
+		page = 1
+	}
 
 	res, err := h.listUC.Execute(r.Context(), application.ListPaymentsQuery{
 		TenantID: shared.TenantIDFromContext(r.Context()),

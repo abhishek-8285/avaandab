@@ -236,7 +236,8 @@ func main() {
 
 	// Setup router
 	r := chi.NewRouter()
-	r.Use(chiMiddleware.RequestID)
+	r.Use(middleware.RequestID)
+	r.Use(middleware.SecurityHeaders)
 	r.Use(apiversion.Middleware)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer(reporter))

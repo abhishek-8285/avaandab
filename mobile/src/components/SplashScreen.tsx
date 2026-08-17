@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { StyleSheet, Text, View, Animated } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Colors } from '../constants/theme';
+import { Colors, Font, Radius } from '../constants/theme';
 
 interface SplashScreenProps {
   onFinish: () => void;
@@ -19,24 +19,24 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
       Animated.parallel([
         Animated.timing(logoOpacity, {
           toValue: 1,
-          duration: 800,
+          duration: 600,
           useNativeDriver: true,
         }),
         Animated.timing(logoTranslateY, {
           toValue: 0,
-          duration: 800,
+          duration: 600,
           useNativeDriver: true,
         }),
       ]),
       Animated.parallel([
         Animated.timing(textOpacity, {
           toValue: 1,
-          duration: 800,
+          duration: 500,
           useNativeDriver: true,
         }),
         Animated.timing(textTranslateY, {
           toValue: 0,
-          duration: 800,
+          duration: 500,
           useNativeDriver: true,
         }),
       ]),
@@ -44,17 +44,16 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
 
     const timer = setTimeout(() => {
       onFinish();
-    }, 2800);
+    }, 2000);
 
     return () => clearTimeout(timer);
   }, []);
 
   return (
     <View style={styles.container}>
-      <StatusBar style="light" backgroundColor={Colors.primary} />
-      
+      <StatusBar style="light" backgroundColor={Colors.chrome} />
+
       <View style={styles.content}>
-        {/* White Rounded Circle with Teal Icon (Stitch Design) */}
         <Animated.View
           style={[
             styles.logoContainer,
@@ -64,10 +63,9 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
             },
           ]}
         >
-          <MaterialCommunityIcons name="truck-fast" size={64} color={Colors.primary} />
+          <MaterialCommunityIcons name="truck-fast" size={56} color={Colors.primary} />
         </Animated.View>
 
-        {/* Brand Typography */}
         <Animated.View
           style={[
             styles.textContainer,
@@ -77,9 +75,12 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
             },
           ]}
         >
-          <Text style={styles.brandTitle}>Avandab</Text>
-          <Text style={styles.brandSubtitle}>Driver</Text>
+          <Text style={styles.brandTitle}>AVANDAB</Text>
+          <View style={styles.divider} />
+          <Text style={styles.brandSubtitle}>DRIVER OPS</Text>
         </Animated.View>
+
+        <Text style={styles.versionTag}>v2.4.1 · FLEET MOBILE</Text>
       </View>
     </View>
   );
@@ -88,7 +89,7 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.primary, // #00685f Avandab Teal
+    backgroundColor: Colors.chrome,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -97,32 +98,45 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logoContainer: {
-    width: 128,
-    height: 128,
-    borderRadius: 64,
-    backgroundColor: '#ffffff',
+    width: 96,
+    height: 96,
+    borderRadius: Radius.lg,
+    backgroundColor: Colors.chromeLight,
+    borderWidth: 1,
+    borderColor: Colors.chromeBorder,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 8,
+    marginBottom: 20,
   },
   textContainer: {
     alignItems: 'center',
   },
   brandTitle: {
-    color: '#ffffff',
-    fontSize: 32,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-    marginBottom: 4,
+    color: Colors.textOnChrome,
+    fontSize: 28,
+    fontWeight: '900',
+    letterSpacing: 4,
+    fontFamily: Font.mono,
+  },
+  divider: {
+    width: 40,
+    height: 1,
+    backgroundColor: Colors.primary,
+    marginVertical: 8,
   },
   brandSubtitle: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: 20,
-    fontWeight: '500',
+    color: Colors.primary,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 3,
+    fontFamily: Font.mono,
+  },
+  versionTag: {
+    color: Colors.textOnChromeMuted,
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 1,
+    fontFamily: Font.mono,
+    marginTop: 32,
   },
 });

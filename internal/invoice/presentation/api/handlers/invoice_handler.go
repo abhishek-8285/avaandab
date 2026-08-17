@@ -81,6 +81,12 @@ func (h *APIInvoiceHandler) Generate(w http.ResponseWriter, r *http.Request) {
 func (h *APIInvoiceHandler) List(w http.ResponseWriter, r *http.Request) {
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	if page < 1 {
+		page = 1
+	}
 
 	res, err := h.listUC.Execute(r.Context(), application.ListInvoicesQuery{
 		TenantID: shared.TenantIDFromContext(r.Context()),
