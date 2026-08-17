@@ -399,6 +399,12 @@ func untarGz(src string, dest string) error {
 	}
 	defer func() { _ = gzr.Close() }()
 
+	const (
+		maxFileSize  int64 = 100 * 1024 * 1024 // 100 MB per file
+		maxTotalSize int64 = 500 * 1024 * 1024 // 500 MB total archive
+	)
+	var totalWritten int64
+
 	tr := tar.NewReader(gzr)
 	for {
 		header, err := tr.Next()
@@ -419,6 +425,9 @@ func untarGz(src string, dest string) error {
 				return err
 			}
 		case tar.TypeReg:
+			if header.Size > maxFileSize {
+				return fmt.Errorf("tar entry %s exceeds maximum file size limit", header.Name)
+			}
 			if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
 				return err
 			}
@@ -426,11 +435,18 @@ func untarGz(src string, dest string) error {
 			if err != nil {
 				return err
 			}
-			if _, err := io.Copy(outFile, tr); err != nil {
-				_ = outFile.Close()
+			written, err := io.Copy(outFile, io.LimitReader(tr, maxFileSize+1))
+			_ = outFile.Close()
+			if err != nil {
 				return err
 			}
-			_ = outFile.Close()
+			if written > maxFileSize {
+				return fmt.Errorf("tar entry %s extracted size exceeds limit", header.Name)
+			}
+			totalWritten += written
+			if totalWritten > maxTotalSize {
+				return fmt.Errorf("total extracted archive size exceeds limit of %d bytes", maxTotalSize)
+			}
 		}
 	}
 	return nil

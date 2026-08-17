@@ -296,9 +296,13 @@ func main() {
 	openapispec.RegisterRoutes(r)
 
 	// ── REST API v1 ───────────────────────────────────────────────────────
-	// Prefer a dedicated API-token secret over reusing the cookie secret.
+	// Require dedicated API token secret; fall back to cookie secret only in non-production.
 	apiSecret := []byte(cfg.APITokenSecret)
 	if len(apiSecret) == 0 {
+		if cfg.IsProduction() {
+			slog.Error("API_SECRET must be explicitly configured in production")
+			os.Exit(1)
+		}
 		apiSecret = []byte(cfg.CookieSecret)
 	}
 	authAPIHandler := authAPIHandlers.NewAPIAuthHandler(services.Auth, services.Users, apiSecret)
@@ -324,9 +328,8 @@ func main() {
 	// Public: token endpoint (no auth required) — rate-limited against brute force
 	authAPIHandler.Register(r.With(middleware.RateLimit(10)))
 
-	// Public: Razorpay webhook — signature-verified, deliberately outside
-	// the authenticated API group.
-	r.Post("/api/v1/payments/razorpay-webhook", paymentAPIHandler.RazorpayWebhook)
+	// Public: Razorpay webhook — signature-verified, rate-limited against flood attacks
+	r.With(middleware.RateLimit(30)).Post("/api/v1/payments/razorpay-webhook", paymentAPIHandler.RazorpayWebhook)
 
 	// Protected: GraphQL, Telemetry, and all /api/v1/* routes require a valid session or Bearer token
 	r.Group(func(r chi.Router) {

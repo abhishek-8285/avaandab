@@ -159,6 +159,9 @@ func (s *AuthService) ChangePassword(ctx context.Context, userID domain.UserID, 
 	if err != nil {
 		return err
 	}
+	if user.Status != domain.UserStatusActive {
+		return domain.ErrUnauthorized
+	}
 
 	if err := auth.CheckPassword(oldPassword, user.PasswordHash); err != nil {
 		return domain.ErrInvalidCredentials
@@ -187,6 +190,9 @@ func (s *AuthService) UpdateProfile(ctx context.Context, userID domain.UserID, n
 	user, err := s.store.GetUserByID(ctx, userID)
 	if err != nil {
 		return domain.User{}, err
+	}
+	if user.Status != domain.UserStatusActive {
+		return domain.User{}, domain.ErrUnauthorized
 	}
 
 	user.Name = sanitizeName(name)

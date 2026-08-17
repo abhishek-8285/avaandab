@@ -13,9 +13,11 @@ type Server struct {
 }
 
 func StartGRPCServer(port string) {
-	lis, err := net.Listen("tcp", ":"+port)
+	host := "127.0.0.1"
+	addr := net.JoinHostPort(host, port)
+	lis, err := net.Listen("tcp", addr)
 	if err != nil {
-		log.Printf("[gRPC ERROR] Failed to listen on port %s: %v", port, err)
+		log.Printf("[gRPC ERROR] Failed to listen on %s: %v", addr, err)
 		return
 	}
 	s := grpc.NewServer()

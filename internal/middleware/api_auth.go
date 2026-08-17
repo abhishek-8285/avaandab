@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"strings"
 
@@ -25,7 +26,10 @@ func RequireAPIAuth(store *auth.SessionStore, secret []byte) func(http.Handler) 
 				w.Header().Set("Content-Type", "application/json")
 				w.Header().Set("WWW-Authenticate", `Bearer realm="transport-api"`)
 				w.WriteHeader(http.StatusUnauthorized)
-				_, _ = w.Write([]byte(`{"error":"unauthorized","message":"` + err.Error() + `"}`))
+				_ = json.NewEncoder(w).Encode(map[string]string{
+					"error":   "unauthorized",
+					"message": err.Error(),
+				})
 				return
 			}
 

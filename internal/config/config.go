@@ -145,10 +145,7 @@ func (c *Config) UsingKnownDefaultSecret() bool {
 	if c.CookieSecret == "dev-secret-32bytes-for-cookie-signing!" {
 		return true
 	}
-	if c.APITokenSecret == "" && c.CookieSecret != "" {
-		return true
-	}
-	if c.RazorpayKeyID == "rzp_test_TMdP3QXQq2L67c" && c.RazorpayKeySecret == "Fv17NyJHioQluynfHY59F0da" {
+	if c.APITokenSecret == "" {
 		return true
 	}
 	return false
