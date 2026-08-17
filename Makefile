@@ -1,4 +1,4 @@
-.PHONY: build run test test-race lint fmt vet generate migrate-up migrate-down clean docker dev build-css
+.PHONY: build run test test-race lint fmt vet generate migrate-up migrate-down clean docker dev build-css check check-fast check-fmt staticcheck check-security
 
 ## Build CSS from Tailwind source
 build-css:
@@ -48,7 +48,28 @@ clean:
 	rm -rf bin/ coverage.out *.db *.db-wal *.db-shm
 
 ## Run tests and build
-ci: fmt vet test build
+ci: check-fmt vet test build
+
+## Fast fail: fmt check, vet, staticcheck, quick test (fails immediately on first error)
+check-fast: check-fmt vet staticcheck test
+
+## Full check: fmt check, vet, build, staticcheck, race tests, security scans
+check: check-fmt vet build staticcheck test-race check-security
+
+check-fmt:
+	@out=$$(gofmt -l .); if [ -n "$$out" ]; then \
+		echo "gofmt needed on:"; echo "$$out"; exit 1; fi
+
+staticcheck:
+	@bin=$$(command -v staticcheck || echo "$$(go env GOPATH)/bin/staticcheck"); \
+	if [ ! -x "$$bin" ]; then echo "staticcheck not installed: go install honnef.co/go/tools/cmd/staticcheck@latest"; exit 1; fi; \
+	"$$bin" ./...
+
+check-security:
+	@bin=$$(command -v gosec || echo "$$(go env GOPATH)/bin/gosec"); \
+	if [ -x "$$bin" ]; then "$$bin" -quiet -no-fail ./...; else echo "gosec skipped (not installed)"; fi
+	@bin=$$(command -v govulncheck || echo "$$(go env GOPATH)/bin/govulncheck"); \
+	if [ -x "$$bin" ]; then "$$bin" ./...; else echo "govulncheck skipped (not installed)"; fi
 
 ## Run development server
 dev:
