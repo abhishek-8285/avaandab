@@ -14,67 +14,105 @@ import (
 const countRoutes = `-- name: CountRoutes :one
 SELECT COUNT(*) AS count
 FROM routes
-WHERE source LIKE '%' || ? || '%' OR destination LIKE '%' || ? || '%'
+WHERE (source LIKE '%' || ? || '%' OR destination LIKE '%' || ? || '%')
+  AND tenant_id = ?
 `
 
 type CountRoutesParams struct {
-	Column1 sql.NullString `json:"column_1"`
-	Column2 sql.NullString `json:"column_2"`
+	Column1  sql.NullString `json:"column_1"`
+	Column2  sql.NullString `json:"column_2"`
+	TenantID string         `json:"tenant_id"`
 }
 
 func (q *Queries) CountRoutes(ctx context.Context, arg CountRoutesParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countRoutes, arg.Column1, arg.Column2)
+	row := q.db.QueryRowContext(ctx, countRoutes, arg.Column1, arg.Column2, arg.TenantID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
 }
 
 const createRoute = `-- name: CreateRoute :one
-INSERT INTO routes (id, source, destination, distance, estimated_hours, standard_fare, remarks)
-VALUES (?, ?, ?, ?, ?, ?, ?)
-RETURNING id, source, destination, distance, estimated_hours, standard_fare, remarks, created_at, updated_at
+INSERT INTO routes (
+    id, tenant_id, source, destination,
+    source_normalized, dest_normalized,
+    distance, estimated_hours, standard_fare,
+    reverse_distance, reverse_standard_fare,
+    direction, is_active, remarks
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id, tenant_id, source, destination, source_normalized, dest_normalized,
+          distance, estimated_hours, standard_fare, reverse_distance, reverse_standard_fare,
+          direction, is_active, remarks, created_at, updated_at
 `
 
 type CreateRouteParams struct {
-	ID             string         `json:"id"`
-	Source         string         `json:"source"`
-	Destination    string         `json:"destination"`
-	Distance       float64        `json:"distance"`
-	EstimatedHours float64        `json:"estimated_hours"`
-	StandardFare   float64        `json:"standard_fare"`
-	Remarks        sql.NullString `json:"remarks"`
+	ID                  string          `json:"id"`
+	TenantID            string          `json:"tenant_id"`
+	Source              string          `json:"source"`
+	Destination         string          `json:"destination"`
+	SourceNormalized    string          `json:"source_normalized"`
+	DestNormalized      string          `json:"dest_normalized"`
+	Distance            float64         `json:"distance"`
+	EstimatedHours      float64         `json:"estimated_hours"`
+	StandardFare        float64         `json:"standard_fare"`
+	ReverseDistance     sql.NullFloat64 `json:"reverse_distance"`
+	ReverseStandardFare sql.NullFloat64 `json:"reverse_standard_fare"`
+	Direction           string          `json:"direction"`
+	IsActive            int64           `json:"is_active"`
+	Remarks             sql.NullString  `json:"remarks"`
 }
 
 type CreateRouteRow struct {
-	ID             string         `json:"id"`
-	Source         string         `json:"source"`
-	Destination    string         `json:"destination"`
-	Distance       float64        `json:"distance"`
-	EstimatedHours float64        `json:"estimated_hours"`
-	StandardFare   float64        `json:"standard_fare"`
-	Remarks        sql.NullString `json:"remarks"`
-	CreatedAt      time.Time      `json:"created_at"`
-	UpdatedAt      time.Time      `json:"updated_at"`
+	ID                  string          `json:"id"`
+	TenantID            string          `json:"tenant_id"`
+	Source              string          `json:"source"`
+	Destination         string          `json:"destination"`
+	SourceNormalized    string          `json:"source_normalized"`
+	DestNormalized      string          `json:"dest_normalized"`
+	Distance            float64         `json:"distance"`
+	EstimatedHours      float64         `json:"estimated_hours"`
+	StandardFare        float64         `json:"standard_fare"`
+	ReverseDistance     sql.NullFloat64 `json:"reverse_distance"`
+	ReverseStandardFare sql.NullFloat64 `json:"reverse_standard_fare"`
+	Direction           string          `json:"direction"`
+	IsActive            int64           `json:"is_active"`
+	Remarks             sql.NullString  `json:"remarks"`
+	CreatedAt           time.Time       `json:"created_at"`
+	UpdatedAt           time.Time       `json:"updated_at"`
 }
 
 func (q *Queries) CreateRoute(ctx context.Context, arg CreateRouteParams) (CreateRouteRow, error) {
 	row := q.db.QueryRowContext(ctx, createRoute,
 		arg.ID,
+		arg.TenantID,
 		arg.Source,
 		arg.Destination,
+		arg.SourceNormalized,
+		arg.DestNormalized,
 		arg.Distance,
 		arg.EstimatedHours,
 		arg.StandardFare,
+		arg.ReverseDistance,
+		arg.ReverseStandardFare,
+		arg.Direction,
+		arg.IsActive,
 		arg.Remarks,
 	)
 	var i CreateRouteRow
 	err := row.Scan(
 		&i.ID,
+		&i.TenantID,
 		&i.Source,
 		&i.Destination,
+		&i.SourceNormalized,
+		&i.DestNormalized,
 		&i.Distance,
 		&i.EstimatedHours,
 		&i.StandardFare,
+		&i.ReverseDistance,
+		&i.ReverseStandardFare,
+		&i.Direction,
+		&i.IsActive,
 		&i.Remarks,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -92,20 +130,29 @@ func (q *Queries) DeleteRoute(ctx context.Context, id string) error {
 }
 
 const getRouteByID = `-- name: GetRouteByID :one
-SELECT id, source, destination, distance, estimated_hours, standard_fare, remarks, created_at, updated_at
+SELECT id, tenant_id, source, destination, source_normalized, dest_normalized,
+       distance, estimated_hours, standard_fare, reverse_distance, reverse_standard_fare,
+       direction, is_active, remarks, created_at, updated_at
 FROM routes WHERE id = ?
 `
 
 type GetRouteByIDRow struct {
-	ID             string         `json:"id"`
-	Source         string         `json:"source"`
-	Destination    string         `json:"destination"`
-	Distance       float64        `json:"distance"`
-	EstimatedHours float64        `json:"estimated_hours"`
-	StandardFare   float64        `json:"standard_fare"`
-	Remarks        sql.NullString `json:"remarks"`
-	CreatedAt      time.Time      `json:"created_at"`
-	UpdatedAt      time.Time      `json:"updated_at"`
+	ID                  string          `json:"id"`
+	TenantID            string          `json:"tenant_id"`
+	Source              string          `json:"source"`
+	Destination         string          `json:"destination"`
+	SourceNormalized    string          `json:"source_normalized"`
+	DestNormalized      string          `json:"dest_normalized"`
+	Distance            float64         `json:"distance"`
+	EstimatedHours      float64         `json:"estimated_hours"`
+	StandardFare        float64         `json:"standard_fare"`
+	ReverseDistance     sql.NullFloat64 `json:"reverse_distance"`
+	ReverseStandardFare sql.NullFloat64 `json:"reverse_standard_fare"`
+	Direction           string          `json:"direction"`
+	IsActive            int64           `json:"is_active"`
+	Remarks             sql.NullString  `json:"remarks"`
+	CreatedAt           time.Time       `json:"created_at"`
+	UpdatedAt           time.Time       `json:"updated_at"`
 }
 
 func (q *Queries) GetRouteByID(ctx context.Context, id string) (GetRouteByIDRow, error) {
@@ -113,11 +160,18 @@ func (q *Queries) GetRouteByID(ctx context.Context, id string) (GetRouteByIDRow,
 	var i GetRouteByIDRow
 	err := row.Scan(
 		&i.ID,
+		&i.TenantID,
 		&i.Source,
 		&i.Destination,
+		&i.SourceNormalized,
+		&i.DestNormalized,
 		&i.Distance,
 		&i.EstimatedHours,
 		&i.StandardFare,
+		&i.ReverseDistance,
+		&i.ReverseStandardFare,
+		&i.Direction,
+		&i.IsActive,
 		&i.Remarks,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -126,37 +180,56 @@ func (q *Queries) GetRouteByID(ctx context.Context, id string) (GetRouteByIDRow,
 }
 
 const getRouteBySourceAndDestination = `-- name: GetRouteBySourceAndDestination :one
-SELECT id, source, destination, distance, estimated_hours, standard_fare, remarks, created_at, updated_at
-FROM routes WHERE source = ? AND destination = ?
+SELECT id, tenant_id, source, destination, source_normalized, dest_normalized,
+       distance, estimated_hours, standard_fare, reverse_distance, reverse_standard_fare,
+       direction, is_active, remarks, created_at, updated_at
+FROM routes
+WHERE source_normalized = LOWER(TRIM(?)) AND dest_normalized = LOWER(TRIM(?))
+  AND tenant_id = ?
 `
 
 type GetRouteBySourceAndDestinationParams struct {
 	Source      string `json:"source"`
 	Destination string `json:"destination"`
+	TenantID    string `json:"tenant_id"`
 }
 
 type GetRouteBySourceAndDestinationRow struct {
-	ID             string         `json:"id"`
-	Source         string         `json:"source"`
-	Destination    string         `json:"destination"`
-	Distance       float64        `json:"distance"`
-	EstimatedHours float64        `json:"estimated_hours"`
-	StandardFare   float64        `json:"standard_fare"`
-	Remarks        sql.NullString `json:"remarks"`
-	CreatedAt      time.Time      `json:"created_at"`
-	UpdatedAt      time.Time      `json:"updated_at"`
+	ID                  string          `json:"id"`
+	TenantID            string          `json:"tenant_id"`
+	Source              string          `json:"source"`
+	Destination         string          `json:"destination"`
+	SourceNormalized    string          `json:"source_normalized"`
+	DestNormalized      string          `json:"dest_normalized"`
+	Distance            float64         `json:"distance"`
+	EstimatedHours      float64         `json:"estimated_hours"`
+	StandardFare        float64         `json:"standard_fare"`
+	ReverseDistance     sql.NullFloat64 `json:"reverse_distance"`
+	ReverseStandardFare sql.NullFloat64 `json:"reverse_standard_fare"`
+	Direction           string          `json:"direction"`
+	IsActive            int64           `json:"is_active"`
+	Remarks             sql.NullString  `json:"remarks"`
+	CreatedAt           time.Time       `json:"created_at"`
+	UpdatedAt           time.Time       `json:"updated_at"`
 }
 
 func (q *Queries) GetRouteBySourceAndDestination(ctx context.Context, arg GetRouteBySourceAndDestinationParams) (GetRouteBySourceAndDestinationRow, error) {
-	row := q.db.QueryRowContext(ctx, getRouteBySourceAndDestination, arg.Source, arg.Destination)
+	row := q.db.QueryRowContext(ctx, getRouteBySourceAndDestination, arg.Source, arg.Destination, arg.TenantID)
 	var i GetRouteBySourceAndDestinationRow
 	err := row.Scan(
 		&i.ID,
+		&i.TenantID,
 		&i.Source,
 		&i.Destination,
+		&i.SourceNormalized,
+		&i.DestNormalized,
 		&i.Distance,
 		&i.EstimatedHours,
 		&i.StandardFare,
+		&i.ReverseDistance,
+		&i.ReverseStandardFare,
+		&i.Direction,
+		&i.IsActive,
 		&i.Remarks,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -165,36 +238,48 @@ func (q *Queries) GetRouteBySourceAndDestination(ctx context.Context, arg GetRou
 }
 
 const searchRoutes = `-- name: SearchRoutes :many
-SELECT id, source, destination, distance, estimated_hours, standard_fare, remarks, created_at, updated_at
+SELECT id, tenant_id, source, destination, source_normalized, dest_normalized,
+       distance, estimated_hours, standard_fare, reverse_distance, reverse_standard_fare,
+       direction, is_active, remarks, created_at, updated_at
 FROM routes
-WHERE source LIKE '%' || ? || '%' OR destination LIKE '%' || ? || '%'
+WHERE (source LIKE '%' || ? || '%' OR destination LIKE '%' || ? || '%')
+  AND tenant_id = ?
 ORDER BY created_at DESC
 LIMIT ? OFFSET ?
 `
 
 type SearchRoutesParams struct {
-	Column1 sql.NullString `json:"column_1"`
-	Column2 sql.NullString `json:"column_2"`
-	Limit   int64          `json:"limit"`
-	Offset  int64          `json:"offset"`
+	Column1  sql.NullString `json:"column_1"`
+	Column2  sql.NullString `json:"column_2"`
+	TenantID string         `json:"tenant_id"`
+	Limit    int64          `json:"limit"`
+	Offset   int64          `json:"offset"`
 }
 
 type SearchRoutesRow struct {
-	ID             string         `json:"id"`
-	Source         string         `json:"source"`
-	Destination    string         `json:"destination"`
-	Distance       float64        `json:"distance"`
-	EstimatedHours float64        `json:"estimated_hours"`
-	StandardFare   float64        `json:"standard_fare"`
-	Remarks        sql.NullString `json:"remarks"`
-	CreatedAt      time.Time      `json:"created_at"`
-	UpdatedAt      time.Time      `json:"updated_at"`
+	ID                  string          `json:"id"`
+	TenantID            string          `json:"tenant_id"`
+	Source              string          `json:"source"`
+	Destination         string          `json:"destination"`
+	SourceNormalized    string          `json:"source_normalized"`
+	DestNormalized      string          `json:"dest_normalized"`
+	Distance            float64         `json:"distance"`
+	EstimatedHours      float64         `json:"estimated_hours"`
+	StandardFare        float64         `json:"standard_fare"`
+	ReverseDistance     sql.NullFloat64 `json:"reverse_distance"`
+	ReverseStandardFare sql.NullFloat64 `json:"reverse_standard_fare"`
+	Direction           string          `json:"direction"`
+	IsActive            int64           `json:"is_active"`
+	Remarks             sql.NullString  `json:"remarks"`
+	CreatedAt           time.Time       `json:"created_at"`
+	UpdatedAt           time.Time       `json:"updated_at"`
 }
 
 func (q *Queries) SearchRoutes(ctx context.Context, arg SearchRoutesParams) ([]SearchRoutesRow, error) {
 	rows, err := q.db.QueryContext(ctx, searchRoutes,
 		arg.Column1,
 		arg.Column2,
+		arg.TenantID,
 		arg.Limit,
 		arg.Offset,
 	)
@@ -207,11 +292,18 @@ func (q *Queries) SearchRoutes(ctx context.Context, arg SearchRoutesParams) ([]S
 		var i SearchRoutesRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.TenantID,
 			&i.Source,
 			&i.Destination,
+			&i.SourceNormalized,
+			&i.DestNormalized,
 			&i.Distance,
 			&i.EstimatedHours,
 			&i.StandardFare,
+			&i.ReverseDistance,
+			&i.ReverseStandardFare,
+			&i.Direction,
+			&i.IsActive,
 			&i.Remarks,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -231,52 +323,83 @@ func (q *Queries) SearchRoutes(ctx context.Context, arg SearchRoutesParams) ([]S
 
 const updateRoute = `-- name: UpdateRoute :one
 UPDATE routes
-SET source = ?, destination = ?, distance = ?, estimated_hours = ?, standard_fare = ?, remarks = ?,
+SET source = ?, destination = ?, source_normalized = ?, dest_normalized = ?,
+    distance = ?, estimated_hours = ?, standard_fare = ?,
+    reverse_distance = ?, reverse_standard_fare = ?,
+    direction = ?, is_active = ?, remarks = ?,
     updated_at = datetime('now')
 WHERE id = ?
-RETURNING id, source, destination, distance, estimated_hours, standard_fare, remarks, created_at, updated_at
+RETURNING id, tenant_id, source, destination, source_normalized, dest_normalized,
+          distance, estimated_hours, standard_fare, reverse_distance, reverse_standard_fare,
+          direction, is_active, remarks, created_at, updated_at
 `
 
 type UpdateRouteParams struct {
-	Source         string         `json:"source"`
-	Destination    string         `json:"destination"`
-	Distance       float64        `json:"distance"`
-	EstimatedHours float64        `json:"estimated_hours"`
-	StandardFare   float64        `json:"standard_fare"`
-	Remarks        sql.NullString `json:"remarks"`
-	ID             string         `json:"id"`
+	Source              string          `json:"source"`
+	Destination         string          `json:"destination"`
+	SourceNormalized    string          `json:"source_normalized"`
+	DestNormalized      string          `json:"dest_normalized"`
+	Distance            float64         `json:"distance"`
+	EstimatedHours      float64         `json:"estimated_hours"`
+	StandardFare        float64         `json:"standard_fare"`
+	ReverseDistance     sql.NullFloat64 `json:"reverse_distance"`
+	ReverseStandardFare sql.NullFloat64 `json:"reverse_standard_fare"`
+	Direction           string          `json:"direction"`
+	IsActive            int64           `json:"is_active"`
+	Remarks             sql.NullString  `json:"remarks"`
+	ID                  string          `json:"id"`
 }
 
 type UpdateRouteRow struct {
-	ID             string         `json:"id"`
-	Source         string         `json:"source"`
-	Destination    string         `json:"destination"`
-	Distance       float64        `json:"distance"`
-	EstimatedHours float64        `json:"estimated_hours"`
-	StandardFare   float64        `json:"standard_fare"`
-	Remarks        sql.NullString `json:"remarks"`
-	CreatedAt      time.Time      `json:"created_at"`
-	UpdatedAt      time.Time      `json:"updated_at"`
+	ID                  string          `json:"id"`
+	TenantID            string          `json:"tenant_id"`
+	Source              string          `json:"source"`
+	Destination         string          `json:"destination"`
+	SourceNormalized    string          `json:"source_normalized"`
+	DestNormalized      string          `json:"dest_normalized"`
+	Distance            float64         `json:"distance"`
+	EstimatedHours      float64         `json:"estimated_hours"`
+	StandardFare        float64         `json:"standard_fare"`
+	ReverseDistance     sql.NullFloat64 `json:"reverse_distance"`
+	ReverseStandardFare sql.NullFloat64 `json:"reverse_standard_fare"`
+	Direction           string          `json:"direction"`
+	IsActive            int64           `json:"is_active"`
+	Remarks             sql.NullString  `json:"remarks"`
+	CreatedAt           time.Time       `json:"created_at"`
+	UpdatedAt           time.Time       `json:"updated_at"`
 }
 
 func (q *Queries) UpdateRoute(ctx context.Context, arg UpdateRouteParams) (UpdateRouteRow, error) {
 	row := q.db.QueryRowContext(ctx, updateRoute,
 		arg.Source,
 		arg.Destination,
+		arg.SourceNormalized,
+		arg.DestNormalized,
 		arg.Distance,
 		arg.EstimatedHours,
 		arg.StandardFare,
+		arg.ReverseDistance,
+		arg.ReverseStandardFare,
+		arg.Direction,
+		arg.IsActive,
 		arg.Remarks,
 		arg.ID,
 	)
 	var i UpdateRouteRow
 	err := row.Scan(
 		&i.ID,
+		&i.TenantID,
 		&i.Source,
 		&i.Destination,
+		&i.SourceNormalized,
+		&i.DestNormalized,
 		&i.Distance,
 		&i.EstimatedHours,
 		&i.StandardFare,
+		&i.ReverseDistance,
+		&i.ReverseStandardFare,
+		&i.Direction,
+		&i.IsActive,
 		&i.Remarks,
 		&i.CreatedAt,
 		&i.UpdatedAt,

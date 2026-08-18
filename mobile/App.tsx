@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
-import { Colors } from './src/constants/theme';
+import { Colors, Font, Radius, Spacing } from './src/constants/theme';
 import { DEFAULT_DRIVER_ID, DEFAULT_LATITUDE, DEFAULT_LONGITUDE } from './src/constants/network';
 import { TripCard, SkeletonLoader } from './src/components/TripCard';
 import { LiveDriverTrackingMap } from './src/components/LiveDriverTrackingMap';
@@ -83,7 +84,7 @@ export default function App() {
     return (
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
-          <StatusBar style="dark" />
+          <StatusBar style="light" />
           <MainScreen onOpenSetup={() => setCurrentScreen('first_time_setup')} />
         </QueryClientProvider>
       </SafeAreaProvider>
@@ -165,7 +166,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        <StatusBar style="dark" />
+        <StatusBar style="light" />
         <MainScreen onOpenSetup={() => setCurrentScreen('first_time_setup')} />
       </QueryClientProvider>
     </SafeAreaProvider>
@@ -310,30 +311,34 @@ function MainScreen({ onOpenSetup }: { onOpenSetup?: () => void }) {
 
       {/* Header with Avandab Brand Colors */}
       <View style={styles.header}>
-        <View style={styles.brandBadge}>
-          <Text style={styles.brandBadgeText}>AVANDAB OPERATIONS</Text>
+        <View style={styles.headerTopRow}>
+          <View style={styles.brandBadge}>
+            <View style={styles.brandDot} />
+            <Text style={styles.brandBadgeText}>AVANDAB · OPS</Text>
+          </View>
+          <Text style={styles.headerClock}>14:32 IST</Text>
         </View>
-        <Text style={styles.headerTitle}>Fleet Mobile</Text>
+        <Text style={styles.headerTitle}>FLEET MOBILE</Text>
         <Text style={styles.headerSubtitle}>
-          {user ? `Welcome back, ${user.name}` : 'Live Dispatch & Trip Management'}
+          {user ? `${user.name.toUpperCase()} · ${user.id || 'DRV-9042'}` : 'LIVE DISPATCH & TRIP MGMT'}
         </Text>
       </View>
 
       {/* Non-Blocking Setup Prompt Banner */}
       <View style={styles.bannerContainer}>
         <View style={styles.bannerIconBox}>
-          <Text style={styles.bannerIconText}>📋</Text>
+          <MaterialCommunityIcons name="clipboard-alert-outline" size={14} color={Colors.warning} />
         </View>
         <View style={styles.bannerTextContainer}>
-          <Text style={styles.bannerTitle}>Complete Profile Setup</Text>
-          <Text style={styles.bannerSub}>Add bank details, profile picture & driver docs.</Text>
+          <Text style={styles.bannerTitle}>PROFILE SETUP INCOMPLETE</Text>
+          <Text style={styles.bannerSub}>Bank details · Profile photo · Driver docs</Text>
         </View>
         <TouchableOpacity
           style={styles.bannerBtn}
           activeOpacity={0.85}
           onPress={() => onOpenSetup && onOpenSetup()}
         >
-          <Text style={styles.bannerBtnText}>Setup</Text>
+          <Text style={styles.bannerBtnText}>SETUP</Text>
         </TouchableOpacity>
       </View>
 
@@ -343,13 +348,13 @@ function MainScreen({ onOpenSetup }: { onOpenSetup?: () => void }) {
           style={[styles.tab, activeTab === 'trips' && styles.activeTab]}
           onPress={() => setActiveTab('trips')}
         >
-          <Text style={[styles.tabText, activeTab === 'trips' && styles.activeTabText]}>Active Trips</Text>
+          <Text style={[styles.tabText, activeTab === 'trips' && styles.activeTabText]}>ACTIVE TRIPS</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'dispatch' && styles.activeTab]}
           onPress={() => setActiveTab('dispatch')}
         >
-          <Text style={[styles.tabText, activeTab === 'dispatch' && styles.activeTabText]}>Dispatch</Text>
+          <Text style={[styles.tabText, activeTab === 'dispatch' && styles.activeTabText]}>DISPATCH</Text>
         </TouchableOpacity>
       </View>
 
@@ -377,7 +382,10 @@ function MainScreen({ onOpenSetup }: { onOpenSetup?: () => void }) {
           )
         ) : (
           <View style={styles.infoCard}>
-            <Text style={styles.infoTitle}>Hardware Instrumentation & Telemetry</Text>
+            <View style={styles.infoCardHeader}>
+              <Text style={styles.infoTitle}>TELEMETRY & INSTRUMENTATION</Text>
+              <Text style={styles.infoMeta}>DISPATCH PANEL</Text>
+            </View>
             <Text style={styles.infoBody}>
               Request native permissions and monitor instrumented GPS location & camera state.
             </Text>
@@ -385,27 +393,30 @@ function MainScreen({ onOpenSetup }: { onOpenSetup?: () => void }) {
             {/* Telemetry Status Grid */}
             <View style={styles.telemetrySection}>
               <View style={styles.telemetryRow}>
-                <Text style={styles.telemetryLabel}>GPS Telemetry & Route Logging:</Text>
-                <Text style={[styles.telemetryValue, locationState.granted ? styles.textSuccess : styles.textWarning]}>
-                  {locationState.granted ? 'ACTIVE • 10s INTERVAL' : 'NOT GRANTED'}
-                </Text>
+                <Text style={styles.telemetryLabel}>GPS TELEMETRY</Text>
+                <View style={[styles.statusPill, locationState.granted ? styles.statusPillActive : styles.statusPillPending]}>
+                  <View style={[styles.statusPillDot, { backgroundColor: locationState.granted ? Colors.success : Colors.warning }]} />
+                  <Text style={[styles.telemetryValue, { color: locationState.granted ? Colors.success : Colors.warning }]}>
+                    {locationState.granted ? 'ACTIVE · 10S' : 'NOT GRANTED'}
+                  </Text>
+                </View>
               </View>
 
               {locationState.granted && locationState.latitude ? (
                 <View style={styles.gpsDisplayBox}>
                   <View style={styles.gpsRow}>
-                    <Text style={styles.gpsLabel}>Latitude:</Text>
-                    <Text style={styles.gpsValue}>{locationState.latitude.toFixed(6)}° N</Text>
+                    <Text style={styles.gpsLabel}>LAT</Text>
+                    <Text style={styles.gpsValue}>{locationState.latitude.toFixed(6)}°N</Text>
                   </View>
                   <View style={styles.gpsRow}>
-                    <Text style={styles.gpsLabel}>Longitude:</Text>
-                    <Text style={styles.gpsValue}>{locationState.longitude?.toFixed(6)}° E</Text>
+                    <Text style={styles.gpsLabel}>LNG</Text>
+                    <Text style={styles.gpsValue}>{locationState.longitude?.toFixed(6)}°E</Text>
                   </View>
                   <View style={styles.gpsRow}>
-                    <Text style={styles.gpsLabel}>Local Persistence:</Text>
-                    <Text style={styles.gpsSuccessText}>Logged to SQLite DB & MQTT Streamed</Text>
+                    <Text style={styles.gpsLabel}>PERSIST</Text>
+                    <Text style={styles.gpsSuccessText}>SQLITE · MQTT STREAM</Text>
                   </View>
-                  
+
                   {/* Uber-Style Live Interactive Map */}
                   <LiveDriverTrackingMap
                     driverLatitude={locationState.latitude}
@@ -414,17 +425,19 @@ function MainScreen({ onOpenSetup }: { onOpenSetup?: () => void }) {
 
                   <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
                     <TouchableOpacity style={[styles.dbFetchBtn, { flex: 1 }]} onPress={handleFetchDBLogs}>
-                      <Text style={styles.dbFetchBtnText}>Fetch SQLite Logs</Text>
+                      <MaterialCommunityIcons name="database-search-outline" size={12} color={Colors.textOnPrimary} />
+                      <Text style={styles.dbFetchBtnText}>FETCH LOGS</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={[styles.dbFetchBtn, { flex: 1, backgroundColor: Colors.primary }]} onPress={handleManualSync}>
-                      <Text style={styles.dbFetchBtnText}>Trigger Sync to Backend</Text>
+                    <TouchableOpacity style={[styles.dbFetchBtn, styles.dbSyncBtn, { flex: 1 }]} onPress={handleManualSync}>
+                      <MaterialCommunityIcons name="cloud-upload-outline" size={12} color={Colors.textOnPrimary} />
+                      <Text style={styles.dbFetchBtnText}>SYNC BACKEND</Text>
                     </TouchableOpacity>
                   </View>
 
                   {dbLogs.length > 0 && (
                     <View style={styles.dbLogsContainer}>
-                      <Text style={styles.dbLogsTitle}>SQLite `offline_gps_logs` Records ({dbLogs.length}):</Text>
+                      <Text style={styles.dbLogsTitle}>OFFLINE_GPS_LOGS · {dbLogs.length} ROWS</Text>
                       {dbLogs.map((log) => (
                         <View key={log.id} style={styles.dbLogRow}>
                           <Text style={styles.dbLogId}>#{log.id}</Text>
@@ -437,7 +450,8 @@ function MainScreen({ onOpenSetup }: { onOpenSetup?: () => void }) {
                 </View>
               ) : (
                 <TouchableOpacity style={styles.actionBtn} onPress={handleRequestLocation}>
-                  <Text style={styles.actionBtnText}>Request & Instrument GPS Location</Text>
+                  <MaterialCommunityIcons name="crosshairs-gps" size={14} color={Colors.textOnPrimary} />
+                  <Text style={styles.actionBtnText}>REQUEST & INSTRUMENT GPS</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -446,10 +460,13 @@ function MainScreen({ onOpenSetup }: { onOpenSetup?: () => void }) {
 
             <View style={styles.telemetrySection}>
               <View style={styles.telemetryRow}>
-                <Text style={styles.telemetryLabel}>Camera Hardware:</Text>
-                <Text style={[styles.telemetryValue, cameraState.granted ? styles.textSuccess : styles.textWarning]}>
-                  {cameraState.granted ? 'CAMERA READY' : 'NOT GRANTED'}
-                </Text>
+                <Text style={styles.telemetryLabel}>CAMERA HARDWARE</Text>
+                <View style={[styles.statusPill, cameraState.granted ? styles.statusPillActive : styles.statusPillPending]}>
+                  <View style={[styles.statusPillDot, { backgroundColor: cameraState.granted ? Colors.success : Colors.warning }]} />
+                  <Text style={[styles.telemetryValue, { color: cameraState.granted ? Colors.success : Colors.warning }]}>
+                    {cameraState.granted ? 'READY' : 'NOT GRANTED'}
+                  </Text>
+                </View>
               </View>
 
               {showCameraView ? (
@@ -457,16 +474,17 @@ function MainScreen({ onOpenSetup }: { onOpenSetup?: () => void }) {
                   <CameraView style={styles.cameraView} facing="back">
                     <View style={styles.scannerOverlay}>
                       <View style={styles.scanTargetBox} />
-                      <Text style={styles.scanInstructionText}>Align Cargo Barcode inside box</Text>
+                      <Text style={styles.scanInstructionText}>ALIGN CARGO BARCODE</Text>
                     </View>
                   </CameraView>
                   <TouchableOpacity style={styles.closeCameraBtn} onPress={() => setShowCameraView(false)}>
-                    <Text style={styles.closeCameraBtnText}>Close Camera Finder</Text>
+                    <Text style={styles.closeCameraBtnText}>CLOSE FINDER</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
                 <TouchableOpacity style={[styles.actionBtn, styles.actionBtnTeal]} onPress={handleRequestCamera}>
-                  <Text style={styles.actionBtnText}>Open Camera & Barcode Scanner</Text>
+                  <MaterialCommunityIcons name="barcode-scan" size={14} color={Colors.textOnPrimary} />
+                  <Text style={styles.actionBtnText}>OPEN BARCODE SCANNER</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -485,80 +503,112 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   header: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 20,
+    backgroundColor: Colors.chrome,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.lg,
   },
-  brandBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+  headerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 8,
   },
-  brandBadgeText: {
-    color: Colors.textOnPrimary,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1,
-  },
-  headerTitle: {
-    color: Colors.textOnPrimary,
-    fontSize: 26,
-    fontWeight: '900',
-  },
-  headerSubtitle: {
-    color: Colors.primaryLight,
-    fontSize: 13,
-    marginTop: 2,
-  },
-  bannerContainer: {
-    backgroundColor: '#fffbe6',
-    borderWidth: 1,
-    borderColor: '#ffe58f',
-    borderRadius: 12,
-    padding: 12,
+  brandBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    gap: 10,
+    gap: 6,
+    backgroundColor: Colors.chromeLight,
+    borderWidth: 1,
+    borderColor: Colors.chromeBorder,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radius.sm,
+  },
+  brandDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#22c55e',
+  },
+  brandBadgeText: {
+    color: Colors.textOnChrome,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    fontFamily: Font.mono,
+  },
+  headerClock: {
+    color: Colors.textOnChromeMuted,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1,
+    fontFamily: Font.mono,
+  },
+  headerTitle: {
+    color: Colors.textOnChrome,
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: 3,
+    fontFamily: Font.mono,
+  },
+  headerSubtitle: {
+    color: Colors.textOnChromeMuted,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1,
+    fontFamily: Font.mono,
+    marginTop: 4,
+  },
+  bannerContainer: {
+    backgroundColor: Colors.warningBg,
+    borderWidth: 1,
+    borderColor: '#fde68a',
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.warning,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+    gap: Spacing.md,
   },
   bannerIconBox: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#fff1b8',
+    width: 28,
+    height: 28,
+    borderRadius: Radius.sm,
+    backgroundColor: '#fef3c7',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  bannerIconText: {
-    fontSize: 16,
   },
   bannerTextContainer: {
     flex: 1,
   },
   bannerTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#873800',
+    fontSize: 11,
+    fontWeight: '800',
+    color: Colors.warning,
+    letterSpacing: 1,
+    fontFamily: Font.mono,
   },
   bannerSub: {
-    fontSize: 11,
-    color: '#873800',
-    marginTop: 1,
+    fontSize: 10,
+    color: Colors.textSecondary,
+    marginTop: 2,
+    fontFamily: Font.mono,
   },
   bannerBtn: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 12,
+    backgroundColor: Colors.warning,
+    paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: Radius.sm,
   },
   bannerBtnText: {
     color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+    fontFamily: Font.mono,
   },
   tabContainer: {
     flexDirection: 'row',
@@ -568,48 +618,64 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: 'center',
   },
   activeTab: {
-    borderBottomWidth: 3,
+    borderBottomWidth: 2,
     borderBottomColor: Colors.primary,
   },
   tabText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
     color: Colors.textMuted,
+    letterSpacing: 1.5,
+    fontFamily: Font.mono,
   },
   activeTabText: {
     color: Colors.primary,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   content: {
     flex: 1,
   },
   contentPadding: {
-    padding: 16,
+    padding: Spacing.lg,
   },
   infoCard: {
     backgroundColor: Colors.surface,
-    borderRadius: 14,
-    padding: 18,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: Colors.textPrimary,
+  infoCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 6,
   },
+  infoTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+    letterSpacing: 1.5,
+    fontFamily: Font.mono,
+  },
+  infoMeta: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: Colors.textMuted,
+    letterSpacing: 1,
+    fontFamily: Font.mono,
+  },
   infoBody: {
-    fontSize: 14,
+    fontSize: 12,
     color: Colors.textSecondary,
-    lineHeight: 20,
+    lineHeight: 18,
   },
   telemetrySection: {
-    marginTop: 14,
+    marginTop: Spacing.md,
   },
   telemetryRow: {
     flexDirection: 'row',
@@ -618,19 +684,44 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   telemetryLabel: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 10,
+    fontWeight: '800',
     color: Colors.textPrimary,
+    letterSpacing: 1,
+    fontFamily: Font.mono,
   },
   telemetryValue: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.5,
+    fontFamily: Font.mono,
+  },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radius.sm,
+    borderWidth: 1,
+  },
+  statusPillActive: {
+    backgroundColor: Colors.successBg,
+    borderColor: '#bbf7d0',
+  },
+  statusPillPending: {
+    backgroundColor: Colors.warningBg,
+    borderColor: '#fde68a',
+  },
+  statusPillDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2,
   },
   gpsDisplayBox: {
     backgroundColor: Colors.surfaceSecondary,
-    borderRadius: 10,
-    padding: 12,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
     marginTop: 8,
     borderWidth: 1,
     borderColor: Colors.border,
@@ -642,33 +733,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   gpsLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.textSecondary,
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.textMuted,
+    letterSpacing: 1,
+    fontFamily: Font.mono,
   },
   gpsValue: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
     color: Colors.primary,
-    fontFamily: 'monospace',
+    fontFamily: Font.mono,
   },
   gpsSuccessText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     color: Colors.success,
+    letterSpacing: 0.5,
+    fontFamily: Font.mono,
   },
   dbFetchBtn: {
-    backgroundColor: '#0284c7',
+    backgroundColor: Colors.info,
     paddingVertical: 8,
     paddingHorizontal: 10,
-    borderRadius: 6,
+    borderRadius: Radius.sm,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
     marginTop: 6,
   },
+  dbSyncBtn: {
+    backgroundColor: Colors.primary,
+  },
   dbFetchBtnText: {
-    color: '#ffffff',
-    fontSize: 11,
-    fontWeight: '700',
+    color: Colors.textOnPrimary,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+    fontFamily: Font.mono,
   },
   dbLogsContainer: {
     marginTop: 10,
@@ -677,37 +780,35 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.borderLight,
   },
   dbLogsTitle: {
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: '800',
     color: Colors.textPrimary,
+    letterSpacing: 1,
     marginBottom: 6,
+    fontFamily: Font.mono,
   },
   dbLogRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 4,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: Colors.borderLight,
   },
   dbLogId: {
     fontSize: 10,
     fontWeight: '800',
     color: Colors.primary,
+    fontFamily: Font.mono,
   },
   dbLogCoords: {
     fontSize: 10,
-    fontFamily: 'monospace',
+    fontFamily: Font.mono,
     color: Colors.textPrimary,
   },
   dbLogTime: {
     fontSize: 10,
     color: Colors.textSecondary,
-  },
-  textSuccess: {
-    color: Colors.success,
-  },
-  textWarning: {
-    color: Colors.warning,
+    fontFamily: Font.mono,
   },
   coordsText: {
     fontSize: 12,
@@ -717,14 +818,17 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: Colors.borderLight,
-    marginVertical: 14,
+    marginVertical: Spacing.md,
   },
   actionBtn: {
-    backgroundColor: Colors.textPrimary,
+    backgroundColor: Colors.chrome,
     paddingVertical: 12,
     paddingHorizontal: 14,
-    borderRadius: 8,
+    borderRadius: Radius.sm,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     marginTop: 6,
   },
   actionBtnTeal: {
@@ -732,12 +836,14 @@ const styles = StyleSheet.create({
   },
   actionBtnText: {
     color: Colors.textOnPrimary,
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    fontFamily: Font.mono,
   },
   cameraContainer: {
     marginTop: 10,
-    borderRadius: 12,
+    borderRadius: Radius.md,
     overflow: 'hidden',
   },
   cameraView: {
@@ -749,7 +855,7 @@ const styles = StyleSheet.create({
   scannerOverlay: {
     flex: 1,
     width: '100%',
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -757,15 +863,17 @@ const styles = StyleSheet.create({
     width: 180,
     height: 120,
     borderWidth: 2,
-    borderColor: '#38bdf8',
-    borderRadius: 8,
+    borderColor: Colors.primary,
+    borderRadius: Radius.sm,
     backgroundColor: 'transparent',
   },
   scanInstructionText: {
     color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.5,
     marginTop: 10,
+    fontFamily: Font.mono,
   },
   closeCameraBtn: {
     backgroundColor: Colors.danger,
@@ -774,7 +882,9 @@ const styles = StyleSheet.create({
   },
   closeCameraBtnText: {
     color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    fontFamily: Font.mono,
   },
 });

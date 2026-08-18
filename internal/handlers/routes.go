@@ -64,17 +64,9 @@ func (h *RouteHandlers) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	distance, _ := strconv.ParseFloat(r.PostFormValue("distance"), 64)
-	estHours, _ := strconv.ParseFloat(r.PostFormValue("estimated_hours"), 64)
-	fare, _ := strconv.ParseFloat(r.PostFormValue("standard_fare"), 64)
+	req := h.parseRouteForm(r)
 
-	_, err := h.Services.Routes.CreateRoute(
-		r.Context(),
-		r.PostFormValue("source"),
-		r.PostFormValue("destination"),
-		distance, estHours, fare,
-		r.PostFormValue("remarks"),
-	)
+	_, err := h.Services.Routes.CreateRouteFull(r.Context(), req)
 	if err != nil {
 		h.renderForm(w, r, "route_edit.html", PageData{Title: "New Route", FlashError: err.Error()})
 		return
@@ -115,22 +107,58 @@ func (h *RouteHandlers) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := domain.RouteID(chi.URLParam(r, "id"))
-	distance, _ := strconv.ParseFloat(r.PostFormValue("distance"), 64)
-	estHours, _ := strconv.ParseFloat(r.PostFormValue("estimated_hours"), 64)
-	fare, _ := strconv.ParseFloat(r.PostFormValue("standard_fare"), 64)
+	req := h.parseRouteForm(r)
 
-	_, err := h.Services.Routes.UpdateRoute(
-		r.Context(), id,
-		r.PostFormValue("source"),
-		r.PostFormValue("destination"),
-		distance, estHours, fare,
-		r.PostFormValue("remarks"),
-	)
+	_, err := h.Services.Routes.UpdateRouteFull(r.Context(), id, domain.UpdateRouteRequest{
+		Source:              req.Source,
+		Destination:         req.Destination,
+		Distance:            req.Distance,
+		EstimatedHours:      req.EstimatedHours,
+		StandardFare:        req.StandardFare,
+		ReverseDistance:     req.ReverseDistance,
+		ReverseStandardFare: req.ReverseStandardFare,
+		Direction:           req.Direction,
+		IsActive:            true,
+		Remarks:             req.Remarks,
+	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	http.Redirect(w, r, "/routes/"+id.String(), http.StatusSeeOther)
+}
+
+func (h *RouteHandlers) parseRouteForm(r *http.Request) domain.CreateRouteRequest {
+	distance, _ := strconv.ParseFloat(r.PostFormValue("distance"), 64)
+	estHours, _ := strconv.ParseFloat(r.PostFormValue("estimated_hours"), 64)
+	fare, _ := strconv.ParseFloat(r.PostFormValue("standard_fare"), 64)
+
+	var revDist, revFare *float64
+	if v := r.PostFormValue("reverse_distance"); v != "" {
+		f, _ := strconv.ParseFloat(v, 64)
+		revDist = &f
+	}
+	if v := r.PostFormValue("reverse_standard_fare"); v != "" {
+		f, _ := strconv.ParseFloat(v, 64)
+		revFare = &f
+	}
+
+	direction := r.PostFormValue("direction")
+	if direction == "" {
+		direction = "oneway"
+	}
+
+	return domain.CreateRouteRequest{
+		Source:              r.PostFormValue("source"),
+		Destination:         r.PostFormValue("destination"),
+		Distance:            distance,
+		EstimatedHours:      estHours,
+		StandardFare:        fare,
+		ReverseDistance:     revDist,
+		ReverseStandardFare: revFare,
+		Direction:           direction,
+		Remarks:             r.PostFormValue("remarks"),
+	}
 }
 
 func (h *RouteHandlers) Delete(w http.ResponseWriter, r *http.Request) {

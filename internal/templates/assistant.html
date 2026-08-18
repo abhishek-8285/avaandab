@@ -1,0 +1,118 @@
+<div class="flex flex-col h-[calc(100vh-8rem)]">
+    <div class="bg-white rounded-lg shadow flex flex-col flex-1 min-h-0">
+        <!-- Header -->
+        <div class="px-4 py-3 border-b flex items-center justify-between">
+            <div>
+                <h3 class="text-subsection text-gray-800">AI Operations Assistant</h3>
+                <p class="text-xs text-gray-500">Ask anything about bookings, trips, drivers, vehicles, invoices, payments or kharcha</p>
+            </div>
+            <div class="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">Online</div>
+        </div>
+
+        <!-- Messages -->
+        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4">
+            <div class="flex items-start gap-2">
+                <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">A</div>
+                <div class="bg-gray-100 rounded-lg px-4 py-2 text-sm text-gray-800 max-w-[80%]">
+                    Hi {{if .User}}{{.User.Name}}{{else}}there{{end}}! I'm your operations assistant. I can help you with:
+                    <ul class="list-disc ml-5 mt-1 space-y-0.5">
+                        <li>Quotes and route fares</li>
+                        <li>Creating and tracking bookings</li>
+                        <li>Trip status, driver &amp; vehicle assignment</li>
+                        <li>Invoices, payments, revenue</li>
+                        <li>Kharcha approvals</li>
+                    </ul>
+                    Try: "What's the fare from Mumbai to Pune?" or "Show pending kharcha expenses"
+                </div>
+            </div>
+        </div>
+
+        <!-- Suggestions -->
+        <div id="suggestions" class="px-4 pb-2 flex flex-wrap gap-2">
+            <button class="suggestion text-xs bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-full px-3 py-1">Fare Mumbai to Pune</button>
+            <button class="suggestion text-xs bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-full px-3 py-1">Today's trips</button>
+            <button class="suggestion text-xs bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-full px-3 py-1">Available drivers</button>
+            <button class="suggestion text-xs bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-full px-3 py-1">Pending kharcha</button>
+            <button class="suggestion text-xs bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-full px-3 py-1">Unpaid invoices</button>
+        </div>
+
+        <!-- Input -->
+        <div class="border-t px-4 py-3">
+            <form id="chat-form" class="flex gap-2">
+                <input id="chat-input" type="text" autocomplete="off" placeholder="Ask me anything..."
+                    class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    Send
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const messagesEl = document.getElementById('chat-messages');
+    const form = document.getElementById('chat-form');
+    const input = document.getElementById('chat-input');
+    const history = [];
+
+    function addMessage(role, text) {
+        const isUser = role === 'user';
+        const wrap = document.createElement('div');
+        wrap.className = 'flex items-start gap-2' + (isUser ? ' justify-end' : '');
+        const bubble = document.createElement('div');
+        bubble.className = (isUser
+            ? 'bg-blue-600 text-white'
+            : 'bg-gray-100 text-gray-800') + ' rounded-lg px-4 py-2 text-sm max-w-[80%] whitespace-pre-wrap';
+        bubble.textContent = text;
+        wrap.appendChild(bubble);
+        messagesEl.appendChild(wrap);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    let busy = false;
+
+    function setBusy(b) {
+        busy = b;
+        const btn = form.querySelector('button');
+        btn.disabled = b;
+        btn.textContent = b ? 'Thinking...' : 'Send';
+    }
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (busy) return;
+        const text = input.value.trim();
+        if (!text) return;
+        input.value = '';
+        addMessage('user', text);
+        history.push({ role: 'user', content: text });
+        setBusy(true);
+
+        try {
+            const resp = await fetch('/assistant/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ messages: history })
+            });
+            const textBody = await resp.text();
+            let data = null;
+            try { data = JSON.parse(textBody); } catch (_) { /* non-JSON (HTML login page, gateway 503, ...) */ }
+            if (!resp.ok) throw new Error((data && data.error) || 'Request failed (' + resp.status + ' ' + resp.statusText + ')');
+            if (!data || typeof data.reply !== 'string') throw new Error('Unexpected server response');
+            addMessage('assistant', data.reply);
+            history.push({ role: 'assistant', content: data.reply });
+        } catch (err) {
+            addMessage('assistant', 'Error: ' + err.message);
+        }
+        setBusy(false);
+    });
+
+    document.querySelectorAll('.suggestion').forEach(btn => {
+        btn.addEventListener('click', () => {
+            input.value = btn.textContent;
+            form.requestSubmit();
+        });
+    });
+})();
+</script>

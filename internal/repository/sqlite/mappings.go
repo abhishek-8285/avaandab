@@ -1,12 +1,14 @@
 package sqlite
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
 	db "transport-app/db/generated/sqlite"
 	"transport-app/internal/domain"
 	"transport-app/internal/repository"
+	"transport-app/internal/shared"
 )
 
 // Helpers to convert between sql.Null* types and Go pointers.
@@ -58,7 +60,23 @@ func fromNullTime(nt sql.NullTime) *time.Time {
 	if !nt.Valid {
 		return nil
 	}
+
 	return &nt.Time
+}
+
+func boolToInt64(b bool) int64 {
+	if b {
+		return 1
+	}
+	return 0
+}
+
+func int64ToBool(i int64) bool {
+	return i != 0
+}
+
+func tenantIDFromCtx(ctx context.Context) string {
+	return string(shared.TenantIDFromContext(ctx))
 }
 
 func FromNullInt64(ni sql.NullInt64) *int64 {
@@ -251,44 +269,82 @@ func toDomainCustomer(c db.Customer) domain.Customer {
 
 // sqlc v1.31+ generates a distinct *Row type per query; these helpers normalise them.
 
-func createRouteRowToDomain(r db.CreateRouteRow) domain.Route {
+// routeFields holds the common columns every route query returns.
+type routeFields struct {
+	ID                  string
+	TenantID            string
+	Source              string
+	Destination         string
+	SourceNormalized    string
+	DestNormalized      string
+	Distance            float64
+	EstimatedHours      float64
+	StandardFare        float64
+	ReverseDistance     sql.NullFloat64
+	ReverseStandardFare sql.NullFloat64
+	Direction           string
+	IsActive            int64
+	Remarks             sql.NullString
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
+}
+
+func routeFieldsToDomain(f routeFields) domain.Route {
 	return domain.Route{
-		ID: domain.RouteID(r.ID), Source: r.Source, Destination: r.Destination,
-		Distance: r.Distance, EstimatedHours: r.EstimatedHours, StandardFare: r.StandardFare,
-		Remarks: fromNullString(r.Remarks), CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt,
+		ID:                  domain.RouteID(f.ID),
+		TenantID:            f.TenantID,
+		Source:              f.Source,
+		Destination:         f.Destination,
+		SourceNormalized:    f.SourceNormalized,
+		DestNormalized:      f.DestNormalized,
+		Distance:            f.Distance,
+		EstimatedHours:      f.EstimatedHours,
+		StandardFare:        f.StandardFare,
+		ReverseDistance:     fromNullFloat(f.ReverseDistance),
+		ReverseStandardFare: fromNullFloat(f.ReverseStandardFare),
+		Direction:           f.Direction,
+		IsActive:            int64ToBool(f.IsActive),
+		Remarks:             fromNullString(f.Remarks),
+		CreatedAt:           f.CreatedAt,
+		UpdatedAt:           f.UpdatedAt,
 	}
 }
 
-func getRouteByIDRowToDomain(r db.GetRouteByIDRow) domain.Route {
-	return domain.Route{
-		ID: domain.RouteID(r.ID), Source: r.Source, Destination: r.Destination,
-		Distance: r.Distance, EstimatedHours: r.EstimatedHours, StandardFare: r.StandardFare,
-		Remarks: fromNullString(r.Remarks), CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt,
+// routeRowToDomain is a generic helper that works with any route query row.
+func routeRowToDomain(r interface{}) domain.Route {
+	switch v := r.(type) {
+	case db.CreateRouteRow:
+		return routeFieldsToDomain(routeFields{
+			v.ID, v.TenantID, v.Source, v.Destination, v.SourceNormalized, v.DestNormalized,
+			v.Distance, v.EstimatedHours, v.StandardFare, v.ReverseDistance, v.ReverseStandardFare,
+			v.Direction, v.IsActive, v.Remarks, v.CreatedAt, v.UpdatedAt,
+		})
+	case db.GetRouteByIDRow:
+		return routeFieldsToDomain(routeFields{
+			v.ID, v.TenantID, v.Source, v.Destination, v.SourceNormalized, v.DestNormalized,
+			v.Distance, v.EstimatedHours, v.StandardFare, v.ReverseDistance, v.ReverseStandardFare,
+			v.Direction, v.IsActive, v.Remarks, v.CreatedAt, v.UpdatedAt,
+		})
+	case db.GetRouteBySourceAndDestinationRow:
+		return routeFieldsToDomain(routeFields{
+			v.ID, v.TenantID, v.Source, v.Destination, v.SourceNormalized, v.DestNormalized,
+			v.Distance, v.EstimatedHours, v.StandardFare, v.ReverseDistance, v.ReverseStandardFare,
+			v.Direction, v.IsActive, v.Remarks, v.CreatedAt, v.UpdatedAt,
+		})
+	case db.UpdateRouteRow:
+		return routeFieldsToDomain(routeFields{
+			v.ID, v.TenantID, v.Source, v.Destination, v.SourceNormalized, v.DestNormalized,
+			v.Distance, v.EstimatedHours, v.StandardFare, v.ReverseDistance, v.ReverseStandardFare,
+			v.Direction, v.IsActive, v.Remarks, v.CreatedAt, v.UpdatedAt,
+		})
+	case db.SearchRoutesRow:
+		return routeFieldsToDomain(routeFields{
+			v.ID, v.TenantID, v.Source, v.Destination, v.SourceNormalized, v.DestNormalized,
+			v.Distance, v.EstimatedHours, v.StandardFare, v.ReverseDistance, v.ReverseStandardFare,
+			v.Direction, v.IsActive, v.Remarks, v.CreatedAt, v.UpdatedAt,
+		})
 	}
-}
-
-func getRouteBySDRowToDomain(r db.GetRouteBySourceAndDestinationRow) domain.Route {
-	return domain.Route{
-		ID: domain.RouteID(r.ID), Source: r.Source, Destination: r.Destination,
-		Distance: r.Distance, EstimatedHours: r.EstimatedHours, StandardFare: r.StandardFare,
-		Remarks: fromNullString(r.Remarks), CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt,
-	}
-}
-
-func updateRouteRowToDomain(r db.UpdateRouteRow) domain.Route {
-	return domain.Route{
-		ID: domain.RouteID(r.ID), Source: r.Source, Destination: r.Destination,
-		Distance: r.Distance, EstimatedHours: r.EstimatedHours, StandardFare: r.StandardFare,
-		Remarks: fromNullString(r.Remarks), CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt,
-	}
-}
-
-func searchRoutesRowToDomain(r db.SearchRoutesRow) domain.Route {
-	return domain.Route{
-		ID: domain.RouteID(r.ID), Source: r.Source, Destination: r.Destination,
-		Distance: r.Distance, EstimatedHours: r.EstimatedHours, StandardFare: r.StandardFare,
-		Remarks: fromNullString(r.Remarks), CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt,
-	}
+	return domain.Route{}
 }
 
 func toDomainBooking(b db.Booking) domain.Booking {

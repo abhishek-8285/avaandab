@@ -399,3 +399,194 @@ button:disabled:hover {
     from { opacity: 1; }
     to { opacity: 0; }
 }
+
+/* ===== Public site header (navigation bar) — shared across home/contact/policy pages ===== */
+        /* Full Width Edge-to-Edge Navigation Bar */
+        .header {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+            width: 100%;
+        }
+        .navigation {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 0 1.5rem;
+            height: 80px;
+        }
+        @media (min-width: 768px) {
+            .navigation {
+                padding: 0 3rem;
+            }
+        }
+        .navigation-button-container {
+            display: none !important;
+        }
+
+        .navigation-button {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Far Left Logo */
+        .navigation-main-logo {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .navigation-main-logo a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+        .logo-icon-box {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background-color: #00685f;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0, 104, 95, 0.2);
+            flex-shrink: 0;
+        }
+
+        /* Center Navigation Links */
+        .navigation-body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+        }
+        @media (max-width: 1023px) {
+            .navigation-body { display: none; }
+        }
+        .navigation-body-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .navigation-top-menu {
+            display: flex;
+            align-items: center;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            gap: 0.5rem;
+        }
+        .navigation-top-menu-item {
+            position: relative;
+        }
+        .navigation-top-menu-label,
+        .navigation-top-menu-link {
+            font-size: 15px;
+            font-weight: 600;
+            color: #2c3e50;
+            text-decoration: none;
+            cursor: pointer;
+            padding: 10px 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.15s ease;
+        }
+        .navigation-top-menu-item:hover > .navigation-top-menu-label,
+        .navigation-top-menu-item:hover > .navigation-top-menu-link {
+            color: #00685f;
+        }
+        .navigation-top-menu-label-arrow::after {
+            content: '';
+            display: inline-block;
+            width: 5px;
+            height: 5px;
+            border-right: 2px solid #7f8c8d;
+            border-bottom: 2px solid #7f8c8d;
+            transform: rotate(45deg);
+            margin-top: -2px;
+            transition: transform 0.2s ease;
+        }
+        .navigation-top-menu-item:hover > .navigation-top-menu-label-arrow::after {
+            transform: rotate(225deg);
+            border-color: #00685f;
+        }
+        /* Dropdown Sublists */
+        .navigation-top-menu-sublist {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            min-width: 220px;
+            background-color: #ffffff;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+            border-radius: 6px;
+            padding: 8px 0;
+            list-style: none;
+            display: none;
+            z-index: 110;
+        }
+        .navigation-top-menu-item:hover > .navigation-top-menu-sublist {
+            display: block;
+        }
+        .navigation-top-menu-sublist .navigation-top-menu-link {
+            padding: 8px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #4b5563;
+            width: 100%;
+            display: block;
+        }
+        .navigation-top-menu-sublist .navigation-top-menu-link:hover {
+            background-color: #f3f4f6;
+            color: #00685f;
+        }
+
+        /* Far Right Action Buttons */
+        .navigation-top-menu-user-actions {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            flex-shrink: 0;
+        }
+        .btn.black-border-button {
+            border: 2px solid #111827;
+            color: #111827;
+            background-color: transparent;
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 14px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        .btn.black-border-button:hover {
+            background-color: #111827;
+            color: #ffffff;
+        }
+        .login-link-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #00685f;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background-color 0.15s ease;
+        }
+        .login-link-button:hover {
+            background-color: #e6f4f1;
+        }

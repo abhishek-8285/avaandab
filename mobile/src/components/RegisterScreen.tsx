@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Colors } from '../constants/theme';
+import { Colors, Font, Radius, Spacing } from '../constants/theme';
 import { getApiBaseURL } from '../constants/network';
 import { useAuthStore } from '../stores/authStore';
 
@@ -74,34 +74,33 @@ export function RegisterScreen({ onRegisterSuccess, onBackToLogin }: RegisterScr
 
   return (
     <View style={styles.container}>
-      <StatusBar style="dark" />
-      
-      {/* Top Header */}
+      <StatusBar style="light" />
+
       <View style={styles.header}>
         <TouchableOpacity style={styles.iconButton} onPress={onBackToLogin}>
-          <MaterialCommunityIcons name="arrow-left" size={22} color="#0b1c30" />
+          <MaterialCommunityIcons name="arrow-left" size={18} color={Colors.textOnChrome} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Driver Account Registration</Text>
+        <Text style={styles.headerLabel}>DRIVER REGISTRATION</Text>
         <TouchableOpacity onPress={onBackToLogin}>
-          <Text style={styles.skipText}>CANCEL</Text>
+          <Text style={styles.cancelText}>CANCEL</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.titleSection}>
-          <Text style={styles.title}>Driver Profile</Text>
-          <Text style={styles.subtitle}>Please provide your details to start accepting rides.</Text>
+          <Text style={styles.title}>DRIVER PROFILE</Text>
+          <View style={styles.titleUnderline} />
+          <Text style={styles.subtitle}>Submit details to begin accepting dispatches.</Text>
         </View>
 
-        {/* Inputs */}
         <View style={styles.formGroup}>
           <Text style={styles.label}>FULL NAME</Text>
           <View style={styles.inputWrapper}>
-            <MaterialCommunityIcons name="account-outline" size={20} color="#6d7a77" style={styles.inputIcon} />
+            <MaterialCommunityIcons name="account-outline" size={16} color={Colors.textMuted} style={styles.inputIcon} />
             <TextInput
               style={styles.input}
               placeholder="e.g. Rajesh Kumar"
-              placeholderTextColor="#bcc9c6"
+              placeholderTextColor={Colors.textMuted}
               value={fullName}
               onChangeText={setFullName}
             />
@@ -109,13 +108,13 @@ export function RegisterScreen({ onRegisterSuccess, onBackToLogin }: RegisterScr
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={styles.label}>EMAIL ADDRESS</Text>
+          <Text style={styles.label}>EMAIL</Text>
           <View style={styles.inputWrapper}>
-            <MaterialCommunityIcons name="email-outline" size={20} color="#6d7a77" style={styles.inputIcon} />
+            <MaterialCommunityIcons name="email-outline" size={16} color={Colors.textMuted} style={styles.inputIcon} />
             <TextInput
               style={styles.input}
               placeholder="driver@avandab.com"
-              placeholderTextColor="#bcc9c6"
+              placeholderTextColor={Colors.textMuted}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -125,13 +124,13 @@ export function RegisterScreen({ onRegisterSuccess, onBackToLogin }: RegisterScr
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={styles.label}>PHONE NUMBER</Text>
+          <Text style={styles.label}>PHONE</Text>
           <View style={styles.inputWrapper}>
-            <MaterialCommunityIcons name="phone-outline" size={20} color="#6d7a77" style={styles.inputIcon} />
+            <MaterialCommunityIcons name="phone-outline" size={16} color={Colors.textMuted} style={styles.inputIcon} />
             <TextInput
               style={styles.input}
               placeholder="+91 98765 43210"
-              placeholderTextColor="#bcc9c6"
+              placeholderTextColor={Colors.textMuted}
               value={phone}
               onChangeText={setPhone}
               keyboardType="phone-pad"
@@ -142,11 +141,11 @@ export function RegisterScreen({ onRegisterSuccess, onBackToLogin }: RegisterScr
         <View style={styles.formGroup}>
           <Text style={styles.label}>VEHICLE REGISTRATION</Text>
           <View style={styles.inputWrapper}>
-            <MaterialCommunityIcons name="truck-outline" size={20} color="#6d7a77" style={styles.inputIcon} />
+            <MaterialCommunityIcons name="truck-outline" size={16} color={Colors.textMuted} style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="e.g. MH-12-AB-9942"
-              placeholderTextColor="#bcc9c6"
+              placeholder="MH-12-AB-9942"
+              placeholderTextColor={Colors.textMuted}
               value={vehicleNumber}
               onChangeText={setVehicleNumber}
               autoCapitalize="characters"
@@ -157,11 +156,11 @@ export function RegisterScreen({ onRegisterSuccess, onBackToLogin }: RegisterScr
         <View style={styles.formGroup}>
           <Text style={styles.label}>PASSWORD</Text>
           <View style={styles.inputWrapper}>
-            <MaterialCommunityIcons name="lock-outline" size={20} color="#6d7a77" style={styles.inputIcon} />
+            <MaterialCommunityIcons name="lock-outline" size={16} color={Colors.textMuted} style={styles.inputIcon} />
             <TextInput
               style={styles.input}
               placeholder="••••••••"
-              placeholderTextColor="#bcc9c6"
+              placeholderTextColor={Colors.textMuted}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -169,7 +168,6 @@ export function RegisterScreen({ onRegisterSuccess, onBackToLogin }: RegisterScr
           </View>
         </View>
 
-        {/* Submit Button */}
         <TouchableOpacity
           style={styles.submitBtn}
           activeOpacity={0.88}
@@ -177,18 +175,18 @@ export function RegisterScreen({ onRegisterSuccess, onBackToLogin }: RegisterScr
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="#ffffff" />
+            <ActivityIndicator color={Colors.textOnPrimary} />
           ) : (
             <View style={styles.btnContent}>
-              <Text style={styles.submitBtnText}>Complete Registration</Text>
-              <MaterialCommunityIcons name="arrow-right" size={18} color="#ffffff" />
+              <Text style={styles.submitBtnText}>SUBMIT REGISTRATION</Text>
+              <MaterialCommunityIcons name="arrow-right" size={14} color={Colors.textOnPrimary} />
             </View>
           )}
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.loginLink} onPress={onBackToLogin}>
           <Text style={styles.loginLinkText}>
-            Already registered? <Text style={styles.loginLinkHighlight}>Sign In</Text>
+            Already registered? <Text style={styles.loginLinkHighlight}>SIGN IN</Text>
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -199,84 +197,77 @@ export function RegisterScreen({ onRegisterSuccess, onBackToLogin }: RegisterScr
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9ff',
+    backgroundColor: Colors.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: Spacing.lg,
     paddingTop: 50,
-    paddingBottom: 16,
+    paddingBottom: Spacing.md,
+    backgroundColor: Colors.chrome,
   },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#0b1c30',
+  headerLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.textOnChrome,
+    letterSpacing: 2,
+    fontFamily: Font.mono,
   },
   iconButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: '#eff4ff',
+    width: 32,
+    height: 32,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.chromeBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  skipText: {
-    fontSize: 12,
+  cancelText: {
+    fontSize: 10,
     fontWeight: '700',
-    color: Colors.primary,
+    color: Colors.textOnChrome,
     letterSpacing: 1,
-  },
-  progressContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  progressBarBackground: {
-    height: 4,
-    backgroundColor: '#d3e4fe',
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    width: '33%',
-    height: '100%',
-    backgroundColor: Colors.primary,
-  },
-  stepText: {
-    fontSize: 11,
-    color: '#3d4947',
-    textAlign: 'right',
-    marginTop: 4,
-    fontWeight: '500',
+    fontFamily: Font.mono,
   },
   scrollContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.xl,
     paddingBottom: 40,
   },
   titleSection: {
-    marginBottom: 20,
+    marginBottom: Spacing.xl,
   },
   title: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#0b1c30',
-    marginBottom: 4,
+    fontSize: 18,
+    fontWeight: '900',
+    color: Colors.textPrimary,
+    letterSpacing: 2,
+    fontFamily: Font.mono,
+  },
+  titleUnderline: {
+    width: 28,
+    height: 2,
+    backgroundColor: Colors.primary,
+    marginTop: 6,
+    marginBottom: Spacing.md,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#3d4947',
-    lineHeight: 20,
+    fontSize: 12,
+    color: Colors.textSecondary,
+    lineHeight: 18,
   },
   formGroup: {
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   label: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
-    color: '#3d4947',
-    letterSpacing: 0.5,
+    color: Colors.textSecondary,
+    letterSpacing: 1,
     marginBottom: 6,
+    fontFamily: Font.mono,
   },
   inputWrapper: {
     position: 'relative',
@@ -284,33 +275,29 @@ const styles = StyleSheet.create({
   },
   inputIcon: {
     position: 'absolute',
-    left: 12,
+    left: 10,
     zIndex: 10,
   },
   input: {
-    height: 48,
-    backgroundColor: '#ffffff',
+    height: 44,
+    backgroundColor: Colors.surfaceSecondary,
     borderWidth: 1,
-    borderColor: '#bcc9c6',
-    borderRadius: 8,
-    paddingLeft: 40,
-    paddingRight: 14,
-    fontSize: 14,
-    color: '#0b1c30',
+    borderColor: Colors.border,
+    borderRadius: Radius.md,
+    paddingLeft: 34,
+    paddingRight: 12,
+    fontSize: 13,
+    color: Colors.textPrimary,
+    fontFamily: Font.mono,
   },
   submitBtn: {
-    height: 50,
+    height: 46,
     backgroundColor: Colors.primary,
-    borderRadius: 8,
+    borderRadius: Radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 12,
-    marginBottom: 16,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 4,
+    marginTop: 8,
+    marginBottom: Spacing.lg,
   },
   btnContent: {
     flexDirection: 'row',
@@ -318,21 +305,24 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   submitBtnText: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '600',
+    color: Colors.textOnPrimary,
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 2,
+    fontFamily: Font.mono,
   },
   loginLink: {
     alignItems: 'center',
     paddingVertical: 8,
   },
   loginLinkText: {
-    fontSize: 14,
-    color: '#565e74',
+    fontSize: 11,
+    color: Colors.textSecondary,
+    fontFamily: Font.mono,
+    letterSpacing: 0.5,
   },
   loginLinkHighlight: {
     color: Colors.primary,
-    fontWeight: '700',
-    textDecorationLine: 'underline',
+    fontWeight: '800',
   },
 });

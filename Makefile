@@ -1,4 +1,4 @@
-.PHONY: build run test test-race lint fmt vet generate migrate-up migrate-down clean docker dev build-css check check-fast check-fmt staticcheck check-security
+.PHONY: build run test test-race lint fmt vet generate migrate-up migrate-down clean docker dev build-css check check-fast check-fmt staticcheck check-security build-rag
 
 ## Build CSS from Tailwind source
 build-css:
@@ -7,6 +7,10 @@ build-css:
 ## Build the server binary
 build:
 	go build -o bin/mvtms ./cmd/server/
+
+## Build the RAG CLI
+build-rag:
+	go build -o bin/rag ./cmd/rag/
 
 ## Run the server
 run:

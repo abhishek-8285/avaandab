@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Image, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { Colors } from '../constants/theme';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import { Colors, Font, Radius, Spacing } from '../constants/theme';
 
 interface DeliveryVerificationScreenProps {
   onComplete: () => void;
@@ -30,16 +30,15 @@ export function DeliveryVerificationScreen({ onComplete, onBack }: DeliveryVerif
 
   return (
     <View style={styles.container}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
 
-      {/* Top Navigation Bar */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.iconButton} onPress={onBack}>
-          <MaterialCommunityIcons name="arrow-left" size={22} color="#0b1c30" />
+          <MaterialCommunityIcons name="arrow-left" size={18} color={Colors.textOnChrome} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Avandab Logistics</Text>
+        <Text style={styles.headerLabel}>POD VERIFICATION</Text>
         <TouchableOpacity style={styles.iconButton}>
-          <MaterialCommunityIcons name="bell-outline" size={20} color="#0b1c30" />
+          <MaterialCommunityIcons name="bell-outline" size={14} color={Colors.textOnChrome} />
         </TouchableOpacity>
       </View>
 
@@ -47,23 +46,24 @@ export function DeliveryVerificationScreen({ onComplete, onBack }: DeliveryVerif
         <View style={styles.cameraContainer}>
           {!permission?.granted ? (
             <View style={styles.permissionBox}>
-              <Text style={styles.permissionText}>Camera permission is required to capture proof of delivery.</Text>
+              <Text style={styles.permissionText}>Camera permission required to capture proof of delivery.</Text>
               <TouchableOpacity style={styles.permissionBtn} onPress={requestPermission}>
-                <Text style={styles.permissionBtnText}>Grant Camera Permission</Text>
+                <Text style={styles.permissionBtnText}>GRANT CAMERA</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.cancelCameraBtn} onPress={() => setCameraActive(false)}>
-                <Text style={styles.cancelCameraText}>Cancel</Text>
+                <Text style={styles.cancelCameraText}>CANCEL</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <CameraView style={styles.cameraView} ref={(ref) => setCameraRef(ref)}>
               <View style={styles.cameraOverlay}>
-                <Text style={styles.cameraGuideText}>Position cargo barcode or item inside frame</Text>
+                <View style={styles.scannerFrame} />
+                <Text style={styles.cameraGuideText}>ALIGN BARCODE / CARGO IN FRAME</Text>
                 <TouchableOpacity style={styles.captureBtn} onPress={takePhoto}>
                   <View style={styles.captureInnerCircle} />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.closeCameraBtn} onPress={() => setCameraActive(false)}>
-                  <MaterialCommunityIcons name="close" size={26} color="#ffffff" />
+                  <MaterialCommunityIcons name="close" size={20} color={Colors.textOnChrome} />
                 </TouchableOpacity>
               </View>
             </CameraView>
@@ -71,47 +71,58 @@ export function DeliveryVerificationScreen({ onComplete, onBack }: DeliveryVerif
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          {/* Header Section */}
           <View style={styles.titleSection}>
-            <Text style={styles.title}>Complete Delivery</Text>
-            <Text style={styles.subtitle}>Order #ORD-7492-X</Text>
+            <Text style={styles.title}>COMPLETE DELIVERY</Text>
+            <View style={styles.titleUnderline} />
+            <Text style={styles.subtitle}>ORDER REF · #ORD-7492-X</Text>
           </View>
 
-          {/* Delivery Summary Card */}
+          {/* Delivery Summary */}
           <View style={styles.card}>
-            <Text style={styles.cardHeader}>Delivery Summary</Text>
+            <View style={styles.cardHeaderRow}>
+              <Text style={styles.cardHeader}>DELIVERY SUMMARY</Text>
+              <Text style={styles.cardMeta}>02 ITEMS</Text>
+            </View>
+
             <View style={styles.summaryItem}>
-              <MaterialCommunityIcons name="package-variant-closed" size={24} color={Colors.primary} style={styles.itemIcon} />
+              <View style={styles.itemIconBox}>
+                <MaterialCommunityIcons name="package-variant-closed" size={16} color={Colors.primary} />
+              </View>
               <View style={styles.itemTextContainer}>
                 <Text style={styles.itemTitle}>Medical Equipment Box</Text>
-                <Text style={styles.itemSubtitle}>Qty: 2 • Fragile • Handle with care</Text>
+                <Text style={styles.itemSubtitle}>QTY 2 · FRAGILE</Text>
               </View>
             </View>
 
             <View style={styles.divider} />
 
             <View style={styles.summaryItem}>
-              <MaterialCommunityIcons name="map-marker-outline" size={24} color={Colors.primary} style={styles.itemIcon} />
+              <View style={styles.itemIconBox}>
+                <MaterialCommunityIcons name="map-marker-outline" size={16} color={Colors.primary} />
+              </View>
               <View style={styles.itemTextContainer}>
                 <Text style={styles.itemTitle}>Apollo Medical Center</Text>
-                <Text style={styles.itemSubtitle}>Gate 3, Receiving Dock, Mumbai</Text>
+                <Text style={styles.itemSubtitle}>GATE 3 · RECEIVING DOCK · MUMBAI</Text>
               </View>
             </View>
           </View>
 
-          {/* Photo Proof of Delivery Section */}
+          {/* Photo POD */}
           <View style={styles.card}>
-            <Text style={styles.cardHeader}>Photo Proof of Delivery</Text>
+            <View style={styles.cardHeaderRow}>
+              <Text style={styles.cardHeader}>PHOTO PROOF</Text>
+              {capturedPhoto ? <Text style={styles.cardMetaSuccess}>CAPTURED</Text> : <Text style={styles.cardMeta}>REQUIRED</Text>}
+            </View>
             <Text style={styles.cardSubtitle}>
-              Please capture a clear photo of the delivered package at the drop-off location or barcode label.
+              Capture clear photo of delivered package at drop-off or barcode label.
             </Text>
 
             {capturedPhoto ? (
               <View style={styles.photoPreviewContainer}>
                 <Image source={{ uri: capturedPhoto }} style={styles.photoPreview} />
                 <TouchableOpacity style={styles.retakeBtn} onPress={() => setCameraActive(true)}>
-                  <MaterialCommunityIcons name="camera-retake-outline" size={18} color="#ffffff" />
-                  <Text style={styles.retakeBtnText}>Retake Photo</Text>
+                  <MaterialCommunityIcons name="camera-retake-outline" size={14} color={Colors.textOnPrimary} />
+                  <Text style={styles.retakeBtnText}>RETAKE</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -128,14 +139,13 @@ export function DeliveryVerificationScreen({ onComplete, onBack }: DeliveryVerif
                   }
                 }}
               >
-                <MaterialCommunityIcons name="camera-plus-outline" size={36} color={Colors.primary} />
-                <Text style={styles.placeholderTitle}>Tap to Capture Delivery Photo</Text>
-                <Text style={styles.placeholderSub}>Uses device camera for barcode & cargo proof</Text>
+                <MaterialCommunityIcons name="camera-plus-outline" size={28} color={Colors.primary} />
+                <Text style={styles.placeholderTitle}>TAP TO CAPTURE</Text>
+                <Text style={styles.placeholderSub}>Barcode & cargo proof</Text>
               </TouchableOpacity>
             )}
           </View>
 
-          {/* Submit Verification Button */}
           <TouchableOpacity
             style={styles.submitBtn}
             activeOpacity={0.88}
@@ -145,8 +155,8 @@ export function DeliveryVerificationScreen({ onComplete, onBack }: DeliveryVerif
               ]);
             }}
           >
-            <Text style={styles.submitBtnText}>Confirm Delivery Completion</Text>
-            <MaterialCommunityIcons name="check-circle-outline" size={20} color="#ffffff" />
+            <Text style={styles.submitBtnText}>CONFIRM DELIVERY</Text>
+            <MaterialCommunityIcons name="check-circle-outline" size={16} color={Colors.textOnPrimary} />
           </TouchableOpacity>
         </ScrollView>
       )}
@@ -157,210 +167,257 @@ export function DeliveryVerificationScreen({ onComplete, onBack }: DeliveryVerif
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9ff',
+    backgroundColor: Colors.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: Spacing.lg,
     paddingTop: 50,
-    paddingBottom: 16,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderColor: '#e2e8f0',
+    paddingBottom: Spacing.md,
+    backgroundColor: Colors.chrome,
+  },
+  headerLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.textOnChrome,
+    letterSpacing: 2,
+    fontFamily: Font.mono,
   },
   iconButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: '#eff4ff',
+    width: 32,
+    height: 32,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.chromeBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.primary,
-  },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
     paddingBottom: 40,
   },
   titleSection: {
-    marginBottom: 18,
+    marginBottom: Spacing.lg,
   },
   title: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#0b1c30',
-    marginBottom: 4,
+    fontSize: 18,
+    fontWeight: '900',
+    color: Colors.textPrimary,
+    letterSpacing: 2,
+    fontFamily: Font.mono,
   },
-  subtitle: {
-    fontSize: 14,
-    color: '#5c647a',
-    fontWeight: '500',
-  },
-  card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  cardHeader: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#0b1c30',
+  titleUnderline: {
+    width: 28,
+    height: 2,
+    backgroundColor: Colors.primary,
+    marginTop: 6,
     marginBottom: 8,
   },
+  subtitle: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    fontWeight: '700',
+    letterSpacing: 1,
+    fontFamily: Font.mono,
+  },
+  card: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: Spacing.md,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  cardHeader: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+    letterSpacing: 1.5,
+    fontFamily: Font.mono,
+  },
+  cardMeta: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: Colors.textMuted,
+    letterSpacing: 1,
+    fontFamily: Font.mono,
+  },
+  cardMetaSuccess: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: Colors.success,
+    letterSpacing: 1,
+    fontFamily: Font.mono,
+  },
   cardSubtitle: {
-    fontSize: 13,
-    color: '#5c647a',
+    fontSize: 12,
+    color: Colors.textSecondary,
     lineHeight: 18,
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   summaryItem: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  itemIcon: {
-    marginRight: 14,
+  itemIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
   },
   itemTextContainer: {
     flex: 1,
   },
   itemTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#0b1c30',
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.textPrimary,
   },
   itemSubtitle: {
-    fontSize: 13,
-    color: '#5c647a',
+    fontSize: 10,
+    color: Colors.textMuted,
     marginTop: 2,
+    letterSpacing: 0.5,
+    fontFamily: Font.mono,
   },
   divider: {
     height: 1,
-    backgroundColor: '#e2e8f0',
-    marginVertical: 14,
+    backgroundColor: Colors.borderLight,
+    marginVertical: Spacing.md,
   },
   photoPlaceholder: {
-    height: 160,
-    borderWidth: 2,
-    borderColor: '#bcc9c6',
+    height: 140,
+    borderWidth: 1,
+    borderColor: Colors.border,
     borderStyle: 'dashed',
-    borderRadius: 12,
-    backgroundColor: '#f4fffc',
+    borderRadius: Radius.md,
+    backgroundColor: Colors.surfaceSecondary,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 16,
   },
   placeholderTitle: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '800',
     color: Colors.primary,
-    marginTop: 8,
+    marginTop: 6,
+    letterSpacing: 1,
+    fontFamily: Font.mono,
   },
   placeholderSub: {
-    fontSize: 12,
-    color: '#6d7a77',
-    marginTop: 4,
+    fontSize: 10,
+    color: Colors.textMuted,
+    marginTop: 2,
+    fontFamily: Font.mono,
   },
   photoPreviewContainer: {
     position: 'relative',
-    borderRadius: 12,
+    borderRadius: Radius.md,
     overflow: 'hidden',
   },
   photoPreview: {
     width: '100%',
-    height: 220,
-    borderRadius: 12,
+    height: 200,
+    borderRadius: Radius.md,
   },
   retakeBtn: {
     position: 'absolute',
-    bottom: 12,
-    right: 12,
-    backgroundColor: 'rgba(0, 106, 97, 0.9)',
+    bottom: 10,
+    right: 10,
+    backgroundColor: Colors.chrome,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: Radius.sm,
   },
   retakeBtnText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '600',
+    color: Colors.textOnChrome,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+    fontFamily: Font.mono,
   },
   submitBtn: {
-    height: 52,
+    height: 48,
     backgroundColor: Colors.primary,
-    borderRadius: 12,
+    borderRadius: Radius.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     marginTop: 8,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4,
   },
   submitBtnText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: Colors.textOnPrimary,
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 2,
+    fontFamily: Font.mono,
   },
   cameraContainer: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: Colors.chrome,
   },
   cameraView: {
     flex: 1,
   },
   cameraOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 40,
     paddingHorizontal: 20,
   },
+  scannerFrame: {
+    position: 'absolute',
+    top: '30%',
+    width: 200,
+    height: 120,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    backgroundColor: 'transparent',
+  },
   cameraGuideText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '600',
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    color: Colors.textOnChrome,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    fontFamily: Font.mono,
+    backgroundColor: Colors.chrome,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: Radius.sm,
     marginTop: 40,
   },
   captureBtn: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    borderWidth: 4,
-    borderColor: '#ffffff',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 3,
+    borderColor: Colors.textOnChrome,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
   },
   captureInnerCircle: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: '#ffffff',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.textOnChrome,
   },
   closeCameraBtn: {
     position: 'absolute',
@@ -375,29 +432,33 @@ const styles = StyleSheet.create({
     padding: 30,
   },
   permissionText: {
-    color: '#ffffff',
-    fontSize: 16,
+    color: Colors.textOnChrome,
+    fontSize: 13,
     textAlign: 'center',
     marginBottom: 20,
-    lineHeight: 22,
+    lineHeight: 20,
   },
   permissionBtn: {
     backgroundColor: Colors.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: Radius.md,
     marginBottom: 12,
   },
   permissionBtnText: {
-    color: '#ffffff',
-    fontWeight: '600',
-    fontSize: 14,
+    color: Colors.textOnPrimary,
+    fontWeight: '800',
+    fontSize: 11,
+    letterSpacing: 1.5,
+    fontFamily: Font.mono,
   },
   cancelCameraBtn: {
     padding: 10,
   },
   cancelCameraText: {
-    color: '#bcc9c6',
-    fontSize: 14,
+    color: Colors.textOnChromeMuted,
+    fontSize: 11,
+    letterSpacing: 1,
+    fontFamily: Font.mono,
   },
 });

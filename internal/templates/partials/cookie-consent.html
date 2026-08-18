@@ -1,0 +1,93 @@
+{{define "cookie-consent"}}
+
+<!-- Cookie consent banner (DPDPA-compliant). PostHog analytics only load after explicit consent. -->
+<div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:99999;background:#0f172a;color:#e2e8f0;box-shadow:0 -4px 20px rgba(0,0,0,.25);font-family:'Plus Jakarta Sans',sans-serif;">
+  <div style="max-width:1200px;margin:0 auto;padding:1rem 1.25rem;display:flex;flex-wrap:wrap;gap:1rem;align-items:center;justify-content:space-between;">
+    <div style="flex:1 1 480px;min-width:280px;">
+      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.35rem;">
+        <span class="material-symbols-outlined" style="color:#38bdf8;font-size:20px;">cookie</span>
+        <strong style="font-size:1rem;color:#f8fafc;">We value your privacy</strong>
+      </div>
+      <p style="margin:0;font-size:.85rem;line-height:1.5;color:#cbd5e1;">
+        We use essential cookies to operate the site and non-essential cookies (analytics) to improve it.
+        Under the <strong style="color:#f8fafc;">Digital Personal Data Protection Act, 2023</strong>, we need your consent for non-essential cookies.
+        You can change your choice anytime.
+      </p>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;">
+      <a href="/privacy#cookies" data-cookie-settings style="color:#94a3b8;font-size:.8rem;text-decoration:underline;margin-right:.25rem;">Cookie Settings</a>
+      <button id="cookie-reject" style="background:transparent;border:1px solid #475569;color:#e2e8f0;padding:.55rem 1rem;border-radius:.5rem;font-size:.85rem;cursor:pointer;font-weight:600;">Reject Non-Essential</button>
+      <button id="cookie-accept" style="background:#0ea5e9;border:none;color:#04141f;padding:.55rem 1.15rem;border-radius:.5rem;font-size:.85rem;cursor:pointer;font-weight:700;">Accept All</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var CONSENT_KEY = 'avandab_cookie_consent';
+  var CONSENT_MAX_AGE = 60 * 60 * 24 * 365;
+  function readCookie(name) {
+    var m = document.cookie.match('(^|; )' + name + '=([^;]*)');
+    return m ? decodeURIComponent(m[2]) : null;
+  }
+  function writeCookie(value) {
+    var c = CONSENT_KEY + '=' + encodeURIComponent(value) + '; path=/; max-age=' + CONSENT_MAX_AGE + '; SameSite=Lax';
+    if (location.protocol === 'https:') c += '; Secure';
+    document.cookie = c;
+  }
+  function clearConsent() {
+    try { localStorage.removeItem(CONSENT_KEY); } catch (e) {}
+    document.cookie = CONSENT_KEY + '=; path=/; max-age=0; SameSite=Lax';
+  }
+  function getConsent() {
+    try { var ls = localStorage.getItem(CONSENT_KEY); if (ls) return ls; } catch (e) {}
+    return readCookie(CONSENT_KEY);
+  }
+  function setConsent(v) {
+    try { localStorage.setItem(CONSENT_KEY, v); } catch (e) {}
+    writeCookie(v);
+  }
+
+  // Loads non-essential analytics (PostHog) only after consent.
+  var POSTHOG_KEY = 'phc_avandab_demo_api_key_placeholder';
+  function loadAnalytics() {
+    if (window.__avandabAnalyticsLoaded) return;
+    window.__avandabAnalyticsLoaded = true;
+    if (!POSTHOG_KEY || POSTHOG_KEY.indexOf('placeholder') !== -1) return;
+    var ph = document.createElement('script');
+    ph.async = true;
+    ph.src = 'https://us.i.posthog.com/static/array.js';
+    ph.onload = function () {
+      window.posthog = window.posthog || [];
+      posthog.init(POSTHOG_KEY, { api_host: 'https://us.i.posthog.com' });
+    };
+    document.head.appendChild(ph);
+  }
+
+  function showBanner() { var b = document.getElementById('cookie-banner'); if (b) b.style.display = 'flex'; }
+  function hideBanner() { var b = document.getElementById('cookie-banner'); if (b) b.style.display = 'none'; }
+  function accept() { setConsent('accepted'); hideBanner(); loadAnalytics(); }
+  function reject() {
+    setConsent('rejected'); hideBanner();
+    if (window.posthog && posthog.opt_out_capturing) { try { posthog.opt_out_capturing(); } catch (e) {} }
+  }
+  function openSettings() { clearConsent(); showBanner(); }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    var c = getConsent();
+    if (c === 'accepted') { loadAnalytics(); }
+    else if (c === 'rejected') { /* non-essential disabled */ }
+    else { showBanner(); }
+
+    var settingsLinks = document.querySelectorAll('[data-cookie-settings]');
+    for (var i = 0; i < settingsLinks.length; i++) {
+      settingsLinks[i].addEventListener('click', function (e) { e.preventDefault(); openSettings(); });
+    }
+    var acceptBtn = document.getElementById('cookie-accept');
+    var rejectBtn = document.getElementById('cookie-reject');
+    if (acceptBtn) acceptBtn.addEventListener('click', accept);
+    if (rejectBtn) rejectBtn.addEventListener('click', reject);
+  });
+})();
+</script>
+{{end}}

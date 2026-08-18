@@ -10,13 +10,18 @@ import (
 // Route represents a bidirectional transport route between a source and destination.
 type Route struct {
 	ID                  types.RouteID
+	TenantID            string
 	Source              string
 	Destination         string
+	SourceNormalized    string
+	DestNormalized      string
 	Distance            float64
 	EstimatedHours      float64
 	StandardFare        float64
 	ReverseDistance     *float64
 	ReverseStandardFare *float64
+	Direction           string // "oneway" | "bidirectional"
+	IsActive            bool
 	Remarks             *string
 	CreatedAt           time.Time
 	UpdatedAt           time.Time

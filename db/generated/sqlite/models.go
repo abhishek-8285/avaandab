@@ -289,16 +289,21 @@ type RolePermission struct {
 
 type Route struct {
 	ID                  string          `json:"id"`
+	TenantID            string          `json:"tenant_id"`
 	Source              string          `json:"source"`
 	Destination         string          `json:"destination"`
+	SourceNormalized    string          `json:"source_normalized"`
+	DestNormalized      string          `json:"dest_normalized"`
 	Distance            float64         `json:"distance"`
 	EstimatedHours      float64         `json:"estimated_hours"`
 	StandardFare        float64         `json:"standard_fare"`
+	ReverseDistance     sql.NullFloat64 `json:"reverse_distance"`
+	ReverseStandardFare sql.NullFloat64 `json:"reverse_standard_fare"`
+	Direction           string          `json:"direction"`
+	IsActive            int64           `json:"is_active"`
 	Remarks             sql.NullString  `json:"remarks"`
 	CreatedAt           time.Time       `json:"created_at"`
 	UpdatedAt           time.Time       `json:"updated_at"`
-	ReverseDistance     sql.NullFloat64 `json:"reverse_distance"`
-	ReverseStandardFare sql.NullFloat64 `json:"reverse_standard_fare"`
 }
 
 type Session struct {

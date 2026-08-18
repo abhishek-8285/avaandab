@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity, Animated, Dimensions } from 'react-native';
+import { StyleSheet, Text, View, Image, TouchableOpacity, Animated } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors, Font, Radius, Spacing } from '../constants/theme';
@@ -8,8 +8,6 @@ interface GetStartedScreenProps {
   onGetStarted: () => void;
   onSignIn: () => void;
 }
-
-const { width } = Dimensions.get('window');
 
 export function GetStartedScreen({ onGetStarted, onSignIn }: GetStartedScreenProps) {
   const pulseAnim = useRef(new Animated.Value(0)).current;
@@ -262,11 +260,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.textPrimary,
     fontWeight: '600',
-  },
-  actionContainer: {
-    width: '100%',
-    alignItems: 'center',
-    gap: Spacing.md,
   },
   primaryButton: {
     width: '100%',

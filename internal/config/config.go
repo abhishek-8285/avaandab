@@ -27,6 +27,33 @@ type Config struct {
 	RazorpayKeySecret string
 	RazorpayWebhook   string
 	BootstrapAdmin    BootstrapAdminConfig
+	RAG               RAGConfig
+	Agent             AgentConfig
+}
+
+// AgentConfig holds configuration for the AI operations assistant.
+type AgentConfig struct {
+	Enabled         bool
+	APIKey          string
+	BaseURL         string
+	Model           string
+	MaxTurns        int
+	SystemPrompt    string
+	RLEnabled       bool
+	RLDBPath        string
+	RequireApproval bool
+}
+
+// RAGConfig holds configuration for the codebase RAG system.
+type RAGConfig struct {
+	Enabled          bool
+	EmbeddingAPIKey  string
+	EmbeddingBaseURL string
+	EmbeddingModel   string
+	ChunkSize        int
+	ChunkOverlap     int
+	IndexDirs        []string
+	VectorDBPath     string
 }
 
 // BootstrapAdminConfig configures the initial admin account created at
@@ -86,6 +113,34 @@ func Load() *Config {
 			Name:     getEnv("BOOTSTRAP_ADMIN_NAME", "Admin"),
 			Password: os.Getenv("BOOTSTRAP_ADMIN_PASSWORD"),
 		},
+		RAG: RAGConfig{
+			Enabled:          getEnv("RAG_ENABLED", "false") == "true",
+			EmbeddingAPIKey:  os.Getenv("RAG_EMBEDDING_API_KEY"),
+			EmbeddingBaseURL: getEnv("RAG_EMBEDDING_BASE_URL", "https://api.openai.com/v1"),
+			EmbeddingModel:   getEnv("RAG_EMBEDDING_MODEL", "text-embedding-3-small"),
+			ChunkSize:        getEnvInt("RAG_CHUNK_SIZE", 512),
+			ChunkOverlap:     getEnvInt("RAG_CHUNK_OVERLAP", 50),
+			VectorDBPath:     getEnv("RAG_VECTOR_DB_PATH", "./rag_vectors.db"),
+		},
+	}
+
+	// Parse RAG index directories from comma-separated env var
+	if dirs := os.Getenv("RAG_INDEX_DIRS"); dirs != "" {
+		cfg.RAG.IndexDirs = strings.Split(dirs, ",")
+		for i := range cfg.RAG.IndexDirs {
+			cfg.RAG.IndexDirs[i] = strings.TrimSpace(cfg.RAG.IndexDirs[i])
+		}
+	}
+
+	cfg.Agent = AgentConfig{
+		Enabled:         getEnv("AGENT_ENABLED", "false") == "true",
+		APIKey:          os.Getenv("AGENT_API_KEY"),
+		BaseURL:         getEnv("AGENT_BASE_URL", "https://api.openai.com/v1"),
+		Model:           getEnv("AGENT_MODEL", "gpt-4o-mini"),
+		MaxTurns:        getEnvInt("AGENT_MAX_TURNS", 10),
+		RLEnabled:       getEnv("AGENT_RL_ENABLED", "true") == "true",
+		RLDBPath:        getEnv("AGENT_RL_DB_PATH", "agent_rl.db"),
+		RequireApproval: getEnv("AGENT_REQUIRE_APPROVAL", "true") == "true",
 	}
 
 	if err := cfg.Validate(); err != nil {
@@ -122,6 +177,15 @@ func (c *Config) Validate() error {
 func getEnv(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
+	}
+	return fallback
+}
+
+func getEnvInt(key string, fallback int) int {
+	if v := os.Getenv(key); v != "" {
+		if parsed, err := strconv.Atoi(v); err == nil {
+			return parsed
+		}
 	}
 	return fallback
 }

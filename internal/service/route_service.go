@@ -3,8 +3,10 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"transport-app/internal/domain"
+	"transport-app/internal/shared"
 )
 
 // RouteService handles route management.
@@ -12,37 +14,72 @@ type RouteService struct {
 	baseService
 }
 
-// CreateRoute creates a new route.
+func tenantIDFromContext(ctx context.Context) string {
+	return string(shared.TenantIDFromContext(ctx))
+}
+
+func normalizePlace(s string) string {
+	return strings.ToLower(strings.TrimSpace(s))
+}
+
+// CreateRoute creates a new route (backward-compatible signature).
 func (s *RouteService) CreateRoute(ctx context.Context, source, destination string, distance, estHours, standardFare float64, remarks string) (domain.Route, error) {
-	if source == "" || destination == "" {
-		return domain.Route{}, fmt.Errorf("source and destination are required")
-	}
-	if source == destination {
-		return domain.Route{}, fmt.Errorf("source and destination must be different")
-	}
-	if distance <= 0 {
-		return domain.Route{}, fmt.Errorf("distance must be greater than zero")
-	}
-	if estHours <= 0 {
-		return domain.Route{}, fmt.Errorf("estimated hours must be greater than zero")
-	}
-	if standardFare <= 0 {
-		return domain.Route{}, fmt.Errorf("base fare must be greater than zero")
-	}
-
-	// Check uniqueness
-	if _, err := s.store.GetRouteBySourceAndDestination(ctx, source, destination); err == nil {
-		return domain.Route{}, fmt.Errorf("route from %s to %s already exists", source, destination)
-	}
-
-	route := domain.Route{
-		ID:             domain.RouteID(generateID()),
+	return s.CreateRouteFull(ctx, domain.CreateRouteRequest{
 		Source:         source,
 		Destination:    destination,
 		Distance:       distance,
 		EstimatedHours: estHours,
 		StandardFare:   standardFare,
-		Remarks:        strPtr(remarks),
+		Remarks:        remarks,
+		Direction:      "oneway",
+	})
+}
+
+// CreateRouteFull creates a new route with all fields including reverse fare.
+func (s *RouteService) CreateRouteFull(ctx context.Context, req domain.CreateRouteRequest) (domain.Route, error) {
+	if req.Source == "" || req.Destination == "" {
+		return domain.Route{}, fmt.Errorf("source and destination are required")
+	}
+	if req.Source == req.Destination {
+		return domain.Route{}, fmt.Errorf("source and destination must be different")
+	}
+	if req.Distance <= 0 {
+		return domain.Route{}, fmt.Errorf("distance must be greater than zero")
+	}
+	if req.EstimatedHours <= 0 {
+		return domain.Route{}, fmt.Errorf("estimated hours must be greater than zero")
+	}
+	if req.StandardFare <= 0 {
+		return domain.Route{}, fmt.Errorf("base fare must be greater than zero")
+	}
+
+	direction := req.Direction
+	if direction == "" {
+		direction = "oneway"
+	}
+
+	tenantID := tenantIDFromContext(ctx)
+
+	// Check uniqueness (normalized, tenant-scoped)
+	if _, err := s.store.GetRouteBySourceAndDestination(ctx, req.Source, req.Destination); err == nil {
+		return domain.Route{}, fmt.Errorf("route from %s to %s already exists", req.Source, req.Destination)
+	}
+
+	route := domain.Route{
+		ID:                  domain.RouteID(generateID()),
+		TenantID:            tenantID,
+		Source:              req.Source,
+		Destination:         req.Destination,
+		SourceNormalized:    normalizePlace(req.Source),
+		DestNormalized:      normalizePlace(req.Destination),
+		Distance:            req.Distance,
+		EstimatedHours:      req.EstimatedHours,
+		StandardFare:        req.StandardFare,
+		ReverseDistance:     req.ReverseDistance,
+		ReverseStandardFare: req.ReverseStandardFare,
+		Direction:           direction,
+		IsActive:            true,
+		Remarks:             strPtr(req.Remarks),
 	}
 
 	created, err := s.store.CreateRoute(ctx, route)
@@ -72,40 +109,65 @@ func (s *RouteService) ListRoutes(ctx context.Context, query string, limit, offs
 	return routes, total, nil
 }
 
-// UpdateRoute updates an existing route.
+// UpdateRoute updates an existing route (backward-compatible signature).
 func (s *RouteService) UpdateRoute(ctx context.Context, id domain.RouteID, source, destination string, distance, estHours, standardFare float64, remarks string) (domain.Route, error) {
+	return s.UpdateRouteFull(ctx, id, domain.UpdateRouteRequest{
+		Source:         source,
+		Destination:    destination,
+		Distance:       distance,
+		EstimatedHours: estHours,
+		StandardFare:   standardFare,
+		Remarks:        remarks,
+		Direction:      "oneway",
+		IsActive:       true,
+	})
+}
+
+// UpdateRouteFull updates a route with all fields including reverse fare.
+func (s *RouteService) UpdateRouteFull(ctx context.Context, id domain.RouteID, req domain.UpdateRouteRequest) (domain.Route, error) {
 	route, err := s.store.GetRouteByID(ctx, id)
 	if err != nil {
 		return domain.Route{}, domain.ErrRouteNotFound
 	}
 
-	if source == "" || destination == "" {
+	if req.Source == "" || req.Destination == "" {
 		return domain.Route{}, fmt.Errorf("source and destination are required")
 	}
-	if source == destination {
+	if req.Source == req.Destination {
 		return domain.Route{}, fmt.Errorf("source and destination must be different")
 	}
-	if distance <= 0 {
+	if req.Distance <= 0 {
 		return domain.Route{}, fmt.Errorf("distance must be greater than zero")
 	}
-	if estHours <= 0 {
+	if req.EstimatedHours <= 0 {
 		return domain.Route{}, fmt.Errorf("estimated hours must be greater than zero")
 	}
-	if standardFare <= 0 {
+	if req.StandardFare <= 0 {
 		return domain.Route{}, fmt.Errorf("base fare must be greater than zero")
 	}
 
-	// Check uniqueness for other routes
-	if existing, err := s.store.GetRouteBySourceAndDestination(ctx, source, destination); err == nil && existing.ID != id {
-		return domain.Route{}, fmt.Errorf("route from %s to %s already exists", source, destination)
+	direction := req.Direction
+	if direction == "" {
+		direction = "oneway"
 	}
 
-	route.Source = source
-	route.Destination = destination
-	route.Distance = distance
-	route.EstimatedHours = estHours
-	route.StandardFare = standardFare
-	route.Remarks = strPtr(remarks)
+	// Check uniqueness for other routes (normalized)
+	if existing, err := s.store.GetRouteBySourceAndDestination(ctx, req.Source, req.Destination); err == nil && existing.ID != id {
+		return domain.Route{}, fmt.Errorf("route from %s to %s already exists", req.Source, req.Destination)
+	}
+
+	route.Source = req.Source
+	route.Destination = req.Destination
+	route.SourceNormalized = normalizePlace(req.Source)
+	route.DestNormalized = normalizePlace(req.Destination)
+	route.Distance = req.Distance
+	route.EstimatedHours = req.EstimatedHours
+	route.StandardFare = req.StandardFare
+	route.ReverseDistance = req.ReverseDistance
+	route.ReverseStandardFare = req.ReverseStandardFare
+	route.Direction = direction
+	route.IsActive = req.IsActive
+	route.Remarks = strPtr(req.Remarks)
 
 	updated, err := s.store.UpdateRoute(ctx, route)
 	if err != nil {

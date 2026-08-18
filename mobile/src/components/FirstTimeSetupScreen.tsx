@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Colors } from '../constants/theme';
+import { Colors, Font, Radius, Spacing } from '../constants/theme';
 import { useAuthStore } from '../stores/authStore';
 
 interface FirstTimeSetupScreenProps {
@@ -12,14 +12,13 @@ interface FirstTimeSetupScreenProps {
 
 export function FirstTimeSetupScreen({ onCompleteSetup, onBack }: FirstTimeSetupScreenProps) {
   const user = useAuthStore((state) => state.user);
-  const driverName = user?.name ? user.name.split(' ')[0] : 'Esther';
+  const driverName = user?.name ? user.name.split(' ')[0] : 'ESTHER';
 
-  // Track completed/submitted steps
   const [completedSteps, setCompletedSteps] = useState<{ [key: string]: boolean }>({
     profilePicture: false,
     bankDetails: false,
     drivingDetails: false,
-    governmentId: true, // Submitted as shown in design mockup
+    governmentId: true,
   });
 
   const toggleStep = (stepKey: string, stepTitle: string) => {
@@ -36,7 +35,7 @@ export function FirstTimeSetupScreen({ onCompleteSetup, onBack }: FirstTimeSetup
     if (pendingCount > 0) {
       Alert.alert(
         'Setup Incomplete',
-        `You still have ${pendingCount} required step(s) pending. Would you like to proceed anyway for demo mode?`,
+        `${pendingCount} required step(s) pending. Proceed anyway for demo mode?`,
         [
           { text: 'Complete Now', style: 'cancel' },
           { text: 'Proceed', onPress: onCompleteSetup },
@@ -47,102 +46,131 @@ export function FirstTimeSetupScreen({ onCompleteSetup, onBack }: FirstTimeSetup
     }
   };
 
+  const totalSteps = Object.keys(completedSteps).length;
+  const doneSteps = Object.keys(completedSteps).filter((k) => completedSteps[k]).length;
+  const progressPct = Math.round((doneSteps / totalSteps) * 100);
+
   return (
     <View style={styles.container}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
 
-      {/* Top Bar with Back Arrow */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <MaterialCommunityIcons name="arrow-left" size={22} color={Colors.textPrimary} />
+        <TouchableOpacity style={styles.iconButton} onPress={onBack}>
+          <MaterialCommunityIcons name="arrow-left" size={18} color={Colors.textOnChrome} />
         </TouchableOpacity>
+        <Text style={styles.headerLabel}>SETUP · {progressPct}%</Text>
+        <View style={{ width: 32 }} />
+      </View>
+
+      {/* Progress bar */}
+      <View style={styles.progressTrack}>
+        <View style={[styles.progressFill, { width: `${progressPct}%` }]} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Welcome Header */}
         <View style={styles.welcomeSection}>
-          <Text style={styles.welcomeTitle}>Welcome!, {driverName}</Text>
+          <Text style={styles.welcomeTitle}>WELCOME, {driverName.toUpperCase()}</Text>
+          <View style={styles.titleUnderline} />
+          <Text style={styles.welcomeSubtitle}>Complete profile setup to activate dispatch eligibility.</Text>
         </View>
 
-        {/* Required Steps Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionHeader}>Required Steps</Text>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionHeader}>REQUIRED STEPS</Text>
+            <Text style={styles.sectionMeta}>
+              {Object.keys(completedSteps).filter((k) => k !== 'governmentId' && completedSteps[k]).length}/3 DONE
+            </Text>
+          </View>
 
-          {/* Profile Picture Item */}
           <TouchableOpacity
             style={styles.stepCard}
             activeOpacity={0.8}
             onPress={() => toggleStep('profilePicture', 'Profile Picture')}
           >
             <View style={styles.stepLeft}>
-              <MaterialCommunityIcons
-                name={completedSteps.profilePicture ? 'check-circle' : 'account-box-outline'}
-                size={22}
-                color={completedSteps.profilePicture ? Colors.success : Colors.primary}
-              />
-              <Text style={styles.stepTitle}>Profile Picture</Text>
+              <View style={[styles.stepIconBox, completedSteps.profilePicture && styles.stepIconBoxDone]}>
+                <MaterialCommunityIcons
+                  name={completedSteps.profilePicture ? 'check' : 'account-box-outline'}
+                  size={16}
+                  color={completedSteps.profilePicture ? Colors.success : Colors.primary}
+                />
+              </View>
+              <View>
+                <Text style={styles.stepTitle}>Profile Picture</Text>
+                <Text style={styles.stepMeta}>{completedSteps.profilePicture ? 'UPLOADED' : 'PENDING'}</Text>
+              </View>
             </View>
-            <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.primary} />
+            <MaterialCommunityIcons name="chevron-right" size={16} color={Colors.textMuted} />
           </TouchableOpacity>
 
-          {/* Bank Account Details Item */}
           <TouchableOpacity
             style={styles.stepCard}
             activeOpacity={0.8}
             onPress={() => toggleStep('bankDetails', 'Bank Account Details')}
           >
             <View style={styles.stepLeft}>
-              <MaterialCommunityIcons
-                name={completedSteps.bankDetails ? 'check-circle' : 'bank-outline'}
-                size={22}
-                color={completedSteps.bankDetails ? Colors.success : Colors.primary}
-              />
-              <Text style={styles.stepTitle}>Bank Account Details</Text>
+              <View style={[styles.stepIconBox, completedSteps.bankDetails && styles.stepIconBoxDone]}>
+                <MaterialCommunityIcons
+                  name={completedSteps.bankDetails ? 'check' : 'bank-outline'}
+                  size={16}
+                  color={completedSteps.bankDetails ? Colors.success : Colors.primary}
+                />
+              </View>
+              <View>
+                <Text style={styles.stepTitle}>Bank Account Details</Text>
+                <Text style={styles.stepMeta}>{completedSteps.bankDetails ? 'VERIFIED' : 'PENDING'}</Text>
+              </View>
             </View>
-            <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.primary} />
+            <MaterialCommunityIcons name="chevron-right" size={16} color={Colors.textMuted} />
           </TouchableOpacity>
 
-          {/* Driving Details Item */}
           <TouchableOpacity
             style={styles.stepCard}
             activeOpacity={0.8}
             onPress={() => toggleStep('drivingDetails', 'Driving Details')}
           >
             <View style={styles.stepLeft}>
-              <MaterialCommunityIcons
-                name={completedSteps.drivingDetails ? 'check-circle' : 'card-account-details-outline'}
-                size={22}
-                color={completedSteps.drivingDetails ? Colors.success : Colors.primary}
-              />
-              <Text style={styles.stepTitle}>Driving Details</Text>
+              <View style={[styles.stepIconBox, completedSteps.drivingDetails && styles.stepIconBoxDone]}>
+                <MaterialCommunityIcons
+                  name={completedSteps.drivingDetails ? 'check' : 'card-account-details-outline'}
+                  size={16}
+                  color={completedSteps.drivingDetails ? Colors.success : Colors.primary}
+                />
+              </View>
+              <View>
+                <Text style={styles.stepTitle}>Driving Details</Text>
+                <Text style={styles.stepMeta}>{completedSteps.drivingDetails ? 'SUBMITTED' : 'PENDING'}</Text>
+              </View>
             </View>
-            <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.primary} />
+            <MaterialCommunityIcons name="chevron-right" size={16} color={Colors.textMuted} />
           </TouchableOpacity>
         </View>
 
-        {/* Submitted Steps Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionHeader}>Submitted Steps</Text>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionHeader}>SUBMITTED STEPS</Text>
+            <Text style={styles.sectionMetaSuccess}>VERIFIED</Text>
+          </View>
 
-          {/* Government ID Item */}
-          <TouchableOpacity
-            style={styles.stepCard}
-            activeOpacity={0.8}
-            onPress={() => toggleStep('governmentId', 'Government ID')}
-          >
+          <View style={[styles.stepCard, styles.stepCardDone]}>
             <View style={styles.stepLeft}>
-              <MaterialCommunityIcons name="shield-check-outline" size={22} color={Colors.success} />
-              <Text style={styles.stepTitle}>Government ID</Text>
+              <View style={[styles.stepIconBox, styles.stepIconBoxDone]}>
+                <MaterialCommunityIcons name="shield-check-outline" size={16} color={Colors.success} />
+              </View>
+              <View>
+                <Text style={styles.stepTitle}>Government ID</Text>
+                <Text style={styles.stepMetaSuccess}>VERIFIED · 2024-08-11</Text>
+              </View>
             </View>
-            <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.primary} />
-          </TouchableOpacity>
+            <MaterialCommunityIcons name="lock" size={14} color={Colors.textMuted} />
+          </View>
         </View>
       </ScrollView>
 
-      {/* Bottom Sticky Action Area */}
       <View style={styles.bottomBar}>
         <TouchableOpacity style={styles.continueBtn} activeOpacity={0.88} onPress={handleContinue}>
-          <Text style={styles.continueBtnText}>Continue</Text>
+          <Text style={styles.continueBtnText}>CONTINUE</Text>
+          <MaterialCommunityIcons name="arrow-right" size={14} color={Colors.textOnPrimary} />
         </TouchableOpacity>
       </View>
     </View>
@@ -155,70 +183,147 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   header: {
-    paddingHorizontal: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
     paddingTop: 50,
-    paddingBottom: 10,
+    paddingBottom: Spacing.md,
+    backgroundColor: Colors.chrome,
   },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  headerLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.textOnChrome,
+    letterSpacing: 2,
+    fontFamily: Font.mono,
+  },
+  iconButton: {
+    width: 32,
+    height: 32,
+    borderRadius: Radius.md,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.chromeBorder,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.surface,
+  },
+  progressTrack: {
+    height: 3,
+    backgroundColor: Colors.chromeLight,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: Colors.primary,
   },
   scrollContent: {
-    paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.xl,
     paddingBottom: 100,
   },
   welcomeSection: {
-    alignItems: 'center',
-    marginVertical: 24,
+    marginBottom: Spacing.xl,
   },
   welcomeTitle: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '900',
     color: Colors.textPrimary,
-    textAlign: 'center',
+    letterSpacing: 2,
+    fontFamily: Font.mono,
+  },
+  titleUnderline: {
+    width: 28,
+    height: 2,
+    backgroundColor: Colors.primary,
+    marginTop: 6,
+    marginBottom: Spacing.md,
+  },
+  welcomeSubtitle: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    lineHeight: 18,
   },
   section: {
-    marginBottom: 28,
+    marginBottom: Spacing.xl,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
   },
   sectionHeader: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '800',
     color: Colors.textPrimary,
-    marginBottom: 14,
+    letterSpacing: 2,
+    fontFamily: Font.mono,
+  },
+  sectionMeta: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: Colors.textMuted,
+    letterSpacing: 1,
+    fontFamily: Font.mono,
+  },
+  sectionMetaSuccess: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: Colors.success,
+    letterSpacing: 1,
+    fontFamily: Font.mono,
   },
   stepCard: {
     backgroundColor: Colors.surface,
-    borderRadius: 14,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
+    borderRadius: Radius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
     borderWidth: 1,
     borderColor: Colors.border,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
-    shadowColor: Colors.textPrimary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
+    marginBottom: 8,
+  },
+  stepCardDone: {
+    backgroundColor: Colors.surfaceSecondary,
+    borderColor: Colors.borderLight,
   },
   stepLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
+  stepIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepIconBoxDone: {
+    backgroundColor: Colors.successBg,
+  },
   stepTitle: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
     color: Colors.textPrimary,
+  },
+  stepMeta: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: Colors.textMuted,
+    letterSpacing: 1,
+    fontFamily: Font.mono,
+    marginTop: 2,
+  },
+  stepMetaSuccess: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: Colors.success,
+    letterSpacing: 1,
+    fontFamily: Font.mono,
+    marginTop: 2,
   },
   bottomBar: {
     position: 'absolute',
@@ -226,27 +331,26 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: Colors.surface,
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 28,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.xl,
     borderTopWidth: 1,
     borderColor: Colors.border,
   },
   continueBtn: {
-    height: 52,
+    height: 48,
     backgroundColor: Colors.primary,
-    borderRadius: 12,
+    borderRadius: Radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4,
+    flexDirection: 'row',
+    gap: 8,
   },
   continueBtnText: {
     color: Colors.textOnPrimary,
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 2,
+    fontFamily: Font.mono,
   },
 });

@@ -243,13 +243,16 @@
             </div>
             <div class="right">
                 <ul class="legal">
-                    <li><a href="/dashboard">Conditions of Use</a></li>
-                    <li><a href="/dashboard">Privacy Notice</a></li>
-                    <li><a href="/dashboard">Compliance</a></li>
+                    <li><a href="/terms">Conditions of Use</a></li>
+                    <li><a href="/privacy">Privacy Notice</a></li>
+                    <li><a href="/privacy#cookies">Cookie Policy</a></li>
+                    <li><a href="/refunds">Refund Policy</a></li>
                 </ul>
                 <span class="powered">Powered by <a href="/dashboard">Avandab Fleet Engine</a></span>
             </div>
         </div>
-    </div>
-</footer>
+        </div>
+    </footer>
+
+    {{template "cookie-consent" .}}
 {{end}}

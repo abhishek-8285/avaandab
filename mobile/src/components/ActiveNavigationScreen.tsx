@@ -1,9 +1,9 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LiveDriverTrackingMap } from './LiveDriverTrackingMap';
-import { Colors } from '../constants/theme';
+import { Colors, Font, Radius, Spacing } from '../constants/theme';
 
 interface ActiveNavigationScreenProps {
   onArriveAtStop: () => void;
@@ -13,9 +13,9 @@ interface ActiveNavigationScreenProps {
 export function ActiveNavigationScreen({ onArriveAtStop, onMenuToggle }: ActiveNavigationScreenProps) {
   return (
     <View style={styles.container}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
 
-      {/* Map Background with Interactive Polyline Navigation */}
+      {/* Map background */}
       <View style={styles.mapContainer}>
         <LiveDriverTrackingMap
           driverLatitude={18.5255}
@@ -23,63 +23,67 @@ export function ActiveNavigationScreen({ onArriveAtStop, onMenuToggle }: ActiveN
         />
       </View>
 
-      {/* Top Glassmorphism App Bar */}
+      {/* Top dark HUD bar */}
       <View style={styles.topAppBar}>
-        <TouchableOpacity style={styles.iconCircle} onPress={onMenuToggle}>
-          <MaterialCommunityIcons name="menu" size={24} color={Colors.primary} />
+        <TouchableOpacity style={styles.iconBtn} onPress={onMenuToggle}>
+          <MaterialCommunityIcons name="menu" size={18} color={Colors.textOnChrome} />
         </TouchableOpacity>
 
-        <Text style={styles.brandTitle}>Avandab Navigation</Text>
+        <View style={styles.brandBlock}>
+          <Text style={styles.brandTitle}>NAV</Text>
+          <Text style={styles.brandSub}>TRP-8492 · LIVE</Text>
+        </View>
 
-        <TouchableOpacity style={styles.iconCircle}>
-          <MaterialCommunityIcons name="bell-outline" size={22} color="#0b1c30" />
+        <TouchableOpacity style={styles.iconBtn}>
+          <MaterialCommunityIcons name="bell-outline" size={16} color={Colors.textOnChrome} />
         </TouchableOpacity>
       </View>
 
-      {/* Floating Turn Instruction Card */}
+      {/* Turn instruction HUD card */}
       <View style={styles.instructionContainer}>
         <View style={styles.turnCard}>
           <View style={styles.turnIconBox}>
-            <MaterialCommunityIcons name="arrow-top-left" size={32} color={Colors.primary} />
+            <MaterialCommunityIcons name="arrow-top-left" size={28} color={Colors.textOnPrimary} />
           </View>
 
           <View style={styles.turnTextContainer}>
-            <Text style={styles.turnTitle}>Left turn in 0.5 mi</Text>
-            <Text style={styles.turnSubtitle}>onto St Dunstan's Hill</Text>
+            <Text style={styles.turnDistance}>0.5 MI</Text>
+            <Text style={styles.turnTitle}>LEFT TURN</Text>
+            <Text style={styles.turnSubtitle}>St Dunstan's Hill</Text>
           </View>
         </View>
 
-        {/* Speed / Limit Badge */}
+        {/* Speed HUD */}
         <View style={styles.speedRow}>
           <View style={styles.speedBadge}>
             <Text style={styles.currentSpeed}>32</Text>
-            <Text style={styles.speedUnit}>mph</Text>
-            <View style={styles.speedLimitCircle}>
-              <Text style={styles.speedLimitText}>30</Text>
-            </View>
+            <Text style={styles.speedUnit}>MPH</Text>
+          </View>
+          <View style={styles.speedLimitCircle}>
+            <Text style={styles.speedLimitText}>30</Text>
           </View>
         </View>
       </View>
 
-      {/* Bottom Floating Delivery Card */}
+      {/* Bottom delivery card */}
       <View style={styles.bottomCardContainer}>
         <View style={styles.bottomCard}>
           <View style={styles.cardHeader}>
             <View style={styles.stopInfo}>
               <View style={styles.indicatorRow}>
                 <View style={styles.greenDot} />
-                <Text style={styles.stopLabel}>NEXT STOP</Text>
+                <Text style={styles.stopLabel}>NEXT STOP · 02/04</Text>
               </View>
               <Text style={styles.stopAddress} numberOfLines={1}>
                 4 St Dunstan's Hill
               </Text>
+              <Text style={styles.stopRef}>REF #ORD-7492-X</Text>
             </View>
 
             <View style={styles.etaContainer}>
-              <Text style={styles.etaTime}>
-                12<Text style={styles.etaMin}>min</Text>
-              </Text>
-              <Text style={styles.etaDistance}>7 km</Text>
+              <Text style={styles.etaLabel}>ETA</Text>
+              <Text style={styles.etaTime}>12m</Text>
+              <Text style={styles.etaDistance}>7.0 km</Text>
             </View>
           </View>
 
@@ -88,7 +92,7 @@ export function ActiveNavigationScreen({ onArriveAtStop, onMenuToggle }: ActiveN
             activeOpacity={0.88}
             onPress={onArriveAtStop}
           >
-            <MaterialCommunityIcons name="map-marker-check" size={22} color="#ffffff" />
+            <MaterialCommunityIcons name="map-marker-check" size={16} color={Colors.textOnPrimary} />
             <Text style={styles.arriveBtnText}>ARRIVE AT STOP</Text>
           </TouchableOpacity>
         </View>
@@ -100,162 +104,171 @@ export function ActiveNavigationScreen({ onArriveAtStop, onMenuToggle }: ActiveN
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: Colors.chrome,
   },
   mapContainer: {
     ...StyleSheet.absoluteFillObject,
   },
   topAppBar: {
     position: 'absolute',
-    top: 50,
-    left: 16,
-    right: 16,
-    height: 52,
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
-    borderRadius: 16,
+    top: 48,
+    left: Spacing.md,
+    right: Spacing.md,
+    height: 48,
+    backgroundColor: Colors.chrome,
+    borderRadius: Radius.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     borderWidth: 1,
-    borderColor: 'rgba(226, 232, 240, 0.8)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    borderColor: Colors.chromeBorder,
     zIndex: 50,
   },
-  iconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#f4fffc',
+  iconBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.chromeLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  brandBlock: {
+    alignItems: 'center',
+  },
   brandTitle: {
-    fontSize: 16,
+    fontSize: 12,
+    fontWeight: '900',
+    color: Colors.textOnChrome,
+    letterSpacing: 2,
+    fontFamily: Font.mono,
+  },
+  brandSub: {
+    fontSize: 8,
     fontWeight: '700',
     color: Colors.primary,
+    letterSpacing: 1,
+    fontFamily: Font.mono,
+    marginTop: 2,
   },
   instructionContainer: {
     position: 'absolute',
-    top: 114,
-    left: 16,
-    right: 16,
+    top: 108,
+    left: Spacing.md,
+    right: Spacing.md,
     zIndex: 40,
   },
   turnCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: Colors.chrome,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(226, 232, 240, 0.8)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    borderColor: Colors.chromeBorder,
   },
   turnIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#f4fffc',
+    width: 44,
+    height: 44,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
+    marginRight: Spacing.md,
   },
   turnTextContainer: {
     flex: 1,
   },
-  turnTitle: {
-    fontSize: 20,
+  turnDistance: {
+    fontSize: 10,
     fontWeight: '700',
-    color: '#0b1c30',
+    color: Colors.primary,
+    letterSpacing: 1,
+    fontFamily: Font.mono,
+  },
+  turnTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: Colors.textOnChrome,
+    letterSpacing: 1,
+    fontFamily: Font.mono,
+    marginTop: 2,
   },
   turnSubtitle: {
-    fontSize: 13,
-    color: '#5c647a',
+    fontSize: 11,
+    color: Colors.textOnChromeMuted,
     marginTop: 2,
   },
   speedRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: 10,
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 8,
   },
   speedBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 12,
-    paddingHorizontal: 12,
+    backgroundColor: Colors.chrome,
+    borderRadius: Radius.sm,
+    paddingHorizontal: 10,
     paddingVertical: 6,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'baseline',
     gap: 4,
     borderWidth: 1,
-    borderColor: '#ffdad6',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 3,
+    borderColor: Colors.chromeBorder,
   },
   currentSpeed: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0b1c30',
+    fontSize: 16,
+    fontWeight: '900',
+    color: Colors.textOnChrome,
+    fontFamily: Font.mono,
   },
   speedUnit: {
-    fontSize: 11,
-    color: '#5c647a',
-    marginRight: 4,
+    fontSize: 9,
+    color: Colors.textOnChromeMuted,
+    fontWeight: '700',
+    letterSpacing: 1,
+    fontFamily: Font.mono,
   },
   speedLimitCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#ba1a1a',
-    backgroundColor: '#ffffff',
+    borderColor: Colors.danger,
+    backgroundColor: Colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   speedLimitText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#0b1c30',
+    fontSize: 12,
+    fontWeight: '900',
+    color: Colors.danger,
+    fontFamily: Font.mono,
   },
   bottomCardContainer: {
     position: 'absolute',
-    bottom: 24,
-    left: 16,
-    right: 16,
+    bottom: Spacing.lg,
+    left: Spacing.md,
+    right: Spacing.md,
     zIndex: 40,
   },
   bottomCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.96)',
-    borderRadius: 20,
-    padding: 20,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.md,
+    padding: Spacing.lg,
     borderWidth: 1,
-    borderColor: 'rgba(226, 232, 240, 0.8)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
-    elevation: 6,
+    borderColor: Colors.border,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 18,
+    marginBottom: Spacing.md,
   },
   stopInfo: {
     flex: 1,
-    marginRight: 12,
+    marginRight: Spacing.md,
   },
   indicatorRow: {
     flexDirection: 'row',
@@ -264,58 +277,71 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   greenDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: Colors.primary,
   },
   stopLabel: {
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: '700',
-    color: '#5c647a',
-    letterSpacing: 0.8,
+    color: Colors.textSecondary,
+    letterSpacing: 1,
+    fontFamily: Font.mono,
   },
   stopAddress: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0b1c30',
+    fontSize: 15,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+    marginTop: 2,
+  },
+  stopRef: {
+    fontSize: 10,
+    color: Colors.textMuted,
+    fontFamily: Font.mono,
+    marginTop: 2,
+    letterSpacing: 0.5,
   },
   etaContainer: {
     alignItems: 'flex-end',
+    borderLeftWidth: 1,
+    borderColor: Colors.border,
+    paddingLeft: Spacing.md,
+  },
+  etaLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: Colors.textMuted,
+    letterSpacing: 1,
+    fontFamily: Font.mono,
   },
   etaTime: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '900',
     color: Colors.primary,
-  },
-  etaMin: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.primary,
+    fontFamily: Font.mono,
+    marginTop: 2,
   },
   etaDistance: {
-    fontSize: 12,
-    color: '#5c647a',
+    fontSize: 10,
+    color: Colors.textSecondary,
+    fontFamily: Font.mono,
     marginTop: 2,
   },
   arriveBtn: {
-    height: 52,
+    height: 48,
     backgroundColor: Colors.primary,
-    borderRadius: 12,
+    borderRadius: Radius.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4,
   },
   arriveBtnText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    color: Colors.textOnPrimary,
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    fontFamily: Font.mono,
   },
 });

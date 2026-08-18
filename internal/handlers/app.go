@@ -33,22 +33,24 @@ type App struct {
 	AuthSrv   auth.AuthorizationService
 
 	// Handler groups
-	Auth      *AuthHandlers
-	Dashboard *DashboardHandlers
-	Users     *UserHandlers
-	Drivers   *DriverHandlers
-	Vehicles  *VehicleHandlers
-	Customers *CustomerHandlers
-	Routes    *RouteHandlers
-	Bookings  *BookingHandlers
-	Trips     *TripHandlers
-	Invoices  *InvoiceHandlers
-	Payments  *PaymentHandlers
-	Reports   *ReportHandlers
-	SettingsH *SettingsHandlers
-	AuditLogs *AuditLogHandlers
-	Contact   *ContactHandlers
-	Kharcha   *KharchaHandlers
+	Auth       *AuthHandlers
+	Dashboard  *DashboardHandlers
+	Users      *UserHandlers
+	Drivers    *DriverHandlers
+	Vehicles   *VehicleHandlers
+	Customers  *CustomerHandlers
+	Routes     *RouteHandlers
+	Bookings   *BookingHandlers
+	Trips      *TripHandlers
+	Invoices   *InvoiceHandlers
+	Payments   *PaymentHandlers
+	Reports    *ReportHandlers
+	SettingsH  *SettingsHandlers
+	AuditLogs  *AuditLogHandlers
+	Contact    *ContactHandlers
+	Kharcha    *KharchaHandlers
+	Assistant  *AssistantHandlers
+	AgentAdmin *AgentAdminHandlers
 }
 
 // NewApp creates a new handler app with all handler groups initialized.
@@ -84,6 +86,7 @@ func NewApp(svc *service.Services, cfg *config.Config, authStore *auth.SessionSt
 	app.AuditLogs = &AuditLogHandlers{App: app}
 	app.Contact = &ContactHandlers{App: app}
 	app.Kharcha = &KharchaHandlers{App: app}
+	app.Assistant = &AssistantHandlers{App: app}
 
 	return app
 }
@@ -543,6 +546,36 @@ func (a *App) Marketing(w http.ResponseWriter, r *http.Request) {
 	if err := tmpl.Execute(w, data); err != nil {
 		http.Error(w, fmt.Sprintf("template error: %v", err), http.StatusInternalServerError)
 	}
+}
+
+// PolicyPage renders a static legal/policy page template by file name.
+func (a *App) PolicyPage(w http.ResponseWriter, r *http.Request, name string) {
+	tmpl := a.Templates.Lookup(name)
+	if tmpl == nil {
+		http.Error(w, name+" template not found", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800")
+	data := map[string]interface{}{"Version": AppVersion}
+	if err := tmpl.Execute(w, data); err != nil {
+		http.Error(w, fmt.Sprintf("template error: %v", err), http.StatusInternalServerError)
+	}
+}
+
+// Privacy serves the DPDPA privacy policy page.
+func (a *App) Privacy(w http.ResponseWriter, r *http.Request) {
+	a.PolicyPage(w, r, "privacy.html")
+}
+
+// Terms serves the B2B terms of service page.
+func (a *App) Terms(w http.ResponseWriter, r *http.Request) {
+	a.PolicyPage(w, r, "terms.html")
+}
+
+// Refunds serves the refund policy page.
+func (a *App) Refunds(w http.ResponseWriter, r *http.Request) {
+	a.PolicyPage(w, r, "refunds.html")
 }
 
 // DownloadFile serves an uploaded file by ID with authentication and ownership authorization.

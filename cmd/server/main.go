@@ -17,9 +17,13 @@ import (
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 
+	"github.com/joho/godotenv"
 	"gopkg.in/telebot.v3"
 	_ "modernc.org/sqlite"
+	"transport-app/internal/agent"
 	"transport-app/internal/apiversion"
+
+	"transport-app/internal/agent/rl"
 
 	dbmigr "transport-app/db"
 	"transport-app/internal/auth"
@@ -39,6 +43,7 @@ import (
 	"transport-app/internal/operations/health"
 	"transport-app/internal/operations/notifications"
 	"transport-app/internal/pnl"
+	"transport-app/internal/rag"
 	"transport-app/internal/repository/sqlite"
 	"transport-app/internal/service"
 	"transport-app/internal/telemetry"
@@ -74,7 +79,25 @@ import (
 // Version is set via ldflags during build
 var Version string
 
+// agentRequestTimeout lifts the global 60s request deadline for agent chat
+// requests: multi-turn tool conversations need more than one LLM call. The
+// parent timeout's deadline is dropped and a longer one substituted.
+func agentRequestTimeout(d time.Duration) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), d)
+			defer cancel()
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
 func main() {
+	// Load .env (if present) before config so file-based config takes effect.
+	// Real env vars take precedence; missing file is not an error.
+	if err := godotenv.Load(); err != nil {
+		_ = err
+	}
 	if Version != "" {
 		_ = os.Setenv("APP_VERSION", Version)
 		handlers.AppVersion = Version
@@ -329,6 +352,10 @@ func main() {
 	// Public: token endpoint (no auth required) — rate-limited against brute force
 	authAPIHandler.Register(r.With(middleware.RateLimit(10)))
 
+	// ── AI Agent (operations assistant) — built after RAG below ─────────
+	var agentAPI *agent.Handler
+	var approvalSvc *agent.ApprovalService
+
 	// Public: Razorpay webhook — signature-verified, rate-limited against flood attacks
 	r.With(middleware.RateLimit(30)).Post("/api/v1/payments/razorpay-webhook", paymentAPIHandler.RazorpayWebhook)
 
@@ -350,6 +377,100 @@ func main() {
 	// Aliased routes require the same API auth as v1; the public health check
 	// is mounted separately so probes stay unauthenticated.
 	apiversion.MountV2(r, middleware.RequireAPIAuth(authStore, apiSecret), http.HandlerFunc(healthChecker.HealthHandler), bookingAPIHandler, tripAPIHandler, invoiceAPIHandler, paymentAPIHandler)
+
+	// ── RAG (codebase search) ────────────────────────────────────────────
+	var ragHandler *rag.Handler
+	if cfg.RAG.Enabled {
+		ragStore, err := rag.NewVectorStore(cfg.RAG.VectorDBPath)
+		if err != nil {
+			logger.Warn("RAG vector store init failed, RAG disabled", "error", err)
+		} else {
+			var embedder rag.Embedder
+			if cfg.RAG.EmbeddingAPIKey != "" {
+				embedder = rag.NewOpenAIEmbedder(cfg.RAG.EmbeddingAPIKey, cfg.RAG.EmbeddingBaseURL, cfg.RAG.EmbeddingModel)
+			} else {
+				embedder = rag.NewHashEmbedder(384)
+				logger.Warn("RAG: no embedding API key configured, using hash-based embeddings (lower quality)")
+			}
+			ragSvc := rag.NewService(embedder, ragStore, cfg.RAG.ChunkSize, cfg.RAG.ChunkOverlap, cfg.UploadDir)
+			ragHandler = rag.NewHandler(ragSvc)
+
+			// Auto-index on startup if dirs configured
+			if len(cfg.RAG.IndexDirs) > 0 {
+				go func() {
+					for _, dir := range cfg.RAG.IndexDirs {
+						if count, err := ragSvc.IndexDirectory(dir); err != nil {
+							logger.Error("RAG auto-index failed", "dir", dir, "error", err)
+						} else {
+							logger.Info("RAG auto-indexed", "dir", dir, "chunks", count)
+						}
+					}
+				}()
+			}
+
+			ragHandler.RegisterRoutes(r)
+			logger.Info("RAG enabled", "dirs", cfg.RAG.IndexDirs, "vector_db", cfg.RAG.VectorDBPath)
+		}
+	}
+
+	// ── AI Agent: multi-agent orchestrator + RL learning + approvals ────
+	if cfg.Agent.Enabled && cfg.Agent.APIKey != "" {
+		client := agent.NewClient(cfg.Agent.APIKey, cfg.Agent.BaseURL, cfg.Agent.Model)
+
+		var rlSvc *rl.Service
+		var err error
+		if cfg.Agent.RLEnabled {
+			rlSvc, err = rl.New(cfg.Agent.RLDBPath)
+			if err != nil {
+				logger.Error("agent RL store init failed; if AGENT_REQUIRE_APPROVAL=true the approval gate will fail CLOSED (mutating tools disabled)", "error", err)
+				rlSvc = nil
+			} else {
+				logger.Info("agent RL enabled", "db", cfg.Agent.RLDBPath)
+			}
+		}
+		if cfg.Agent.RequireApproval && rlSvc == nil {
+			logger.Error("AGENT_REQUIRE_APPROVAL=true but the approval gate could not be built (RL store unavailable); mutating tools are disabled — the agent is read-only")
+		}
+
+		toolEnv := &agent.ToolEnv{Services: services}
+		toolsByName := make(map[string]*agent.RegisteredTool)
+		for _, t := range agent.RegisterTools(toolEnv) {
+			toolsByName[t.Name] = t
+		}
+
+		if rlSvc != nil && cfg.Agent.RequireApproval {
+			approvalSvc = agent.NewApprovalService(rlSvc, toolEnv)
+			for _, name := range agent.MutatingTools() {
+				if t, ok := toolsByName[name]; ok {
+					approvalSvc.Gate(name, t.Handler)
+				}
+			}
+			app.AgentAdmin = handlers.NewAgentAdminHandlers(app, approvalSvc)
+			logger.Info("agent approval gate enabled", "tools", len(agent.MutatingTools()))
+		}
+
+		orch := agent.NewOrchestrator(client, toolEnv, rlSvc, cfg.Agent.MaxTurns)
+		for _, sub := range agent.BuildAgentSet(toolsByName, approvalSvc, agent.AgentSetOptions{
+			RequireApproval: cfg.Agent.RequireApproval,
+			RagService:      ragHandler.Service(),
+		}) {
+			orch.AddAgent(sub)
+		}
+		agentAPI = agent.NewHandler(orch, toolEnv)
+		logger.Info("AI agent enabled", "model", cfg.Agent.Model, "sub_agents", len(orch.AgentNames()), "approval_required", cfg.Agent.RequireApproval)
+
+		// API routes (bearer/session) — approval queue + chat
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.RequireAPIAuth(authStore, apiSecret))
+			r.Use(agentRequestTimeout(5 * time.Minute))
+			agentAPI.RegisterAPIRoute(r)
+			if approvalSvc != nil {
+				agent.NewApprovalHandler(approvalSvc).RegisterRoutes(r)
+			}
+		})
+	} else if cfg.Agent.Enabled {
+		logger.Warn("AGENT_ENABLED=true but AGENT_API_KEY not set; agent disabled")
+	}
 
 	// Static files with Cache-Control headers
 	fileServer := http.FileServer(http.Dir(cfg.StaticDir))
@@ -400,6 +521,21 @@ func main() {
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
+  <url>
+    <loc>https://avandab.com/privacy</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/terms</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/refunds</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
 </urlset>`
 			_, _ = w.Write([]byte(sitemap))
 		})
@@ -413,6 +549,11 @@ func main() {
 
 		// Public Contact & Status Tracking
 		r.Route("/contact-us", app.Contact.Routes)
+
+		// Legal & Policy Pages
+		r.Get("/privacy", app.Privacy)
+		r.Get("/terms", app.Terms)
+		r.Get("/refunds", app.Refunds)
 
 		// Protected routes
 		r.Group(func(r chi.Router) {
@@ -467,6 +608,20 @@ func main() {
 
 			// Kharcha Ledger (driver expense approvals)
 			r.Route("/kharcha", app.Kharcha.Routes)
+
+			// AI Operations Assistant
+			r.Route("/assistant", app.Assistant.Routes)
+			if agentAPI != nil {
+				r.Group(func(r chi.Router) {
+					r.Use(agentRequestTimeout(5 * time.Minute))
+					agentAPI.RegisterRoutes(r)
+				})
+			}
+
+			// Agent approval queue (admin page)
+			if approvalSvc != nil {
+				r.Route("/agent-actions", app.AgentAdmin.Routes)
+			}
 
 			// e-POD delivery from driver mobile
 			r.Post("/trips/{id}/deliver-pod", app.Kharcha.DeliverWithPOD)

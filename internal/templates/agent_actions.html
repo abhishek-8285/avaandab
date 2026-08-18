@@ -1,0 +1,108 @@
+{{define "agent_actions.html"}}
+<div class="space-y-6">
+
+    <!-- Page Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-black text-slate-900 font-display">Agent Approval Queue</h1>
+            <p class="text-sm text-slate-400 mt-0.5">Actions proposed by the AI assistant — nothing mutating runs until you approve</p>
+        </div>
+        <span class="text-[10px] font-bold text-slate-400 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            LIVE
+        </span>
+        <button onclick="location.reload()"
+                class="px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg transition border border-slate-200">
+            Refresh
+        </button>
+    </div>
+
+    <!-- Pending Queue -->
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+        <div class="px-6 py-4 border-b border-slate-100">
+            <h2 class="text-base font-extrabold text-slate-900">Pending Approvals</h2>
+            <p class="text-xs text-slate-400 mt-0.5">Review the tool, arguments and requesting operator before deciding</p>
+        </div>
+
+        {{if .Actions}}
+        <div class="divide-y divide-slate-50">
+            {{range .Actions}}
+            <div class="p-5 flex flex-col lg:flex-row lg:items-center gap-4">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 text-[11px] font-extrabold uppercase tracking-wide">{{.ToolName}}</span>
+                        <span class="text-[11px] font-semibold text-slate-400">{{.CreatedAt}}</span>
+                        <span class="text-[11px] font-semibold text-slate-400">by {{.RequestedBy}}</span>
+                    </div>
+                    <p class="text-sm font-bold text-slate-800 mt-2">{{.Summary}}</p>
+                    <pre class="mt-2 text-[11px] leading-relaxed text-slate-500 bg-slate-50 rounded-lg p-3 border border-slate-100 overflow-x-auto">{{.ArgsJSON}}</pre>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <form method="POST" action="/agent-actions/{{.ID}}/approve">
+                        <button type="submit"
+                                class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-extrabold rounded-lg transition">
+                            Approve
+                        </button>
+                    </form>
+                    <button type="button" onclick="openRejectModal('{{.ID}}', '{{.ToolName}}')"
+                            class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-extrabold rounded-lg transition">
+                        Reject
+                    </button>
+                </div>
+            </div>
+            {{end}}
+        </div>
+        {{else}}
+        <div class="p-10 text-center">
+            <span class="material-symbols-outlined text-4xl text-slate-200">task_alt</span>
+            <p class="text-sm font-semibold text-slate-400 mt-3">No pending actions. The queue is clear.</p>
+        </div>
+        {{end}}
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div id="reject-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div id="reject-backdrop" class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="closeRejectModal()"></div>
+    <div class="relative bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl animate-fade-in">
+        <h3 class="text-lg font-extrabold text-slate-900">Reject Agent Action</h3>
+        <p class="text-sm text-slate-500 mt-1">Rejecting <strong id="reject-tool" class="text-slate-800"></strong></p>
+        <form id="reject-form" method="POST" class="mt-4">
+            <textarea name="reason" id="reject-reason" rows="3"
+                      class="w-full border border-slate-200 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/30 resize-none"
+                      placeholder="Reason for rejection (required)..." required></textarea>
+            <div class="flex justify-end gap-3 mt-4">
+                <button type="button" onclick="closeRejectModal()"
+                        class="px-4 py-2 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-lg transition">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-extrabold rounded-lg transition">
+                    Reject Action
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openRejectModal(actionID, toolName) {
+    document.getElementById('reject-tool').textContent = toolName;
+    document.getElementById('reject-reason').value = '';
+    document.getElementById('reject-form').action = '/agent-actions/' + actionID + '/reject';
+    var modal = document.getElementById('reject-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeRejectModal() {
+    var modal = document.getElementById('reject-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+document.getElementById('reject-form').addEventListener('submit', function() {
+    closeRejectModal();
+});
+</script>
+{{end}}

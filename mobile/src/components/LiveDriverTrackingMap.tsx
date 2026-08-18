@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
-import { Colors } from '../constants/theme';
+import { Colors, Font, Radius } from '../constants/theme';
 import {
   DEFAULT_DESTINATION_LATITUDE,
   DEFAULT_DESTINATION_LONGITUDE,
@@ -50,42 +50,41 @@ export function LiveDriverTrackingMap({
           longitudeDelta: 0.04,
         }}
       >
-        {/* Active Route Polyline */}
         <Polyline
           coordinates={routeCoordinates}
-          strokeColor="#0284c7"
+          strokeColor={Colors.primary}
           strokeWidth={4}
           lineDashPattern={[1]}
         />
 
-        {/* Pickup Marker */}
         <Marker
           coordinate={{ latitude: pickupLatitude, longitude: pickupLongitude }}
           title="Pickup Location"
           description="Mumbai Port Terminal 2"
-          pinColor="#10b981"
+          pinColor={Colors.success}
         />
 
-        {/* Live Driver Marker (Uber Vehicle Position) */}
         <Marker
           coordinate={{ latitude: driverLatitude, longitude: driverLongitude }}
           title="Driver (Vehicle #TRK-9942)"
           description="Live Fleet Position"
-          pinColor="#00685f"
+          pinColor={Colors.primary}
         />
 
-        {/* Destination Marker */}
         <Marker
           coordinate={{ latitude: destinationLatitude, longitude: destinationLongitude }}
           title="Destination Warehouse"
           description="Pune Logistics Hub B"
-          pinColor="#ef4444"
+          pinColor={Colors.danger}
         />
       </MapView>
 
       <View style={styles.statusBanner}>
         <View style={styles.statusDot} />
-        <Text style={styles.statusText}>Uber-Style Live Dispatch Tracking Active</Text>
+        <Text style={styles.statusText}>LIVE · MQTT STREAM</Text>
+        <Text style={styles.coordsText}>
+          {driverLatitude.toFixed(4)}°N · {driverLongitude.toFixed(4)}°E
+        </Text>
       </View>
     </View>
   );
@@ -95,9 +94,9 @@ const styles = StyleSheet.create({
   container: {
     height: 240,
     width: '100%',
-    borderRadius: 12,
+    borderRadius: Radius.md,
     overflow: 'hidden',
-    marginTop: 10,
+    marginTop: 8,
     borderWidth: 1,
     borderColor: Colors.border,
   },
@@ -106,11 +105,11 @@ const styles = StyleSheet.create({
   },
   statusBanner: {
     position: 'absolute',
-    top: 10,
-    left: 10,
-    right: 10,
-    backgroundColor: 'rgba(15, 23, 42, 0.88)',
-    borderRadius: 8,
+    top: 8,
+    left: 8,
+    right: 8,
+    backgroundColor: Colors.chrome,
+    borderRadius: Radius.sm,
     paddingVertical: 6,
     paddingHorizontal: 10,
     flexDirection: 'row',
@@ -118,14 +117,23 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#10b981',
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#22c55e',
   },
   statusText: {
-    color: '#ffffff',
-    fontSize: 11,
-    fontWeight: '700',
+    color: Colors.textOnChrome,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+    fontFamily: Font.mono,
+  },
+  coordsText: {
+    color: Colors.textOnChromeMuted,
+    fontSize: 10,
+    fontWeight: '600',
+    fontFamily: Font.mono,
+    marginLeft: 'auto',
   },
 });

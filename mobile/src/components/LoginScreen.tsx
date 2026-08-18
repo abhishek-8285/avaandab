@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Colors } from '../constants/theme';
+import { Colors, Font, Radius, Spacing } from '../constants/theme';
 import { getApiBaseURL } from '../constants/network';
 import { useAuthStore } from '../stores/authStore';
 
@@ -68,25 +68,29 @@ export function LoginScreen({ onLoginSuccess, onForgotPassword, onRegisterLink }
 
   return (
     <View style={styles.container}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
+
+      {/* Dark chrome header */}
+      <View style={styles.header}>
+        <Text style={styles.brandTitle}>AVANDAB</Text>
+        <Text style={styles.brandSubtitle}>DRIVER OPS · AUTH</Text>
+      </View>
 
       {/* Main Login Card */}
       <View style={styles.card}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.brandTitle}>Avandab</Text>
-          <Text style={styles.brandSubtitle}>Logistics Management Portal</Text>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>SIGN IN</Text>
+          <View style={styles.headerUnderline} />
         </View>
 
-        {/* Input Fields */}
         <View style={styles.formGroup}>
-          <Text style={styles.label}>EMAIL ADDRESS</Text>
+          <Text style={styles.label}>EMAIL</Text>
           <View style={styles.inputWrapper}>
-            <MaterialCommunityIcons name="email-outline" size={20} color="#6d7a77" style={styles.inputIcon} />
+            <MaterialCommunityIcons name="email-outline" size={16} color={Colors.textMuted} style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="dispatcher@fleet.com"
-              placeholderTextColor="#bcc9c6"
+              placeholder="driver@avandab.com"
+              placeholderTextColor={Colors.textMuted}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -100,16 +104,16 @@ export function LoginScreen({ onLoginSuccess, onForgotPassword, onRegisterLink }
             <Text style={styles.label}>PASSWORD</Text>
             {onForgotPassword && (
               <TouchableOpacity onPress={onForgotPassword}>
-                <Text style={styles.forgotText}>Forgot Password?</Text>
+                <Text style={styles.forgotText}>FORGOT?</Text>
               </TouchableOpacity>
             )}
           </View>
           <View style={styles.inputWrapper}>
-            <MaterialCommunityIcons name="lock-outline" size={20} color="#6d7a77" style={styles.inputIcon} />
+            <MaterialCommunityIcons name="lock-outline" size={16} color={Colors.textMuted} style={styles.inputIcon} />
             <TextInput
               style={[styles.input, { paddingRight: 40 }]}
               placeholder="••••••••"
-              placeholderTextColor="#bcc9c6"
+              placeholderTextColor={Colors.textMuted}
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
@@ -117,14 +121,13 @@ export function LoginScreen({ onLoginSuccess, onForgotPassword, onRegisterLink }
             <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowPassword(!showPassword)}>
               <MaterialCommunityIcons
                 name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                size={20}
-                color="#6d7a77"
+                size={16}
+                color={Colors.textMuted}
               />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Sign In Button */}
         <TouchableOpacity
           style={styles.submitBtn}
           activeOpacity={0.88}
@@ -132,40 +135,37 @@ export function LoginScreen({ onLoginSuccess, onForgotPassword, onRegisterLink }
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="#ffffff" />
+            <ActivityIndicator color={Colors.textOnPrimary} />
           ) : (
             <View style={styles.btnContent}>
-              <Text style={styles.submitBtnText}>Sign In</Text>
-              <MaterialCommunityIcons name="arrow-right" size={18} color="#ffffff" />
+              <Text style={styles.submitBtnText}>AUTHENTICATE</Text>
+              <MaterialCommunityIcons name="arrow-right" size={14} color={Colors.textOnPrimary} />
             </View>
           )}
         </TouchableOpacity>
 
-        {/* Divider */}
         <View style={styles.dividerRow}>
           <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>OR CONTINUE WITH</Text>
+          <Text style={styles.dividerText}>OR</Text>
           <View style={styles.dividerLine} />
         </View>
 
-        {/* OAuth Social Buttons */}
         <View style={styles.socialRow}>
           <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8} onPress={handleSignIn}>
-            <MaterialCommunityIcons name="google" size={20} color="#4285F4" />
-            <Text style={styles.socialBtnText}>Google</Text>
+            <MaterialCommunityIcons name="google" size={14} color="#4285F4" />
+            <Text style={styles.socialBtnText}>GOOGLE</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8} onPress={handleSignIn}>
-            <MaterialCommunityIcons name="microsoft" size={20} color="#00a4ef" />
-            <Text style={styles.socialBtnText}>Microsoft</Text>
+            <MaterialCommunityIcons name="microsoft" size={14} color="#00a4ef" />
+            <Text style={styles.socialBtnText}>MICROSOFT</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Register Link */}
         {onRegisterLink && (
-          <TouchableOpacity style={{ marginTop: 20, alignItems: 'center' }} onPress={onRegisterLink}>
-            <Text style={{ fontSize: 13, color: '#565e74' }}>
-              Don't have a driver account? <Text style={{ color: Colors.primary, fontWeight: '700' }}>Register Now</Text>
+          <TouchableOpacity style={styles.registerLink} onPress={onRegisterLink}>
+            <Text style={styles.registerLinkText}>
+              No driver account? <Text style={styles.registerLinkHighlight}>REGISTER</Text>
             </Text>
           </TouchableOpacity>
         )}
@@ -177,58 +177,76 @@ export function LoginScreen({ onLoginSuccess, onForgotPassword, onRegisterLink }
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f7f9fb',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-  card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 28,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 12,
-    elevation: 4,
+    backgroundColor: Colors.background,
   },
   header: {
-    alignItems: 'center',
-    marginBottom: 28,
+    backgroundColor: Colors.chrome,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: 56,
+    paddingBottom: Spacing.xl,
   },
   brandTitle: {
-    fontSize: 34,
-    fontWeight: '700',
-    color: Colors.primary,
-    letterSpacing: -0.5,
-    marginBottom: 4,
+    fontSize: 22,
+    fontWeight: '900',
+    color: Colors.textOnChrome,
+    letterSpacing: 4,
+    fontFamily: Font.mono,
   },
   brandSubtitle: {
-    fontSize: 14,
-    color: '#3d4947',
-    fontWeight: '400',
+    fontSize: 10,
+    color: Colors.textOnChromeMuted,
+    fontWeight: '700',
+    letterSpacing: 2,
+    fontFamily: Font.mono,
+    marginTop: 4,
+  },
+  card: {
+    flex: 1,
+    backgroundColor: Colors.surface,
+    margin: Spacing.lg,
+    borderRadius: Radius.lg,
+    padding: Spacing.xl,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  cardHeader: {
+    marginBottom: Spacing.xl,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+    letterSpacing: 2,
+    fontFamily: Font.mono,
+  },
+  headerUnderline: {
+    width: 28,
+    height: 2,
+    backgroundColor: Colors.primary,
+    marginTop: 6,
   },
   formGroup: {
-    marginBottom: 20,
+    marginBottom: Spacing.lg,
   },
   labelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   label: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
-    color: '#3d4947',
-    letterSpacing: 0.5,
-    marginBottom: 8,
+    color: Colors.textSecondary,
+    letterSpacing: 1,
+    fontFamily: Font.mono,
   },
   forgotText: {
-    fontSize: 13,
+    fontSize: 10,
     color: Colors.primary,
-    fontWeight: '500',
+    fontWeight: '700',
+    letterSpacing: 1,
+    fontFamily: Font.mono,
   },
   inputWrapper: {
     position: 'relative',
@@ -236,85 +254,101 @@ const styles = StyleSheet.create({
   },
   inputIcon: {
     position: 'absolute',
-    left: 12,
+    left: 10,
     zIndex: 10,
   },
   input: {
-    height: 48,
-    backgroundColor: '#ffffff',
+    height: 44,
+    backgroundColor: Colors.surfaceSecondary,
     borderWidth: 1,
-    borderColor: '#bcc9c6',
-    borderRadius: 8,
-    paddingLeft: 40,
-    paddingRight: 14,
-    fontSize: 14,
-    color: '#191c1e',
+    borderColor: Colors.border,
+    borderRadius: Radius.md,
+    paddingLeft: 34,
+    paddingRight: 12,
+    fontSize: 13,
+    color: Colors.textPrimary,
+    fontFamily: Font.mono,
   },
   eyeIcon: {
     position: 'absolute',
-    right: 12,
+    right: 10,
     padding: 4,
   },
   submitBtn: {
-    height: 48,
+    height: 46,
     backgroundColor: Colors.primary,
-    borderRadius: 8,
+    borderRadius: Radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
-    marginBottom: 24,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
+    marginTop: 4,
+    marginBottom: Spacing.lg,
   },
   btnContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   submitBtnText: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '600',
+    color: Colors.textOnPrimary,
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 2,
+    fontFamily: Font.mono,
   },
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: Spacing.md,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#e2e8f0',
+    backgroundColor: Colors.border,
   },
   dividerText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#6d7a77',
+    color: Colors.textMuted,
     paddingHorizontal: 12,
-    letterSpacing: 0.5,
+    letterSpacing: 1,
+    fontFamily: Font.mono,
   },
   socialRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
+    marginBottom: Spacing.lg,
   },
   socialBtn: {
     flex: 1,
-    height: 44,
-    borderRadius: 8,
+    height: 42,
+    borderRadius: Radius.md,
     borderWidth: 1,
-    borderColor: '#bcc9c6',
+    borderColor: Colors.border,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#ffffff',
+    gap: 6,
+    backgroundColor: Colors.surface,
   },
   socialBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#191c1e',
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    letterSpacing: 1,
+    fontFamily: Font.mono,
+  },
+  registerLink: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  registerLinkText: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    fontFamily: Font.mono,
+    letterSpacing: 0.5,
+  },
+  registerLinkHighlight: {
+    color: Colors.primary,
+    fontWeight: '800',
   },
 });

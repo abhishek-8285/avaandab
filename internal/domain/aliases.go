@@ -58,6 +58,9 @@ type (
 
 	Route = route.Route
 
+	CreateRouteRequest = route.CreateRouteRequest
+	UpdateRouteRequest = route.UpdateRouteRequest
+
 	Booking       = booking.Booking
 	BookingStatus = booking.BookingStatus
 

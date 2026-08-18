@@ -1,7 +1,8 @@
 import React from 'react';
 import { StyleSheet, Text, View, Image, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { Colors } from '../constants/theme';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Colors, Font, Radius, Spacing } from '../constants/theme';
 
 interface EarningsOverviewScreenProps {
   onFinish: () => void;
@@ -11,18 +12,16 @@ interface EarningsOverviewScreenProps {
 export function EarningsOverviewScreen({ onFinish, onBack }: EarningsOverviewScreenProps) {
   return (
     <View style={styles.container}>
-      <StatusBar style="dark" />
-      
-      {/* Header */}
+      <StatusBar style="light" />
+
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.iconButton}>
-          <Text style={styles.backArrow}>←</Text>
+          <MaterialCommunityIcons name="arrow-left" size={18} color={Colors.textOnChrome} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Earnings Overview</Text>
-        <View style={{ width: 36 }} />
+        <Text style={styles.headerLabel}>ONBOARDING · 03/03</Text>
+        <View style={{ width: 32 }} />
       </View>
 
-      {/* Center Phone Mockup Section */}
       <View style={styles.heroContainer}>
         <View style={styles.phoneFrame}>
           <Image
@@ -33,23 +32,14 @@ export function EarningsOverviewScreen({ onFinish, onBack }: EarningsOverviewScr
         </View>
       </View>
 
-      {/* Bottom Sheet Card */}
       <View style={styles.bottomCard}>
-        <Text style={styles.headline}>
-          Keep Tabs on{'\n'}
-          <Text style={styles.highlightText}>Your Earnings</Text> with Ease
-        </Text>
-
+        <Text style={styles.headline}>EARNINGS DASHBOARD</Text>
+        <View style={styles.titleUnderline} />
         <Text style={styles.description}>
-          Monitor your daily performance, track every rupee earned, and view detailed trip history at your fingertips.
+          Daily payouts, trip-by-trip breakdowns, tax deductions, and instant bank transfer tracking — all in one panel.
         </Text>
 
-        {/* Carousel Controls */}
         <View style={styles.footerRow}>
-          <TouchableOpacity style={styles.iconButton} onPress={onBack}>
-            <Text style={styles.controlArrow}>←</Text>
-          </TouchableOpacity>
-
           <View style={styles.indicators}>
             <View style={styles.dot} />
             <View style={styles.dot} />
@@ -57,7 +47,8 @@ export function EarningsOverviewScreen({ onFinish, onBack }: EarningsOverviewScr
           </View>
 
           <TouchableOpacity style={styles.nextButton} activeOpacity={0.85} onPress={onFinish}>
-            <Text style={styles.nextButtonText}>✓</Text>
+            <MaterialCommunityIcons name="check" size={14} color={Colors.textOnPrimary} />
+            <Text style={styles.nextButtonText}>FINISH</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -68,96 +59,80 @@ export function EarningsOverviewScreen({ onFinish, onBack }: EarningsOverviewScr
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: Colors.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: Spacing.lg,
     paddingTop: 54,
-    paddingBottom: 8,
-    zIndex: 20,
+    paddingBottom: Spacing.md,
+    backgroundColor: Colors.chrome,
   },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#0f172a',
+  headerLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.textOnChrome,
+    letterSpacing: 2,
+    fontFamily: Font.mono,
   },
   iconButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: Radius.md,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: Colors.chromeBorder,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  backArrow: {
-    fontSize: 18,
-    color: '#0f172a',
-    marginTop: -2,
-  },
-  controlArrow: {
-    fontSize: 18,
-    color: '#64748b',
-    marginTop: -2,
   },
   heroContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: Spacing.xl,
+    backgroundColor: Colors.background,
   },
   phoneFrame: {
-    width: 240,
-    height: 420,
-    borderRadius: 36,
+    width: 220,
+    height: 380,
+    borderRadius: Radius.lg,
     overflow: 'hidden',
-    borderWidth: 6,
-    borderColor: '#262626',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 10,
-    backgroundColor: '#ffffff',
+    borderWidth: 2,
+    borderColor: Colors.chrome,
+    backgroundColor: Colors.surface,
   },
   mockupImage: {
     width: '100%',
     height: '100%',
   },
   bottomCard: {
-    backgroundColor: '#ffffff',
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
-    paddingHorizontal: 32,
-    paddingTop: 32,
-    paddingBottom: 36,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -6 },
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
-    elevation: 12,
+    backgroundColor: Colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.xxl,
   },
   headline: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#0f172a',
-    textAlign: 'center',
-    lineHeight: 30,
-    marginBottom: 12,
+    fontSize: 20,
+    fontWeight: '900',
+    color: Colors.textPrimary,
+    letterSpacing: 2,
+    fontFamily: Font.mono,
   },
-  highlightText: {
-    color: Colors.primary,
+  titleUnderline: {
+    width: 32,
+    height: 2,
+    backgroundColor: Colors.primary,
+    marginTop: 6,
+    marginBottom: Spacing.md,
   },
   description: {
     fontSize: 13,
-    color: '#64748b',
-    textAlign: 'center',
+    color: Colors.textSecondary,
     lineHeight: 20,
-    marginBottom: 28,
+    marginBottom: Spacing.xl,
   },
   footerRow: {
     width: '100%',
@@ -167,34 +142,30 @@ const styles = StyleSheet.create({
   },
   indicators: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#e2e8f0',
+    width: 24,
+    height: 3,
+    backgroundColor: Colors.border,
   },
   dotActive: {
-    width: 24,
     backgroundColor: Colors.primary,
   },
   nextButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    height: 44,
+    paddingHorizontal: 18,
+    borderRadius: Radius.md,
     backgroundColor: Colors.primary,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 6,
+    gap: 8,
   },
   nextButtonText: {
-    color: '#ffffff',
-    fontSize: 20,
-    fontWeight: '700',
+    color: Colors.textOnPrimary,
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    fontFamily: Font.mono,
   },
 });

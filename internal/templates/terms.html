@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Terms of Service - Avandab</title>
+    <link rel="icon" href="/static/img/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/static/css/fonts.css?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}">
+    <link rel="stylesheet" href="/static/css/material-icons.css?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}">
+    <link rel="stylesheet" href="/static/css/material-symbols.css?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}">
+    <link rel="stylesheet" href="/static/css/tailwind.css?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}">
+    <link rel="stylesheet" href="/static/css/app.css?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}">
+    <style>
+        body { background-color: #f7f9fb; color: #191c1e; font-family: 'Plus Jakarta Sans', sans-serif; }
+        .font-display { font-family: 'Outfit', 'Satoshi', 'Plus Jakarta Sans', sans-serif; }
+        .policy-wrap { max-width: 820px; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
+        .policy-wrap h1 { font-family: 'Outfit', sans-serif; font-size: 2.1rem; font-weight: 800; margin-bottom: .35rem; }
+        .policy-wrap h2 { font-family: 'Outfit', sans-serif; font-size: 1.3rem; font-weight: 700; margin: 2rem 0 .6rem; padding-bottom: .35rem; border-bottom: 2px solid #e2e8f0; }
+        .policy-wrap p, .policy-wrap li { font-size: .95rem; line-height: 1.7; color: #334155; }
+        .policy-wrap ul { list-style: disc; padding-left: 1.25rem; margin: .4rem 0; }
+        .policy-wrap a { color: #0369a1; text-decoration: underline; }
+        .meta { color: #64748b; font-size: .85rem; margin-bottom: 1.5rem; }
+    </style>
+</head>
+<body>
+    {{template "public_header.html" .}}
+
+    <main class="policy-wrap">
+        <h1>Terms of Service</h1>
+        <p class="meta">Effective: 30 July 2026 &nbsp;|&nbsp; Version: V1.0</p>
+
+        <h2>1. Acceptance</h2>
+        <p>By filling a Fleet Order Form or availing services of Avandab Operations Platform (&ldquo;we&rdquo;, &ldquo;our&rdquo;), you (&ldquo;Client&rdquo;, &ldquo;you&rdquo;) accept these Terms as amended from time to time. Accessing the website binds you to these Terms and applicable laws. If you do not agree, do not use the service.</p>
+
+        <h2>2. Service &amp; Payment Terms</h2>
+        <ul>
+            <li>Invoices are raised per trip/service with applicable GST; payment terms are as specified in your Order Form.</li>
+            <li>Late payments accrue interest at 1.5% per month and, if delinquent 30+ days, we may suspend the service until dues are cleared.</li>
+            <li>The initial term is subject to a 24-month lock-in from execution; thereafter the agreement auto-renews until terminated by either party with 60 days&rsquo; written notice.</li>
+        </ul>
+
+        <h2>3. Cancellation &amp; Refund</h2>
+        <p>A refund may be claimed only where the service has not been provided. A valid refund request must be submitted within the stipulated time window for the relevant service; requests submitted beyond that window are ineligible. See our <a href="/refunds">Refund Policy</a>.</p>
+
+        <h2>4. Liability</h2>
+        <ul>
+            <li>Neither party is liable for special, indirect, incidental, or consequential damages, except for breach of confidentiality.</li>
+            <li>The platform&rsquo;s aggregate liability is capped at INR 10,000 (or, at scale, fees paid in the preceding 12 months).</li>
+            <li>Cargo liability is governed by the Carriage by Road Act, 2007 and is limited to &#8377;100 per kg unless a higher value is declared at booking.</li>
+        </ul>
+
+        <h2>5. Confidentiality</h2>
+        <p>Each party keeps the other&rsquo;s Confidential Information confidential for 3 years from disclosure and returns or destroys materials on request. Unauthorised disclosure may attract liability under the Information Technology Act, 2000.</p>
+
+        <h2>6. Dispute Resolution</h2>
+        <ul>
+            <li>The parties will attempt mediation within 1 month of a dispute notice.</li>
+            <li>Unresolved disputes are decided by a sole arbitrator under the Arbitration &amp; Conciliation Act, 1996.</li>
+            <li>Seat and venue: New Delhi, Delhi, India. Language: English. Costs are shared equally; each party bears its own legal fees.</li>
+        </ul>
+
+        <h2>7. Force Majeure</h2>
+        <p>Neither party is liable for failure or delay caused by fire, riot, strike, terror attack, war, epidemic, pandemic, lockdown, movement restrictions, or changes in government policy or regulation beyond reasonable control.</p>
+
+        <h2>8. Governing Law</h2>
+        <p>These Terms are governed by the laws of Delhi, India.</p>
+
+        <h2>9. Independent Relationship</h2>
+        <p>The parties are independent contractors. Nothing herein creates an employment, agency, partnership, or joint-venture relationship.</p>
+
+        <h2>10. Changes</h2>
+        <p>We may update these Terms. Continued use after an update constitutes acceptance of the revised Terms.</p>
+
+        <p style="margin-top:2.5rem;color:#94a3b8;font-size:.8rem;">&copy; 2026 Avandab Operations Platform. All rights reserved.</p>
+    </main>
+
+    {{template "cookie-consent" .}}
+</body>
+</html>

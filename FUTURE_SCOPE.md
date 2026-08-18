@@ -110,7 +110,12 @@ Machine-learned analytics, predictive modeling, and ESG metrics.
 Seamless data sync with enterprise software stack.
 
 - **Accounting Software**: Two-way sync with Tally Prime, Zoho Books, and QuickBooks India for voucher creation, GST reconciliation, and ledger posts.
-- **Telematics & IoT**: Integration with Indian GPS providers (LocoNav, Sensel, Chakra, WheelsEye) for live location, fuel sensors, and reefer temperature monitoring.
+- **Telematics & IoT**: Integration with Indian GPS providers (LocoNav, Sensel, Chakra, WheelsEye) for live location, fuel sensors, and reefer temperature monitoring. **Design-complete — implementation-ready tech specs in `docs/tech-specs/`:**
+  - [`01-telematics-ingestion.md`](docs/tech-specs/01-telematics-ingestion.md) — own-GPS device registry, MQTT/REST ingest, canonical PositionEvent/AlertEvent/SOSEvent contracts, LocoNav/WheelsEye adapters (migrations 00039–00040)
+  - [`02-geofence-engine.md`](docs/tech-specs/02-geofence-engine.md) — zones, 4-state dwell machine, trip auto-transitions, detention invoicing (00041)
+  - [`03-fuel-audit-scorecard.md`](docs/tech-specs/03-fuel-audit-scorecard.md) — fuel anomaly engine, kharcha claim audit, driver scorecard + settlement bonus (00042)
+  - [`04-live-map-share-maintenance.md`](docs/tech-specs/04-live-map-share-maintenance.md) — FlyFleet map stack (keyless Google tiles + OSM fallback + Nominatim), SSE live map, share links + ETA, preventive maintenance (00043)
+  - [`05-alerting-compliance.md`](docs/tech-specs/05-alerting-compliance.md) — alert pipeline, compliance dispatch gates, e-way bill lifecycle, SOS, AIS-140 contract (00044–00048)
 - **Enterprise ERP / WMS**: REST APIs for SAP, Oracle SCM, and Unicommerce to auto-ingest orders and push back e-PODs and invoice data.
 
 ---
