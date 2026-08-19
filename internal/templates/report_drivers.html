@@ -6,8 +6,16 @@
             <p class="text-sm text-secondary mt-1">Driver licensing audit, readiness, and active status tracking</p>
         </div>
         <div class="flex items-center gap-2">
+            {{if can .User "reports" "read"}}
+            <div class="flex items-center gap-2 print:hidden">
+                <a href="/reports/drivers.csv{{if .QueryString}}?{{.QueryString}}{{end}}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-on-primary rounded hover:bg-primary/90 text-sm font-medium shadow-sm transition-colors">
+                    <span class="material-icons text-base">download</span>
+                    Export CSV
+                </a>
+            </div>
+            {{end}}
             <button onclick="window.print()" class="px-4 py-2 min-h-[44px] inline-flex items-center justify-center bg-surface-container-lowest border border-border-subtle text-on-surface-variant rounded-lg hover:bg-surface-container-low font-medium focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-sm transition-colors">
-                <span class="material-icons text-sm mr-2">print</span>Export Report
+                <span class="material-icons text-sm mr-2">print</span>Print Report
             </button>
         </div>
     </div>
@@ -35,8 +43,8 @@
                 <option value="">All Statuses</option>
                 <option value="available" {{if eq .StatusFilter "available"}}selected{{end}}>Available</option>
                 <option value="on_trip" {{if eq .StatusFilter "on_trip"}}selected{{end}}>On Trip</option>
-                <option value="off_duty" {{if eq .StatusFilter "off_duty"}}selected{{end}}>Off Duty</option>
-                <option value="suspended" {{if eq .StatusFilter "suspended"}}selected{{end}}>Suspended</option>
+                <option value="leave" {{if eq .StatusFilter "leave"}}selected{{end}}>Leave</option>
+                <option value="inactive" {{if eq .StatusFilter "inactive"}}selected{{end}}>Inactive</option>
             </select>
         </div>
         <button type="submit" class="px-5 py-2 min-h-[44px] bg-brand-600 text-white font-medium rounded-lg hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-sm transition-colors">
@@ -60,11 +68,11 @@
                 <tbody class="divide-y divide-border-subtle bg-surface-container-lowest">
                     {{if .Drivers}}
                     {{range .Drivers}}
-                    <tr class="hover:bg-surface-container-low">
+                    <tr class="hover:bg-surface-container-low transition-colors">
                         <td class="px-5 py-3.5 text-sm font-semibold text-on-surface">{{.DriverID}}</td>
-                        <td class="px-5 py-3.5 text-sm text-on-surface font-medium">{{.FirstName}} {{.LastName}}</td>
+                        <td class="px-5 py-3.5 text-sm text-on-surface">{{.FirstName}} {{.LastName}}</td>
                         <td class="px-5 py-3.5 text-sm text-on-surface-variant">{{.Phone}}</td>
-                        <td class="px-5 py-3.5 text-sm text-on-surface-variant font-mono">{{.LicenseNumber}}</td>
+                        <td class="px-5 py-3.5 text-sm text-on-surface-variant">{{.LicenseNumber}}</td>
                         <td class="px-5 py-3.5 text-sm">
                             <span class="px-2.5 py-1 text-xs font-medium rounded-full {{statusBadge .Status}}">{{.Status}}</span>
                         </td>
@@ -80,22 +88,9 @@
                 </tbody>
             </table>
         </div>
-    </div>
 
-    <!-- Pagination -->
-    <div class="flex items-center justify-between">
-        {{if .Pagination.HasPrev}}
-        <a href="/reports/drivers?page={{sub .Pagination.Page 1}}&q={{.Query}}&status={{.StatusFilter}}" 
-           class="px-4 py-2 min-h-[44px] inline-flex items-center justify-center bg-surface-container-lowest border border-border-subtle rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-low focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-sm">
-           <span class="material-icons text-sm mr-1">chevron_left</span> Previous Page
-        </a>
-        {{end}}
-
-        {{if .Pagination.HasNext}}
-        <a href="/reports/drivers?page={{add .Pagination.Page 1}}&q={{.Query}}&status={{.StatusFilter}}" 
-           class="px-4 py-2 min-h-[44px] inline-flex items-center justify-center bg-surface-container-lowest border border-border-subtle rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-low focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-sm">
-           Next Page <span class="material-icons text-sm ml-1">chevron_right</span>
-        </a>
-        {{end}}
+        <div class="px-5 py-4 border-t border-border-subtle">
+            {{template "pagination.html" .}}
+        </div>
     </div>
 </div>

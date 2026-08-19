@@ -6,8 +6,22 @@
             <p class="text-sm text-secondary mt-1">Audit log of unpaid customer invoices, overdue accounts, and outstanding balances</p>
         </div>
         <div class="flex items-center gap-2">
+            {{if can .User "reports" "read"}}
+            <div class="flex items-center gap-2 print:hidden">
+                <a href="/reports/pending-payments.csv{{if .QueryString}}?{{.QueryString}}{{end}}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-on-primary rounded hover:bg-primary/90 text-sm font-medium shadow-sm transition-colors">
+                    <span class="material-icons text-base">download</span>
+                    Export CSV
+                </a>
+                {{if .ShowPDFExport}}
+                <a href="/reports/pending-payments.pdf{{if .QueryString}}?{{.QueryString}}{{end}}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-status-alert text-on-primary rounded hover:bg-status-alert/90 text-sm font-medium shadow-sm transition-colors">
+                    <span class="material-icons text-base">picture_as_pdf</span>
+                    Export PDF
+                </a>
+                {{end}}
+            </div>
+            {{end}}
             <button onclick="window.print()" class="px-4 py-2 min-h-[44px] inline-flex items-center justify-center bg-surface-container-lowest border border-border-subtle text-on-surface-variant rounded-lg hover:bg-surface-container-low font-medium focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-sm transition-colors">
-                <span class="material-icons text-sm mr-2">print</span>Export Report
+                <span class="material-icons text-sm mr-2">print</span>Print Report
             </button>
         </div>
     </div>
@@ -20,7 +34,7 @@
         </div>
         <div class="bg-surface-container-lowest rounded-xl shadow-sm border border-border-subtle p-4 border-l-4 border-l-red-500">
             <div class="text-xs font-semibold text-text-muted uppercase tracking-wider">Total Outstanding Balance</div>
-            <div class="text-2xl font-bold text-status-alert mt-1">${{printf "%.2f" .TotalOutstanding}}</div>
+            <div class="text-2xl font-bold text-status-alert mt-1">₹{{printf "%.2f" .TotalOutstanding}}</div>
         </div>
     </div>
 
@@ -32,7 +46,7 @@
                     <tr>
                         <th class="px-5 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Invoice #</th>
                         <th class="px-5 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Customer</th>
-                        <th class="px-5 py-3 text-right text-xs font-semibold text-text-muted uppercase tracking-wider tabular-nums">Total Amount</th>
+                        <th class="px-5 py-3 text-right text-xs font-semibold text-text-muted uppercase tracking-wider tabular-nums">Total Amount (₹)</th>
                         <th class="px-5 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Payment Status</th>
                         <th class="px-5 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Invoice Date</th>
                     </tr>
@@ -40,10 +54,10 @@
                 <tbody class="divide-y divide-border-subtle bg-surface-container-lowest">
                     {{if .Invoices}}
                     {{range .Invoices}}
-                    <tr class="hover:bg-surface-container-low">
+                    <tr class="hover:bg-surface-container-low transition-colors">
                         <td class="px-5 py-3.5 text-sm font-semibold text-on-surface">{{.InvoiceNumber}}</td>
                         <td class="px-5 py-3.5 text-sm text-on-surface">{{.CustomerName}}</td>
-                        <td class="px-5 py-3.5 text-sm text-right font-bold text-status-alert">${{printf "%.2f" .Total}}</td>
+                        <td class="px-5 py-3.5 text-sm text-right font-bold text-status-alert">₹{{printf "%.2f" .Total}}</td>
                         <td class="px-5 py-3.5 text-sm">
                             <span class="px-2.5 py-1 text-xs font-medium rounded-full {{statusBadge .PaymentStatus}}">{{.PaymentStatus}}</span>
                         </td>

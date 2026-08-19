@@ -23,6 +23,7 @@ type Config struct {
 	UploadDir         string
 	StaticDir         string
 	MaxUploadSize     int64
+	ExportMaxRows     int
 	RazorpayKeyID     string
 	RazorpayKeySecret string
 	RazorpayWebhook   string
@@ -186,6 +187,7 @@ func Load() *Config {
 		UploadDir:         getEnv("UPLOAD_DIR", "./uploads"),
 		StaticDir:         getEnv("STATIC_DIR", "internal/static"),
 		MaxUploadSize:     maxUpload,
+		ExportMaxRows:     getEnvInt("EXPORT_MAX_ROWS", 50000),
 		RazorpayKeyID:     getEnv("RAZORPAY_KEY_ID", ""),
 		RazorpayKeySecret: getEnv("RAZORPAY_KEY_SECRET", ""),
 		RazorpayWebhook:   os.Getenv("RAZORPAY_WEBHOOK_SECRET"),

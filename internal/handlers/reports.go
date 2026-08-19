@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -8,6 +9,7 @@ import (
 
 	"transport-app/internal/domain"
 	"transport-app/internal/middleware"
+	"transport-app/internal/pdf"
 	"transport-app/internal/repository"
 )
 
@@ -18,12 +20,26 @@ type ReportHandlers struct {
 
 func (h *ReportHandlers) Routes(r chi.Router) {
 	r.With(middleware.ResourcePermission(h.AuthSrv, "reports", "read")).Get("/", h.Index)
+
+	// HTML views
 	r.With(middleware.ResourcePermission(h.AuthSrv, "reports", "read")).Get("/revenue", h.RevenueReport)
 	r.With(middleware.ResourcePermission(h.AuthSrv, "reports", "read")).Get("/trips", h.TripReport)
 	r.With(middleware.ResourcePermission(h.AuthSrv, "reports", "read")).Get("/drivers", h.DriverReport)
 	r.With(middleware.ResourcePermission(h.AuthSrv, "reports", "read")).Get("/vehicles", h.VehicleReport)
 	r.With(middleware.ResourcePermission(h.AuthSrv, "reports", "read")).Get("/customers", h.CustomerReport)
 	r.With(middleware.ResourcePermission(h.AuthSrv, "reports", "read")).Get("/pending-payments", h.PendingPaymentsReport)
+
+	// CSV export endpoints
+	r.With(middleware.ResourcePermission(h.AuthSrv, "reports", "read")).Get("/revenue.csv", h.ExportRevenueCSV)
+	r.With(middleware.ResourcePermission(h.AuthSrv, "reports", "read")).Get("/trips.csv", h.ExportTripsCSV)
+	r.With(middleware.ResourcePermission(h.AuthSrv, "reports", "read")).Get("/drivers.csv", h.ExportDriversCSV)
+	r.With(middleware.ResourcePermission(h.AuthSrv, "reports", "read")).Get("/vehicles.csv", h.ExportVehiclesCSV)
+	r.With(middleware.ResourcePermission(h.AuthSrv, "reports", "read")).Get("/customers.csv", h.ExportCustomersCSV)
+	r.With(middleware.ResourcePermission(h.AuthSrv, "reports", "read")).Get("/pending-payments.csv", h.ExportPendingPaymentsCSV)
+
+	// PDF export endpoints (bounded only)
+	r.With(middleware.ResourcePermission(h.AuthSrv, "reports", "read")).Get("/revenue.pdf", h.ExportRevenuePDF)
+	r.With(middleware.ResourcePermission(h.AuthSrv, "reports", "read")).Get("/pending-payments.pdf", h.ExportPendingPaymentsPDF)
 }
 
 func (h *ReportHandlers) Index(w http.ResponseWriter, r *http.Request) {
@@ -46,6 +62,8 @@ func (h *ReportHandlers) RevenueReport(w http.ResponseWriter, r *http.Request) {
 		Extra: map[string]interface{}{
 			"MonthlyRevenue": monthlyRev,
 			"TotalRevenue":   totalRev,
+			"QueryString":    r.URL.RawQuery,
+			"ShowPDFExport":  true,
 		},
 	})
 }
@@ -73,12 +91,14 @@ func (h *ReportHandlers) TripReport(w http.ResponseWriter, r *http.Request) {
 		Title: "Trip Performance Report",
 		User:  session,
 		Extra: map[string]interface{}{
-			"Trips":        trips,
-			"TotalTrips":   total,
-			"StatusCounts": statusCounts,
-			"Pagination":   pd,
-			"Query":        pp.Query,
-			"StatusFilter": pp.Status,
+			"Trips":         trips,
+			"TotalTrips":    total,
+			"StatusCounts":  statusCounts,
+			"Pagination":    pd,
+			"Query":         pp.Query,
+			"StatusFilter":  pp.Status,
+			"QueryString":   r.URL.RawQuery,
+			"ShowPDFExport": false,
 		},
 	})
 }
@@ -107,6 +127,8 @@ func (h *ReportHandlers) DriverReport(w http.ResponseWriter, r *http.Request) {
 			"Pagination":       pagination,
 			"Query":            pp.Query,
 			"StatusFilter":     pp.Status,
+			"QueryString":      r.URL.RawQuery,
+			"ShowPDFExport":    false,
 		},
 	})
 }
@@ -135,6 +157,8 @@ func (h *ReportHandlers) VehicleReport(w http.ResponseWriter, r *http.Request) {
 			"Pagination":        pagination,
 			"Query":             pp.Query,
 			"StatusFilter":      pp.Status,
+			"QueryString":       r.URL.RawQuery,
+			"ShowPDFExport":     false,
 		},
 	})
 }
@@ -158,6 +182,8 @@ func (h *ReportHandlers) CustomerReport(w http.ResponseWriter, r *http.Request) 
 			"TotalCustomers": total,
 			"Pagination":     pagination,
 			"Query":          pp.Query,
+			"QueryString":    r.URL.RawQuery,
+			"ShowPDFExport":  false,
 		},
 	})
 }
@@ -182,6 +208,281 @@ func (h *ReportHandlers) PendingPaymentsReport(w http.ResponseWriter, r *http.Re
 			"Invoices":         pending,
 			"TotalInvoices":    len(pending),
 			"TotalOutstanding": totalOutstanding,
+			"QueryString":      r.URL.RawQuery,
+			"ShowPDFExport":    true,
 		},
 	})
+}
+
+// ── Export Handlers ──────────────────────────────────────────────────────────
+
+func (h *ReportHandlers) ExportRevenueCSV(w http.ResponseWriter, r *http.Request) {
+	monthlyRev, _ := h.Services.Payments.GetMonthlyRevenue(r.Context())
+	totalRev, _ := h.Services.Payments.GetTotalRevenue(r.Context())
+
+	header := []string{"Month", "Revenue (INR)"}
+	var rows [][]string
+	for _, m := range monthlyRev {
+		rows = append(rows, []string{m.Month, fmt.Sprintf("%.2f", m.Total)})
+	}
+	rows = append(rows, []string{"Total Cumulative Revenue", fmt.Sprintf("%.2f", totalRev)})
+
+	maxRows := h.Config.ExportMaxRows
+	if maxRows <= 0 {
+		maxRows = 50000
+	}
+
+	writeCSV(w, "revenue_report.csv", header, rows, maxRows, "")
+}
+
+func (h *ReportHandlers) ExportTripsCSV(w http.ResponseWriter, r *http.Request) {
+	pp := parsePaginationParams(r)
+	maxRows := h.Config.ExportMaxRows
+	if maxRows <= 0 {
+		maxRows = 50000
+	}
+
+	trips, total, err := h.Services.Trips.ListTrips(r.Context(), pp.Query, pp.Status, maxRows, pp.Offset)
+	if err != nil {
+		http.Error(w, "Failed to load trips report", http.StatusInternalServerError)
+		return
+	}
+
+	header := []string{"TripNumber", "Driver", "Vehicle", "Route", "DepartureTime", "Status"}
+	var rows [][]string
+	for _, t := range trips {
+		driverName := ""
+		if t.DriverFirstName != nil {
+			driverName = *t.DriverFirstName
+			if t.DriverLastName != nil {
+				driverName += " " + *t.DriverLastName
+			}
+		}
+		vehicleReg := ""
+		if t.VehicleRegistration != nil {
+			vehicleReg = *t.VehicleRegistration
+		}
+		routeStr := fmt.Sprintf("%s -> %s", t.RouteSource, t.RouteDestination)
+		depTime := t.DepartureTime.Format("2006-01-02 15:04:05")
+
+		rows = append(rows, []string{
+			t.TripNumber,
+			driverName,
+			vehicleReg,
+			routeStr,
+			depTime,
+			string(t.Status),
+		})
+	}
+
+	nextURL := ""
+	if total > int64(pp.Offset+len(trips)) {
+		q := r.URL.Query()
+		q.Set("offset", fmt.Sprintf("%d", pp.Offset+len(trips)))
+		nextURL = fmt.Sprintf("%s?%s", r.URL.Path, q.Encode())
+	}
+
+	writeCSV(w, "trips_report.csv", header, rows, maxRows, nextURL)
+}
+
+func (h *ReportHandlers) ExportDriversCSV(w http.ResponseWriter, r *http.Request) {
+	pp := parsePaginationParams(r)
+	maxRows := h.Config.ExportMaxRows
+	if maxRows <= 0 {
+		maxRows = 50000
+	}
+
+	drivers, total, err := h.Services.Drivers.ListDrivers(r.Context(), pp.Query, pp.Status, maxRows, pp.Offset)
+	if err != nil {
+		http.Error(w, "Failed to load drivers report", http.StatusInternalServerError)
+		return
+	}
+
+	header := []string{"DriverID", "Name", "Phone", "LicenseNumber", "ExperienceYears", "Status"}
+	var rows [][]string
+	for _, d := range drivers {
+		rows = append(rows, []string{
+			d.DriverID,
+			fmt.Sprintf("%s %s", d.FirstName, d.LastName),
+			d.Phone,
+			d.LicenseNumber,
+			fmt.Sprintf("%d", d.ExperienceYears),
+			string(d.Status),
+		})
+	}
+
+	nextURL := ""
+	if total > int64(pp.Offset+len(drivers)) {
+		q := r.URL.Query()
+		q.Set("offset", fmt.Sprintf("%d", pp.Offset+len(drivers)))
+		nextURL = fmt.Sprintf("%s?%s", r.URL.Path, q.Encode())
+	}
+
+	writeCSV(w, "drivers_report.csv", header, rows, maxRows, nextURL)
+}
+
+func (h *ReportHandlers) ExportVehiclesCSV(w http.ResponseWriter, r *http.Request) {
+	pp := parsePaginationParams(r)
+	maxRows := h.Config.ExportMaxRows
+	if maxRows <= 0 {
+		maxRows = 50000
+	}
+
+	vehicles, total, err := h.Services.Vehicles.ListVehicles(r.Context(), pp.Query, pp.Status, maxRows, pp.Offset)
+	if err != nil {
+		http.Error(w, "Failed to load vehicles report", http.StatusInternalServerError)
+		return
+	}
+
+	header := []string{"RegistrationNumber", "VehicleNumber", "Type", "Capacity", "FuelType", "Status"}
+	var rows [][]string
+	for _, v := range vehicles {
+		rows = append(rows, []string{
+			v.RegistrationNumber,
+			v.VehicleNumber,
+			string(v.VehicleType),
+			fmt.Sprintf("%d", v.Capacity),
+			string(v.FuelType),
+			string(v.Status),
+		})
+	}
+
+	nextURL := ""
+	if total > int64(pp.Offset+len(vehicles)) {
+		q := r.URL.Query()
+		q.Set("offset", fmt.Sprintf("%d", pp.Offset+len(vehicles)))
+		nextURL = fmt.Sprintf("%s?%s", r.URL.Path, q.Encode())
+	}
+
+	writeCSV(w, "vehicles_report.csv", header, rows, maxRows, nextURL)
+}
+
+func (h *ReportHandlers) ExportCustomersCSV(w http.ResponseWriter, r *http.Request) {
+	pp := parsePaginationParams(r)
+	maxRows := h.Config.ExportMaxRows
+	if maxRows <= 0 {
+		maxRows = 50000
+	}
+
+	customers, total, err := h.Services.Customers.ListCustomers(r.Context(), pp.Query, maxRows, pp.Offset)
+	if err != nil {
+		http.Error(w, "Failed to load customers report", http.StatusInternalServerError)
+		return
+	}
+
+	header := []string{"Name", "Company", "Email", "Phone", "GST"}
+	var rows [][]string
+	for _, c := range customers {
+		company := ""
+		if c.Company != nil {
+			company = *c.Company
+		}
+		email := ""
+		if c.Email != nil {
+			email = *c.Email
+		}
+		gst := ""
+		if c.GST != nil {
+			gst = *c.GST
+		}
+		rows = append(rows, []string{
+			c.Name,
+			company,
+			email,
+			c.Phone,
+			gst,
+		})
+	}
+
+	nextURL := ""
+	if total > int64(pp.Offset+len(customers)) {
+		q := r.URL.Query()
+		q.Set("offset", fmt.Sprintf("%d", pp.Offset+len(customers)))
+		nextURL = fmt.Sprintf("%s?%s", r.URL.Path, q.Encode())
+	}
+
+	writeCSV(w, "customers_report.csv", header, rows, maxRows, nextURL)
+}
+
+func (h *ReportHandlers) ExportPendingPaymentsCSV(w http.ResponseWriter, r *http.Request) {
+	maxRows := h.Config.ExportMaxRows
+	if maxRows <= 0 {
+		maxRows = 50000
+	}
+
+	pending, err := h.Services.Invoices.GetPendingInvoices(r.Context())
+	if err != nil {
+		http.Error(w, "Failed to load pending payments report", http.StatusInternalServerError)
+		return
+	}
+
+	header := []string{"InvoiceNumber", "CustomerName", "Subtotal", "Tax", "Total", "PaymentStatus"}
+	var rows [][]string
+	for _, inv := range pending {
+		rows = append(rows, []string{
+			inv.InvoiceNumber,
+			inv.CustomerName,
+			fmt.Sprintf("%.2f", inv.Subtotal),
+			fmt.Sprintf("%.2f", inv.Tax),
+			fmt.Sprintf("%.2f", inv.Total),
+			string(inv.PaymentStatus),
+		})
+	}
+
+	writeCSV(w, "pending_payments_report.csv", header, rows, maxRows, "")
+}
+
+func (h *ReportHandlers) ExportRevenuePDF(w http.ResponseWriter, r *http.Request) {
+	monthlyRev, _ := h.Services.Payments.GetMonthlyRevenue(r.Context())
+	totalRev, _ := h.Services.Payments.GetTotalRevenue(r.Context())
+
+	header := []string{"Month", "Revenue (INR)"}
+	var rows [][]string
+	for _, m := range monthlyRev {
+		rows = append(rows, []string{m.Month, fmt.Sprintf("%.2f", m.Total)})
+	}
+	rows = append(rows, []string{"Total Cumulative Revenue", fmt.Sprintf("%.2f", totalRev)})
+
+	companyName := "Avandab Transport Logistics"
+	pdfBytes, err := pdf.GenerateReportPDF("Revenue Summary Report", companyName, header, rows)
+	if err != nil {
+		http.Error(w, "Failed to generate PDF: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", `attachment; filename="revenue_report.pdf"`)
+	_, _ = w.Write(pdfBytes)
+}
+
+func (h *ReportHandlers) ExportPendingPaymentsPDF(w http.ResponseWriter, r *http.Request) {
+	pending, err := h.Services.Invoices.GetPendingInvoices(r.Context())
+	if err != nil {
+		http.Error(w, "Failed to load pending payments", http.StatusInternalServerError)
+		return
+	}
+
+	header := []string{"Invoice #", "Customer", "Subtotal (INR)", "Tax (INR)", "Total (INR)", "Status"}
+	var rows [][]string
+	for _, inv := range pending {
+		rows = append(rows, []string{
+			inv.InvoiceNumber,
+			inv.CustomerName,
+			fmt.Sprintf("%.2f", inv.Subtotal),
+			fmt.Sprintf("%.2f", inv.Tax),
+			fmt.Sprintf("%.2f", inv.Total),
+			string(inv.PaymentStatus),
+		})
+	}
+
+	companyName := "Avandab Transport Logistics"
+	pdfBytes, err := pdf.GenerateReportPDF("Outstanding Invoices & Pending Payments", companyName, header, rows)
+	if err != nil {
+		http.Error(w, "Failed to generate PDF: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", `attachment; filename="pending_payments_report.pdf"`)
+	_, _ = w.Write(pdfBytes)
 }
