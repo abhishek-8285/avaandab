@@ -1,60 +1,28 @@
-<div class="bg-white border border-[#EAE8E4] rounded shadow-sm flex flex-col h-full overflow-hidden">
+{{template "page_header.html" (dict "Title" "Payments" "Subtitle" "View recorded invoice payments and transaction receipts")}}
+
+<div class="bg-surface-container-lowest border border-border-subtle rounded shadow-sm flex flex-col h-full overflow-hidden">
     <!-- Sticky Filter Bar (Stitch Design) -->
-    <form method="GET" action="/payments" class="px-6 py-4 border-b border-[#EAE8E4] flex flex-wrap items-center gap-3 bg-white sticky top-0 z-10">
-        <span class="text-sm font-medium text-[#565e74] mr-2 font-display">Methods:</span>
-        <a href="/payments" class="px-4 py-1.5 rounded-full border text-sm font-medium transition-colors {{if eq .Method ""}}border-[#00685f] bg-[#00685f] text-white{{else}}border-[#EAE8E4] bg-white text-[#565e74] hover:bg-[#f2f4f6]{{end}} font-body-sm">All Payments</a>
-        <a href="/payments?method=upi" class="px-4 py-1.5 rounded-full border text-sm font-medium transition-colors {{if eq .Method "upi"}}border-[#00685f] bg-[#00685f] text-white{{else}}border-[#EAE8E4] bg-white text-[#565e74] hover:bg-[#f2f4f6]{{end}} font-body-sm">UPI</a>
-        <a href="/payments?method=bank_transfer" class="px-4 py-1.5 rounded-full border text-sm font-medium transition-colors {{if eq .Method "bank_transfer"}}border-[#00685f] bg-[#00685f] text-white{{else}}border-[#EAE8E4] bg-white text-[#565e74] hover:bg-[#f2f4f6]{{end}} font-body-sm">Bank Transfer</a>
-        <a href="/payments?method=cash" class="px-4 py-1.5 rounded-full border text-sm font-medium transition-colors {{if eq .Method "cash"}}border-[#00685f] bg-[#00685f] text-white{{else}}border-[#EAE8E4] bg-white text-[#565e74] hover:bg-[#f2f4f6]{{end}} font-body-sm">Cash</a>
+    <form method="GET" action="/payments" class="px-4 py-2 border-b border-border-subtle flex flex-wrap items-center gap-2 bg-surface-container-lowest sticky top-0 z-10">
+        <span class="text-xs font-medium text-secondary mr-2">Methods:</span>
+        <a href="/payments" class="px-3 py-1 rounded-full border text-xs font-medium transition-colors {{if eq .Method ""}}border-primary bg-primary text-on-primary{{else}}border-border-subtle bg-surface-container-lowest text-secondary hover:bg-surface-container-low{{end}} font-body-sm">All Payments</a>
+        <a href="/payments?method=upi" class="px-3 py-1 rounded-full border text-xs font-medium transition-colors {{if eq .Method "upi"}}border-primary bg-primary text-on-primary{{else}}border-border-subtle bg-surface-container-lowest text-secondary hover:bg-surface-container-low{{end}} font-body-sm">UPI</a>
+        <a href="/payments?method=bank_transfer" class="px-3 py-1 rounded-full border text-xs font-medium transition-colors {{if eq .Method "bank_transfer"}}border-primary bg-primary text-on-primary{{else}}border-border-subtle bg-surface-container-lowest text-secondary hover:bg-surface-container-low{{end}} font-body-sm">Bank Transfer</a>
+        <a href="/payments?method=cash" class="px-3 py-1 rounded-full border text-xs font-medium transition-colors {{if eq .Method "cash"}}border-primary bg-primary text-on-primary{{else}}border-border-subtle bg-surface-container-lowest text-secondary hover:bg-surface-container-low{{end}} font-body-sm">Cash</a>
 
         <div class="ml-auto flex items-center gap-3">
             <div class="relative min-w-[200px]">
-                <span class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">search</span>
+                <span class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-sm">search</span>
                 <input type="text" name="q" value="{{.Query}}" placeholder="Search payments..."
-                    class="bg-white border border-[#EAE8E4] rounded py-1.5 pl-9 pr-4 text-sm w-full focus:outline-none focus:border-[#00685f] transition-colors">
+                    class="bg-surface-container-lowest border border-border-subtle rounded py-1.5 pl-9 pr-4 text-sm w-full focus:outline-none focus:border-primary transition-colors">
             </div>
-            <button type="submit" class="px-4 py-1.5 rounded bg-[#00685f] text-white text-sm font-medium hover:bg-[#005049] transition-colors">
+            <button type="submit" class="px-3 py-1 rounded bg-primary text-on-primary text-xs font-medium hover:bg-primary/90 transition-colors">
                 Search
             </button>
         </div>
     </form>
 
-    <!-- Data Table (Stitch Design) -->
-    <div class="flex-1 overflow-x-auto">
-        <table class="w-full text-left border-collapse min-w-full">
-            <thead class="sticky top-0 bg-white z-10 border-b border-[#EAE8E4]">
-                <tr>
-                    <th class="th-cell">Invoice #</th>
-                    <th class="th-cell">Payment Date</th>
-                    <th class="th-cell">Amount (₹)</th>
-                    <th class="th-cell">Method</th>
-                    <th class="th-cell">Reference ID</th>
-                    <th class="th-cell-right">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-[#EAE8E4] font-body-sm text-sm text-[#191c1e]">
-                {{range .Payments}}
-                <tr class="hover:bg-[#f2f4f6] transition-colors group">
-                    <td class="td-cell-strong">{{.InvoiceNumber}}</td>
-                    <td class="td-cell">{{datetime .PaymentDate}}</td>
-                    <td class="td-cell-strong">₹{{printf "%.2f" .Amount}}</td>
-                    <td class="td-cell uppercase font-mono text-xs">{{.Method}}</td>
-                    <td class="td-cell font-mono text-xs">{{nullString .Reference}}</td>
-                    <td class="td-cell-actions">
-                        <a href="/payments/{{.ID}}" class="action-view font-medium">View Receipt</a>
-                    </td>
-                </tr>
-                {{else}}
-                <tr>
-                    <td colspan="6" class="py-16 text-center text-gray-500">
-                        <span class="material-icons text-4xl text-gray-300 mb-2 block">payments</span>
-                        <p class="font-medium text-base">No payments found matching the current filters.</p>
-                    </td>
-                </tr>
-                {{end}}
-            </tbody>
-        </table>
+    <!-- Data Table Fragment (Datastar refresh target) -->
+    <div id="list-table">
+        {{template "payment_list_table.html" .}}
     </div>
-
-    {{template "pagination.html" .}}
 </div>

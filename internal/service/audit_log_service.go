@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -26,6 +27,11 @@ func (s *AuditLogService) ListAuditLogs(ctx context.Context, limit, offset int) 
 		return nil, 0, err
 	}
 	return logs, total, nil
+}
+
+// CountUnread counts audit entries created after the given time.
+func (s *AuditLogService) CountUnread(ctx context.Context, since time.Time) (int64, error) {
+	return s.store.CountAuditLogsSince(ctx, since)
 }
 
 // LogAction creates an audit log entry for a significant action.

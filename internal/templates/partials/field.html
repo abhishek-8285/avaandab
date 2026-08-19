@@ -1,0 +1,5 @@
+<div class="mb-4">
+  <label class="block text-sm font-medium text-on-surface mb-1.5">{{.Label}}{{if eq .Required "true"}}<span class="text-status-alert">*</span>{{end}}</label>
+  <input type="{{if .Type}}{{.Type}}{{else}}text{{end}}" name="{{.Name}}" value="{{or .Value ""}}" placeholder="{{or .Placeholder ""}}"{{if eq .Required "true"}} required{{end}} class="w-full rounded-md border border-border-subtle bg-surface-container-lowest px-3 py-2 text-on-surface text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" />
+  {{if .Hint}}<p class="text-xs text-text-muted mt-1">{{.Hint}}</p>{{end}}
+</div>

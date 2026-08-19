@@ -12,6 +12,7 @@ import (
 	driverapp "transport-app/internal/driver/application"
 	driveragg "transport-app/internal/driver/domain/aggregate"
 	"transport-app/internal/middleware"
+	"transport-app/internal/shared"
 	clock "transport-app/internal/shared/clock"
 	id "transport-app/internal/shared/id"
 	uow "transport-app/internal/shared/uow"
@@ -56,7 +57,7 @@ func (h *DriverHandlers) List(w http.ResponseWriter, r *http.Request) {
 	pp := parsePaginationParams(r)
 
 	res, err := h.listUC.Execute(r.Context(), driverapp.ListDriversQuery{
-		TenantID: "1",
+		TenantID: shared.TenantIDFromContext(r.Context()),
 		Page:     pp.Page,
 		Limit:    pp.Limit,
 		Search:   pp.Query,
@@ -116,7 +117,7 @@ func (h *DriverHandlers) Create(w http.ResponseWriter, r *http.Request) {
 	ecName, ecPhone, notes := r.PostFormValue("emergency_contact_name"), r.PostFormValue("emergency_contact_phone"), r.PostFormValue("notes")
 
 	_, err = h.createUC.Execute(r.Context(), driverapp.CreateDriverCommand{
-		TenantID:              "1",
+		TenantID:              shared.TenantIDFromContext(r.Context()),
 		FirstName:             r.PostFormValue("first_name"),
 		LastName:              r.PostFormValue("last_name"),
 		Phone:                 r.PostFormValue("phone"),
@@ -148,7 +149,7 @@ func (h *DriverHandlers) View(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	driver, err := h.getUC.Execute(r.Context(), driverapp.GetDriverQuery{
 		ID:       driveragg.DriverID(id),
-		TenantID: "1",
+		TenantID: shared.TenantIDFromContext(r.Context()),
 	})
 	if err != nil {
 		h.renderError(w, http.StatusNotFound, "Driver Not Found", fmt.Sprintf("No driver found with ID %q.", id), session)
@@ -164,7 +165,7 @@ func (h *DriverHandlers) Edit(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	driver, err := h.getUC.Execute(r.Context(), driverapp.GetDriverQuery{
 		ID:       driveragg.DriverID(id),
-		TenantID: "1",
+		TenantID: shared.TenantIDFromContext(r.Context()),
 	})
 	if err != nil {
 		h.renderError(w, http.StatusNotFound, "Driver Not Found", fmt.Sprintf("No driver found with ID %q.", id), session)
@@ -213,7 +214,7 @@ func (h *DriverHandlers) Update(w http.ResponseWriter, r *http.Request) {
 
 	err = h.updateUC.Execute(r.Context(), driverapp.UpdateDriverCommand{
 		ID:                    driveragg.DriverID(id),
-		TenantID:              "1",
+		TenantID:              shared.TenantIDFromContext(r.Context()),
 		FirstName:             r.PostFormValue("first_name"),
 		LastName:              r.PostFormValue("last_name"),
 		Phone:                 r.PostFormValue("phone"),
@@ -254,7 +255,7 @@ func (h *DriverHandlers) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 
 	driver, err := h.getUC.Execute(r.Context(), driverapp.GetDriverQuery{
 		ID:       driveragg.DriverID(id),
-		TenantID: "1",
+		TenantID: shared.TenantIDFromContext(r.Context()),
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -263,7 +264,7 @@ func (h *DriverHandlers) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 
 	err = h.updateUC.Execute(r.Context(), driverapp.UpdateDriverCommand{
 		ID:                    driveragg.DriverID(id),
-		TenantID:              "1",
+		TenantID:              shared.TenantIDFromContext(r.Context()),
 		FirstName:             driver.FirstName,
 		LastName:              driver.LastName,
 		Phone:                 driver.Phone,

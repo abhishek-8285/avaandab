@@ -64,7 +64,7 @@ func (a *ApprovalService) GatedTool(t *RegisteredTool) *RegisteredTool {
 
 // MutatingTools lists the tools that get approval-gated.
 func MutatingTools() []string {
-	return []string{"create_booking", "assign_driver", "assign_vehicle", "record_payment", "approve_kharcha", "reject_kharcha"}
+	return []string{"create_booking", "assign_driver", "assign_vehicle", "record_payment", "approve_kharcha", "reject_kharcha", "extend_ewaybill"}
 }
 
 // Approve claims a pending action atomically, then executes it under the

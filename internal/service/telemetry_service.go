@@ -8,6 +8,7 @@ import (
 
 	"transport-app/internal/domain"
 	"transport-app/internal/events"
+	"transport-app/internal/repository"
 )
 
 // TelemetryDataPoint represents a streamed IoT data point from a vehicle/sensor.
@@ -64,13 +65,30 @@ func (s *TelemetryService) ProcessTelemetryStream(ctx context.Context, dp Teleme
 				CreatedAt: time.Now(),
 			}
 			generatedAlerts = append(generatedAlerts, alert)
+			s.persistRawAlert(ctx, alert, dp.Latitude, dp.Longitude)
 
 			if s.log != nil {
 				s.log.Warn("telemetry exception: GPS deviation", "dist_km", distKM, "vehicle_id", dp.VehicleID)
 			}
 			if s.events != nil {
 				s.events.Publish(ctx, events.Event{
-					Type: "GPSDeviationAlert",
+					Type: "AlertEvent",
+					Payload: map[string]interface{}{
+						"source":      "telemetry",
+						"alert_type":  alert.AlertType,
+						"severity":    alert.Severity,
+						"title":       "GPS Deviation Alert",
+						"details":     alert.Details,
+						"vehicle_id":  alert.VehicleID,
+						"driver_id":   alert.DriverID,
+						"trip_id":     alert.TripID,
+						"latitude":    dp.Latitude,
+						"longitude":   dp.Longitude,
+						"occurred_at": alert.CreatedAt,
+					},
+				})
+				s.events.Publish(ctx, events.Event{
+					Type: events.GPSDeviationAlert,
 					Payload: map[string]interface{}{
 						"alert":       alert,
 						"eta_risk":    "HIGH",
@@ -81,7 +99,7 @@ func (s *TelemetryService) ProcessTelemetryStream(ctx context.Context, dp Teleme
 		}
 	}
 
-	// 2. Rule 3 Check: Fuel drop > 10L while ignition is OFF (Fuel Theft Alert)
+	// 2. Rule 3 Check: Fuel drop > 10L while ignition is OFF (Fuel Theft / Theft Suspicion Alert)
 	if !dp.IgnitionOn && lastFuelLevel > 0 {
 		fuelDrop := lastFuelLevel - dp.FuelLevel
 		if fuelDrop > 10.0 {
@@ -90,19 +108,36 @@ func (s *TelemetryService) ProcessTelemetryStream(ctx context.Context, dp Teleme
 				TripID:    strFromPtr(dp.TripID),
 				VehicleID: string(dp.VehicleID),
 				DriverID:  strFromPtr(dp.DriverID),
-				AlertType: "fuel_theft",
+				AlertType: "theft_suspicion",
 				Severity:  "critical",
 				Details:   fmt.Sprintf("Fuel theft suspected: %.2f L drop detected while ignition OFF", fuelDrop),
 				CreatedAt: time.Now(),
 			}
 			generatedAlerts = append(generatedAlerts, alert)
+			s.persistRawAlert(ctx, alert, dp.Latitude, dp.Longitude)
 
 			if s.log != nil {
 				s.log.Warn("telemetry exception: Fuel Theft", "fuel_drop_l", fuelDrop, "vehicle_id", dp.VehicleID)
 			}
 			if s.events != nil {
 				s.events.Publish(ctx, events.Event{
-					Type: "FuelTheftAlert",
+					Type: "AlertEvent",
+					Payload: map[string]interface{}{
+						"source":      "fuel",
+						"alert_type":  alert.AlertType,
+						"severity":    alert.Severity,
+						"title":       "Fuel Theft Suspicion",
+						"details":     alert.Details,
+						"vehicle_id":  alert.VehicleID,
+						"driver_id":   alert.DriverID,
+						"trip_id":     alert.TripID,
+						"latitude":    dp.Latitude,
+						"longitude":   dp.Longitude,
+						"occurred_at": alert.CreatedAt,
+					},
+				})
+				s.events.Publish(ctx, events.Event{
+					Type: events.FuelTheftAlert,
 					Payload: map[string]interface{}{
 						"alert":       alert,
 						"occurred_at": time.Now(),
@@ -113,6 +148,22 @@ func (s *TelemetryService) ProcessTelemetryStream(ctx context.Context, dp Teleme
 	}
 
 	return generatedAlerts, nil
+}
+
+func (s *TelemetryService) persistRawAlert(ctx context.Context, alert TelemetryAlert, lat, lng float64) {
+	if getter, ok := s.store.(repository.DBGetter); ok && getter != nil && getter.DB() != nil {
+		var tripIDVal, driverIDVal *string
+		if alert.TripID != "" {
+			tripIDVal = &alert.TripID
+		}
+		if alert.DriverID != "" {
+			driverIDVal = &alert.DriverID
+		}
+		_, _ = getter.DB().ExecContext(ctx, `
+			INSERT INTO telemetry_alerts (id, trip_id, vehicle_id, driver_id, alert_type, severity, details, latitude, longitude, created_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			alert.ID, tripIDVal, alert.VehicleID, driverIDVal, alert.AlertType, alert.Severity, alert.Details, lat, lng, alert.CreatedAt)
+	}
 }
 
 func strFromPtr[T ~string](ptr *T) string {

@@ -37,7 +37,7 @@ func (h *TripWebHandler) List(w http.ResponseWriter, r *http.Request) {
 	status := r.URL.Query().Get("status")
 
 	res, err := h.listUC.Execute(r.Context(), application.ListTripsQuery{
-		TenantID: shared.TenantID("1"),
+		TenantID: shared.TenantIDFromContext(r.Context()),
 		Page:     page,
 		Limit:    limit,
 		Search:   search,
@@ -66,7 +66,7 @@ func (h *TripWebHandler) View(w http.ResponseWriter, r *http.Request) {
 
 	dto, err := h.getUC.Execute(r.Context(), application.GetTripQuery{
 		TripID:   aggregate.TripID(id),
-		TenantID: shared.TenantID("1"),
+		TenantID: shared.TenantIDFromContext(r.Context()),
 	})
 	if err != nil {
 		http.Error(w, "Trip not found", http.StatusNotFound)

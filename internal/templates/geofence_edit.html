@@ -1,0 +1,98 @@
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-xl font-bold text-on-surface font-display">{{if .Zone}}Edit Geofence{{else}}New Geofence{{end}}</h1>
+        <a href="/geofences" class="text-sm text-secondary hover:text-primary">Back to geofences</a>
+    </div>
+
+    {{if .FlashError}}
+    <div class="bg-red-50 border border-red-200 text-red-800 rounded-md px-4 py-3 text-sm">{{.FlashError}}</div>
+    {{end}}
+
+    <form method="POST" action="{{if .Zone}}/geofences/{{.Zone.ID}}/edit{{else}}/geofences/new{{end}}" class="space-y-6" data-geofence-drawer>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="space-y-4 bg-surface-container-lowest border border-border-subtle rounded p-6 shadow-sm">
+                <div>
+                    <label for="name" class="block text-xs font-medium text-secondary mb-1">Name</label>
+                    <input id="name" name="name" required value="{{.Zone.Name}}"
+                        class="w-full bg-surface-container-low border border-border-subtle rounded-md px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                        placeholder="e.g. Mumbai Depot">
+                </div>
+
+                <div>
+                    <label for="kind" class="block text-xs font-medium text-secondary mb-1">Kind</label>
+                    <select id="kind" name="kind" required
+                        class="w-full bg-surface-container-low border border-border-subtle rounded-md px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary">
+                        <option value="pickup" {{if eq .Zone.Kind "pickup"}}selected{{end}}>Pickup — auto-reach on entry</option>
+                        <option value="drop" {{if eq .Zone.Kind "drop"}}selected{{end}}>Drop — auto-start on entry</option>
+                        <option value="depot" {{if eq .Zone.Kind "depot"}}selected{{end}}>Depot — dwell/detention</option>
+                        <option value="restricted" {{if eq .Zone.Kind "restricted"}}selected{{end}}>Restricted</option>
+                        <option value="no_entry" {{if eq .Zone.Kind "no_entry"}}selected{{end}}>No-entry</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="route_name" class="block text-xs font-medium text-secondary mb-1">Route (optional)</label>
+                    <input id="route_name" name="route_name" value="{{nullString .Zone.RouteName}}"
+                        class="w-full bg-surface-container-low border border-border-subtle rounded-md px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                        placeholder="Only applies to trips on this route (name match, case-insensitive)">
+                </div>
+
+                <div>
+                    <label for="priority" class="block text-xs font-medium text-secondary mb-1">Priority</label>
+                    <input id="priority" name="priority" type="number" min="0" value="{{if .Zone}}{{.Zone.Priority}}{{else}}0{{end}}"
+                        class="w-32 bg-surface-container-low border border-border-subtle rounded-md px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all">
+                    <p class="text-xs text-secondary mt-1">Higher wins when a fix falls inside overlapping zones.</p>
+                </div>
+
+                <div>
+                    <span class="block text-xs font-medium text-secondary mb-1">Shape</span>
+                    <input type="hidden" name="shape" id="shape-input" value="{{if .Zone}}{{.Zone.Shape}}{{else}}circle{{end}}">
+                    <div class="flex gap-2">
+                        <button type="button" data-draw-mode="circle" class="draw-mode-btn flex-1 border border-border-subtle rounded-md px-3 py-2 text-sm hover:border-primary transition-all">Circle</button>
+                        <button type="button" data-draw-mode="polygon" class="draw-mode-btn flex-1 border border-border-subtle rounded-md px-3 py-2 text-sm hover:border-primary transition-all">Polygon</button>
+                    </div>
+                </div>
+
+                <div id="radius-control" class="{{if .Zone}}{{if eq .Zone.Shape "polygon"}}hidden{{end}}{{end}}">
+                    <label for="radius-slider" class="block text-xs font-medium text-secondary mb-1">Radius</label>
+                    <div class="flex items-center gap-3">
+                        <input id="radius-slider" type="range" min="50" max="5000" step="50"
+                            value="{{if .Zone}}{{.Zone.RadiusM}}{{else}}500{{end}}" class="flex-1">
+                        <span id="radius-value" class="text-sm text-secondary font-mono" data-numeric>{{if .Zone}}{{.Zone.RadiusM}}{{else}}500{{end}} m</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-surface-container-lowest border border-border-subtle rounded shadow-sm overflow-hidden flex flex-col">
+                <div class="px-4 py-3 border-b border-border-subtle flex items-center justify-between">
+                    <span class="text-sm font-medium text-on-surface">Draw the zone</span>
+                    <button type="button" id="close-polygon"
+                        class="hidden text-xs bg-surface-container-low border border-border-subtle rounded px-2 py-1 text-secondary hover:text-primary transition-all">Close polygon</button>
+                </div>
+                <div id="geofence-map" class="flex-1 min-h-[380px]"
+                    data-shape="{{if .Zone}}{{.Zone.Shape}}{{else}}circle{{end}}"
+                    data-center-lat="{{if .Zone}}{{.Zone.CenterLat}}{{end}}"
+                    data-center-lng="{{if .Zone}}{{.Zone.CenterLng}}{{end}}"
+                    data-radius-m="{{if .Zone}}{{.Zone.RadiusM}}{{else}}500{{end}}"
+                    data-polygon="{{.PolygonJSON}}">
+                </div>
+                <div class="px-4 py-2 border-t border-border-subtle text-xs text-secondary space-y-1">
+                    <p>Circle: drag the centre marker, resize with the slider. Polygon: click to add vertices, then <em>Close polygon</em>.</p>
+                </div>
+            </div>
+        </div>
+
+        <input type="hidden" name="center_lat" id="center-lat">
+        <input type="hidden" name="center_lng" id="center-lng">
+        <input type="hidden" name="radius_m" id="radius-m">
+        <input type="hidden" name="polygon" id="polygon-input">
+
+        <div class="flex items-center gap-3">
+            {{template "btn.html" (dict "Label" "Save Geofence" "Type" "submit" "Icon" "save")}}
+            <a href="/geofences" class="text-sm text-secondary hover:text-primary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script src="/static/js/leaflet/leaflet.js"></script>
+<script src="/static/js/geofence_draw.js"></script>

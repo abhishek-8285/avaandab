@@ -1,0 +1,151 @@
+<div class="max-w-6xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2">
+                <a href="/invoices/{{.Invoice.ID}}" class="text-text-muted hover:text-on-surface">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                </a>
+                <h1 class="text-2xl font-bold text-on-surface">Invoice Line Items: {{.Invoice.InvoiceNumber}}</h1>
+            </div>
+            <p class="text-sm text-text-muted mt-1">
+                Customer: <span class="font-semibold text-on-surface">{{.Customer.Name}}</span> 
+                {{if .Customer.GST}}(GSTIN: <span class="font-mono">{{.Customer.GST}}</span>){{end}} | 
+                Tax Mode: <span class="font-semibold">{{if .IsIntraState}}Intra-State (CGST + SGST){{else}}Inter-State (IGST){{end}}</span>
+            </p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="/invoices/{{.Invoice.ID}}" class="px-4 py-2 bg-surface-container-low text-on-surface font-semibold text-sm rounded-md border border-border-subtle hover:bg-surface-container">
+                View Invoice
+            </a>
+            <a href="/invoices/{{.Invoice.ID}}/pdf" class="px-4 py-2 bg-primary text-on-primary font-semibold text-sm rounded-md hover:bg-primary/90 shadow">
+                Download PDF
+            </a>
+        </div>
+    </div>
+
+    <!-- Tax Summary Panel -->
+    {{template "tax_split.html" .TaxSplit}}
+
+    <!-- Line Items Table -->
+    <div class="bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-border-subtle flex justify-between items-center bg-surface-container-low/50">
+            <h2 class="text-base font-semibold text-on-surface">Itemized Charges & Tax Split</h2>
+            <span class="text-xs text-text-muted">{{len .LineItems}} item(s)</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-border-subtle text-sm">
+                <thead class="bg-surface-container-low text-text-muted text-xs uppercase font-semibold">
+                    <tr>
+                        <th class="px-4 py-3 text-left">HSN/SAC</th>
+                        <th class="px-4 py-3 text-left">Description</th>
+                        <th class="px-4 py-3 text-right">Qty</th>
+                        <th class="px-4 py-3 text-right">Rate</th>
+                        <th class="px-4 py-3 text-right">Taxable</th>
+                        {{if .IsIntraState}}
+                        <th class="px-4 py-3 text-right">CGST</th>
+                        <th class="px-4 py-3 text-right">SGST</th>
+                        {{else}}
+                        <th class="px-4 py-3 text-right">IGST</th>
+                        {{end}}
+                        <th class="px-4 py-3 text-right font-bold">Total</th>
+                        <th class="px-4 py-3 text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border-subtle">
+                    {{if .LineItems}}
+                        {{range .LineItems}}
+                        <tr class="hover:bg-surface-container-low/50 transition">
+                            <td class="px-4 py-3 font-mono text-xs font-semibold text-primary">{{.HSNSACCode}}</td>
+                            <td class="px-4 py-3 text-on-surface">{{.Description}}</td>
+                            <td class="px-4 py-3 text-right font-mono">{{printf "%.2f" .Quantity}} {{.Unit}}</td>
+                            <td class="px-4 py-3 text-right font-mono">₹{{printf "%.2f" .Rate}}</td>
+                            <td class="px-4 py-3 text-right font-mono">₹{{printf "%.2f" .TaxableValue}}</td>
+                            {{if $.IsIntraState}}
+                            <td class="px-4 py-3 text-right font-mono text-xs">
+                                ₹{{printf "%.2f" .CGSTAmount}} <span class="text-text-muted">({{printf "%.1f" .CGSTRate}}%)</span>
+                            </td>
+                            <td class="px-4 py-3 text-right font-mono text-xs">
+                                ₹{{printf "%.2f" .SGSTAmount}} <span class="text-text-muted">({{printf "%.1f" .SGSTRate}}%)</span>
+                            </td>
+                            {{else}}
+                            <td class="px-4 py-3 text-right font-mono text-xs">
+                                ₹{{printf "%.2f" .IGSTAmount}} <span class="text-text-muted">({{printf "%.1f" .IGSTRate}}%)</span>
+                            </td>
+                            {{end}}
+                            <td class="px-4 py-3 text-right font-mono font-bold text-on-surface">₹{{printf "%.2f" .Total}}</td>
+                            <td class="px-4 py-3 text-center">
+                                <form method="POST" action="/invoices/{{$.Invoice.ID}}/line-items/{{.ID}}/delete" onsubmit="return confirm('Remove line item?');">
+                                    <button type="submit" class="text-error hover:text-error/80 p-1 text-xs font-semibold">
+                                        Delete
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {{end}}
+                    {{else}}
+                        <tr>
+                            <td colspan="9" class="px-4 py-8 text-center text-text-muted">
+                                No line items added yet. Add items below to calculate GST taxes.
+                            </td>
+                        </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add Line Item Form -->
+    <div class="bg-surface-container-lowest p-6 rounded-lg border border-border-subtle shadow-sm">
+        <h3 class="text-base font-semibold text-on-surface mb-4">Add Line Item</h3>
+        <form method="POST" action="/invoices/{{.Invoice.ID}}/line-items" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
+                <div class="md:col-span-2 relative">
+                    <label class="block text-xs font-semibold text-text-muted uppercase mb-1">HSN / SAC Code</label>
+                    <input type="text" id="hsn-input" name="hsn_sac_code" list="hsn-suggestions" required placeholder="e.g. 996511"
+                           class="w-full px-3 py-2 text-sm bg-surface-container-low border border-border-subtle rounded-md focus:ring-1 focus:ring-primary focus:outline-none" />
+                    <datalist id="hsn-suggestions">
+                        {{range .HSNCodes}}
+                        <option value="{{.Code}}">{{.Code}} - {{.Description}} ({{.Rate}}%)</option>
+                        {{end}}
+                    </datalist>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-semibold text-text-muted uppercase mb-1">Description</label>
+                    <input type="text" name="description" required placeholder="Goods transport / Freight charges"
+                           class="w-full px-3 py-2 text-sm bg-surface-container-low border border-border-subtle rounded-md focus:ring-1 focus:ring-primary focus:outline-none" />
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-text-muted uppercase mb-1">Unit</label>
+                    <input type="text" name="unit" value="KGS" placeholder="KGS / MT / NOS"
+                           class="w-full px-3 py-2 text-sm bg-surface-container-low border border-border-subtle rounded-md focus:ring-1 focus:ring-primary focus:outline-none" />
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-text-muted uppercase mb-1">Quantity</label>
+                    <input type="number" step="0.01" min="0.01" name="quantity" value="1" required
+                           class="w-full px-3 py-2 text-sm bg-surface-container-low border border-border-subtle rounded-md focus:ring-1 focus:ring-primary focus:outline-none" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-semibold text-text-muted uppercase mb-1">Rate (₹)</label>
+                    <input type="number" step="0.01" min="0.01" name="rate" required placeholder="10000.00"
+                           class="w-full px-3 py-2 text-sm bg-surface-container-low border border-border-subtle rounded-md focus:ring-1 focus:ring-primary focus:outline-none" />
+                </div>
+                <div class="md:col-span-2">
+                    <button type="submit" class="w-full px-4 py-2 bg-primary text-on-primary font-semibold text-sm rounded-md hover:bg-primary/90 shadow flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add Line Item
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- IRN / QR Panel -->
+    {{template "irn_qr.html" .}}
+</div>

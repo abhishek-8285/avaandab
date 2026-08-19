@@ -1,77 +1,77 @@
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <div class="lg:col-span-2">
-        <div class="bg-white rounded-lg shadow p-6">
+        <div class="bg-surface-container-lowest rounded-lg shadow p-6">
             <div class="flex justify-between items-start mb-4">
                 <div>
-                    <h2 class="text-2xl font-bold text-gray-900">{{.Driver.FirstName}} {{.Driver.LastName}}</h2>
-                    <p class="text-gray-600">ID: {{.Driver.DriverID}}</p>
+                    <h2 class="text-2xl font-bold text-on-surface">{{.Driver.FirstName}} {{.Driver.LastName}}</h2>
+                    <p class="text-secondary">ID: {{.Driver.DriverID}}</p>
                 </div>
                 <div class="flex space-x-2">
-                    <a href="/drivers/{{.Driver.ID}}/edit" class="px-3 py-1 min-h-[44px] flex items-center justify-center bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 active:bg-green-700">Edit</a>
+                    {{template "btn.html" (dict "Label" "Edit" "Href" "/drivers/{{.Driver.ID}}/edit" "Variant" "secondary" "Size" "sm" "Icon" "edit")}}
                     <form method="POST" action="/drivers/{{.Driver.ID}}/delete" class="inline">
-                        <button type="submit" class="px-3 py-1 min-h-[44px] flex items-center justify-center bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 active:bg-red-800">Delete</button>
+                        {{template "btn.html" (dict "Label" "Delete" "Type" "submit" "Variant" "danger" "Size" "sm" "Icon" "delete")}}
                     </form>
                 </div>
             </div>
 
             <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 <div>
-                    <dt class="text-sm text-gray-500">Phone</dt>
+                    <dt class="text-sm text-text-muted">Phone</dt>
                     <dd class="text-sm font-medium">{{.Driver.Phone}}</dd>
                 </div>
                 <div>
-                    <dt class="text-sm text-gray-500">Email</dt>
+                    <dt class="text-sm text-text-muted">Email</dt>
                     <dd class="text-sm font-medium">{{nullString .Driver.Email}}</dd>
                 </div>
                 <div>
-                    <dt class="text-sm text-gray-500">License Number</dt>
+                    <dt class="text-sm text-text-muted">License Number</dt>
                     <dd class="text-sm font-medium">{{.Driver.LicenseNumber}}</dd>
                 </div>
                 <div>
-                    <dt class="text-sm text-gray-500">License Expiry</dt>
+                    <dt class="text-sm text-text-muted">License Expiry</dt>
                     <dd class="text-sm font-medium">{{date_only .Driver.LicenseExpiry}}</dd>
                 </div>
                 <div>
-                    <dt class="text-sm text-gray-500">Experience</dt>
+                    <dt class="text-sm text-text-muted">Experience</dt>
                     <dd class="text-sm font-medium">{{.Driver.ExperienceYears}} years</dd>
                 </div>
                 <div>
-                    <dt class="text-sm text-gray-500">Status</dt>
+                    <dt class="text-sm text-text-muted">Status</dt>
                     <dd class="text-sm font-medium">
                         <span class="px-2 py-1 text-xs rounded-full {{statusBadge .Driver.Status}}">{{.Driver.Status}}</span>
                     </dd>
                 </div>
                 <div>
-                    <dt class="text-sm text-gray-500">Emergency Contact</dt>
+                    <dt class="text-sm text-text-muted">Emergency Contact</dt>
                     <dd class="text-sm font-medium">{{nullString .Driver.EmergencyContactName}} / {{nullString .Driver.EmergencyContactPhone}}</dd>
                 </div>
                 <div>
-                    <dt class="text-sm text-gray-500">Address</dt>
+                    <dt class="text-sm text-text-muted">Address</dt>
                     <dd class="text-sm font-medium">{{nullString .Driver.Address}}</dd>
                 </div>
             </dl>
 
             <div class="mt-4">
-                <dt class="text-sm text-gray-500">Notes</dt>
+                <dt class="text-sm text-text-muted">Notes</dt>
                 <dd class="text-sm font-medium mt-1">{{nullString .Driver.Notes}}</dd>
             </div>
         </div>
     </div>
 
     <div>
-        <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-subsection font-semibold text-gray-800 mb-3">Uploaded Documents</h3>
+        <div class="bg-surface-container-lowest rounded-lg shadow p-6">
+            <h3 class="text-subsection font-semibold text-on-surface mb-3">Uploaded Documents</h3>
             {{if .Files}}
             <ul class="space-y-2">
                 {{range .Files}}
                 <li class="text-sm">
-                    <a href="/files/{{.ID}}" target="_blank" class="text-blue-600 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded">{{.OriginalName}}</a>
-                    <span class="text-gray-500">({{fileExt .Filename}})</span>
+                    <a href="/files/{{.ID}}" target="_blank" class="text-primary hover:text-primary/80 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded">{{.OriginalName}}</a>
+                    <span class="text-text-muted">({{fileExt .Filename}})</span>
                 </li>
                 {{end}}
             </ul>
             {{else}}
-            <p class="text-sm text-gray-500">No documents uploaded.</p>
+            <p class="text-sm text-text-muted">No documents uploaded.</p>
             {{end}}
         </div>
     </div>

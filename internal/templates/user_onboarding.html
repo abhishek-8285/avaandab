@@ -2,79 +2,74 @@
 <div class="max-w-2xl mx-auto pt-6 pb-12">
     <!-- Top Bar with Back Arrow -->
     <div class="mb-6">
-        <a href="/login" class="w-10 h-10 rounded-full border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-700 transition-colors inline-flex">
+        <a href="/login" class="w-10 h-10 rounded-full border border-border-subtle bg-surface-container-lowest hover:bg-surface-container-low flex items-center justify-center text-on-surface transition-colors inline-flex">
             <span class="material-symbols-outlined text-xl">arrow_back</span>
         </a>
     </div>
 
     <!-- Main Setup Container Card -->
-    <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-8 sm:p-10">
+    <div class="bg-surface-container-lowest rounded-2xl shadow-lg border border-border-subtle p-8 sm:p-10">
         <!-- Welcome Header -->
         <div class="text-center mb-8">
-            <h1 class="font-headline-lg text-2xl sm:text-3xl font-extrabold text-slate-900">
+            <h1 class="font-headline-lg text-2xl sm:text-3xl font-extrabold text-on-surface">
                 Welcome!, {{if .UserDetail}}{{.UserDetail.Name}}{{else if .User}}{{.User.Name}}{{else}}Esther{{end}}
             </h1>
-            <p class="text-sm text-slate-500 mt-1">Please complete your profile details to unlock full access.</p>
+            <p class="text-sm text-text-muted mt-1">Please complete your profile details to unlock full access.</p>
         </div>
 
-        {{if .FlashError}}
-        <div class="mb-6 flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-            <span class="material-symbols-outlined text-base text-red-500">error</span>
-            {{.FlashError}}
-        </div>
-        {{end}}
+        {{if .FlashError}}{{template "alert.html" (dict "Tone" "error" "Message" .FlashError)}}{{end}}
 
         <!-- Required Steps Section -->
         <div class="mb-8">
-            <h2 class="font-headline-sm text-base font-bold text-slate-900 mb-4">Required Steps</h2>
+            <h2 class="font-headline-sm text-base font-bold text-on-surface mb-4">Required Steps</h2>
             <div class="space-y-3">
                 <!-- Profile Picture -->
-                <a href="/profile" class="flex items-center justify-between p-4 bg-white border border-slate-200 hover:border-brand-teal-deep rounded-xl transition-all shadow-sm hover:shadow group text-decoration-none">
+                <a href="/profile" class="flex items-center justify-between p-4 bg-surface-container-lowest border border-border-subtle hover:border-primary rounded-xl transition-all shadow-sm hover:shadow group text-decoration-none">
                     <div class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-slate-400 group-hover:text-brand-teal-deep text-xl">account_box</span>
-                        <span class="font-medium text-slate-800 group-hover:text-slate-900 text-base">Profile Picture</span>
+                        <span class="material-symbols-outlined text-text-muted group-hover:text-primary text-xl">account_box</span>
+                        <span class="font-medium text-on-surface-variant group-hover:text-on-surface text-base">Profile Picture</span>
                     </div>
-                    <span class="material-symbols-outlined text-[#e58e00] group-hover:translate-x-0.5 transition-transform text-xl">chevron_right</span>
+                    <span class="material-symbols-outlined text-status-warning group-hover:translate-x-0.5 transition-transform text-xl">chevron_right</span>
                 </a>
 
                 <!-- Bank Account Details -->
-                <a href="/profile" class="flex items-center justify-between p-4 bg-white border border-slate-200 hover:border-brand-teal-deep rounded-xl transition-all shadow-sm hover:shadow group text-decoration-none">
+                <a href="/profile" class="flex items-center justify-between p-4 bg-surface-container-lowest border border-border-subtle hover:border-primary rounded-xl transition-all shadow-sm hover:shadow group text-decoration-none">
                     <div class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-slate-400 group-hover:text-brand-teal-deep text-xl">account_balance</span>
-                        <span class="font-medium text-slate-800 group-hover:text-slate-900 text-base">Bank Account Details</span>
+                        <span class="material-symbols-outlined text-text-muted group-hover:text-primary text-xl">account_balance</span>
+                        <span class="font-medium text-on-surface-variant group-hover:text-on-surface text-base">Bank Account Details</span>
                     </div>
-                    <span class="material-symbols-outlined text-[#e58e00] group-hover:translate-x-0.5 transition-transform text-xl">chevron_right</span>
+                    <span class="material-symbols-outlined text-status-warning group-hover:translate-x-0.5 transition-transform text-xl">chevron_right</span>
                 </a>
 
                 <!-- Driving Details -->
-                <a href="/profile" class="flex items-center justify-between p-4 bg-white border border-slate-200 hover:border-brand-teal-deep rounded-xl transition-all shadow-sm hover:shadow group text-decoration-none">
+                <a href="/profile" class="flex items-center justify-between p-4 bg-surface-container-lowest border border-border-subtle hover:border-primary rounded-xl transition-all shadow-sm hover:shadow group text-decoration-none">
                     <div class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-slate-400 group-hover:text-brand-teal-deep text-xl">badge</span>
-                        <span class="font-medium text-slate-800 group-hover:text-slate-900 text-base">Driving Details</span>
+                        <span class="material-symbols-outlined text-text-muted group-hover:text-primary text-xl">badge</span>
+                        <span class="font-medium text-on-surface-variant group-hover:text-on-surface text-base">Driving Details</span>
                     </div>
-                    <span class="material-symbols-outlined text-[#e58e00] group-hover:translate-x-0.5 transition-transform text-xl">chevron_right</span>
+                    <span class="material-symbols-outlined text-status-warning group-hover:translate-x-0.5 transition-transform text-xl">chevron_right</span>
                 </a>
             </div>
         </div>
 
         <!-- Submitted Steps Section -->
         <div class="mb-10">
-            <h2 class="font-headline-sm text-base font-bold text-slate-900 mb-4">Submitted Steps</h2>
+            <h2 class="font-headline-sm text-base font-bold text-on-surface mb-4">Submitted Steps</h2>
             <div class="space-y-3">
                 <!-- Government ID (Submitted) -->
-                <div class="flex items-center justify-between p-4 bg-slate-50/70 border border-slate-200/80 rounded-xl">
+                <div class="flex items-center justify-between p-4 bg-surface-container-low/70 border border-border-subtle/80 rounded-xl">
                     <div class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-emerald-600 text-xl">verified_user</span>
-                        <span class="font-medium text-slate-800 text-base">Government ID</span>
+                        <span class="material-symbols-outlined text-status-success text-xl">verified_user</span>
+                        <span class="font-medium text-on-surface-variant text-base">Government ID</span>
                     </div>
-                    <span class="material-symbols-outlined text-[#e58e00] text-xl">chevron_right</span>
+                    <span class="material-symbols-outlined text-status-warning text-xl">chevron_right</span>
                 </div>
             </div>
         </div>
 
         <!-- Continue Button -->
         <div>
-            <a href="/dashboard" class="w-full py-3.5 px-6 bg-[#e58e00] hover:bg-[#d48200] text-white font-bold text-base rounded-full shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 text-decoration-none">
+            <a href="/dashboard" class="w-full py-3.5 px-6 bg-status-warning hover:bg-status-warning/90 text-on-primary font-bold text-base rounded-full shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 text-decoration-none">
                 Continue
             </a>
         </div>

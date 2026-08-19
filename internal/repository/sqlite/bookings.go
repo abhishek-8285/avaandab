@@ -257,3 +257,18 @@ func (r *SQLRepository) CountBookings(ctx context.Context, query string, status 
 	}
 	return count, nil
 }
+
+func (r *SQLRepository) CountBookingsByDay(ctx context.Context) ([]repository.BookingsByDay, error) {
+	rows, err := r.Q(ctx).CountBookingsByDay(ctx, string(shared.TenantIDFromContext(ctx)))
+	if err != nil {
+		return nil, err
+	}
+	result := make([]repository.BookingsByDay, len(rows))
+	for i, row := range rows {
+		result[i] = repository.BookingsByDay{
+			Day:   row.Day,
+			Count: row.Count,
+		}
+	}
+	return result, nil
+}

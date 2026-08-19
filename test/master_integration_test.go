@@ -201,7 +201,7 @@ func TestSync3_TelemetryAlerting(t *testing.T) {
 	}
 	alertsFuel, _ := svcs.Telemetry.ProcessTelemetryStream(ctx, dpFuel, 50.0)
 	assert.NotEmpty(t, alertsFuel)
-	assert.Equal(t, "fuel_theft", alertsFuel[0].AlertType)
+	assert.Equal(t, "theft_suspicion", alertsFuel[0].AlertType)
 
 	// SYNC-3.2: GPS Deviation (>5km)
 	tripID2 := domain.TripID("trp-tele-2")

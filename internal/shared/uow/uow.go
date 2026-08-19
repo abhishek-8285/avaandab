@@ -7,6 +7,7 @@ import (
 	bookingsql "transport-app/internal/booking/infrastructure/persistence/sql"
 	driversql "transport-app/internal/driver/infrastructure/persistence/sql"
 	invoicesql "transport-app/internal/invoice/infrastructure/persistence/sql"
+	maintsql "transport-app/internal/maintenance/infrastructure/sql"
 	paymentsql "transport-app/internal/payment/infrastructure/persistence/sql"
 	"transport-app/internal/repository"
 	"transport-app/internal/repository/sqlite"
@@ -45,6 +46,10 @@ func (p *repositoryProvider) Payments() any {
 
 func (p *repositoryProvider) AuditLogs() any {
 	return sqlite.NewRepository(p.dbConn)
+}
+
+func (p *repositoryProvider) Maintenance() any {
+	return maintsql.NewMaintenanceRepository(p.dbConn)
 }
 
 type txContext struct {

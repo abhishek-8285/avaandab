@@ -14,3 +14,8 @@ LIMIT ? OFFSET ?;
 -- name: CountAuditLogs :one
 SELECT COUNT(*) AS count
 FROM audit_logs;
+
+-- name: CountAuditLogsSince :one
+SELECT COUNT(*) AS count
+FROM audit_logs
+WHERE created_at > :since;

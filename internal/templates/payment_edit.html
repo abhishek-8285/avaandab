@@ -1,57 +1,58 @@
 <div class="max-w-xl mx-auto">
-    <h2 class="text-2xl font-bold mb-4 text-gray-900">Record Payment</h2>
+    <h2 class="text-2xl font-bold mb-4 text-on-surface">Record Payment</h2>
 
     {{if .FlashError}}
-    <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">{{.FlashError}}</div>
+    <div class="bg-status-alert/10 border border-status-alert/30 text-status-alert px-4 py-3 rounded mb-4">{{.FlashError}}</div>
     {{end}}
 
     <form method="POST" action="/payments/new/{{.InvoiceID}}" class="space-y-4">
         <div>
-            <label class="block text-sm font-medium text-gray-700">Invoice</label>
+            <label class="block text-sm font-medium text-on-surface-variant">Invoice</label>
             <dd class="text-sm font-medium">{{.Invoice.InvoiceNumber}}</dd>
-            <p class="text-sm text-gray-500">Total: {{printf "%.2f" .Invoice.Total}} | Balance: {{printf "%.2f" .Balance}}</p>
+            <p class="text-sm text-text-muted">Total: {{printf "%.2f" .Invoice.Total}} | Balance: {{printf "%.2f" .Balance}}</p>
         </div>
 
         <div>
-            <label class="block text-sm font-medium text-gray-700">Amount *</label>
+            <label class="block text-sm font-medium text-on-surface-variant">Amount *</label>
             <input type="number" step="0.01" min="0.01" name="amount" value="{{if gt .Balance 0.0}}{{printf "%.2f" .Balance}}{{end}}" required
-                class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
         </div>
 
         <div>
-            <label class="block text-sm font-medium text-gray-700">Method</label>
-            <select name="method" class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            <label class="block text-sm font-medium text-on-surface-variant">Method</label>
+            <select name="method" class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
                 <option value="cash">Cash</option>
                 <option value="upi">UPI</option>
                 <option value="bank_transfer">Bank Transfer</option>
                 <option value="cheque">Cheque</option>
+                <option value="razorpay">Razorpay (Online)</option>
             </select>
         </div>
 
         <div>
-            <label class="block text-sm font-medium text-gray-700">Payment Date</label>
+            <label class="block text-sm font-medium text-on-surface-variant">Payment Date</label>
             <input type="date" name="payment_date" value="{{date_only .Now}}"
-                class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
         </div>
 
         <div>
-            <label class="block text-sm font-medium text-gray-700">Reference</label>
+            <label class="block text-sm font-medium text-on-surface-variant">Reference</label>
             <input type="text" name="reference"
-                class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
         </div>
 
         <div>
-            <label class="block text-sm font-medium text-gray-700">Remarks</label>
+            <label class="block text-sm font-medium text-on-surface-variant">Remarks</label>
             <textarea name="remarks" rows="2"
-                class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"></textarea>
+                class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"></textarea>
         </div>
 
         <div class="flex justify-end space-x-3 pt-4">
-            <a href="/invoices/{{.InvoiceID}}" class="px-4 py-2 min-h-[44px] flex items-center justify-center border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 active:bg-gray-100">Cancel</a>
-            <button type="button" id="razorpay-btn" class="px-4 py-2 min-h-[44px] bg-emerald-600 text-white font-medium rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 active:bg-emerald-800">
+            {{template "btn.html" (dict "Variant" "secondary" "Size" "md" "Href" (printf "/invoices/%v" .InvoiceID) "Label" "Cancel" "Class" "min-h-[44px] focus:outline-none focus:ring-2 focus:ring-border-subtle focus:ring-offset-2")}}
+            <button type="button" id="razorpay-btn" class="px-4 py-2 min-h-[44px] bg-status-success text-on-primary font-medium rounded-md hover:bg-status-success/90 focus:outline-none focus:ring-2 focus:ring-status-success focus:ring-offset-2 active:bg-status-success/90">
                 💳 Pay Online via Razorpay
             </button>
-            <button type="submit" class="px-4 py-2 min-h-[44px] bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-blue-800">Record Payment</button>
+            {{template "btn.html" (dict "Variant" "primary" "Size" "md" "Type" "submit" "Label" "Record Payment" "Class" "min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2")}}
         </div>
     </form>
 </div>
@@ -60,23 +61,69 @@
 <script>
 document.getElementById('razorpay-btn').onclick = function(e) {
     e.preventDefault();
-    var options = {
-        "key": "{{.RazorpayKeyID}}",
-        "amount": Math.round(parseFloat("{{if gt .Balance 0.0}}{{.Balance}}{{else}}1.00{{end}}") * 100),
-        "currency": "INR",
-        "name": "FlyFleet SaaS",
-        "description": "Invoice {{.Invoice.InvoiceNumber}} Payment",
-        "handler": function (response){
-            alert("✅ Payment Successful! Razorpay Payment ID: " + response.razorpay_payment_id);
-            document.querySelector('input[name="reference"]').value = response.razorpay_payment_id;
-            document.querySelector('select[name="method"]').value = "upi";
-            document.querySelector('form').submit();
-        },
-        "theme": {
-            "color": "#059669"
-        }
-    };
-    var rzp1 = new Razorpay(options);
-    rzp1.open();
+    var btn = document.getElementById('razorpay-btn');
+    btn.disabled = true;
+    btn.textContent = "Creating order...";
+
+    fetch("/api/v1/payments/razorpay-order", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({invoice_id: "{{.InvoiceID}}"})
+    }).then(function (res) {
+        return res.text().then(function (txt) {
+            var parsed = {};
+            try { parsed = JSON.parse(txt); } catch (_) {}
+            if (res.status === 503) {
+                throw new Error("Razorpay is not configured on this server.");
+            }
+            if (!res.ok) {
+                throw new Error((parsed.error || txt || res.status));
+            }
+            return parsed;
+        });
+    }).then(function (order) {
+        var options = {
+            "key": order.razorpay_key_id,
+            "order_id": order.order_id,
+            "amount": order.amount_paise,
+            "currency": order.currency,
+            "name": "FlyFleet SaaS",
+            "description": "Invoice {{.Invoice.InvoiceNumber}} Payment",
+            "handler": function (response) {
+                fetch("/api/v1/payments/razorpay/verify", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({
+                        invoice_id: "{{.InvoiceID}}",
+                        order_id: response.razorpay_order_id,
+                        payment_id: response.razorpay_payment_id,
+                        signature: response.razorpay_signature
+                    })
+                }).then(function (vres) {
+                    if (vres.ok) {
+                        window.location.href = "/invoices/{{.InvoiceID}}";
+                    } else {
+                        return vres.text().then(function (txt) {
+                            var parsed = {};
+                            try { parsed = JSON.parse(txt); } catch (_) {}
+                            alert("Payment verification failed (" + vres.status + "): " + (parsed.error || txt || ""));
+                        });
+                    }
+                }).catch(function () {
+                    alert("Payment was made but verification failed — please contact support with your Razorpay Payment ID.");
+                });
+            },
+            "modal": {"ondismiss": function () {
+                btn.disabled = false;
+                btn.textContent = "💳 Pay Online via Razorpay";
+            }}
+        };
+        var rzp1 = new Razorpay(options);
+        rzp1.open();
+    }).catch(function (err) {
+        alert("Failed to start payment: " + err.message);
+        btn.disabled = false;
+        btn.textContent = "💳 Pay Online via Razorpay";
+    });
 };
 </script>

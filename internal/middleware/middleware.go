@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -118,24 +119,41 @@ func (rw *responseWriter) WriteHeader(code int) {
 }
 
 // RequireAuth is middleware that redirects unauthenticated users to login.
-func RequireAuth(store *auth.SessionStore) func(http.Handler) http.Handler {
-	return AuthRequired(store, "/login")
+func RequireAuth(store *auth.SessionStore, tenantResolver TenantResolver) func(http.Handler) http.Handler {
+	return AuthRequired(store, "/login", tenantResolver)
 }
 
 // AuthRequired is a simple middleware that redirects unauthenticated users to login.
-func AuthRequired(store *auth.SessionStore, loginPath string) func(http.Handler) http.Handler {
+func AuthRequired(store *auth.SessionStore, loginPath string, tenantResolver TenantResolver) func(http.Handler) http.Handler {
+	if tenantResolver == nil {
+		tenantResolver = DefaultTenantResolver
+	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			data, ok := store.ValidateSession(r)
 			if !ok {
-				http.Redirect(w, r, loginPath, http.StatusSeeOther)
+				target := loginPath
+				if r.Method == http.MethodGet {
+					if red := shared.SafeRedirect(r.URL.RequestURI()); red != "" {
+						target = loginPath + "?redirect=" + url.QueryEscape(red)
+					}
+				}
+				http.Redirect(w, r, target, http.StatusSeeOther)
 				return
+			}
+
+			// Derive the tenant through the resolver instead of hardcoding it.
+			// The resolver currently returns the single-tenant default; after
+			// migration 00056 it reads sessions.tenant_id.
+			tenantID, err := tenantResolver(r.Context(), data.UserID)
+			if err != nil {
+				tenantID = shared.DefaultTenant // nolint:tenant-hardcode
 			}
 
 			ctx := context.WithValue(r.Context(), auth.ContextUser, data)
 			ctx = context.WithValue(ctx, auth.ContextIP, auth.ClientIP(r))
 			ctx = context.WithValue(ctx, auth.ContextLocation, auth.ClientLocation(r))
-			ctx = shared.ContextWithTenantID(ctx, "1")
+			ctx = shared.ContextWithTenantID(ctx, tenantID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -250,6 +268,46 @@ func SecurityHeaders(next http.Handler) http.Handler {
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 		next.ServeHTTP(w, r)
 	})
+}
+
+// ContentSecurityPolicy sets Content-Security-Policy header when enabled is true (Spec 04 §2).
+// Applied opt-in per route (tracking map, public shares, maintenance) to prevent
+// breaking pages with inline Datastar / Alpine handlers.
+func ContentSecurityPolicy(enabled bool) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if enabled {
+				w.Header().Set("Content-Security-Policy",
+					"default-src 'self'; "+
+						"script-src 'self' 'unsafe-inline'; "+
+						"style-src 'self' 'unsafe-inline'; "+
+						"img-src 'self' data: https://mt1.google.com https://tile.openstreetmap.org https://a.tile.openstreetmap.org https://b.tile.openstreetmap.org https://c.tile.openstreetmap.org; "+
+						"connect-src 'self' https://nominatim.openstreetmap.org https://mt1.google.com; "+
+						"font-src 'self'; "+
+						"frame-ancestors 'none'")
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// SkipForPaths wraps a middleware so it does NOT apply to requests whose
+// path has one of the given prefixes. Used to exempt long-lived SSE streams
+// from the global chiMiddleware.Timeout(60s), which would otherwise kill them
+// (Spec 04 §1.2, §13). Paths matched by prefix.
+func SkipForPaths(m func(http.Handler) http.Handler, paths ...string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		wrapped := m(next)
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			for _, p := range paths {
+				if strings.HasPrefix(r.URL.Path, p) {
+					next.ServeHTTP(w, r)
+					return
+				}
+			}
+			wrapped.ServeHTTP(w, r)
+		})
+	}
 }
 
 func isDownloadPath(path string) bool {

@@ -1,0 +1,82 @@
+{{define "fuel_audit_dashboard.html"}}
+<div class="space-y-6">
+
+    <!-- Page Header -->
+    <div class="flex items-center justify-between flex-wrap gap-3">
+        <div>
+            <h1 class="text-2xl font-bold text-on-surface tracking-tight">Fuel Claim Audit</h1>
+            <p class="text-sm text-secondary mt-1">Reconcile fuel claims against telemetry evidence · checks A/B/C</p>
+        </div>
+        <div class="flex items-center gap-2">
+            {{if .AuditStats.EnforceMode}}
+            <span class="px-3 py-1.5 rounded-full text-xs font-bold bg-status-alert/10 text-status-alert border border-status-alert/30" title="fuel.audit_enforce=true — needs_review claims are un-approvable">
+                ENFORCE MODE
+            </span>
+            {{else}}
+            <span class="px-3 py-1.5 rounded-full text-xs font-bold bg-surface-container-low text-secondary border border-border-subtle" title="fuel.audit_enforce=false — flagged claims remain approvable (annotate only)">
+                ANNOTATE MODE
+            </span>
+            {{end}}
+            <button
+                hx-post="/fuel/audit/run"
+                hx-target="#audit-run-result"
+                hx-swap="innerHTML"
+                class="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/90 text-on-primary text-xs font-semibold rounded-lg transition shadow-sm shadow-primary/20">
+                <span class="material-symbols-outlined text-sm" style="font-size:14px">play_arrow</span>
+                RUN AUDIT
+            </button>
+        </div>
+    </div>
+    <div id="audit-run-result"></div>
+
+    <!-- Stats Row -->
+    <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4 mb-6">
+        <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center">
+            <div class="text-stat text-status-warning tabular-nums text-xl sm:text-2xl font-bold">{{.AuditStats.PendingCount}}</div>
+            <div class="text-xs sm:text-sm text-secondary">Pending</div>
+            <div class="text-xs text-text-muted mt-0.5">awaiting audit</div>
+        </div>
+        <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center">
+            <div class="text-stat text-status-alert tabular-nums text-xl sm:text-2xl font-bold">{{.AuditStats.NeedsReviewCount}}</div>
+            <div class="text-xs sm:text-sm text-secondary">Needs Review</div>
+            <div class="text-xs text-text-muted mt-0.5">flagged by checks</div>
+        </div>
+        <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center">
+            <div class="text-stat text-status-success tabular-nums text-xl sm:text-2xl font-bold">{{.AuditStats.PassedCount}}</div>
+            <div class="text-xs sm:text-sm text-secondary">Passed</div>
+            <div class="text-xs text-text-muted mt-0.5">within tolerance</div>
+        </div>
+        <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center">
+            <div class="text-stat text-status-alert tabular-nums text-xl sm:text-2xl font-bold">{{.AuditStats.FailedCount}}</div>
+            <div class="text-xs sm:text-sm text-secondary">Failed</div>
+            <div class="text-xs text-text-muted mt-0.5">admin verdict</div>
+        </div>
+        <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center">
+            <div class="text-stat text-primary tabular-nums text-xl sm:text-2xl font-bold">{{printf "%.1f" .AuditStats.AvgVariancePct}}%</div>
+            <div class="text-xs sm:text-sm text-secondary">Avg Variance</div>
+            <div class="text-xs text-text-muted mt-0.5">claimed vs expected</div>
+        </div>
+    </div>
+
+    <!-- Audit Queue -->
+    <div class="bg-surface-container-lowest rounded-lg shadow-sm">
+        <div class="px-4 py-3 border-b flex items-center justify-between">
+            <div>
+                <h3 class="text-sm font-semibold text-on-surface">Audit Queue</h3>
+                <p class="text-xs text-text-muted mt-0.5">Fuel claims matched against telemetry evidence</p>
+            </div>
+            <span class="text-[10px] font-bold text-text-muted flex items-center gap-1.5 cursor-default"
+                  hx-get="/fuel/audit/queue"
+                  hx-trigger="every 30s"
+                  hx-target="#fuel-audit-queue"
+                  hx-swap="innerHTML">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                LIVE · auto-refreshes
+            </span>
+        </div>
+        <div id="fuel-audit-queue">
+            {{template "fuel_audit_queue.html" .}}
+        </div>
+    </div>
+</div>
+{{end}}

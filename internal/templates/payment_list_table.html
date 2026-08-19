@@ -1,0 +1,40 @@
+<div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-border-subtle">
+        <thead class="bg-surface-container-low font-label-caps text-[11px] text-secondary uppercase tracking-wider">
+            <tr>
+                <th class="th-cell">Invoice #</th>
+                <th class="th-cell">Payment Date</th>
+                <th class="th-cell">Amount (₹)</th>
+                <th class="th-cell">Method</th>
+                <th class="th-cell">Reference ID</th>
+                <th class="th-cell-right">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-border-subtle text-sm text-on-surface">
+            {{if .Payments}}
+            {{range .Payments}}
+            <tr class="hover:bg-surface-container-low transition-colors group">
+                <td class="td-cell-strong font-mono" data-numeric>{{.InvoiceNumber}}</td>
+                <td class="td-cell" data-numeric>{{datetime .PaymentDate}}</td>
+                <td class="td-cell-strong font-mono" data-numeric>₹{{printf "%.2f" .Amount}}</td>
+                <td class="td-cell uppercase font-mono text-xs">{{.Method}}</td>
+                <td class="td-cell font-mono text-xs">{{nullString .Reference}}</td>
+                <td class="td-cell-actions">
+                    <a href="/payments/{{.ID}}" class="action-view">View Receipt</a>
+                </td>
+            </tr>
+            {{end}}
+            {{else}}
+            <tr>
+                <td colspan="6" class="py-12 text-center text-secondary">
+                    {{template "empty_state.html" (dict "Icon" "payments" "Title" "No payments found" "Message" "No payments match the current filters.")}}
+                </td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+
+<div class="p-4 border-t border-border-subtle bg-surface-container-lowest">
+    {{template "pagination.html" .}}
+</div>

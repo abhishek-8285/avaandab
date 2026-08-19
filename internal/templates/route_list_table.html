@@ -1,0 +1,41 @@
+<div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-border-subtle">
+        <thead class="bg-surface-container-low font-label-caps text-[11px] text-secondary uppercase tracking-wider">
+            <tr>
+                <th class="th-cell">Source</th>
+                <th class="th-cell">Destination</th>
+                <th class="th-cell">Distance (km)</th>
+                <th class="th-cell">Est. Duration</th>
+                <th class="th-cell">Standard Fare (₹)</th>
+                <th class="th-cell-right">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-border-subtle text-sm text-on-surface">
+            {{if .Routes}}
+            {{range .Routes}}
+            <tr class="hover:bg-surface-container-low transition-colors group">
+                <td class="td-cell-strong">{{.Source}}</td>
+                <td class="td-cell">{{.Destination}}</td>
+                <td class="td-cell font-mono text-xs" data-numeric>{{.Distance}} km</td>
+                <td class="td-cell" data-numeric>{{.EstimatedHours}} hrs</td>
+                <td class="td-cell font-mono text-xs" data-numeric>₹{{printf "%.2f" .StandardFare}}</td>
+                <td class="td-cell-actions">
+                    <a href="/routes/{{.ID}}" class="action-view mr-2">View</a>
+                    <a href="/routes/{{.ID}}/edit" class="action-edit">Edit</a>
+                </td>
+            </tr>
+            {{end}}
+            {{else}}
+            <tr>
+                <td colspan="6" class="py-12 text-center text-secondary">
+                    {{template "empty_state.html" (dict "Icon" "route" "Title" "No routes found" "Message" "No routes match the search criteria." "ActionHref" "/routes/new" "ActionIcon" "add" "ActionLabel" "New Route")}}
+                </td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+
+<div class="p-4 border-t border-border-subtle bg-surface-container-lowest">
+    {{template "pagination.html" .}}
+</div>

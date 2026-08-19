@@ -37,7 +37,7 @@ func (h *PaymentWebHandler) List(w http.ResponseWriter, r *http.Request) {
 	method := r.URL.Query().Get("method")
 
 	res, err := h.listUC.Execute(r.Context(), application.ListPaymentsQuery{
-		TenantID: shared.TenantID("1"),
+		TenantID: shared.TenantIDFromContext(r.Context()),
 		Page:     page,
 		Limit:    limit,
 		Method:   method,
@@ -64,7 +64,7 @@ func (h *PaymentWebHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	dto, err := h.getUC.Execute(r.Context(), application.GetPaymentQuery{
 		ID:       aggregate.PaymentID(id),
-		TenantID: shared.TenantID("1"),
+		TenantID: shared.TenantIDFromContext(r.Context()),
 	})
 	if err != nil {
 		http.Error(w, "Payment not found", http.StatusNotFound)
@@ -83,7 +83,7 @@ func (h *PaymentWebHandler) ListByInvoice(w http.ResponseWriter, r *http.Request
 	}
 
 	dtos, err := h.listByInvoiceUC.Execute(r.Context(), application.ListPaymentsByInvoiceQuery{
-		TenantID:  shared.TenantID("1"),
+		TenantID:  shared.TenantIDFromContext(r.Context()),
 		InvoiceID: invoiceID,
 	})
 	if err != nil {

@@ -27,9 +27,14 @@ func LoadConfig() Config {
 			Enabled:  parseBool(os.Getenv("INTEGRATION_EWAYBILL_ENABLED")),
 		},
 		GSTN: gstn.Config{
-			Endpoint: os.Getenv("INTEGRATION_GSTN_ENDPOINT"),
-			APIKey:   os.Getenv("INTEGRATION_GSTN_API_KEY"),
-			Enabled:  parseBool(os.Getenv("INTEGRATION_GSTN_ENABLED")),
+			Endpoint:     os.Getenv("INTEGRATION_GSTN_ENDPOINT"),
+			APIKey:       os.Getenv("INTEGRATION_GSTN_API_KEY"),
+			Enabled:      parseBool(os.Getenv("INTEGRATION_GSTN_ENABLED")),
+			UseMock:      parseBoolDefault(os.Getenv("INTEGRATION_GSTN_USE_MOCK"), true),
+			Username:     os.Getenv("INTEGRATION_GSTN_USERNAME"),
+			Password:     os.Getenv("INTEGRATION_GSTN_PASSWORD"),
+			ClientID:     os.Getenv("INTEGRATION_GSTN_CLIENT_ID"),
+			ClientSecret: os.Getenv("INTEGRATION_GSTN_CLIENT_SECRET"),
 		},
 		FASTag: fastag.Config{
 			Endpoint: os.Getenv("INTEGRATION_FASTAG_ENDPOINT"),
@@ -40,17 +45,29 @@ func LoadConfig() Config {
 			Endpoint: os.Getenv("INTEGRATION_ACCOUNTING_ENDPOINT"),
 			APIKey:   os.Getenv("INTEGRATION_ACCOUNTING_API_KEY"),
 			Enabled:  parseBool(os.Getenv("INTEGRATION_ACCOUNTING_ENABLED")),
+			Provider: getEnvDefault("INTEGRATION_ACCOUNTING_PROVIDER", getEnvDefault("ACCOUNTING_ADAPTER", "mock")),
 		},
 	}
 }
 
+func getEnvDefault(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
+}
+
 func parseBool(v string) bool {
+	return parseBoolDefault(v, false)
+}
+
+func parseBoolDefault(v string, def bool) bool {
 	if v == "" {
-		return false
+		return def
 	}
 	b, err := strconv.ParseBool(v)
 	if err != nil {
-		return false
+		return def
 	}
 	return b
 }

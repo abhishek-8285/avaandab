@@ -17,6 +17,7 @@ type PaymentRepository interface {
 	CountPayments(ctx context.Context, method string) (int64, error)
 	GetTotalRevenue(ctx context.Context) (float64, error)
 	GetMonthlyRevenue(ctx context.Context) ([]MonthlyRevenue, error)
+	GetRevenueByDay(ctx context.Context) ([]RevenueByDay, error)
 	GetPaymentsByCustomer(ctx context.Context, customerID types.CustomerID, limit, offset int) ([]PaymentWithInvoice, error)
 	CountPaymentsByCustomer(ctx context.Context, customerID types.CustomerID) (int64, error)
 }
@@ -33,5 +34,11 @@ type PaymentWithInvoice struct {
 // MonthlyRevenue is a month's revenue total.
 type MonthlyRevenue struct {
 	Month string
+	Total float64
+}
+
+// RevenueByDay is a single day's revenue total.
+type RevenueByDay struct {
+	Day   string
 	Total float64
 }

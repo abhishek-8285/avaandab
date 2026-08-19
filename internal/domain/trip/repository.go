@@ -23,6 +23,7 @@ type TripRepository interface {
 	CheckDriverConflict(ctx context.Context, driverID types.DriverID, excludeTripID *types.TripID) ([]Trip, error)
 	GetTripsByDate(ctx context.Context, date string) ([]TripWithJoins, error)
 	CountTripsByStatusForDate(ctx context.Context, date string) (map[TripStatus]int64, error)
+	GetOverdueTrips(ctx context.Context) ([]TripWithJoins, error)
 }
 
 // TripWithJoins includes driver, vehicle, and route details.

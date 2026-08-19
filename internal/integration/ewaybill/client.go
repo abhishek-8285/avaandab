@@ -46,11 +46,28 @@ type Cancellation struct {
 	Status      string    `json:"status"`
 }
 
+// ExtendRequest carries inputs needed to extend an E-way bill validity.
+type ExtendRequest struct {
+	EwbNumber         string `json:"ewb_number"`
+	FromPlace         string `json:"from_place"`
+	FromStateCode     string `json:"from_state_code"`
+	RemainingDistance int    `json:"remaining_distance"`
+	TransitToDate     string `json:"transit_to_date"`
+	Reason            string `json:"reason"`
+}
+
 // Client defines operations supported by the NIC E-way bill API.
 type Client interface {
 	Generate(ctx context.Context, req GenerateRequest) (EWayBill, error)
 	Get(ctx context.Context, ewbNumber string) (EWayBill, error)
 	Cancel(ctx context.Context, ewbNumber, reason string) (Cancellation, error)
+
+	// Lifecycle methods (Spec 07 §2.3-§2.7)
+	GeneratePartA(ctx context.Context, req GenerateRequest) (EWayBill, error)
+	AttachPartB(ctx context.Context, ewbNumber string, vehicleNumber string, transporterID string) (EWayBill, error)
+	Extend(ctx context.Context, ewbNumber string, req ExtendRequest) (EWayBill, error)
+	GetByNumber(ctx context.Context, ewbNumber string) (EWayBill, error)
+	GetByTrip(ctx context.Context, tripID string) (EWayBill, error)
 }
 
 type stubClient struct {
@@ -107,4 +124,83 @@ func (c *stubClient) Cancel(ctx context.Context, ewbNumber, reason string) (Canc
 		Reason:      reason,
 		Status:      "CANCELLED",
 	}, nil
+}
+
+func (c *stubClient) GeneratePartA(ctx context.Context, req GenerateRequest) (EWayBill, error) {
+	slog.Default().Info("[ewaybill] GeneratePartA called", "endpoint", c.cfg.Endpoint, "enabled", c.cfg.Enabled, "document", req.DocumentNumber)
+	if !c.cfg.Enabled {
+		return EWayBill{}, fmt.Errorf("ewaybill integration disabled")
+	}
+	now := time.Now()
+	uid := uuid.New().String()
+	if len(uid) > 8 {
+		uid = uid[:8]
+	}
+	return EWayBill{
+		EwbNumber:   "EWB-MOCK-" + uid,
+		Status:      "PART_A_GENERATED",
+		GeneratedAt: now,
+		ValidUpto:   now.Add(24 * time.Hour),
+		QRCode:      "data:image/png;base64,mockqrcode",
+		DocumentRef: req.DocumentNumber,
+	}, nil
+}
+
+func (c *stubClient) AttachPartB(ctx context.Context, ewbNumber, vehicleNumber, transporterID string) (EWayBill, error) {
+	slog.Default().Info("[ewaybill] AttachPartB called", "endpoint", c.cfg.Endpoint, "enabled", c.cfg.Enabled, "ewb_number", ewbNumber, "vehicle", vehicleNumber)
+	if !c.cfg.Enabled {
+		return EWayBill{}, fmt.Errorf("ewaybill integration disabled")
+	}
+	now := time.Now()
+	return EWayBill{
+		EwbNumber:   ewbNumber,
+		Status:      "ACTIVE",
+		GeneratedAt: now.Add(-1 * time.Hour),
+		ValidUpto:   now.Add(23 * time.Hour),
+		QRCode:      "data:image/png;base64,mockqrcode",
+		DocumentRef: "DOC/2026/0001",
+	}, nil
+}
+
+func (c *stubClient) Extend(ctx context.Context, ewbNumber string, req ExtendRequest) (EWayBill, error) {
+	slog.Default().Info("[ewaybill] Extend called", "endpoint", c.cfg.Endpoint, "enabled", c.cfg.Enabled, "ewb_number", ewbNumber, "reason", req.Reason)
+	if !c.cfg.Enabled {
+		return EWayBill{}, fmt.Errorf("ewaybill integration disabled")
+	}
+	now := time.Now()
+	return EWayBill{
+		EwbNumber:   ewbNumber,
+		Status:      "EXTENDED",
+		GeneratedAt: now.Add(-24 * time.Hour),
+		ValidUpto:   now.Add(24 * time.Hour),
+		QRCode:      "data:image/png;base64,mockqrcode",
+		DocumentRef: "DOC/2026/0001",
+	}, nil
+}
+
+func (c *stubClient) GetByNumber(ctx context.Context, ewbNumber string) (EWayBill, error) {
+	return c.Get(ctx, ewbNumber)
+}
+
+func (c *stubClient) GetByTrip(ctx context.Context, tripID string) (EWayBill, error) {
+	slog.Default().Info("[ewaybill] GetByTrip called", "endpoint", c.cfg.Endpoint, "enabled", c.cfg.Enabled, "trip_id", tripID)
+	if !c.cfg.Enabled {
+		return EWayBill{}, fmt.Errorf("ewaybill integration disabled")
+	}
+	now := time.Now()
+	return EWayBill{
+		EwbNumber:   "EWB-TRIP-" + tripID[:min(8, len(tripID))],
+		Status:      "ACTIVE",
+		GeneratedAt: now.Add(-2 * time.Hour),
+		ValidUpto:   now.Add(22 * time.Hour),
+		QRCode:      "data:image/png;base64,mockqrcode",
+		DocumentRef: "TRIP-" + tripID,
+	}, nil
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

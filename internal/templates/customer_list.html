@@ -1,59 +1,22 @@
-<div class="bg-white border border-[#EAE8E4] rounded shadow-sm flex flex-col h-full overflow-hidden">
+{{template "page_header.html" (dict "Title" "Customers" "Subtitle" "Manage enterprise client accounts, GSTIN, and contacts" "ActionHref" "/customers/new" "ActionIcon" "add" "ActionLabel" "New Customer")}}
+
+<div class="bg-surface-container-lowest border border-border-subtle rounded shadow-sm flex flex-col h-full overflow-hidden">
     <!-- Sticky Search & Filter Bar (Stitch Design) -->
-    <form method="GET" action="/customers" class="px-6 py-4 border-b border-[#EAE8E4] flex flex-wrap items-center gap-3 bg-white sticky top-0 z-10">
+    <form method="GET" action="/customers" class="px-4 py-2 border-b border-border-subtle flex flex-wrap items-center gap-2 bg-surface-container-lowest sticky top-0 z-10">
         <div class="relative flex-1 min-w-[240px] max-w-md">
-            <span class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">search</span>
+            <span class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-sm">search</span>
             <input type="text" name="q" value="{{.Query}}" placeholder="Filter by customer name, company, or GST..."
-                class="bg-white border border-[#EAE8E4] rounded py-1.5 pl-9 pr-4 text-sm w-full focus:outline-none focus:border-[#00685f] transition-colors">
+                class="bg-surface-container-lowest border border-border-subtle rounded py-1.5 pl-9 pr-4 text-sm w-full focus:outline-none focus:border-primary transition-colors">
         </div>
-        <button type="submit" class="px-4 py-1.5 rounded bg-[#00685f] text-white text-sm font-medium hover:bg-[#005049] transition-colors">
-            Search
-        </button>
+        {{template "btn.html" (dict "Label" "Search" "Type" "submit" "Size" "sm")}}
 
         <div class="ml-auto flex items-center gap-3">
-            <a href="/customers/new" class="inline-flex items-center gap-2 px-4 py-1.5 rounded bg-[#00685f] text-white text-sm font-medium hover:bg-[#005049] transition-colors shadow-sm">
-                <span class="material-icons text-sm">add</span> New Customer
-            </a>
+            {{template "btn.html" (dict "Label" "New Customer" "Href" "/customers/new" "Size" "sm" "Icon" "add")}}
         </div>
     </form>
 
-    <!-- Data Table (Stitch Design) -->
-    <div class="flex-1 overflow-x-auto">
-        <table class="w-full text-left border-collapse min-w-full">
-            <thead class="sticky top-0 bg-white z-10 border-b border-[#EAE8E4]">
-                <tr>
-                    <th class="th-cell">Customer Name</th>
-                    <th class="th-cell">Company</th>
-                    <th class="th-cell">Phone</th>
-                    <th class="th-cell">Email</th>
-                    <th class="th-cell">GST Number</th>
-                    <th class="th-cell-right">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-[#EAE8E4] font-body-sm text-sm text-[#191c1e]">
-                {{range .Customers}}
-                <tr class="hover:bg-[#f2f4f6] transition-colors group">
-                    <td class="td-cell-strong">{{.Name}}</td>
-                    <td class="td-cell">{{nullString .Company}}</td>
-                    <td class="td-cell">{{.Phone}}</td>
-                    <td class="td-cell">{{nullString .Email}}</td>
-                    <td class="td-cell font-mono text-xs">{{nullString .GST}}</td>
-                    <td class="td-cell-actions">
-                        <a href="/customers/{{.ID}}" class="action-view font-medium mr-2">View</a>
-                        <a href="/customers/{{.ID}}/edit" class="action-edit font-medium">Edit</a>
-                    </td>
-                </tr>
-                {{else}}
-                <tr>
-                    <td colspan="6" class="py-16 text-center text-gray-500">
-                        <span class="material-icons text-4xl text-gray-300 mb-2 block">group</span>
-                        <p class="font-medium text-base">No customers found matching the search criteria.</p>
-                    </td>
-                </tr>
-                {{end}}
-            </tbody>
-        </table>
+    <!-- Data Table Fragment (Datastar refresh target) -->
+    <div id="list-table">
+        {{template "customer_list_table.html" .}}
     </div>
-
-    {{template "pagination.html" .}}
 </div>

@@ -161,6 +161,7 @@ const (
 	PaymentMethodUPI          = payment.PaymentMethodUPI
 	PaymentMethodBankTransfer = payment.PaymentMethodBankTransfer
 	PaymentMethodCheque       = payment.PaymentMethodCheque
+	PaymentMethodRazorpay     = payment.PaymentMethodRazorpay
 )
 
 // ActiveTripStatuses alias
@@ -182,19 +183,20 @@ var (
 	ErrWeakPassword       = user.ErrWeakPassword
 
 	// Entity errors
-	ErrDriverNotFound     = driver.ErrDriverNotFound
-	ErrDriverUnavailable  = driver.ErrDriverUnavailable
-	ErrDriverOnTrip       = driver.ErrDriverOnTrip
-	ErrVehicleNotFound    = vehicle.ErrVehicleNotFound
-	ErrVehicleUnavailable = vehicle.ErrVehicleUnavailable
-	ErrVehicleAssigned    = vehicle.ErrVehicleAssigned
-	ErrCustomerNotFound   = customer.ErrCustomerNotFound
-	ErrRouteNotFound      = route.ErrRouteNotFound
-	ErrBookingNotFound    = booking.ErrBookingNotFound
-	ErrDispatchNotFound   = dispatch.ErrDispatchNotFound
-	ErrTripNotFound       = trip.ErrTripNotFound
-	ErrInvoiceNotFound    = invoice.ErrInvoiceNotFound
-	ErrPaymentNotFound    = payment.ErrPaymentNotFound
+	ErrDriverNotFound            = driver.ErrDriverNotFound
+	ErrDriverUnavailable         = driver.ErrDriverUnavailable
+	ErrDriverOnTrip              = driver.ErrDriverOnTrip
+	ErrVehicleNotFound           = vehicle.ErrVehicleNotFound
+	ErrVehicleUnavailable        = vehicle.ErrVehicleUnavailable
+	ErrVehicleAssigned           = vehicle.ErrVehicleAssigned
+	ErrVehicleMaintenanceBlocked = vehicle.ErrVehicleMaintenanceBlocked
+	ErrCustomerNotFound          = customer.ErrCustomerNotFound
+	ErrRouteNotFound             = route.ErrRouteNotFound
+	ErrBookingNotFound           = booking.ErrBookingNotFound
+	ErrDispatchNotFound          = dispatch.ErrDispatchNotFound
+	ErrTripNotFound              = trip.ErrTripNotFound
+	ErrInvoiceNotFound           = invoice.ErrInvoiceNotFound
+	ErrPaymentNotFound           = payment.ErrPaymentNotFound
 
 	// Business rule errors
 	ErrTripImmutable          = trip.ErrTripImmutable

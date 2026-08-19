@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -171,8 +172,8 @@ func (uc *RazorpayWebhookUseCase) Execute(ctx context.Context, rawBody []byte, s
 	return uc.ExecuteEvent(ctx, rawBody, signature, "", ev)
 }
 
-// ExecuteEvent verifies the webhook signature, enforces event-id idempotency,
-// and applies the event side effects.
+// ExecuteEvent verifies the webhook signature, enforces event-id idempotency
+// (in-memory hot cache + restart-safe DB layer), and applies the side effects.
 func (uc *RazorpayWebhookUseCase) ExecuteEvent(ctx context.Context, rawBody []byte, signature string, eventID string, ev RazorpayWebhookEvent) (paymentagg.PaymentID, error) {
 	if err := uc.VerifySignature(rawBody, signature); err != nil {
 		return "", err
@@ -185,8 +186,23 @@ func (uc *RazorpayWebhookUseCase) ExecuteEvent(ctx context.Context, rawBody []by
 
 	uc.touchLastReceived()
 
+	tenantID := shared.TenantIDFromContext(ctx)
+
+	// In-memory hot cache (survives within a process).
 	if id, ok := uc.isProcessed(eventID); ok {
 		return id, nil
+	}
+
+	// Restart-safe: an event ID already persisted must not be applied twice.
+	if eventID != "" {
+		existing, err := uc.findWebhookEvent(ctx, tenantID, eventID)
+		if err != nil {
+			return "", err
+		}
+		if existing != "" {
+			uc.markProcessed(eventID, existing)
+			return existing, nil
+		}
 	}
 
 	var id paymentagg.PaymentID
@@ -207,6 +223,13 @@ func (uc *RazorpayWebhookUseCase) ExecuteEvent(ctx context.Context, rawBody []by
 
 	if err != nil {
 		return "", err
+	}
+
+	// Restart-safe dedup layer: persist the event ID on the recorded payment.
+	if id != "" && eventID != "" {
+		if err := uc.setWebhookEventID(ctx, tenantID, id, eventID); err != nil {
+			return "", err
+		}
 	}
 
 	uc.markProcessed(eventID, id)
@@ -230,18 +253,36 @@ func (uc *RazorpayWebhookUseCase) Status() RazorpayWebhookStatus {
 }
 
 func (uc *RazorpayWebhookUseCase) recordPaymentEntity(ctx context.Context, entity RazorpayPaymentEntity) (paymentagg.PaymentID, error) {
-	if entity.ID == "" || entity.Notes.InvoiceID == "" {
+	if entity.ID == "" {
 		return "", ErrWebhookInvoiceMissing
 	}
 
 	tenantID := shared.TenantIDFromContext(ctx)
 
-	existing, err := uc.findByReference(ctx, entity.ID, tenantID)
+	// Race with the /verify flow: if the payment was already recorded via
+	// checkout verification, return the existing payment — never double count.
+	existing, err := uc.findRazorpayPayment(ctx, tenantID, entity.ID)
 	if err != nil {
 		return "", err
 	}
 	if existing != "" {
 		return existing, nil
+	}
+
+	if entity.Notes.InvoiceID == "" {
+		// Cannot attribute the payment to an invoice. Acknowledge the webhook
+		// (200, no retry storm) and surface an alert — the payment must not be
+		// silently dropped (Spec 11 §5.1).
+		uc.acknowledgeUnattributable(ctx, "payment.captured", entity.ID, "")
+		return "", nil
+	}
+
+	existingByRef, err := uc.findByReference(ctx, entity.ID, tenantID)
+	if err != nil {
+		return "", err
+	}
+	if existingByRef != "" {
+		return existingByRef, nil
 	}
 
 	reference := entity.ID
@@ -256,7 +297,7 @@ func (uc *RazorpayWebhookUseCase) recordPaymentEntity(ctx context.Context, entit
 }
 
 func (uc *RazorpayWebhookUseCase) recordOrderEntity(ctx context.Context, entity RazorpayOrderEntity) (paymentagg.PaymentID, error) {
-	if entity.ID == "" || entity.Notes.InvoiceID == "" {
+	if entity.ID == "" {
 		return "", ErrWebhookInvoiceMissing
 	}
 
@@ -270,6 +311,11 @@ func (uc *RazorpayWebhookUseCase) recordOrderEntity(ctx context.Context, entity 
 		return existing, nil
 	}
 
+	if entity.Notes.InvoiceID == "" {
+		uc.acknowledgeUnattributable(ctx, "order.paid", entity.ID, "")
+		return "", nil
+	}
+
 	reference := entity.ID
 	return uc.recordUC.Execute(ctx, RecordPaymentCommand{
 		TenantID:    tenantID,
@@ -278,6 +324,27 @@ func (uc *RazorpayWebhookUseCase) recordOrderEntity(ctx context.Context, entity 
 		Amount:      float64(entity.AmountPaid) / 100,
 		Method:      paymentagg.PaymentMethodRazorpay,
 		Reference:   &reference,
+	})
+}
+
+// acknowledgeUnattributable logs a warning and emits a payment-failed alert
+// when a webhook payload cannot be linked to an invoice. The webhook itself is
+// acknowledged with HTTP 200 so Razorpay stops retrying.
+func (uc *RazorpayWebhookUseCase) acknowledgeUnattributable(ctx context.Context, eventType, paymentID, invoiceID string) {
+	slog.Default().Warn("razorpay webhook payment has no notes.invoice_id; acknowledged without recording",
+		"event", eventType, "payment_id", paymentID, "invoice_id", invoiceID)
+	if uc.eventBus == nil {
+		return
+	}
+	uc.eventBus.Publish(ctx, events.Event{
+		Type: events.RazorpayPaymentFailed,
+		Payload: RazorpayPaymentFailedEvent{
+			RazorpayPaymentID: paymentID,
+			InvoiceID:         invoiceID,
+			ErrorCode:         "INVOICE_UNATTRIBUTABLE",
+			ErrorDescription:  "webhook payment missing notes.invoice_id",
+			CreatedAt:         uc.clock.Now(),
+		},
 	})
 }
 
@@ -314,7 +381,7 @@ func (uc *RazorpayWebhookUseCase) processFailed(ctx context.Context, eventID str
 	}
 
 	uc.eventBus.Publish(ctx, events.Event{
-		Type: "RazorpayPaymentFailed",
+		Type: events.RazorpayPaymentFailed,
 		Payload: RazorpayPaymentFailedEvent{
 			RazorpayEventID:   eventID,
 			RazorpayPaymentID: entity.ID,
@@ -348,6 +415,56 @@ func (uc *RazorpayWebhookUseCase) findByReference(ctx context.Context, reference
 		return nil
 	})
 	return found, err
+}
+
+func (uc *RazorpayWebhookUseCase) findRazorpayPayment(ctx context.Context, tenantID shared.TenantID, paymentID string) (paymentagg.PaymentID, error) {
+	var found paymentagg.PaymentID
+	err := uc.uow.Execute(ctx, func(txCtx ports.TxContext) error {
+		payRepo, ok := txCtx.Repositories().Payments().(domain.PaymentRepository)
+		if !ok {
+			return errors.New("failed to retrieve payment repository")
+		}
+		id, err := payRepo.ExistsRazorpayPayment(txCtx, tenantID, paymentID)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil
+			}
+			return err
+		}
+		found = id
+		return nil
+	})
+	return found, err
+}
+
+func (uc *RazorpayWebhookUseCase) findWebhookEvent(ctx context.Context, tenantID shared.TenantID, eventID string) (paymentagg.PaymentID, error) {
+	var found paymentagg.PaymentID
+	err := uc.uow.Execute(ctx, func(txCtx ports.TxContext) error {
+		payRepo, ok := txCtx.Repositories().Payments().(domain.PaymentRepository)
+		if !ok {
+			return errors.New("failed to retrieve payment repository")
+		}
+		id, err := payRepo.ExistsWebhookEvent(txCtx, tenantID, eventID)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil
+			}
+			return err
+		}
+		found = id
+		return nil
+	})
+	return found, err
+}
+
+func (uc *RazorpayWebhookUseCase) setWebhookEventID(ctx context.Context, tenantID shared.TenantID, id paymentagg.PaymentID, eventID string) error {
+	return uc.uow.Execute(ctx, func(txCtx ports.TxContext) error {
+		payRepo, ok := txCtx.Repositories().Payments().(domain.PaymentRepository)
+		if !ok {
+			return errors.New("failed to retrieve payment repository")
+		}
+		return payRepo.SetWebhookEventID(txCtx, id, tenantID, eventID)
+	})
 }
 
 func (uc *RazorpayWebhookUseCase) isProcessed(eventID string) (paymentagg.PaymentID, bool) {

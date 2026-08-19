@@ -58,7 +58,7 @@ func setupInTransitTrip(t *testing.T, svcs *service.Services, ctx context.Contex
 // createExpense is a convenience wrapper matching the positional arg signature.
 func createExpense(t *testing.T, svcs *service.Services, ctx context.Context, tripID, driverID, category string, amount float64, desc string) string {
 	t.Helper()
-	id, err := svcs.Kharcha.CreateExpense(ctx, tripID, driverID, category, amount, desc, "")
+	id, err := svcs.Kharcha.CreateExpense(ctx, tripID, driverID, category, amount, desc, "", 0)
 	require.NoError(t, err, "CreateExpense(%s %.0f) failed", category, amount)
 	return id
 }
@@ -232,7 +232,7 @@ func TestKharcha_KH9_ZeroAmount_Rejected(t *testing.T) {
 	ctx := context.Background()
 
 	tripID := setupInTransitTrip(t, svcs, ctx)
-	_, err := svcs.Kharcha.CreateExpense(ctx, string(tripID), "drv-kh9", "fuel", 0.0, "", "")
+	_, err := svcs.Kharcha.CreateExpense(ctx, string(tripID), "drv-kh9", "fuel", 0.0, "", "", 0)
 	assert.Error(t, err, "zero amount should be rejected")
 }
 
@@ -242,7 +242,7 @@ func TestKharcha_KH10_NegativeAmount_Rejected(t *testing.T) {
 	ctx := context.Background()
 
 	tripID := setupInTransitTrip(t, svcs, ctx)
-	_, err := svcs.Kharcha.CreateExpense(ctx, string(tripID), "drv-kh10", "advance", -250.0, "", "")
+	_, err := svcs.Kharcha.CreateExpense(ctx, string(tripID), "drv-kh10", "advance", -250.0, "", "", 0)
 	assert.Error(t, err, "negative amount should be rejected")
 }
 

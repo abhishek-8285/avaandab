@@ -52,7 +52,15 @@ func (r *SQLRepository) CreateDriver(ctx context.Context, driver domain.Driver) 
 		CreatedAt:             created.CreatedAt,
 		UpdatedAt:             created.UpdatedAt,
 	}
-	return toDomainDriver(d), nil
+	if driver.Aadhaar != nil || driver.PAN != nil || driver.BankDetails != nil {
+		_, _ = r.exec(ctx, `UPDATE drivers SET aadhaar = ?, pan = ?, bank_details = ? WHERE id = ?`,
+			driver.Aadhaar, driver.PAN, driver.BankDetails, string(driver.ID))
+	}
+	dom := toDomainDriver(d)
+	dom.Aadhaar = driver.Aadhaar
+	dom.PAN = driver.PAN
+	dom.BankDetails = driver.BankDetails
+	return dom, nil
 }
 
 func (r *SQLRepository) GetDriverByID(ctx context.Context, id domain.DriverID) (domain.Driver, error) {
@@ -81,7 +89,19 @@ func (r *SQLRepository) GetDriverByID(ctx context.Context, id domain.DriverID) (
 		CreatedAt:             row.CreatedAt,
 		UpdatedAt:             row.UpdatedAt,
 	}
-	return toDomainDriver(d), nil
+	dom := toDomainDriver(d)
+	var aadhaar, pan, bank sql.NullString
+	_ = r.queryRow(ctx, `SELECT aadhaar, pan, bank_details FROM drivers WHERE id = ?`, string(id)).Scan(&aadhaar, &pan, &bank)
+	if aadhaar.Valid {
+		dom.Aadhaar = &aadhaar.String
+	}
+	if pan.Valid {
+		dom.PAN = &pan.String
+	}
+	if bank.Valid {
+		dom.BankDetails = &bank.String
+	}
+	return dom, nil
 }
 
 func (r *SQLRepository) GetDriverByDriverID(ctx context.Context, driverID string) (domain.Driver, error) {
@@ -110,7 +130,19 @@ func (r *SQLRepository) GetDriverByDriverID(ctx context.Context, driverID string
 		CreatedAt:             row.CreatedAt,
 		UpdatedAt:             row.UpdatedAt,
 	}
-	return toDomainDriver(d), nil
+	dom := toDomainDriver(d)
+	var aadhaar, pan, bank sql.NullString
+	_ = r.queryRow(ctx, `SELECT aadhaar, pan, bank_details FROM drivers WHERE id = ?`, row.ID).Scan(&aadhaar, &pan, &bank)
+	if aadhaar.Valid {
+		dom.Aadhaar = &aadhaar.String
+	}
+	if pan.Valid {
+		dom.PAN = &pan.String
+	}
+	if bank.Valid {
+		dom.BankDetails = &bank.String
+	}
+	return dom, nil
 }
 
 func (r *SQLRepository) GetDriverByPhone(ctx context.Context, phone string) (domain.Driver, error) {
@@ -181,7 +213,15 @@ func (r *SQLRepository) UpdateDriver(ctx context.Context, driver domain.Driver) 
 		CreatedAt:             updated.CreatedAt,
 		UpdatedAt:             updated.UpdatedAt,
 	}
-	return toDomainDriver(d), nil
+	if driver.Aadhaar != nil || driver.PAN != nil || driver.BankDetails != nil {
+		_, _ = r.exec(ctx, `UPDATE drivers SET aadhaar = ?, pan = ?, bank_details = ? WHERE id = ?`,
+			driver.Aadhaar, driver.PAN, driver.BankDetails, string(driver.ID))
+	}
+	dom := toDomainDriver(d)
+	dom.Aadhaar = driver.Aadhaar
+	dom.PAN = driver.PAN
+	dom.BankDetails = driver.BankDetails
+	return dom, nil
 }
 
 func (r *SQLRepository) DeleteDriver(ctx context.Context, id domain.DriverID) error {

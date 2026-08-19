@@ -10,8 +10,34 @@ import (
 	rzp "github.com/razorpay/razorpay-go"
 )
 
+// ErrNotConfigured is returned when Razorpay credentials are absent.
+var ErrNotConfigured = errors.New("razorpay credentials not configured")
+
+// orderAPI is the subset of the Razorpay SDK used to create orders. It is an
+// interface so unit tests can fake the network call.
+type orderAPI interface {
+	Create(data map[string]interface{}, extraHeaders map[string]string) (map[string]interface{}, error)
+}
+
+// OrderCreator creates a Razorpay order for checkout. Satisfied by
+// *RazorpayClient; faked in unit tests (Spec 11 §5.1).
+type OrderCreator interface {
+	CreateOrder(invoiceID string, amountINR float64, currency string) (*Order, error)
+}
+
+// SignatureVerifier validates the HMAC signature returned by Razorpay
+// Checkout. Satisfied by *RazorpayClient; faked in unit tests.
+type SignatureVerifier interface {
+	VerifyPaymentSignature(orderID, paymentID, signature string) bool
+}
+
+// Client is the Razorpay payment-gateway gateway, and implements both
+// OrderCreator and SignatureVerifier.
+var _ OrderCreator = (*RazorpayClient)(nil)
+var _ SignatureVerifier = (*RazorpayClient)(nil)
+
 type RazorpayClient struct {
-	client    *rzp.Client
+	orderAPI  orderAPI
 	keyID     string
 	keySecret string
 }
@@ -26,21 +52,21 @@ type Order struct {
 }
 
 func NewRazorpayClient(keyID, keySecret string) *RazorpayClient {
-	var client *rzp.Client
-	if keyID != "" && keySecret != "" {
-		client = rzp.NewClient(keyID, keySecret)
-	}
-	return &RazorpayClient{
-		client:    client,
+	c := &RazorpayClient{
 		keyID:     keyID,
 		keySecret: keySecret,
 	}
+	if keyID != "" && keySecret != "" {
+		client := rzp.NewClient(keyID, keySecret)
+		c.orderAPI = client.Order
+	}
+	return c
 }
 
-// CreateOrder generates a Razorpay Order ID for checkout
+// CreateOrder generates a Razorpay Order ID for checkout.
 func (c *RazorpayClient) CreateOrder(invoiceID string, amountINR float64, currency string) (*Order, error) {
-	if c.client == nil {
-		return nil, errors.New("razorpay credentials not configured")
+	if c.orderAPI == nil {
+		return nil, ErrNotConfigured
 	}
 
 	amountInPaise := int64(amountINR * 100)
@@ -57,7 +83,7 @@ func (c *RazorpayClient) CreateOrder(invoiceID string, amountINR float64, curren
 		},
 	}
 
-	body, err := c.client.Order.Create(data, nil)
+	body, err := c.orderAPI.Create(data, nil)
 	if err != nil {
 		return nil, err
 	}

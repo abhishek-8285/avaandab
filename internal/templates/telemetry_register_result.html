@@ -1,0 +1,27 @@
+<div class="max-w-3xl mx-auto bg-surface-container-lowest border border-border-subtle rounded shadow-sm">
+    <div class="p-6">
+        {{if .Error}}
+        <div class="rounded-md bg-status-alert/10 border-l-4 border-status-alert p-4 text-status-alert text-sm">
+            <div class="font-semibold mb-1">Registration failed</div>
+            <div>{{.Error}}</div>
+            {{if .Results}}
+            <ul class="mt-2 list-disc pl-5 text-xs">
+                {{range .Results}}{{if not .Success}}<li><span class="font-mono">{{.IMEI}}</span>: {{.Error}}</li>{{end}}{{end}}
+            </ul>
+            {{end}}
+        </div>
+        {{else}}
+        <div class="rounded-md bg-status-success/10 border-l-4 border-status-success p-4 text-status-success text-sm">
+            <div class="font-semibold mb-1">Registered {{.Success}} of {{.Total}} devices</div>
+            {{if .Results}}
+            <ul class="mt-2 list-disc pl-5 text-xs">
+                {{range .Results}}<li><span class="font-mono">{{.IMEI}}</span> → {{.DeviceID}}</li>{{end}}
+            </ul>
+            {{end}}
+        </div>
+        {{end}}
+        <div class="mt-4">
+            <a href="/telemetry/devices" class="text-sm text-primary hover:underline">Back to devices</a>
+        </div>
+    </div>
+</div>

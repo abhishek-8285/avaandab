@@ -17,6 +17,10 @@ type RecordPaymentCommand struct {
 	Method      aggregate.PaymentMethod
 	Reference   *string
 	Remarks     *string
+
+	RazorpayOrderID   string
+	RazorpayPaymentID string
+	RazorpaySignature string
 }
 
 // PaymentFacade is the gateway into the payment module.

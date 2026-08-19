@@ -43,6 +43,42 @@ func (q *Queries) CountBookings(ctx context.Context, arg CountBookingsParams) (i
 	return count, err
 }
 
+const countBookingsByDay = `-- name: CountBookingsByDay :many
+SELECT CAST(date(pickup_date) AS TEXT) AS day, COUNT(*) AS count
+FROM bookings
+WHERE tenant_id = ? AND date(pickup_date) >= date('now', '-29 days')
+GROUP BY date(pickup_date)
+ORDER BY day ASC
+`
+
+type CountBookingsByDayRow struct {
+	Day   string `json:"day"`
+	Count int64  `json:"count"`
+}
+
+func (q *Queries) CountBookingsByDay(ctx context.Context, tenantID string) ([]CountBookingsByDayRow, error) {
+	rows, err := q.db.QueryContext(ctx, countBookingsByDay, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CountBookingsByDayRow
+	for rows.Next() {
+		var i CountBookingsByDayRow
+		if err := rows.Scan(&i.Day, &i.Count); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const createBooking = `-- name: CreateBooking :one
 INSERT INTO bookings (id, booking_number, customer_id, pickup_date, route_id,
     vehicle_type, passengers, cargo_weight, price, notes, status, tenant_id, version)

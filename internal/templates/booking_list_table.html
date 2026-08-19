@@ -1,6 +1,6 @@
 <div class="overflow-x-auto">
-    <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
+    <table class="min-w-full divide-y divide-border-subtle">
+        <thead class="bg-surface-container-low">
             <tr>
                 <th class="th-cell hidden sm:table-cell">Booking #</th>
                 <th class="th-cell">Customer</th>
@@ -11,7 +11,7 @@
                 <th class="th-cell-right">Actions</th>
             </tr>
         </thead>
-        <tbody class="divide-y divide-gray-200">
+        <tbody class="divide-y divide-border-subtle">
             {{range .Bookings}}
             <tr>
                 <td class="td-cell-strong hidden sm:table-cell" data-numeric>{{.BookingNumber}}</td>

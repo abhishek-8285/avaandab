@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>{{.Feature.Title}} - Avandab</title>
+    <meta name="description" content="{{.Feature.Summary}}">
+    <link rel="icon" href="/static/img/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/static/css/fonts.css?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}">
+    <link rel="stylesheet" href="/static/css/material-icons.css?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}">
+    <link rel="stylesheet" href="/static/css/material-symbols.css?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}">
+    <link rel="stylesheet" href="/static/css/tailwind.css?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}">
+    <link rel="stylesheet" href="/static/css/app.css?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}">
+</head>
+<body>
+    {{template "public_header.html" .}}
+
+    <!-- Hero -->
+    <section class="relative overflow-hidden bg-gradient-to-br from-primary/10 via-background to-background">
+        <div class="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-primary/10 blur-3xl"></div>
+        <div class="absolute -left-16 bottom-0 h-56 w-56 rounded-full bg-primary/5 blur-3xl"></div>
+        <div class="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:grid lg:grid-cols-2 lg:gap-12 lg:px-8 lg:py-24">
+            <div class="flex flex-col justify-center">
+                <nav class="mb-6 flex items-center gap-1 text-sm text-text-muted" aria-label="Breadcrumb">
+                    <a href="/" class="hover:text-primary">Home</a>
+                    <span class="material-symbols-outlined !text-base">chevron_right</span>
+                    <a href="/features" class="hover:text-primary">Features</a>
+                    <span class="material-symbols-outlined !text-base">chevron_right</span>
+                    <span class="text-primary" aria-current="page">{{.Feature.Title}}</span>
+                </nav>
+                <span class="inline-flex w-fit items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+                    <span class="material-symbols-outlined !text-base">grid_view</span>{{.Feature.Eyebrow}}
+                </span>
+                <div class="mt-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-on-primary shadow-lg shadow-primary/20">
+                    <span class="material-symbols-outlined !text-3xl">{{.Feature.Icon}}</span>
+                </div>
+                <h1 class="mt-5 text-4xl font-extrabold tracking-tight text-on-surface sm:text-5xl lg:text-6xl" style="font-family:'Outfit',sans-serif">{{.Feature.Title}}</h1>
+                <p class="mt-4 max-w-xl text-lg leading-relaxed text-secondary">{{.Feature.Tagline}}</p>
+                <p class="mt-2 text-sm font-medium text-text-muted">{{.Feature.Audience}}</p>
+                <div class="mt-8 flex flex-wrap items-center gap-3">
+                    <a href="/login" class="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-on-primary shadow-sm transition hover:bg-primary/90 hover:shadow-md">
+                        Sign in <span class="material-symbols-outlined !text-base">arrow_forward</span>
+                    </a>
+                    <a href="/register" class="inline-flex items-center gap-2 rounded-lg border border-border-subtle bg-surface-container-lowest px-6 py-3 text-sm font-semibold text-primary shadow-sm transition hover:bg-background hover:shadow-md">
+                        Start free
+                    </a>
+                    <a href="/contact-us" class="text-sm font-semibold text-text-muted underline-offset-4 hover:text-primary hover:underline">or book a demo</a>
+                </div>
+                <div class="mt-6 flex flex-wrap gap-2">
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-surface-container-lowest px-3 py-1 text-xs font-medium text-on-surface-variant shadow-sm ring-1 ring-border-subtle"><span class="material-symbols-outlined !text-base text-primary">receipt_long</span>GST-ready invoicing</span>
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-surface-container-lowest px-3 py-1 text-xs font-medium text-on-surface-variant shadow-sm ring-1 ring-border-subtle"><span class="material-symbols-outlined !text-base text-primary">lock</span>Bank-grade encryption</span>
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-surface-container-lowest px-3 py-1 text-xs font-medium text-on-surface-variant shadow-sm ring-1 ring-border-subtle"><span class="material-symbols-outlined !text-base text-primary">commute</span>Made for Indian fleets</span>
+                </div>
+            </div>
+
+            <!-- Product mockup -->
+            <div class="mt-12 hidden lg:mt-0 lg:flex lg:items-center lg:justify-center">
+                <div class="relative w-full max-w-md overflow-hidden rounded-2xl border border-border-subtle bg-surface-container-lowest shadow-2xl shadow-on-surface/8">
+                    <div class="flex items-center gap-2 bg-gradient-to-r from-primary to-primary px-4 py-3">
+                        <span class="material-symbols-outlined !text-xl text-on-primary/90">{{.Feature.Icon}}</span>
+                        <span class="text-sm font-semibold text-on-primary">{{.Feature.Title}}</span>
+                        <span class="ml-auto flex gap-1.5">
+                            <span class="h-2.5 w-2.5 rounded-full bg-surface-container-lowest/30"></span>
+                            <span class="h-2.5 w-2.5 rounded-full bg-surface-container-lowest/30"></span>
+                            <span class="h-2.5 w-2.5 rounded-full bg-surface-container-lowest/30"></span>
+                        </span>
+                    </div>
+                    <div class="space-y-3 p-5">
+                        <div class="grid grid-cols-3 gap-2">
+                            <div class="rounded-xl bg-background p-3 text-center"><div class="text-lg font-bold text-primary">128</div><div class="text-[10px] text-text-muted">Trips today</div></div>
+                            <div class="rounded-xl bg-background p-3 text-center"><div class="text-lg font-bold text-primary">94%</div><div class="text-[10px] text-text-muted">On time</div></div>
+                            <div class="rounded-xl bg-background p-3 text-center"><div class="text-lg font-bold text-primary">₹1.2L</div><div class="text-[10px] text-text-muted">Billed</div></div>
+                        </div>
+                        <div class="relative h-32 overflow-hidden rounded-xl bg-surface-container-low">
+                            <svg viewBox="0 0 320 130" class="h-full w-full" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                                <path d="M0 90 Q 80 40 160 70 T 320 50" stroke="var(--color-border-subtle)" stroke-width="10" fill="none" stroke-linecap="round"/>
+                                <path d="M0 110 Q 90 80 170 100 T 320 90" stroke="var(--color-border-subtle)" stroke-width="8" fill="none" stroke-linecap="round"/>
+                                <circle cx="60" cy="78" r="5" fill="var(--color-primary)"/>
+                                <circle cx="220" cy="72" r="5" fill="var(--color-primary)"/>
+                                <circle cx="160" cy="70" r="8" fill="var(--color-primary)" fill-opacity="0.22"/>
+                                <circle cx="160" cy="70" r="3.5" fill="var(--color-primary)"/>
+                            </svg>
+                            <span class="absolute left-3 top-3 rounded-md bg-surface-container-lowest/90 px-2 py-0.5 text-[10px] font-medium text-primary shadow-sm">Live map</span>
+                        </div>
+                        <div class="flex items-center justify-between rounded-xl bg-background px-4 py-2.5">
+                            <div class="h-2.5 w-24 rounded bg-border-border-subtle"></div>
+                            <div class="h-5 w-14 rounded-full bg-primary/15"></div>
+                        </div>
+                        <div class="flex items-center justify-between rounded-xl bg-background px-4 py-2.5">
+                            <div class="h-2.5 w-32 rounded bg-border-border-subtle"></div>
+                            <div class="h-5 w-14 rounded-full bg-primary/15"></div>
+                        </div>
+                        <div class="rounded-xl border border-dashed border-border-subtle px-4 py-3 text-center text-xs font-medium text-text-muted">Live data from your workspace</div>
+                    </div>
+                    <!-- Callout annotations -->
+                    <div class="absolute -right-2 top-1/4 rounded-lg bg-surface-container-lowest px-3 py-1.5 text-xs font-medium text-primary shadow-lg ring-1 ring-border-subtle">Auto-generated</div>
+                    <div class="absolute -left-2 top-2/3 rounded-lg bg-surface-container-lowest px-3 py-1.5 text-xs font-medium text-primary shadow-lg ring-1 ring-border-subtle">Real-time tracking</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Social proof bar -->
+    <div class="border-b border-border-subtle bg-surface-container-lowest">
+        <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-8 gap-y-2 px-4 py-3 text-xs font-medium text-secondary sm:justify-start">
+            <span class="flex items-center gap-1.5"><span class="material-symbols-outlined !text-base text-primary">verified</span>GST-compliant</span>
+            <span class="flex items-center gap-1.5"><span class="material-symbols-outlined !text-base text-primary">lock</span>AES-256 encryption</span>
+            <span class="flex items-center gap-1.5"><span class="material-symbols-outlined !text-base text-primary">history</span>DPDPA-aligned</span>
+            <span class="flex items-center gap-1.5"><span class="material-symbols-outlined !text-base text-primary">public</span>Data hosted in India</span>
+        </div>
+    </div>
+
+    <!-- Sticky anchor nav (scroll-spy) -->
+    <div class="sticky top-20 z-40 border-b border-border-subtle/60 bg-surface-container-lowest/85 shadow-sm backdrop-blur-md">
+        <nav id="feat-section-nav" class="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-4 py-2 text-sm [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:px-6 lg:px-8" aria-label="Page sections">
+            <a href="#overview" class="feat-anchor whitespace-nowrap rounded-full px-3.5 py-1.5 font-medium">Overview</a>
+            <a href="#capabilities" class="feat-anchor whitespace-nowrap rounded-full px-3.5 py-1.5 font-medium">What it does</a>
+            <a href="#benefits" class="feat-anchor whitespace-nowrap rounded-full px-3.5 py-1.5 font-medium">Why it matters</a>
+            <a href="#how-it-works" class="feat-anchor whitespace-nowrap rounded-full px-3.5 py-1.5 font-medium">How it works</a>
+            {{if .Feature.UseCases}}<a href="#usecases" class="feat-anchor whitespace-nowrap rounded-full px-3.5 py-1.5 font-medium">Use cases</a>{{end}}
+            <a href="#faq" class="feat-anchor whitespace-nowrap rounded-full px-3.5 py-1.5 font-medium">FAQ</a>
+        </nav>
+    </div>
+
+    <main>
+        <!-- Overview -->
+        <section id="overview" class="scroll-mt-[8.5rem] py-16 sm:py-20">
+            <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+                <h2 class="text-2xl font-bold text-on-surface sm:text-3xl" style="font-family:'Outfit',sans-serif">What {{.Feature.Title}} is</h2>
+                <p class="mt-5 border-l-4 border-primary bg-surface-container-lowest py-5 pl-5 pr-4 text-lg leading-relaxed text-on-surface-variant shadow-sm rounded-r-xl">
+                    {{.Feature.WhatItIs}}
+                </p>
+                <p class="mt-5 text-base leading-relaxed text-secondary">{{.Feature.Lead}}</p>
+                <!-- Key feature chips -->
+                <div class="mt-6 flex flex-wrap gap-2">
+                    {{range .Feature.Capabilities}}
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary">
+                        <span class="material-symbols-outlined !text-sm">{{.Icon}}</span>{{.Title}}
+                    </span>
+                    {{end}}
+                </div>
+            </div>
+        </section>
+
+        <!-- Capabilities -->
+        <section id="capabilities" class="scroll-mt-[8.5rem] bg-background py-16 sm:py-20">
+            <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+                <div class="max-w-2xl">
+                    <h2 class="text-2xl font-bold text-on-surface sm:text-3xl" style="font-family:'Outfit',sans-serif">What you can do</h2>
+                    <p class="mt-3 text-secondary">The practical capabilities that make {{.Feature.Title}} part of your daily workflow.</p>
+                </div>
+                <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {{range .Feature.Capabilities}}
+                    <div class="group rounded-2xl border border-border-subtle bg-surface-container-lowest p-6 shadow-sm transition-all duration-250 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md">
+                        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition group-hover:bg-primary group-hover:text-on-primary">
+                            <span class="material-symbols-outlined !text-2xl">{{.Icon}}</span>
+                        </div>
+                        <h3 class="mt-4 text-lg font-semibold text-on-surface" style="font-family:'Outfit',sans-serif">{{.Title}}</h3>
+                        <p class="mt-2 text-sm leading-relaxed text-secondary">{{.Text}}</p>
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+        </section>
+
+        <!-- Benefits -->
+        <section id="benefits" class="scroll-mt-[8.5rem] py-16 sm:py-20">
+            <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+                <div class="max-w-2xl">
+                    <h2 class="text-2xl font-bold text-on-surface sm:text-3xl" style="font-family:'Outfit',sans-serif">Why it matters</h2>
+                    <p class="mt-3 text-secondary">The outcomes your business feels once {{.Feature.Title}} is running.</p>
+                </div>
+                <div class="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                    {{range .Feature.Benefits}}
+                    <div class="flex items-start gap-3 rounded-2xl border border-border-subtle bg-primary/40 p-5">
+                        <span class="material-symbols-outlined !text-2xl text-primary">check_circle</span>
+                        <p class="text-sm font-medium leading-relaxed text-on-surface-variant">{{.Text}}</p>
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+        </section>
+
+        <!-- How it works -->
+        {{if .Feature.Steps}}
+        <section id="how-it-works" class="scroll-mt-[8.5rem] bg-background py-16 sm:py-20">
+            <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+                <h2 class="text-2xl font-bold text-on-surface sm:text-3xl" style="font-family:'Outfit',sans-serif">How to get started</h2>
+                <p class="mt-3 text-secondary">From sign-in to value in {{len .Feature.Steps}} simple steps.</p>
+                <div class="mt-10 space-y-0">
+                    {{range $i, $s := .Feature.Steps}}
+                    <div class="relative flex items-start gap-4 {{if ne $i 0}}pt-8{{end}}">
+                        {{if ne $i (add (len $.Feature.Steps) -1)}}
+                        <div class="absolute left-5 top-12 h-full w-px bg-border-border-subtle"></div>
+                        {{end}}
+                        <span class="relative z-10 flex h-10 w-10 flex-none items-center justify-center rounded-full bg-primary text-sm font-bold text-on-primary shadow-sm">{{add $i 1}}</span>
+                        <div class="pb-2">
+                            <p class="text-base font-semibold text-on-surface">{{$s}}</p>
+                        </div>
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+        </section>
+        {{end}}
+
+        <!-- Industry stats callout -->
+        <section class="bg-primary py-14">
+            <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h2 class="text-2xl font-bold text-on-primary sm:text-3xl" style="font-family:'Outfit',sans-serif">The problem fleet operators face</h2>
+                    <p class="mt-2 text-on-primary/70">Industry data that explains why digital fleet tools are no longer optional.</p>
+                </div>
+                <div class="mt-10 grid gap-6 sm:grid-cols-3">
+                    <div class="rounded-2xl bg-surface-container-lowest/10 p-6 text-center backdrop-blur-sm">
+                        <div class="text-4xl font-bold text-on-primary">82%</div>
+                        <p class="mt-2 text-sm text-on-primary/70">of Indian fleet operators still rely on manual logs and WhatsApp for operations</p>
+                    </div>
+                    <div class="rounded-2xl bg-surface-container-lowest/10 p-6 text-center backdrop-blur-sm">
+                        <div class="text-4xl font-bold text-on-primary">8–15%</div>
+                        <p class="mt-2 text-sm text-on-primary/70">of monthly fuel spend is lost to pilferage in unmonitored fleets</p>
+                    </div>
+                    <div class="rounded-2xl bg-surface-container-lowest/10 p-6 text-center backdrop-blur-sm">
+                        <div class="text-4xl font-bold text-on-primary">30%</div>
+                        <p class="mt-2 text-sm text-on-primary/70">average operational cost reduction reported by fleets using management software</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Old Way vs Avandab Way -->
+        <section class="py-16 sm:py-20">
+            <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+                <h2 class="text-2xl font-bold text-on-surface sm:text-3xl" style="font-family:'Outfit',sans-serif">The old way vs. the Avandab way</h2>
+                <p class="mt-3 text-secondary">How {{.Feature.Title}} changes your daily workflow.</p>
+                <div class="mt-10 overflow-hidden rounded-2xl border border-border-subtle shadow-sm">
+                    <div class="grid grid-cols-2 bg-on-surface text-sm font-semibold text-on-primary">
+                        <div class="px-6 py-4">The old way</div>
+                        <div class="px-6 py-4 bg-primary">The Avandab way</div>
+                    </div>
+                    <div class="divide-y divide-border-subtle bg-surface-container-lowest">
+                        <div class="grid grid-cols-2 text-sm">
+                            <div class="flex items-start gap-3 px-6 py-4 text-text-muted">
+                                <span class="material-symbols-outlined mt-0.5 !text-lg text-status-alert">close</span>
+                                <span>Spreadsheets and WhatsApp for dispatch</span>
+                            </div>
+                            <div class="flex items-start gap-3 px-6 py-4 text-on-surface-variant">
+                                <span class="material-symbols-outlined mt-0.5 !text-lg text-primary">check_circle</span>
+                                <span>One live dashboard with real-time tracking</span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 text-sm">
+                            <div class="flex items-start gap-3 px-6 py-4 text-text-muted">
+                                <span class="material-symbols-outlined mt-0.5 !text-lg text-status-alert">close</span>
+                                <span>Manual invoice generation and email</span>
+                            </div>
+                            <div class="flex items-start gap-3 px-6 py-4 text-on-surface-variant">
+                                <span class="material-symbols-outlined mt-0.5 !text-lg text-primary">check_circle</span>
+                                <span>Auto-generated GST-compliant invoices with EWB</span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 text-sm">
+                            <div class="flex items-start gap-3 px-6 py-4 text-text-muted">
+                                <span class="material-symbols-outlined mt-0.5 !text-lg text-status-alert">close</span>
+                                <span>Cash-based expense tracking with no audit trail</span>
+                            </div>
+                            <div class="flex items-start gap-3 px-6 py-4 text-on-surface-variant">
+                                <span class="material-symbols-outlined mt-0.5 !text-lg text-primary">check_circle</span>
+                                <span>Digital kharcha with proof and trip reconciliation</span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 text-sm">
+                            <div class="flex items-start gap-3 px-6 py-4 text-text-muted">
+                                <span class="material-symbols-outlined mt-0.5 !text-lg text-status-alert">close</span>
+                                <span>Phone calls to check delivery status</span>
+                            </div>
+                            <div class="flex items-start gap-3 px-6 py-4 text-on-surface-variant">
+                                <span class="material-symbols-outlined mt-0.5 !text-lg text-primary">check_circle</span>
+                                <span>Customer-facing tracking with live ETAs</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Who it's for -->
+        <section class="py-14">
+            <div class="mx-auto flex max-w-6xl flex-col items-start gap-4 px-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+                <div class="flex items-center gap-4">
+                    <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                        <span class="material-symbols-outlined !text-2xl">groups</span>
+                    </span>
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Who it's for</p>
+                        <p class="text-lg font-semibold text-on-surface">{{.Feature.WhoFor}}</p>
+                    </div>
+                </div>
+                <a href="/register" class="inline-flex flex-none items-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-on-primary transition hover:bg-primary/90 hover:shadow-md">
+                    Start free <span class="material-symbols-outlined !text-base">arrow_forward</span>
+                </a>
+            </div>
+        </section>
+
+        <!-- Use cases -->
+        {{if .Feature.UseCases}}
+        <section id="usecases" class="scroll-mt-[8.5rem] bg-background py-16 sm:py-20">
+            <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+                <h2 class="text-2xl font-bold text-on-surface sm:text-3xl" style="font-family:'Outfit',sans-serif">Common use cases</h2>
+                <p class="mt-3 text-secondary">Where {{.Feature.Title}} earns its place in a real fleet.</p>
+                <ul class="mt-8 grid gap-4 sm:grid-cols-2">
+                    {{range .Feature.UseCases}}
+                    <li class="flex items-start gap-3 rounded-2xl border border-border-subtle bg-surface-container-lowest p-5 shadow-sm">
+                        <span class="material-symbols-outlined mt-0.5 !text-2xl text-primary">task_alt</span>
+                        <span class="text-sm leading-relaxed text-on-surface-variant">{{.}}</span>
+                    </li>
+                    {{end}}
+                </ul>
+            </div>
+        </section>
+        {{end}}
+
+        <!-- FAQ -->
+        <section id="faq" class="scroll-mt-[8.5rem] py-16 sm:py-20">
+            <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+                <h2 class="text-2xl font-bold text-on-surface sm:text-3xl" style="font-family:'Outfit',sans-serif">Frequently asked questions</h2>
+                <div class="mt-8 space-y-4">
+                    {{range .Feature.FAQ}}
+                    <details class="group rounded-2xl border border-border-subtle bg-surface-container-lowest shadow-sm [&_summary::-webkit-details-marker]:hidden">
+                        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 font-semibold text-on-surface">
+                            <span>{{.Question}}</span>
+                            <span class="material-symbols-outlined !text-xl text-primary transition-transform duration-250 group-open:rotate-90">chevron_right</span>
+                        </summary>
+                        <div class="px-5 pb-5 text-sm leading-relaxed text-secondary">{{.Answer}}</div>
+                    </details>
+                    {{end}}
+                    <details class="group rounded-2xl border border-border-subtle bg-surface-container-lowest shadow-sm [&_summary::-webkit-details-marker]:hidden">
+                        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 font-semibold text-on-surface">
+                            <span>How long does setup take?</span>
+                            <span class="material-symbols-outlined !text-xl text-primary transition-transform duration-250 group-open:rotate-90">chevron_right</span>
+                        </summary>
+                        <div class="px-5 pb-5 text-sm leading-relaxed text-secondary">Most teams are running in the same day. Add your vehicles and drivers, and start creating trips — no hardware or training required to begin.</div>
+                    </details>
+                    <details class="group rounded-2xl border border-border-subtle bg-surface-container-lowest shadow-sm [&_summary::-webkit-details-marker]:hidden">
+                        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 font-semibold text-on-surface">
+                            <span>Is my data secure?</span>
+                            <span class="material-symbols-outlined !text-xl text-primary transition-transform duration-250 group-open:rotate-90">chevron_right</span>
+                        </summary>
+                        <div class="px-5 pb-5 text-sm leading-relaxed text-secondary">Data is encrypted in transit and at rest (AES-256), access is role-based, and every meaningful action is recorded in append-only audit logs. Data is hosted in India.</div>
+                    </details>
+                    <details class="group rounded-2xl border border-border-subtle bg-surface-container-lowest shadow-sm [&_summary::-webkit-details-marker]:hidden">
+                        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 font-semibold text-on-surface">
+                            <span>Do drivers need a smartphone?</span>
+                            <span class="material-symbols-outlined !text-xl text-primary transition-transform duration-250 group-open:rotate-90">chevron_right</span>
+                        </summary>
+                        <div class="px-5 pb-5 text-sm leading-relaxed text-secondary">The web app works on any device with a browser. Drivers can use the mobile app for e-POD and status updates from any Android phone.</div>
+                    </details>
+                    <details class="group rounded-2xl border border-border-subtle bg-surface-container-lowest shadow-sm [&_summary::-webkit-details-marker]:hidden">
+                        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 font-semibold text-on-surface">
+                            <span>Is this actually GST-compliant?</span>
+                            <span class="material-symbols-outlined !text-xl text-primary transition-transform duration-250 group-open:rotate-90">chevron_right</span>
+                        </summary>
+                        <div class="px-5 pb-5 text-sm leading-relaxed text-secondary">Invoices carry your company's GSTIN and tax details. Line items follow GST structure so your accountant can file without reformatting. CGST/SGST for in-state, IGST for inter-state.</div>
+                    </details>
+                    <details class="group rounded-2xl border border-border-subtle bg-surface-container-lowest shadow-sm [&_summary::-webkit-details-marker]:hidden">
+                        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 font-semibold text-on-surface">
+                            <span>Can we start with just 5–10 vehicles?</span>
+                            <span class="material-symbols-outlined !text-xl text-primary transition-transform duration-250 group-open:rotate-90">chevron_right</span>
+                        </summary>
+                        <div class="px-5 pb-5 text-sm leading-relaxed text-secondary">Avandab scales from a handful of vehicles to hundreds. Start with a pilot, prove the value, and expand — no long-term contracts required.</div>
+                    </details>
+                </div>
+            </div>
+        </section>
+
+        <!-- Why choose -->
+        <section class="bg-background py-16 sm:py-20">
+            <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+                <h2 class="text-2xl font-bold text-on-surface sm:text-3xl" style="font-family:'Outfit',sans-serif">Why teams choose Avandab</h2>
+                <p class="mt-3 text-secondary">Built for the way Indian transport businesses actually run.</p>
+                <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                    <div class="rounded-2xl border border-border-subtle bg-surface-container-lowest p-6 shadow-sm">
+                        <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary"><span class="material-symbols-outlined !text-2xl">receipt_long</span></span>
+                        <h3 class="mt-4 text-base font-semibold text-on-surface">GST-ready invoicing</h3>
+                        <p class="mt-1.5 text-sm leading-relaxed text-secondary">Professional, compliant invoices generated from completed trips.</p>
+                    </div>
+                    <div class="rounded-2xl border border-border-subtle bg-surface-container-lowest p-6 shadow-sm">
+                        <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary"><span class="material-symbols-outlined !text-2xl">lock</span></span>
+                        <h3 class="mt-4 text-base font-semibold text-on-surface">Bank-grade security</h3>
+                        <p class="mt-1.5 text-sm leading-relaxed text-secondary">Encryption in transit and at rest with role-based access control.</p>
+                    </div>
+                    <div class="rounded-2xl border border-border-subtle bg-surface-container-lowest p-6 shadow-sm">
+                        <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary"><span class="material-symbols-outlined !text-2xl">history</span></span>
+                        <h3 class="mt-4 text-base font-semibold text-on-surface">DPDPA-aligned trails</h3>
+                        <p class="mt-1.5 text-sm leading-relaxed text-secondary">Append-only audit logs so every action is traceable.</p>
+                    </div>
+                    <div class="rounded-2xl border border-border-subtle bg-surface-container-lowest p-6 shadow-sm">
+                        <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary"><span class="material-symbols-outlined !text-2xl">commute</span></span>
+                        <h3 class="mt-4 text-base font-semibold text-on-surface">Driver mobile app</h3>
+                        <p class="mt-1.5 text-sm leading-relaxed text-secondary">e-POD and live status updates from the road, on any phone.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Related -->
+        {{if .RelatedFeatures}}
+        <section class="py-16 sm:py-20">
+            <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+                <h2 class="text-2xl font-bold text-on-surface sm:text-3xl" style="font-family:'Outfit',sans-serif">Explore related features</h2>
+                <p class="mt-3 text-secondary">See how {{.Feature.Title}} connects to the rest of Avandab.</p>
+                <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {{range .RelatedFeatures}}
+                    <a href="/features/{{.Slug}}" class="group flex items-center gap-4 rounded-2xl border border-border-subtle bg-surface-container-lowest p-5 shadow-sm transition-all duration-250 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md">
+                        <span class="flex h-12 w-12 flex-none items-center justify-center rounded-xl bg-primary/10 text-primary transition group-hover:bg-primary group-hover:text-on-primary">
+                            <span class="material-symbols-outlined !text-2xl">{{.Icon}}</span>
+                        </span>
+                        <span class="min-w-0">
+                            <span class="block text-base font-semibold text-on-surface">{{.Title}}</span>
+                            <span class="block truncate text-sm text-text-muted">{{.Tagline}}</span>
+                        </span>
+                        <span class="material-symbols-outlined !text-xl ml-auto flex-none text-text-muted transition group-hover:text-primary">chevron_right</span>
+                    </a>
+                    {{end}}
+                </div>
+            </div>
+        </section>
+        {{end}}
+
+        <!-- CTA -->
+        <section class="relative overflow-hidden bg-gradient-to-br from-primary to-primary py-16">
+            <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(circle at 20% 20%, white 1px, transparent 1px); background-size: 22px 22px;" aria-hidden="true"></div>
+            <div class="relative mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
+                <h2 class="text-3xl font-bold text-on-primary sm:text-4xl" style="font-family:'Outfit',sans-serif">Ready to see {{.Feature.Title}} in action?</h2>
+                <p class="mx-auto mt-4 max-w-2xl text-lg text-on-primary/80">Spin up your Avandab workspace and put this feature to work on your very next trip.</p>
+                <div class="mt-8 flex flex-wrap justify-center gap-3">
+                    <a href="/register" class="inline-flex items-center gap-2 rounded-lg bg-surface-container-lowest px-6 py-3 text-sm font-semibold text-primary shadow-sm transition hover:bg-primary/10 hover:shadow-md">
+                        Create your workspace <span class="material-symbols-outlined !text-base">arrow_forward</span>
+                    </a>
+                    <a href="/contact-us" class="inline-flex items-center gap-2 rounded-lg border border-on-primary/30 px-6 py-3 text-sm font-semibold text-on-primary transition hover:bg-surface-container-lowest/10">
+                        Talk to sales
+                    </a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    {{template "footer.html" .}}
+
+    {{template "cookie-consent" .}}
+
+    <script src="/static/js/loader.js?v=20260818"></script>
+    <script>
+        (function () {
+            var nav = document.getElementById('feat-section-nav');
+            if (!nav) return;
+            var links = Array.prototype.slice.call(nav.querySelectorAll('.feat-anchor'));
+            if (!links.length) return;
+            var sections = links
+                .map(function (a) {
+                    var el = document.getElementById(a.getAttribute('href').slice(1));
+                    return el ? { link: a, el: el } : null;
+                })
+                .filter(Boolean);
+            if (!sections.length) return;
+
+            function setActive(link) {
+                links.forEach(function (l) { l.classList.toggle('active', l === link); });
+                if (link && nav.scrollWidth > nav.clientWidth) {
+                    var lr = link.getBoundingClientRect();
+                    var nr = nav.getBoundingClientRect();
+                    var left = nav.scrollLeft + (lr.left - nr.left) - (nav.clientWidth - lr.width) / 2;
+                    nav.scrollTo({ left: Math.max(0, left), behavior: 'smooth' });
+                }
+            }
+
+            var OFFSET = 140; // header (80) + sticky nav (~49) + slack
+            var ticking = false;
+            function onScroll() {
+                if (ticking) return;
+                ticking = true;
+                requestAnimationFrame(function () {
+                    var pos = window.scrollY + OFFSET;
+                    var current = sections[0];
+                    for (var i = 0; i < sections.length; i++) {
+                        var top = sections[i].el.getBoundingClientRect().top + window.scrollY;
+                        if (top <= pos) current = sections[i];
+                    }
+                    if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 2) {
+                        current = sections[sections.length - 1];
+                    }
+                    setActive(current.link);
+                    ticking = false;
+                });
+            }
+
+            links.forEach(function (a) {
+                a.addEventListener('click', function () { setActive(a); });
+            });
+            window.addEventListener('scroll', onScroll, { passive: true });
+            window.addEventListener('resize', onScroll);
+            onScroll();
+        })();
+    </script>
+</body>
+</html>

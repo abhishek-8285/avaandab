@@ -1,0 +1,24 @@
+<div class="bg-surface-container-lowest border border-border-subtle rounded shadow-sm flex flex-col h-full overflow-hidden">
+    <div class="px-4 py-3 border-b border-border-subtle flex items-center gap-2 bg-surface-container-lowest sticky top-0 z-10">
+        <span class="material-symbols-outlined text-primary">security</span>
+        <h3 class="text-sm font-semibold text-on-surface">Quarantine Queue</h3>
+        <span class="text-xs text-secondary">Unknown or retired-device frames awaiting admin resolution</span>
+    </div>
+    <div class="flex-1 overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead class="sticky top-0 bg-surface-container-lowest z-10 border-b border-border-subtle font-label-caps text-[11px] text-secondary uppercase tracking-wider">
+                <tr>
+                    <th class="py-3 px-6 font-semibold">IMEI</th>
+                    <th class="py-3 px-6 font-semibold">Reason</th>
+                    <th class="py-3 px-6 font-semibold">Source</th>
+                    <th class="py-3 px-6 font-semibold">Raw Payload</th>
+                    <th class="py-3 px-6 font-semibold">Created</th>
+                    <th class="py-3 px-6 font-semibold text-right">Resolve</th>
+                </tr>
+            </thead>
+            <tbody id="quarantine-rows" class="divide-y divide-border-subtle text-sm text-on-surface">
+                {{template "telemetry_quarantine_row.html" .}}
+            </tbody>
+        </table>
+    </div>
+</div>

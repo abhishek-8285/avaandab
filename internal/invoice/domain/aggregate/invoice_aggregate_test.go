@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"transport-app/internal/shared"
 )
 
@@ -179,4 +180,43 @@ func TestNewInvoiceAggregate_EmitsOneEvent(t *testing.T) {
 func TestValidateInvoiceNumber(t *testing.T) {
 	assert.Error(t, ValidateInvoiceNumber(""))
 	assert.NoError(t, ValidateInvoiceNumber("INV-0001"))
+}
+
+func TestAddLineItem_RecomputesSubtotalAndTotal(t *testing.T) {
+	inv := newBaseInvoice()
+	assert.Empty(t, inv.LineItems)
+	assert.Equal(t, 1000.0, inv.Subtotal)
+
+	// Line-item mode replaces flat booking pricing: Subtotal = Σ line
+	// amounts. The caller (attachLineItems) adds the freight line explicitly,
+	// capturing the pre-line subtotal as the freight amount.
+	detRef := "det-1"
+	inv.AddLineItem(LineItem{
+		LineType:    LineTypeDetention,
+		Description: "Detention at Mysuru Depot",
+		Quantity:    1.5,
+		UnitPrice:   10,
+		Amount:      15.0,
+		RefID:       &detRef,
+	})
+	require.Len(t, inv.LineItems, 1)
+	assert.Equal(t, 15.0, inv.Subtotal)
+	assert.Equal(t, 115.0, inv.Total) // +100 tax -0 discount
+
+	// Freight line upsert keeps the sum correct and rounds to 2dp.
+	inv.AddLineItem(LineItem{LineType: LineTypeFreight, Description: "Freight", Amount: 25000.0})
+	require.Len(t, inv.LineItems, 2)
+	assert.Equal(t, 25015.0, inv.Subtotal)
+	assert.Equal(t, 25115.0, inv.Total)
+
+	// Rounded amount preserved.
+	inv.AddLineItem(LineItem{LineType: LineTypeAccessorial, Description: "Accessorial", Amount: 0.005})
+	assert.Equal(t, 0.01, inv.LineItems[2].Amount)
+}
+
+func TestRecomputeTotals_NoopWithoutLineItems(t *testing.T) {
+	inv := newBaseInvoice()
+	inv.RecomputeTotals()
+	assert.Equal(t, 1000.0, inv.Subtotal, "flat booking pricing must survive a no-op recompute")
+	assert.Equal(t, 1000.0, inv.Total)
 }

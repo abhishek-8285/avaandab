@@ -26,6 +26,9 @@ import (
 
 const testWebhookSecret = "whsec_test"
 
+// testTenantID keeps test fixtures explicit about the tenant they exercise.
+const testTenantID = shared.TenantID("1")
+
 // ---- fakes ----
 
 type fakeRepoProvider struct {
@@ -33,13 +36,14 @@ type fakeRepoProvider struct {
 	invoices *fakeInvoiceRepo
 }
 
-func (f *fakeRepoProvider) Bookings() any  { return nil }
-func (f *fakeRepoProvider) Trips() any     { return nil }
-func (f *fakeRepoProvider) Drivers() any   { return nil }
-func (f *fakeRepoProvider) Vehicles() any  { return nil }
-func (f *fakeRepoProvider) Invoices() any  { return f.invoices }
-func (f *fakeRepoProvider) Payments() any  { return f.payments }
-func (f *fakeRepoProvider) AuditLogs() any { return nil }
+func (f *fakeRepoProvider) Bookings() any    { return nil }
+func (f *fakeRepoProvider) Trips() any       { return nil }
+func (f *fakeRepoProvider) Drivers() any     { return nil }
+func (f *fakeRepoProvider) Vehicles() any    { return nil }
+func (f *fakeRepoProvider) Invoices() any    { return f.invoices }
+func (f *fakeRepoProvider) Payments() any    { return f.payments }
+func (f *fakeRepoProvider) AuditLogs() any   { return nil }
+func (f *fakeRepoProvider) Maintenance() any { return nil }
 
 type fakeTxContext struct {
 	context.Context
@@ -60,8 +64,10 @@ func newFakeUnitOfWork() *fakeUnitOfWork {
 	return &fakeUnitOfWork{
 		repos: &fakeRepoProvider{
 			payments: &fakePaymentRepo{
-				byID:  make(map[paymentagg.PaymentID]*paymentagg.PaymentAggregate),
-				byRef: make(map[string]paymentagg.PaymentID),
+				byID:           make(map[paymentagg.PaymentID]*paymentagg.PaymentAggregate),
+				byRef:          make(map[string]paymentagg.PaymentID),
+				byRazorpayPay:  make(map[string]paymentagg.PaymentID),
+				byWebhookEvent: make(map[string]paymentagg.PaymentID),
 			},
 			invoices: &fakeInvoiceRepo{
 				byID: make(map[invoiceagg.InvoiceID]*invoiceagg.InvoiceAggregate),
@@ -71,9 +77,11 @@ func newFakeUnitOfWork() *fakeUnitOfWork {
 }
 
 type fakePaymentRepo struct {
-	mu    sync.Mutex
-	byID  map[paymentagg.PaymentID]*paymentagg.PaymentAggregate
-	byRef map[string]paymentagg.PaymentID
+	mu             sync.Mutex
+	byID           map[paymentagg.PaymentID]*paymentagg.PaymentAggregate
+	byRef          map[string]paymentagg.PaymentID
+	byRazorpayPay  map[string]paymentagg.PaymentID
+	byWebhookEvent map[string]paymentagg.PaymentID
 }
 
 func (r *fakePaymentRepo) Save(_ context.Context, p *paymentagg.PaymentAggregate) error {
@@ -134,6 +142,43 @@ func (r *fakePaymentRepo) SearchReadModels(_ context.Context, _ shared.TenantID,
 	return nil, 0, nil
 }
 
+func (r *fakePaymentRepo) SetRazorpayFields(_ context.Context, id paymentagg.PaymentID, _ shared.TenantID, _ string, paymentID string, _ string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if _, ok := r.byID[id]; !ok {
+		return sql.ErrNoRows
+	}
+	if paymentID != "" {
+		r.byRazorpayPay[paymentID] = id
+	}
+	return nil
+}
+
+func (r *fakePaymentRepo) ExistsRazorpayPayment(_ context.Context, _ shared.TenantID, paymentID string) (paymentagg.PaymentID, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if id, ok := r.byRazorpayPay[paymentID]; ok {
+		return id, nil
+	}
+	return "", sql.ErrNoRows
+}
+
+func (r *fakePaymentRepo) ExistsWebhookEvent(_ context.Context, _ shared.TenantID, eventID string) (paymentagg.PaymentID, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if id, ok := r.byWebhookEvent[eventID]; ok {
+		return id, nil
+	}
+	return "", sql.ErrNoRows
+}
+
+func (r *fakePaymentRepo) SetWebhookEventID(_ context.Context, id paymentagg.PaymentID, _ shared.TenantID, eventID string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.byWebhookEvent[eventID] = id
+	return nil
+}
+
 type fakeInvoiceRepo struct {
 	mu   sync.Mutex
 	byID map[invoiceagg.InvoiceID]*invoiceagg.InvoiceAggregate
@@ -156,6 +201,10 @@ func (r *fakeInvoiceRepo) Find(_ context.Context, id invoiceagg.InvoiceID, _ sha
 }
 
 func (r *fakeInvoiceRepo) FindByBookingID(_ context.Context, _ string, _ shared.TenantID) (*invoiceagg.InvoiceAggregate, error) {
+	return nil, sql.ErrNoRows
+}
+
+func (r *fakeInvoiceRepo) FindByTripID(_ context.Context, _ string, _ shared.TenantID) (*invoiceagg.InvoiceAggregate, error) {
 	return nil, sql.ErrNoRows
 }
 
@@ -355,7 +404,7 @@ func TestRazorpayWebhook_Execute_RefundProcessed(t *testing.T) {
 
 	originalRef := "pay_original_1"
 	_, err := recordUC.Execute(ctx, RecordPaymentCommand{
-		TenantID:    "1",
+		TenantID:    testTenantID,
 		InvoiceID:   string(invID),
 		PaymentDate: clock.Now(),
 		Amount:      1000,
@@ -390,7 +439,7 @@ func TestRazorpayWebhook_Execute_PaymentFailedEmitsEvent(t *testing.T) {
 
 	bus := events.NewInMemoryBus()
 	var captured events.Event
-	bus.Subscribe("RazorpayPaymentFailed", func(_ context.Context, e events.Event) error {
+	bus.Subscribe(events.RazorpayPaymentFailed, func(_ context.Context, e events.Event) error {
 		captured = e
 		return nil
 	})
@@ -402,9 +451,141 @@ func TestRazorpayWebhook_Execute_PaymentFailedEmitsEvent(t *testing.T) {
 	_, err := webhookUC.ExecuteEvent(ctx, body, sig, "evt_fail_1", RazorpayWebhookEvent{})
 	require.NoError(t, err)
 
-	require.Equal(t, "RazorpayPaymentFailed", captured.Type)
+	require.Equal(t, events.RazorpayPaymentFailed, captured.Type)
 	payload, ok := captured.Payload.(RazorpayPaymentFailedEvent)
 	require.True(t, ok)
 	assert.Equal(t, "pay_fail_1", payload.RazorpayPaymentID)
 	assert.Equal(t, "evt_fail_1", payload.RazorpayEventID)
+}
+
+// TestRazorpayWebhook_RestartIdempotent proves the same webhook delivered
+// twice, with a fresh use-case instance between deliveries (process restart),
+// produces exactly one payment row (Spec 11 §5.1). The restart-safe layer is
+// the persisted razorpay reference — not the in-memory event cache.
+func TestRazorpayWebhook_RestartIdempotent(t *testing.T) {
+	ctx, uow, _, _, webhookUC, clock, _ := setupWebhookUnitTest(t)
+	invID := seedInvoice(t, uow.repos.invoices, clock, 1000)
+
+	body := capturedWebhookBody("pay_restart_1", string(invID), 100000)
+	sig := signWebhook(t, body, testWebhookSecret)
+
+	id1, err := webhookUC.ExecuteEvent(ctx, body, sig, "evt_restart_1", RazorpayWebhookEvent{})
+	require.NoError(t, err)
+	require.NotEmpty(t, id1)
+
+	// Fresh use case = fresh in-memory processed-event cache, simulating a restart.
+	restarted := NewRazorpayWebhookUseCase(webhookUC.recordUC, uow, testWebhookSecret, clock)
+
+	id2, err := restarted.ExecuteEvent(ctx, body, sig, "evt_restart_1", RazorpayWebhookEvent{})
+	require.NoError(t, err)
+	assert.Equal(t, id1, id2, "duplicate delivery across restart must return the same payment")
+
+	payments, err := uow.repos.payments.GetPaymentsByInvoice(ctx, string(invID), "1")
+	require.NoError(t, err)
+	assert.Len(t, payments, 1, "restart must not double-count a webhook payment")
+}
+
+type fakeVerifier struct {
+	ok bool
+}
+
+func (f *fakeVerifier) VerifyPaymentSignature(_, _, _ string) bool { return f.ok }
+
+// TestRazorpayVerify_ThenWebhook_NoDoubleCount proves a payment recorded by
+// /verify with razorpay_payment_id=pay_1 is not recorded again when the
+// payment.captured webhook delivers the same razorpay_payment_id (Spec 11 §5.1).
+func TestRazorpayVerify_ThenWebhook_NoDoubleCount(t *testing.T) {
+	ctx, uow, _, _, webhookUC, clock, idGen := setupWebhookUnitTest(t)
+	invID := seedInvoice(t, uow.repos.invoices, clock, 1000)
+
+	verifyUC := NewVerifyRazorpayPaymentUseCase(uow, webhookUC.recordUC, &fakeVerifier{ok: true}, "key_secret", clock)
+	_ = idGen
+
+	verifyID, err := verifyUC.Execute(ctx, VerifyRazorpayPaymentCommand{
+		TenantID:  testTenantID,
+		InvoiceID: string(invID),
+		OrderID:   "order_v_1",
+		PaymentID: "pay_v_1",
+		Signature: "sig_v_1",
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, verifyID)
+
+	// Webhook for the same razorpay payment arrives next.
+	body := capturedWebhookBody("pay_v_1", string(invID), 100000)
+	sig := signWebhook(t, body, testWebhookSecret)
+
+	webhookID, err := webhookUC.ExecuteEvent(ctx, body, sig, "evt_v_1", RazorpayWebhookEvent{})
+	require.NoError(t, err)
+	assert.Equal(t, verifyID, webhookID, "webhook must return the already-recorded payment")
+
+	payments, err := uow.repos.payments.GetPaymentsByInvoice(ctx, string(invID), "1")
+	require.NoError(t, err)
+	assert.Len(t, payments, 1, "verify + webhook for the same payment must yield exactly one row")
+	assert.Equal(t, 1000.0, payments[0].Amount, "balance must be reduced exactly once")
+}
+
+// TestRazorpayWebhook_MissingInvoice_Acknowledged proves a payment.captured
+// payload without notes.invoice_id is acknowledged (no error, no 4xx) and
+// surfaces a failed-payment alert instead of dropping silently (Spec 11 §5.1).
+func TestRazorpayWebhook_MissingInvoice_Acknowledged(t *testing.T) {
+	ctx, uow, _, _, webhookUC, _, _ := setupWebhookUnitTest(t)
+	_ = uow
+
+	bus := events.NewInMemoryBus()
+	var captured events.Event
+	bus.Subscribe(events.RazorpayPaymentFailed, func(_ context.Context, e events.Event) error {
+		captured = e
+		return nil
+	})
+	webhookUC.SetEventBus(bus)
+
+	body := capturedWebhookBody("pay_orphan_1", "", 100000)
+	sig := signWebhook(t, body, testWebhookSecret)
+
+	id, err := webhookUC.ExecuteEvent(ctx, body, sig, "evt_orphan_1", RazorpayWebhookEvent{})
+	require.NoError(t, err, "missing invoice must be acknowledged, not rejected")
+	assert.Empty(t, id, "no payment row is created for an unattributable webhook")
+
+	require.Equal(t, events.RazorpayPaymentFailed, captured.Type)
+	payload, ok := captured.Payload.(RazorpayPaymentFailedEvent)
+	require.True(t, ok)
+	assert.Equal(t, "pay_orphan_1", payload.RazorpayPaymentID)
+	assert.Equal(t, "INVOICE_UNATTRIBUTABLE", payload.ErrorCode)
+}
+
+func TestRazorpayVerify_SignatureFailsClosed(t *testing.T) {
+	ctx, uow, _, _, webhookUC, clock, _ := setupWebhookUnitTest(t)
+	invID := seedInvoice(t, uow.repos.invoices, clock, 1000)
+	_ = invID
+
+	verifyUC := NewVerifyRazorpayPaymentUseCase(uow, webhookUC.recordUC, &fakeVerifier{ok: false}, "key_secret", clock)
+
+	_, err := verifyUC.Execute(ctx, VerifyRazorpayPaymentCommand{
+		TenantID:  testTenantID,
+		InvoiceID: string(invID),
+		OrderID:   "order_v_2",
+		PaymentID: "pay_v_2",
+		Signature: "bad",
+	})
+	require.ErrorIs(t, err, ErrRazorpayInvalidSignature)
+
+	payments, err := uow.repos.payments.GetPaymentsByInvoice(ctx, string(invID), "1")
+	require.NoError(t, err)
+	assert.Empty(t, payments, "failed signature must not record a payment")
+}
+
+func TestRazorpayVerify_NotConfiguredFailsClosed(t *testing.T) {
+	ctx, uow, _, _, webhookUC, clock, _ := setupWebhookUnitTest(t)
+
+	verifyUC := NewVerifyRazorpayPaymentUseCase(uow, webhookUC.recordUC, &fakeVerifier{ok: true}, "", clock)
+
+	_, err := verifyUC.Execute(ctx, VerifyRazorpayPaymentCommand{
+		TenantID:  testTenantID,
+		InvoiceID: "inv_1",
+		OrderID:   "order_v_3",
+		PaymentID: "pay_v_3",
+		Signature: "sig",
+	})
+	require.ErrorIs(t, err, ErrRazorpayNotConfigured)
 }

@@ -17,5 +17,15 @@ func NewInvoiceFacade(generateUC *application.GenerateInvoiceUseCase) InvoiceFac
 }
 
 func (f *invoiceFacadeImpl) GenerateInvoice(ctx context.Context, cmd GenerateInvoiceCommand) (aggregate.InvoiceID, error) {
-	return f.generateUC.Execute(ctx, application.GenerateInvoiceCommand(cmd))
+	appCmd := application.GenerateInvoiceCommand{
+		TenantID:   cmd.TenantID,
+		BookingID:  cmd.BookingID,
+		CustomerID: cmd.CustomerID,
+		TripID:     cmd.TripID,
+		Subtotal:   cmd.Subtotal,
+		Tax:        cmd.Tax,
+		Discount:   cmd.Discount,
+		Total:      cmd.Total,
+	}
+	return f.generateUC.Execute(ctx, appCmd)
 }

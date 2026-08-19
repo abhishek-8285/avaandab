@@ -89,7 +89,7 @@ func (s *FileService) UploadFile(ctx context.Context, header *multipart.FileHead
 	switch uploadableType {
 	case "driver_license":
 		subdir = "drivers"
-	case "vehicle_insurance", "vehicle_permit":
+	case "vehicle_insurance", "vehicle_permit", "vehicle_rc", "vehicle_fitness", "vehicle_puc":
 		subdir = "vehicles"
 	case "company_logo":
 		subdir = "company"

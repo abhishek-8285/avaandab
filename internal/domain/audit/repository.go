@@ -2,6 +2,7 @@ package audit
 
 import (
 	"context"
+	"time"
 
 	"transport-app/internal/domain/types"
 )
@@ -11,6 +12,7 @@ type AuditLogRepository interface {
 	CreateAuditLog(ctx context.Context, log AuditLog) (AuditLog, error)
 	ListAuditLogs(ctx context.Context, limit, offset int) ([]AuditLogWithUser, error)
 	CountAuditLogs(ctx context.Context) (int64, error)
+	CountAuditLogsSince(ctx context.Context, since time.Time) (int64, error)
 }
 
 // AuditLogWithUser includes the associated user name.

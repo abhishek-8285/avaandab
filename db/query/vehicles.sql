@@ -56,3 +56,12 @@ SELECT id, registration_number, vehicle_number, vehicle_type, capacity,
 FROM vehicles
 WHERE status = 'available' AND tenant_id = ?
 ORDER BY created_at ASC;
+
+-- name: GetIdleVehicles :many
+SELECT id, registration_number, vehicle_number, vehicle_type, capacity,
+    fuel_type, insurance_expiry, fitness_expiry, permit_expiry, status, current_mileage,
+    tenant_id, created_at, updated_at
+FROM vehicles
+WHERE status = 'available' AND tenant_id = ? AND updated_at < datetime('now', '-2 hours')
+ORDER BY created_at ASC
+LIMIT 10;

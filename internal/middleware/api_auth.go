@@ -17,11 +17,25 @@ type apiPrincipal struct {
 	TenantID shared.TenantID
 }
 
+// TenantResolver derives the tenant for an authenticated user. Until migration
+// 00056 (sessions.tenant_id) lands it returns the single-tenant default; after
+// that it reads the user's tenant from the session store.
+type TenantResolver func(ctx context.Context, userID string) (shared.TenantID, error)
+
+// DefaultTenantResolver is the single-tenant bootstrap resolver. Replace with a
+// session-backed lookup when migration 00056 (sessions.tenant_id) lands.
+func DefaultTenantResolver(_ context.Context, _ string) (shared.TenantID, error) {
+	return shared.DefaultTenant, nil
+}
+
 // RequireAPIAuth protects REST API routes by accepting either: ...
-func RequireAPIAuth(store *auth.SessionStore, secret []byte) func(http.Handler) http.Handler {
+func RequireAPIAuth(store *auth.SessionStore, secret []byte, tenantResolver TenantResolver) func(http.Handler) http.Handler {
+	if tenantResolver == nil {
+		tenantResolver = DefaultTenantResolver
+	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			principal, err := resolveAPIPrincipal(r, store, secret)
+			principal, err := resolveAPIPrincipal(r, store, secret, tenantResolver)
 			if err != nil {
 				w.Header().Set("Content-Type", "application/json")
 				w.Header().Set("WWW-Authenticate", `Bearer realm="transport-api"`)
@@ -71,7 +85,7 @@ func RequirePermission(authSrv auth.AuthorizationService, resource, action strin
 }
 
 // resolveAPIPrincipal tries Bearer token first, then falls back to session cookie.
-func resolveAPIPrincipal(r *http.Request, store *auth.SessionStore, secret []byte) (apiPrincipal, error) {
+func resolveAPIPrincipal(r *http.Request, store *auth.SessionStore, secret []byte, tenantResolver TenantResolver) (apiPrincipal, error) {
 	// 1. Bearer token
 	if raw := r.Header.Get("Authorization"); strings.HasPrefix(raw, "Bearer ") {
 		token := strings.TrimPrefix(raw, "Bearer ")
@@ -104,11 +118,16 @@ func resolveAPIPrincipal(r *http.Request, store *auth.SessionStore, secret []byt
 		return apiPrincipal{}, auth.ErrTokenInvalid
 	}
 
-	// Current system is single-tenant; TenantID is always "1".
-	// When multi-tenancy is added, look up the user's tenant here.
+	// Derive the tenant through the resolver instead of hardcoding it. The
+	// resolver currently returns the single-tenant default; after migration
+	// 00056 it reads sessions.tenant_id.
+	tenantID, err := tenantResolver(r.Context(), session.UserID)
+	if err != nil {
+		tenantID = shared.DefaultTenant // nolint:tenant-hardcode
+	}
 	return apiPrincipal{
 		UserID:   session.UserID,
 		Role:     session.Role,
-		TenantID: "1",
+		TenantID: tenantID,
 	}, nil
 }

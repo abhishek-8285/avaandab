@@ -8,9 +8,14 @@ import (
 
 // Config holds connection settings for the GSTN/GSP API.
 type Config struct {
-	Endpoint string
-	APIKey   string
-	Enabled  bool
+	Endpoint     string
+	APIKey       string
+	Enabled      bool
+	UseMock      bool
+	Username     string
+	Password     string
+	ClientID     string
+	ClientSecret string
 }
 
 // GSTINDetails represents the response of a GSTIN validation lookup.
@@ -54,18 +59,24 @@ type Client interface {
 	ValidateGSTIN(ctx context.Context, gstin string) (GSTINDetails, error)
 	FetchGSTR1Summary(ctx context.Context, gstin, period string) (GSTR1Summary, error)
 	FetchGSTR3BSummary(ctx context.Context, gstin, period string) (GSTR3BSummary, error)
+	GenerateIRN(ctx context.Context, inv InvoiceView) (*IRNResponse, error)
+	PushEInvoice(ctx context.Context, invoiceID, irn string) (*PushResponse, error)
 }
 
 type stubClient struct {
-	cfg Config
+	cfg      Config
+	einvoice *MockEInvoiceClient
 }
 
-// NewClient returns a stub GSTN/GSP client that logs calls and returns fake data.
+// NewClient returns a GSTN/GSP client based on configuration.
 func NewClient(cfg Config) Client {
 	if cfg.Endpoint == "" {
 		cfg.Endpoint = "https://api.gstn.org"
 	}
-	return &stubClient{cfg: cfg}
+	return &stubClient{
+		cfg:      cfg,
+		einvoice: NewMockEInvoiceClient(cfg),
+	}
 }
 
 func (c *stubClient) ValidateGSTIN(ctx context.Context, gstin string) (GSTINDetails, error) {
@@ -117,4 +128,12 @@ func (c *stubClient) FetchGSTR3BSummary(ctx context.Context, gstin, period strin
 		TaxPaid:      45000.00,
 		ITCClaimed:   12000.00,
 	}, nil
+}
+
+func (c *stubClient) GenerateIRN(ctx context.Context, inv InvoiceView) (*IRNResponse, error) {
+	return c.einvoice.GenerateIRN(ctx, inv)
+}
+
+func (c *stubClient) PushEInvoice(ctx context.Context, invoiceID, irn string) (*PushResponse, error) {
+	return c.einvoice.PushEInvoice(ctx, invoiceID, irn)
 }

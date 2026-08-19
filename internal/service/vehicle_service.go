@@ -180,3 +180,8 @@ func (s *VehicleService) SetVehicleStatus(ctx context.Context, id domain.Vehicle
 func (s *VehicleService) GetAvailableVehicles(ctx context.Context) ([]domain.Vehicle, error) {
 	return s.store.GetAvailableVehicles(ctx)
 }
+
+// IsMaintenanceBlocked checks if a vehicle is blocked for maintenance (Spec 04 §6, §12).
+func (s *VehicleService) IsMaintenanceBlocked(ctx context.Context, vehicleID string) (bool, string, error) {
+	return s.store.IsMaintenanceBlocked(ctx, vehicleID)
+}

@@ -1,79 +1,22 @@
-<div class="bg-white border border-[#EAE8E4] rounded shadow-sm flex flex-col h-full overflow-hidden">
+{{template "page_header.html" (dict "Title" "Vehicles" "Subtitle" "Manage fleet units, registration, and status" "ActionHref" "/vehicles/new" "ActionIcon" "add" "ActionLabel" "New Vehicle")}}
+
+<div class="bg-surface-container-lowest border border-border-subtle rounded shadow-sm flex flex-col h-full overflow-hidden">
     <!-- Sticky Filter Bar (Stitch Screen 3 Exact Layout) -->
-    <form method="GET" action="/vehicles" class="px-6 py-4 border-b border-[#EAE8E4] flex flex-wrap items-center gap-3 bg-white sticky top-0 z-10">
-        <span class="text-sm font-medium text-[#565e74] mr-2 font-display">Filters:</span>
-        <a href="/vehicles" class="px-4 py-1.5 rounded-full border text-sm font-medium transition-colors {{if eq .StatusFilter ""}}border-[#00685f] bg-[#00685f] text-white{{else}}border-[#EAE8E4] bg-white text-[#565e74] hover:bg-[#f2f4f6]{{end}}">All Units</a>
-        <a href="/vehicles?status=available" class="px-4 py-1.5 rounded-full border text-sm font-medium transition-colors {{if eq .StatusFilter "available"}}border-[#00685f] bg-[#00685f] text-white{{else}}border-[#EAE8E4] bg-white text-[#565e74] hover:bg-[#f2f4f6]{{end}}">Active</a>
-        <a href="/vehicles?status=running" class="px-4 py-1.5 rounded-full border text-sm font-medium transition-colors {{if eq .StatusFilter "running"}}border-[#00685f] bg-[#00685f] text-white{{else}}border-[#EAE8E4] bg-white text-[#565e74] hover:bg-[#f2f4f6]{{end}}">Running</a>
-        <a href="/vehicles?status=maintenance" class="px-4 py-1.5 rounded-full border text-sm font-medium transition-colors {{if eq .StatusFilter "maintenance"}}border-[#00685f] bg-[#00685f] text-white{{else}}border-[#EAE8E4] bg-white text-[#565e74] hover:bg-[#f2f4f6]{{end}}">Maintenance</a>
-        <a href="/vehicles?status=inactive" class="px-4 py-1.5 rounded-full border text-sm font-medium transition-colors {{if eq .StatusFilter "inactive"}}border-[#00685f] bg-[#00685f] text-white{{else}}border-[#EAE8E4] bg-white text-[#565e74] hover:bg-[#f2f4f6]{{end}}">Out of Service</a>
+    <form method="GET" action="/vehicles" class="px-4 py-2 border-b border-border-subtle flex flex-wrap items-center gap-2 bg-surface-container-lowest sticky top-0 z-10">
+        <span class="text-xs font-medium text-secondary mr-2">Filters:</span>
+        <a href="/vehicles" class="px-3 py-1 rounded-full border text-xs font-medium transition-colors {{if eq .StatusFilter ""}}border-primary bg-primary text-on-primary{{else}}border-border-subtle bg-surface-container-lowest text-secondary hover:bg-surface-container-low{{end}}">All Units</a>
+        <a href="/vehicles?status=available" class="px-3 py-1 rounded-full border text-xs font-medium transition-colors {{if eq .StatusFilter "available"}}border-primary bg-primary text-on-primary{{else}}border-border-subtle bg-surface-container-lowest text-secondary hover:bg-surface-container-low{{end}}">Active</a>
+        <a href="/vehicles?status=running" class="px-3 py-1 rounded-full border text-xs font-medium transition-colors {{if eq .StatusFilter "running"}}border-primary bg-primary text-on-primary{{else}}border-border-subtle bg-surface-container-lowest text-secondary hover:bg-surface-container-low{{end}}">Running</a>
+        <a href="/vehicles?status=maintenance" class="px-3 py-1 rounded-full border text-xs font-medium transition-colors {{if eq .StatusFilter "maintenance"}}border-primary bg-primary text-on-primary{{else}}border-border-subtle bg-surface-container-lowest text-secondary hover:bg-surface-container-low{{end}}">Maintenance</a>
+        <a href="/vehicles?status=inactive" class="px-3 py-1 rounded-full border text-xs font-medium transition-colors {{if eq .StatusFilter "inactive"}}border-primary bg-primary text-on-primary{{else}}border-border-subtle bg-surface-container-lowest text-secondary hover:bg-surface-container-low{{end}}">Out of Service</a>
 
         <div class="ml-auto flex items-center gap-3">
-            <a href="/vehicles/new" class="inline-flex items-center gap-2 px-4 py-1.5 rounded bg-[#00685f] text-white text-sm font-medium hover:bg-[#005049] transition-colors shadow-sm">
-                <span class="material-symbols-outlined text-sm">add</span> New Vehicle
-            </a>
+            {{template "btn.html" (dict "Label" "New Vehicle" "Href" "/vehicles/new" "Size" "sm" "Icon" "add")}}
         </div>
     </form>
 
-    <!-- High-Density Data Table (Stitch Operational View Exact Classes & Layout) -->
-    <div class="flex-1 overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-            <thead class="sticky top-0 bg-white z-10 border-b border-[#EAE8E4] font-label-caps text-[11px] text-[#565e74] uppercase tracking-wider">
-                <tr>
-                    <th class="py-3 px-6 font-semibold w-36">Unit ID</th>
-                    <th class="py-3 px-6 font-semibold">Vehicle Type</th>
-                    <th class="py-3 px-6 font-semibold">Capacity & Fuel</th>
-                    <th class="py-3 px-6 font-semibold">Status</th>
-                    <th class="py-3 px-6 font-semibold text-right">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-[#EAE8E4] text-sm text-[#191c1e]">
-                {{range .Vehicles}}
-                <tr class="hover:bg-[#f2f4f6] transition-colors group">
-                    <td class="py-4 px-6 font-mono font-medium text-[#00685f]">{{.RegistrationNumber}}</td>
-                    <td class="py-4 px-6">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded border border-[#EAE8E4] bg-[#ffffff] flex items-center justify-center text-[#565e74]">
-                                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="w-5 h-5"><path d="M3 5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h1v2a1 1 0 0 0 2 0v-2h9v2a1 1 0 0 0 2 0v-2h2a1 1 0 0 0 1-1v-7l-4-4H3Zm11 4h3l2 2v2h-5V9Z"/></svg>
-                            </div>
-                            <span class="font-medium text-[#191c1e]">{{.VehicleType}} ({{.VehicleNumber}})</span>
-                        </div>
-                    </td>
-                    <td class="py-4 px-6 text-[#565e74]">
-                        <span class="font-medium text-[#191c1e]">{{.Capacity}}</span> • <span class="text-xs uppercase">{{.FuelType}}</span>
-                    </td>
-                    <td class="py-4 px-6">
-                        <div class="inline-flex items-center gap-2">
-                            {{if or (eq .Status "available") (eq .Status "active") (eq .Status "running")}}
-                            <span class="w-2 h-2 rounded-full bg-[#10B981]"></span>
-                            <span class="text-[#10B981] font-medium capitalize">{{.Status}}</span>
-                            {{else if eq .Status "maintenance"}}
-                            <span class="w-2 h-2 rounded-full bg-[#E11D48]"></span>
-                            <span class="text-[#E11D48] font-medium capitalize">{{.Status}}</span>
-                            {{else}}
-                            <span class="w-2 h-2 rounded-full bg-[#64748B]"></span>
-                            <span class="text-[#64748B] font-medium capitalize">{{.Status}}</span>
-                            {{end}}
-                        </div>
-                    </td>
-                    <td class="py-4 px-6 text-right">
-                        <a href="/vehicles/{{.ID}}" class="text-[#00685f] hover:underline font-medium mr-3">View</a>
-                        <a href="/vehicles/{{.ID}}/edit" class="text-[#565e74] hover:underline font-medium">Edit</a>
-                    </td>
-                </tr>
-                {{else}}
-                <tr>
-                    <td colspan="5" class="py-16 text-center text-[#565e74]">
-                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="w-10 h-10 text-gray-300 mb-2 block"><path d="M3 5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h1v2a1 1 0 0 0 2 0v-2h9v2a1 1 0 0 0 2 0v-2h2a1 1 0 0 0 1-1v-7l-4-4H3Zm11 4h3l2 2v2h-5V9Z"/></svg>
-                        <p class="font-medium text-base">No vehicles found matching the current filters.</p>
-                    </td>
-                </tr>
-                {{end}}
-            </tbody>
-        </table>
-    </div>
-
-    <div class="p-4 border-t border-[#EAE8E4] bg-white">
-        {{template "pagination.html" .}}
+    <!-- Table Fragment (Datastar refresh target) -->
+    <div id="list-table">
+        {{template "vehicle_list_table.html" .}}
     </div>
 </div>

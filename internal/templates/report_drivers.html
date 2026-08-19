@@ -2,11 +2,11 @@
     <!-- Title & Action -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b pb-4">
         <div>
-            <h2 class="text-2xl font-bold text-gray-900">Driver Roster Report</h2>
-            <p class="text-sm text-gray-600 mt-1">Driver licensing audit, readiness, and active status tracking</p>
+            <h2 class="text-2xl font-bold text-on-surface">Driver Roster Report</h2>
+            <p class="text-sm text-secondary mt-1">Driver licensing audit, readiness, and active status tracking</p>
         </div>
         <div class="flex items-center gap-2">
-            <button onclick="window.print()" class="px-4 py-2 min-h-[44px] inline-flex items-center justify-center bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-sm transition-colors">
+            <button onclick="window.print()" class="px-4 py-2 min-h-[44px] inline-flex items-center justify-center bg-surface-container-lowest border border-border-subtle text-on-surface-variant rounded-lg hover:bg-surface-container-low font-medium focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-sm transition-colors">
                 <span class="material-icons text-sm mr-2">print</span>Export Report
             </button>
         </div>
@@ -14,24 +14,24 @@
 
     <!-- Analytics Summary Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 border-l-4 border-l-purple-500">
-            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Drivers</div>
-            <div class="text-2xl font-bold text-gray-900 mt-1">{{.TotalDrivers}}</div>
+        <div class="bg-surface-container-lowest rounded-xl shadow-sm border border-border-subtle p-4 border-l-4 border-l-primary">
+            <div class="text-xs font-semibold text-text-muted uppercase tracking-wider">Total Drivers</div>
+            <div class="text-2xl font-bold text-on-surface mt-1">{{.TotalDrivers}}</div>
         </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 border-l-4 border-l-green-500">
-            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Available & Ready</div>
-            <div class="text-2xl font-bold text-green-600 mt-1">{{.AvailableDrivers}}</div>
+        <div class="bg-surface-container-lowest rounded-xl shadow-sm border border-border-subtle p-4 border-l-4 border-l-status-success">
+            <div class="text-xs font-semibold text-text-muted uppercase tracking-wider">Available & Ready</div>
+            <div class="text-2xl font-bold text-status-success mt-1">{{.AvailableDrivers}}</div>
         </div>
     </div>
 
     <!-- Filter Form -->
-    <form method="GET" action="/reports/drivers" class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row gap-3">
+    <form method="GET" action="/reports/drivers" class="bg-surface-container-lowest p-4 rounded-xl border border-border-subtle shadow-sm flex flex-col sm:flex-row gap-3">
         <div class="flex-1">
             <input type="text" name="q" value="{{.Query}}" placeholder="Search by name, phone, license..."
-                class="w-full text-base border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                class="w-full text-base border border-border-subtle rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500">
         </div>
         <div class="sm:w-48">
-            <select name="status" class="w-full text-base border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <select name="status" class="w-full text-base border border-border-subtle rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500">
                 <option value="">All Statuses</option>
                 <option value="available" {{if eq .StatusFilter "available"}}selected{{end}}>Available</option>
                 <option value="on_trip" {{if eq .StatusFilter "on_trip"}}selected{{end}}>On Trip</option>
@@ -45,26 +45,26 @@
     </form>
 
     <!-- Drivers Table -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div class="bg-surface-container-lowest rounded-xl shadow-sm border border-border-subtle overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+            <table class="min-w-full divide-y divide-border-subtle">
+                <thead class="bg-surface-container-low">
                     <tr>
-                        <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Driver ID</th>
-                        <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
-                        <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Phone</th>
-                        <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">License Number</th>
-                        <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-5 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Driver ID</th>
+                        <th class="px-5 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Name</th>
+                        <th class="px-5 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Phone</th>
+                        <th class="px-5 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">License Number</th>
+                        <th class="px-5 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Status</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-200 bg-white">
+                <tbody class="divide-y divide-border-subtle bg-surface-container-lowest">
                     {{if .Drivers}}
                     {{range .Drivers}}
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-5 py-3.5 text-sm font-semibold text-gray-900">{{.DriverID}}</td>
-                        <td class="px-5 py-3.5 text-sm text-gray-800 font-medium">{{.FirstName}} {{.LastName}}</td>
-                        <td class="px-5 py-3.5 text-sm text-gray-700">{{.Phone}}</td>
-                        <td class="px-5 py-3.5 text-sm text-gray-700 font-mono">{{.LicenseNumber}}</td>
+                    <tr class="hover:bg-surface-container-low">
+                        <td class="px-5 py-3.5 text-sm font-semibold text-on-surface">{{.DriverID}}</td>
+                        <td class="px-5 py-3.5 text-sm text-on-surface font-medium">{{.FirstName}} {{.LastName}}</td>
+                        <td class="px-5 py-3.5 text-sm text-on-surface-variant">{{.Phone}}</td>
+                        <td class="px-5 py-3.5 text-sm text-on-surface-variant font-mono">{{.LicenseNumber}}</td>
                         <td class="px-5 py-3.5 text-sm">
                             <span class="px-2.5 py-1 text-xs font-medium rounded-full {{statusBadge .Status}}">{{.Status}}</span>
                         </td>
@@ -72,7 +72,7 @@
                     {{end}}
                     {{else}}
                     <tr>
-                        <td colspan="5" class="px-5 py-8 text-center text-sm text-gray-500">
+                        <td colspan="5" class="px-5 py-8 text-center text-sm text-text-muted">
                             No drivers found matching criteria.
                         </td>
                     </tr>
@@ -86,14 +86,14 @@
     <div class="flex items-center justify-between">
         {{if .Pagination.HasPrev}}
         <a href="/reports/drivers?page={{sub .Pagination.Page 1}}&q={{.Query}}&status={{.StatusFilter}}" 
-           class="px-4 py-2 min-h-[44px] inline-flex items-center justify-center bg-white border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-sm">
+           class="px-4 py-2 min-h-[44px] inline-flex items-center justify-center bg-surface-container-lowest border border-border-subtle rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-low focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-sm">
            <span class="material-icons text-sm mr-1">chevron_left</span> Previous Page
         </a>
         {{end}}
 
         {{if .Pagination.HasNext}}
         <a href="/reports/drivers?page={{add .Pagination.Page 1}}&q={{.Query}}&status={{.StatusFilter}}" 
-           class="px-4 py-2 min-h-[44px] inline-flex items-center justify-center bg-white border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-sm">
+           class="px-4 py-2 min-h-[44px] inline-flex items-center justify-center bg-surface-container-lowest border border-border-subtle rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-low focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-sm">
            Next Page <span class="material-icons text-sm ml-1">chevron_right</span>
         </a>
         {{end}}

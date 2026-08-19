@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -21,19 +22,32 @@ import (
 	"gopkg.in/telebot.v3"
 	_ "modernc.org/sqlite"
 	"transport-app/internal/agent"
-	"transport-app/internal/apiversion"
-
 	"transport-app/internal/agent/rl"
+	alertchannels "transport-app/internal/alerts/channels"
+	alertpipeline "transport-app/internal/alerts/pipeline"
+	alertsqlite "transport-app/internal/alerts/repository/sqlite"
+	"transport-app/internal/apiversion"
 
 	dbmigr "transport-app/db"
 	"transport-app/internal/auth"
 	"transport-app/internal/config"
 	"transport-app/internal/domain"
+	"transport-app/internal/ewaybill"
+	fastag "transport-app/internal/fastag"
+	fuel "transport-app/internal/fuel"
+	geofenceapp "transport-app/internal/geofence/application"
+	geofencerepo "transport-app/internal/geofence/infrastructure/persistence/sql"
+	geofenceworker "transport-app/internal/geofence/infrastructure/worker"
+	geofenceHandlers "transport-app/internal/geofence/presentation/api/handlers"
 	"transport-app/internal/graphqlservice"
 	"transport-app/internal/grpcservice"
 	"transport-app/internal/handlers"
 	"transport-app/internal/integration"
+	intAcc "transport-app/internal/integration/accounting"
+	intEWB "transport-app/internal/integration/ewaybill"
+	intFastag "transport-app/internal/integration/fastag"
 	"transport-app/internal/logging"
+	"transport-app/internal/maintenance"
 	"transport-app/internal/middleware"
 	"transport-app/internal/mqttservice"
 	"transport-app/internal/openapispec"
@@ -44,6 +58,7 @@ import (
 	"transport-app/internal/operations/notifications"
 	"transport-app/internal/pnl"
 	"transport-app/internal/rag"
+	"transport-app/internal/realtime"
 	"transport-app/internal/repository/sqlite"
 	"transport-app/internal/service"
 	"transport-app/internal/telemetry"
@@ -59,11 +74,13 @@ import (
 
 	paymentApp "transport-app/internal/payment/application"
 	paymentHandlers "transport-app/internal/payment/presentation/api/handlers"
+	"transport-app/internal/payment/razorpay"
 
 	tripApp "transport-app/internal/trip/application"
 	tripHandlers "transport-app/internal/trip/presentation/api/handlers"
 
 	// Shared infrastructure
+	"transport-app/internal/eta"
 	"transport-app/internal/events"
 	founder "transport-app/internal/founder"
 	founderAlerts "transport-app/internal/founder/alerts"
@@ -170,8 +187,51 @@ func main() {
 	// Initialize repository
 	repo := sqlite.NewRepository(database)
 
+	// Single shared in-memory event bus: services, automation subscribers,
+	// the outbox relay, and founder handlers all publish/listen on the SAME
+	// instance. A duplicated bus silently severs automation (Spec 09 §5.1).
+	eventBus := events.NewInMemoryBus()
+
 	// Initialize services
-	services := service.NewServices(repo, cfg, logger)
+	services := service.NewServices(repo, cfg, logger, eventBus)
+
+	// Initialize channel adapters (Spec 05 §3)
+	inAppProvider := alertchannels.NewInAppProvider()
+	telegramProvider := alertchannels.NewTelegramProvider(cfg, logger)
+	stubProviders := alertchannels.NewStubProviders(logger)
+
+	alertProviderMap := map[string]alertchannels.Provider{
+		"in_app":   inAppProvider,
+		"telegram": telegramProvider,
+		"email":    stubProviders["email"],
+		"sms":      stubProviders["sms"],
+		"whatsapp": stubProviders["whatsapp"],
+	}
+
+	// Alerts Pipeline (Spec 05 §1, §3, §4)
+	alertRepo := alertsqlite.NewAlertRepository(database)
+	alertEngine := alertpipeline.NewEngine(alertRepo, alertProviderMap, logger)
+	alertEscalator := alertpipeline.NewEscalator(alertRepo, alertProviderMap, logger)
+	alertFlusher := alertpipeline.NewFlusher(alertRepo, alertProviderMap, logger)
+
+	eventBus.Subscribe("AlertEvent", func(ctx context.Context, e events.Event) error {
+		return alertEngine.ProcessEvent(ctx, e)
+	})
+	eventBus.Subscribe("telemetry.alert", func(ctx context.Context, e events.Event) error {
+		return alertEngine.ProcessEvent(ctx, e)
+	})
+	eventBus.Subscribe("alert.dtc", func(ctx context.Context, e events.Event) error {
+		return alertEngine.ProcessEvent(ctx, e)
+	})
+	eventBus.Subscribe("ComplianceBlocked", func(ctx context.Context, e events.Event) error {
+		return alertEngine.ProcessEvent(ctx, e)
+	})
+	eventBus.Subscribe("SOSEvent", func(ctx context.Context, e events.Event) error {
+		return alertEngine.ProcessEvent(ctx, e)
+	})
+	eventBus.Subscribe("telemetry.sos", func(ctx context.Context, e events.Event) error {
+		return alertEngine.ProcessEvent(ctx, e)
+	})
 
 	// Initialize auth store
 	authStore := auth.NewSessionStore(cfg.CookieSecret, cfg.CookieSecure)
@@ -184,12 +244,48 @@ func main() {
 		os.Exit(1)
 	}
 
+	// scorecard:update is referenced by the /scorecard/drivers/{id}/resolve
+	// route (Spec 03 §6.1) but was not seeded by migration 00043 (only
+	// scorecard:read was). Self-heal it at startup so the admin resolve
+	// action works on DBs created before this fix — no migration needed.
+	if err := seedScorecardUpdatePermission(ctx, database, authSvc); err != nil {
+		logger.Warn("scorecard:update permission seed failed; resolve route stays admin-403", "error", err)
+	}
+
 	// Create the initial admin account from env vars (optional; skipped when
 	// an admin already exists or the vars are unset).
 	bootstrapAdmin(ctx, services, authSvc, cfg, logger)
 
 	// Initialize handlers app
-	app := handlers.NewApp(services, cfg, authStore, database, authSvc)
+	resetTokens := auth.NewResetTokenStore(0)
+	app := handlers.NewApp(services, cfg, authStore, database, authSvc, resetTokens)
+
+	// E-Way Bill and FASTag services (Spec 07)
+	integCfg := integration.LoadConfig()
+	ewbCfg := ewaybill.Config{
+		Enabled:              cfg.EWayBill.WorkerEnabled,
+		Interval:             cfg.EWayBill.WorkerInterval,
+		ExtensionKM:          cfg.EWayBill.ExtensionKM,
+		ExtensionLeadSeconds: cfg.EWayBill.ExtensionLeadSeconds,
+		MinInvoiceValue:      cfg.EWayBill.MinInvoiceValue,
+	}
+	ewbClient := intEWB.NewClient(integCfg.EWayBill)
+	ewbService := ewaybill.NewEWayBillService(database, eventBus, ewbClient, logger, ewbCfg)
+	ewbService.SubscribeTripEvents(eventBus)
+
+	fastagClient := intFastag.NewClient(integCfg.FASTag, database)
+	fastagConfig := fastag.LoadConfig(database)
+	fastagService := fastag.NewFASTagService(database, fastagClient, fastagConfig, logger)
+
+	app.EWayBill = handlers.NewEWayBillHandlers(app, ewbService, authSvc)
+	app.FASTag = handlers.NewFASTagHandlers(app, fastagService, authSvc)
+
+	accountingClient := intAcc.NewClient(integCfg.Accounting)
+	accountingConsumer := intAcc.NewConsumer(database, accountingClient, integCfg.Accounting)
+	accountingConsumer.SubscribeEvents(eventBus)
+	app.Accounting = handlers.NewAccountingHandlers(app, accountingConsumer, authSvc)
+	app.Settlements = handlers.NewSettlementHandlers(app, services.Settlements, authSvc)
+	app.Documents = handlers.NewDocumentHandlers(app, services.Documents, authSvc)
 
 	// ── Ops: error reporting, login audit, dashboard ─────────────────────
 	notifSvc := notifications.NewService()
@@ -253,9 +349,20 @@ func main() {
 		authSvc,
 	)
 	invoiceAPIHandler := invoiceHandlers.NewAPIInvoiceHandler(generateInvoice, getInvoice, listInvoices, voidInvoice, authSvc)
+
+	// Detention attach/waive endpoints (Spec 02 §6)
+	detLogsRepo := geofencerepo.NewEventLogRepository(database)
+	geofenceAPIHandler := geofenceHandlers.NewAPIGeofenceHandler(
+		geofenceapp.NewAttachDetentionUseCase(sqlUoW, detLogsRepo, generateInvoice),
+		geofenceapp.NewWaiveDetentionUseCase(sqlUoW, detLogsRepo),
+		authSvc,
+	)
 	razorpayWebhookUC := paymentApp.NewRazorpayWebhookUseCase(recordPayment, sqlUoW, cfg.RazorpayWebhook, realClock)
-	paymentAPIHandler := paymentHandlers.NewAPIPaymentHandler(recordPayment, getPayment, listPayments, reversePayment, listPaymentsByInvoice, razorpayWebhookUC, authSvc)
-	integrationHandler := integration.NewHandler(integration.LoadConfig(), authSvc)
+	razorpayClient := razorpay.NewRazorpayClient(cfg.RazorpayKeyID, cfg.RazorpayKeySecret)
+	razorpayOrderUC := paymentApp.NewCreateRazorpayOrderUseCase(sqlUoW, razorpayClient, cfg.RazorpayKeyID)
+	razorpayVerifyUC := paymentApp.NewVerifyRazorpayPaymentUseCase(sqlUoW, recordPayment, razorpayClient, cfg.RazorpayKeySecret, realClock)
+	paymentAPIHandler := paymentHandlers.NewAPIPaymentHandler(recordPayment, getPayment, listPayments, reversePayment, listPaymentsByInvoice, razorpayWebhookUC, razorpayOrderUC, razorpayVerifyUC, authSvc)
+	integrationHandler := integration.NewHandler(integration.LoadConfig(), authSvc, database)
 
 	// Setup router
 	r := chi.NewRouter()
@@ -265,7 +372,10 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer(reporter))
 	r.Use(chiMiddleware.Compress(5))
-	r.Use(chiMiddleware.Timeout(60 * time.Second))
+	// Exempt the SSE stream from the global 60s request timeout (Spec 04 §1.2):
+	// long-lived EventSource connections must outlive the deadline. REST polling
+	// (/live) is unaffected and remains the source of truth in multi-instance.
+	r.Use(middleware.SkipForPaths(chiMiddleware.Timeout(60*time.Second), "/api/v1/telemetry/stream"))
 	r.Use(middleware.SPAMiddleware)
 
 	// Global HTTP middleware: Limit request body to 32MB in RAM (prevents disk spooling)
@@ -311,6 +421,86 @@ func main() {
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
+  <url>
+    <loc>https://avandab.com/features/dashboard</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/trips</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/routes</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/bookings</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/vehicles</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/drivers</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/customers</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/invoices</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/payments</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/reports</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/audit-logs</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/settings</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/users</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/company</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/kharcha</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/assistant</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
 </urlset>`
 		_, _ = w.Write([]byte(sitemap))
 	})
@@ -331,13 +521,52 @@ func main() {
 	}
 	authAPIHandler := authAPIHandlers.NewAPIAuthHandler(services.Auth, services.Users, apiSecret)
 
+	// ── Telemetry Ingestion Pipeline (Phase 1) ─────────────────────────
+	telemetryCfg := cfg.Telemetry
+	ingestCfg := telemetry.IngestConfig{
+		OdometerMaxRegressionKM: telemetryCfg.OdometerMaxRegressionKM,
+		FuelClampDeltaPct:       telemetryCfg.FuelClampDeltaPct,
+		BatchSize:               telemetryCfg.BatchSize,
+		FlushInterval:           telemetryCfg.FlushInterval,
+		RawRetentionDays:        telemetryCfg.RawRetentionDays,
+	}
+	ingestor := telemetry.NewIngestor(database, sqlUoW, eventBus, idGen, nil, ingestCfg)
+	mqttHandler := telemetry.NewMQTTIngestHandler(ingestor, logger)
+	httpHandler := telemetry.NewHTTPIngestHandler(ingestor, telemetry.NewDeviceStore(database), telemetryCfg.DeviceSecretPepper)
+
 	// ── High-Performance Architecture Protocols ──────────────────────
 	// 1. MQTT Broker Client Setup
 	mqttURL := os.Getenv("MQTT_URL")
 	if mqttURL == "" {
 		mqttURL = "tcp://localhost:1883"
 	}
-	_ = mqttservice.NewMQTTBroker(mqttURL)
+	// TLS hard-fail in production (Spec 01 §13.12)
+	if cfg.AppEnv == "production" && strings.HasPrefix(mqttURL, "tcp://") {
+		logger.Warn("MQTT_URL uses unencrypted tcp:// in production; configure TLS (ssl:// or tls://)")
+	}
+	// The broker spawns its own background goroutines (Paho read loop) which
+	// keep the client alive for the process lifetime. The TelemetryHandler
+	// callback routes canonical frames into the ingestion pipeline.
+	_ = mqttservice.NewMQTTBroker(mqttURL, mqttHandler.HandleMessage)
+
+	// ── Geofence Dwell Engine (Spec 02 §4) ───────────────────────────
+	// Constructed here (needs the app DB + bus) but started with the
+	// signal-scoped ctx near the other background loops.
+	var dwellWorker *geofenceworker.DwellWorker
+	if cfg.Telemetry.Enabled {
+		dwellWorker = geofenceworker.NewDwellWorker(database, sqlUoW,
+			geofenceapp.NewConfigReader(database), eventBus, logger)
+		dwellWorker.WithTripTransitions(reachPickup, startTransit)
+	}
+
+	// ── Fuel Anomaly Engine (Spec 03 §1.2) ───────────────────────────
+	// Single-instance, in-memory per-vehicle state replayed on startup
+	// (package internal/fuel godoc). Runs only when telemetry is enabled —
+	// the engine is a consumer of telemetry_snapshots.
+	var fuelEngine *fuel.FuelEngine
+	if cfg.Telemetry.Enabled {
+		fuelEngine = fuel.NewEngine(database, sqlUoW, fuel.NewConfigReader(database), logger)
+	}
 
 	// 2. gRPC Dispatch Microservice
 	grpcPort := os.Getenv("GRPC_PORT")
@@ -349,36 +578,8 @@ func main() {
 	// 3. GraphQL Query Endpoint
 	graphqlH := graphqlservice.NewGraphQLHandler(listTrips)
 
-	// Public: token endpoint (no auth required) — rate-limited against brute force
-	authAPIHandler.Register(r.With(middleware.RateLimit(10)))
-
-	// ── AI Agent (operations assistant) — built after RAG below ─────────
-	var agentAPI *agent.Handler
-	var approvalSvc *agent.ApprovalService
-
-	// Public: Razorpay webhook — signature-verified, rate-limited against flood attacks
-	r.With(middleware.RateLimit(30)).Post("/api/v1/payments/razorpay-webhook", paymentAPIHandler.RazorpayWebhook)
-
-	// Protected: GraphQL, Telemetry, and all /api/v1/* routes require a valid session or Bearer token
-	r.Group(func(r chi.Router) {
-		r.Use(middleware.RequireAPIAuth(authStore, apiSecret))
-		r.Post("/query", graphqlH.ServeHTTP)
-		r.Get("/graphql", graphqlH.ServeHTTP)
-		telemetry.RegisterTelemetryRoutes(r, database)
-		pnl.RegisterRoutes(r, pnl.NewService(database), authSvc)
-		bookingAPIHandler.Register(r)
-		tripAPIHandler.Register(r)
-		invoiceAPIHandler.Register(r)
-		paymentAPIHandler.Register(r)
-		integrationHandler.Register(r)
-	})
-
-	// Deprecated v2 alias routes (rewrite to v1) plus /api/v2/health.
-	// Aliased routes require the same API auth as v1; the public health check
-	// is mounted separately so probes stay unauthenticated.
-	apiversion.MountV2(r, middleware.RequireAPIAuth(authStore, apiSecret), http.HandlerFunc(healthChecker.HealthHandler), bookingAPIHandler, tripAPIHandler, invoiceAPIHandler, paymentAPIHandler)
-
 	// ── RAG (codebase search) ────────────────────────────────────────────
+	// Created before the protected group below so its routes mount behind RequireAPIAuth.
 	var ragHandler *rag.Handler
 	if cfg.RAG.Enabled {
 		ragStore, err := rag.NewVectorStore(cfg.RAG.VectorDBPath)
@@ -393,7 +594,7 @@ func main() {
 				logger.Warn("RAG: no embedding API key configured, using hash-based embeddings (lower quality)")
 			}
 			ragSvc := rag.NewService(embedder, ragStore, cfg.RAG.ChunkSize, cfg.RAG.ChunkOverlap, cfg.UploadDir)
-			ragHandler = rag.NewHandler(ragSvc)
+			ragHandler = rag.NewHandler(ragSvc).WithAllowedDirs(cfg.RAG.IndexDirs)
 
 			// Auto-index on startup if dirs configured
 			if len(cfg.RAG.IndexDirs) > 0 {
@@ -408,10 +609,60 @@ func main() {
 				}()
 			}
 
-			ragHandler.RegisterRoutes(r)
 			logger.Info("RAG enabled", "dirs", cfg.RAG.IndexDirs, "vector_db", cfg.RAG.VectorDBPath)
 		}
 	}
+
+	// Public: token endpoint (no auth required) — rate-limited against brute force
+	authAPIHandler.Register(r.With(middleware.RateLimit(10)))
+
+	// ── AI Agent (operations assistant) — built after RAG below ─────────
+	var agentAPI *agent.Handler
+	var approvalSvc *agent.ApprovalService
+
+	// Public: Razorpay webhook — signature-verified, rate-limited against flood attacks
+	r.With(middleware.RateLimit(30)).Post("/api/v1/payments/razorpay-webhook", paymentAPIHandler.RazorpayWebhook)
+
+	// Public: device GPS ingestion (own hardware + mobile app) — authenticated via
+	// X-Device-Token header (HMAC-SHA256), not session/Bearer token.
+	if cfg.Telemetry.Enabled {
+		httpHandler.RegisterRoutes(r.With(middleware.RateLimit(30)))
+	}
+
+	// SSE hub (single-process, in-memory fan-out, Spec 04 §1.2)
+	sseHub := realtime.NewHub(cfg.LiveMap.SSEKeepaliveSec, logger)
+	realtime.AttachToBus(eventBus, sseHub)
+
+	// ETA service (pure read path, Spec 04 §5, 3D)
+	etaService := eta.NewEtaService(database, cfg.LiveMap.EtaStaleMin, cfg.LiveMap.EtaWindowMin, cfg.LiveMap.EtaGuardMaxRegressMin)
+	if app.Share != nil {
+		app.Share.EtaService = etaService
+	}
+
+	// Protected: GraphQL, Telemetry, and all /api/v1/* routes require a valid session or Bearer token
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.RequireAPIAuth(authStore, apiSecret, middleware.DefaultTenantResolver))
+		r.Post("/query", graphqlH.ServeHTTP)
+		r.Get("/graphql", graphqlH.ServeHTTP)
+		telemetry.RegisterTelemetryRoutes(r, ingestor, database, time.Duration(cfg.LiveMap.TelemetryStaleMin)*time.Minute, etaService)
+		r.Get("/api/v1/telemetry/stream", realtime.StreamHandler(sseHub, cfg.LiveMap.SSEEnabled))
+		pnl.RegisterRoutes(r, pnl.NewService(database), authSvc)
+		bookingAPIHandler.Register(r)
+		tripAPIHandler.Register(r)
+		invoiceAPIHandler.Register(r)
+		paymentAPIHandler.Register(r)
+		integrationHandler.Register(r)
+		geofenceAPIHandler.Register(r)
+		r.Get("/api/v1/hsn-sac/search", app.Invoices.SearchHSNSAC)
+		if ragHandler != nil {
+			ragHandler.RegisterRoutes(r)
+		}
+	})
+
+	// Deprecated v2 alias routes (rewrite to v1) plus /api/v2/health.
+	// Aliased routes require the same API auth as v1; the public health check
+	// is mounted separately so probes stay unauthenticated.
+	apiversion.MountV2(r, middleware.RequireAPIAuth(authStore, apiSecret, middleware.DefaultTenantResolver), http.HandlerFunc(healthChecker.HealthHandler), bookingAPIHandler, tripAPIHandler, invoiceAPIHandler, paymentAPIHandler)
 
 	// ── AI Agent: multi-agent orchestrator + RL learning + approvals ────
 	if cfg.Agent.Enabled && cfg.Agent.APIKey != "" {
@@ -461,7 +712,7 @@ func main() {
 
 		// API routes (bearer/session) — approval queue + chat
 		r.Group(func(r chi.Router) {
-			r.Use(middleware.RequireAPIAuth(authStore, apiSecret))
+			r.Use(middleware.RequireAPIAuth(authStore, apiSecret, middleware.DefaultTenantResolver))
 			r.Use(agentRequestTimeout(5 * time.Minute))
 			agentAPI.RegisterAPIRoute(r)
 			if approvalSvc != nil {
@@ -487,7 +738,7 @@ func main() {
 
 	// Uploaded files (logos, documents) - require authentication
 	uploadsServer := http.FileServer(http.Dir(cfg.UploadDir))
-	r.With(middleware.RequireAuth(authStore)).Handle("/uploads/*", http.StripPrefix("/uploads/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireAuth(authStore, middleware.DefaultTenantResolver)).Handle("/uploads/*", http.StripPrefix("/uploads/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "private, no-cache")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		uploadsServer.ServeHTTP(w, r)
@@ -536,6 +787,86 @@ func main() {
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>
+  <url>
+    <loc>https://avandab.com/features/dashboard</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/trips</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/routes</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/bookings</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/vehicles</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/drivers</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/customers</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/invoices</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/payments</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/reports</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/audit-logs</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/settings</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/users</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/company</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/kharcha</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://avandab.com/features/assistant</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
 </urlset>`
 			_, _ = w.Write([]byte(sitemap))
 		})
@@ -545,6 +876,8 @@ func main() {
 		r.With(middleware.RateLimit(10)).Post("/register", app.Auth.Register)
 		r.Get("/forgot-password", app.Auth.ForgotPasswordPage)
 		r.Post("/forgot-password", app.Auth.SubmitForgotPassword)
+		r.Get("/reset-password", app.Auth.ResetPasswordPage)
+		r.Post("/reset-password", app.Auth.SubmitResetPassword)
 		r.Post("/logout", app.Auth.Logout)
 
 		// Public Contact & Status Tracking
@@ -555,15 +888,35 @@ func main() {
 		r.Get("/terms", app.Terms)
 		r.Get("/refunds", app.Refunds)
 
+		// Public feature explainer pages (login-free)
+		r.Get("/features/{slug}", app.FeaturePage)
+		r.Get("/features", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+		})
+
+		// Public live trip share links (Spec 04 §4) — login-free
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.ContentSecurityPolicy(cfg.LiveMap.CSPEnabled))
+			r.With(middleware.RateLimit(20), middleware.NoCache).Get("/share/{token}", app.Share.ViewShare)
+			r.With(middleware.RateLimit(10)).Post("/share/{token}/verify", app.Share.VerifyPIN)
+			r.With(middleware.RateLimit(30), middleware.NoCache).Get("/share/{token}/data", app.Share.ShareData)
+		})
+
 		// Protected routes
 		r.Group(func(r chi.Router) {
-			r.Use(middleware.RequireAuth(authStore))
+			r.Use(middleware.RequireAuth(authStore, middleware.DefaultTenantResolver))
+
+			// Trip share links (Spec 04 §4)
+			r.With(middleware.ResourcePermission(authSvc, "shares", "create")).Post("/trips/{id}/share", app.Share.CreateShare)
+			r.With(middleware.ResourcePermission(authSvc, "shares", "read")).Get("/shares", app.Share.ListShares)
+			r.With(middleware.ResourcePermission(authSvc, "shares", "revoke")).Post("/shares/{id}/revoke", app.Share.RevokeShare)
 
 			// User Setup & Onboarding
 			r.Get("/user/onboard", app.Auth.UserOnboardingPage)
 
 			// Dashboard
 			r.Get("/dashboard", app.Dashboard.Index)
+			r.Post("/dashboard/event", app.Dashboard.Event)
 			r.Get("/files/{id}", app.DownloadFile)
 
 			// Ops dashboard (errors & incidents, login audit) - Admin only
@@ -606,8 +959,58 @@ func main() {
 			// Audit Logs
 			r.Route("/audit-logs", app.AuditLogs.Routes)
 
+			// Telemetry device registry / provisioning / quarantine admin
+			if cfg.Telemetry.Enabled {
+				r.Route("/telemetry/devices", app.TelemetryDevices.Routes)
+				r.Route("/telemetry/quarantine", app.TelemetryDevices.QuarantineRoutes)
+			}
+
+			// Geofence CRUD + drawing UI (Spec 02 §8)
+			r.Route("/geofences", app.Geofences.Routes)
+
 			// Kharcha Ledger (driver expense approvals)
 			r.Route("/kharcha", app.Kharcha.Routes)
+
+			// Fuel claim audit queue + review (Spec 03 §6.1)
+			r.Route("/fuel", app.FuelAudit.Routes)
+
+			// Driver scorecard leaderboard + fraud resolve (Spec 03 §6.1)
+			r.Route("/scorecard", app.Scorecard.Routes)
+
+			// Live fleet tracking map (Spec 04 §1.3) & Preventive Maintenance (Spec 04 §6, §12) with opt-in CSP (Spec 04 §2)
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.ContentSecurityPolicy(cfg.LiveMap.CSPEnabled))
+				r.Route("/tracking", app.Tracking.Routes)
+				r.Route("/maintenance", app.Maintenance.Routes)
+			})
+
+			// Operational alerts (Spec 05 §3)
+			r.With(middleware.ResourcePermission(authSvc, "alerts", "read")).Route("/alerts", app.Alerts.Routes)
+
+			// Compliance management and exemptions (Spec 05 §5, §11)
+			if app.Compliance != nil {
+				r.With(middleware.ResourcePermission(authSvc, "compliance", "read")).Route("/compliance", app.Compliance.Routes)
+			}
+
+			// E-Way Bill & FASTag routes (Spec 07)
+			if app.EWayBill != nil {
+				app.EWayBill.Mount(r)
+			}
+			if app.FASTag != nil {
+				app.FASTag.Mount(r)
+			}
+			if app.Accounting != nil {
+				app.Accounting.Mount(r)
+			}
+			if app.Settlements != nil {
+				app.Settlements.Mount(r)
+			}
+			if app.Documents != nil {
+				app.Documents.Mount(r)
+			}
+			if app.Compliance != nil {
+				app.Compliance.Mount(r)
+			}
 
 			// AI Operations Assistant
 			r.Route("/assistant", app.Assistant.Routes)
@@ -646,7 +1049,7 @@ func main() {
 	defer stop()
 
 	// ── Outbox relay & founder notifications ──────────────────────────
-	eventBus := events.NewInMemoryBus()
+	// NOTE: eventBus is the SAME instance injected into services above.
 	founderSvc := founder.NewFounderService(newFounderNotifier(logger))
 	founderSvc.RegisterEventHandlers(eventBus)
 	if founderConfigured() {
@@ -654,6 +1057,98 @@ func main() {
 	}
 	outboxRelay := outbox.NewRelay(database, eventBus, logger)
 	go outboxRelay.Run(ctx)
+	go sseHub.Run(ctx)
+
+	if dwellWorker != nil {
+		go dwellWorker.Run(ctx)
+	}
+	if fuelEngine != nil {
+		// Incremental scorecard trigger (Spec 03 §4.3): after each engine
+		// pass that wrote behaviour events, recompute the affected driver.
+		if services.Scorecard != nil {
+			fuelEngine.WithBehaviourHook(func(ctx context.Context, driverID string) {
+				if _, err := services.Scorecard.RecomputeDriverScore(ctx, driverID); err != nil {
+					logger.Error("scorecard incremental recompute failed", "driver_id", driverID, "error", err)
+				}
+			})
+		}
+		go fuelEngine.Run(ctx)
+	}
+
+	// Nightly scorecard sweep (Spec 03 §4.3): recompute every driver with
+	// behaviour events in the window so decayed scores stay fresh even when
+	// no new engine events arrive.
+	if services.Scorecard != nil {
+		go func() {
+			ticker := time.NewTicker(24 * time.Hour)
+			defer ticker.Stop()
+			if err := services.Scorecard.RecomputeAllDrivers(ctx); err != nil && !errors.Is(err, context.Canceled) {
+				logger.Error("scorecard nightly sweep failed", "error", err)
+			}
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+					if err := services.Scorecard.RecomputeAllDrivers(ctx); err != nil && !errors.Is(err, context.Canceled) {
+						logger.Error("scorecard nightly sweep failed", "error", err)
+					}
+				}
+			}
+		}()
+	}
+
+	// Fuel claim audit pass (Spec 03 §3.2 step 2): runs on its own 5-minute
+	// ticker rather than inside the engine tick so the audit service stays
+	// independent of the anomaly engine (and avoids an internal/fuel →
+	// internal/service import cycle).
+	go func() {
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+		if _, err := services.FuelAudit.AuditPendingClaims(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			logger.Error("fuel audit pass failed", "error", err)
+		}
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if _, err := services.FuelAudit.AuditPendingClaims(ctx); err != nil && !errors.Is(err, context.Canceled) {
+					logger.Error("fuel audit pass failed", "error", err)
+				}
+			}
+		}
+	}()
+
+	// Preventive maintenance worker (Spec 04 §6, §9)
+	if cfg.LiveMap.PMEnabled {
+		maintWorker := maintenance.NewWorker(database, eventBus, logger, cfg.LiveMap.PMCheckIntervalMin, cfg.LiveMap.PMCriticalDTCs)
+		if app.Maintenance != nil {
+			app.Maintenance.SetWorker(maintWorker)
+		}
+		go maintWorker.Run(ctx)
+	}
+
+	// Operational alerts escalation and storm batch flusher (Spec 05 §4)
+	go alertEscalator.Run(ctx)
+	go alertFlusher.Run(ctx)
+
+	// E-Way Bill lifecycle worker (Spec 05 §7, Spec 07)
+	var ewbWorker *ewaybill.Worker
+	if cfg.EWayBill.WorkerEnabled {
+		ewbWorker = ewaybill.NewWorker(database, eventBus, nil, logger, ewaybill.Config{
+			Enabled:              cfg.EWayBill.WorkerEnabled,
+			Interval:             cfg.EWayBill.WorkerInterval,
+			ExtensionKM:          cfg.EWayBill.ExtensionKM,
+			ExtensionLeadSeconds: cfg.EWayBill.ExtensionLeadSeconds,
+			MinInvoiceValue:      cfg.EWayBill.MinInvoiceValue,
+		})
+		go ewbWorker.Run(ctx)
+	}
+
+	// E-Way Bill expiry monitor (Spec 07 §2.8)
+	ewbMonitor := ewaybill.NewMonitor(ewbService, ewbCfg)
+	go ewbMonitor.Run(ctx)
 
 	go func() {
 		logger.Info("Server listening", "address", addr)
@@ -765,4 +1260,24 @@ func runDailyDigest(ctx context.Context, svc *founder.FounderService, logger *sl
 			}
 		}
 	}
+}
+
+// seedScorecardUpdatePermission creates the scorecard:update permission and
+// grants it to the admin role when missing, then reloads the Casbin enforcer.
+// Migration 00043 seeded only scorecard:read; the resolve route (Spec 03
+// §6.1) needs the update permission, and editing that migration is forbidden
+// by the Migration Ownership Index — so this runs at startup instead.
+func seedScorecardUpdatePermission(ctx context.Context, db *sql.DB, authSvc auth.AuthorizationService) error {
+	if _, err := db.ExecContext(ctx,
+		`INSERT OR IGNORE INTO permissions (name, description)
+		 VALUES ('scorecard:update', 'Resolve scorecard fraud-cap events')`); err != nil {
+		return err
+	}
+	if _, err := db.ExecContext(ctx,
+		`INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
+		 SELECT r.id, p.id FROM roles r CROSS JOIN permissions p
+		 WHERE r.name = 'admin' AND p.name = 'scorecard:update'`); err != nil {
+		return err
+	}
+	return authSvc.Reload()
 }

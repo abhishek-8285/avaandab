@@ -63,3 +63,10 @@ JOIN customers c ON b.customer_id = c.id
 WHERE b.tenant_id = ?
   AND (b.booking_number LIKE '%' || ? || '%' OR c.name LIKE '%' || ? || '%' OR c.company LIKE '%' || ? || '%')
   AND (? = '' OR b.status = ?);
+
+-- name: CountBookingsByDay :many
+SELECT CAST(date(pickup_date) AS TEXT) AS day, COUNT(*) AS count
+FROM bookings
+WHERE tenant_id = ? AND date(pickup_date) >= date('now', '-29 days')
+GROUP BY date(pickup_date)
+ORDER BY day ASC;

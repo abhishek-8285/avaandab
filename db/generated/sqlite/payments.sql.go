@@ -345,6 +345,42 @@ func (q *Queries) GetPaymentsByInvoice(ctx context.Context, arg GetPaymentsByInv
 	return items, nil
 }
 
+const getRevenueByDay = `-- name: GetRevenueByDay :many
+SELECT CAST(date(payment_date) AS TEXT) AS day, CAST(COALESCE(SUM(amount), 0) AS REAL) AS total
+FROM payments
+WHERE tenant_id = ? AND date(payment_date) >= date('now', '-29 days')
+GROUP BY date(payment_date)
+ORDER BY day ASC
+`
+
+type GetRevenueByDayRow struct {
+	Day   string  `json:"day"`
+	Total float64 `json:"total"`
+}
+
+func (q *Queries) GetRevenueByDay(ctx context.Context, tenantID string) ([]GetRevenueByDayRow, error) {
+	rows, err := q.db.QueryContext(ctx, getRevenueByDay, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetRevenueByDayRow
+	for rows.Next() {
+		var i GetRevenueByDayRow
+		if err := rows.Scan(&i.Day, &i.Total); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTotalRevenue = `-- name: GetTotalRevenue :one
 SELECT CAST(COALESCE(SUM(amount), 0) AS REAL) AS total
 FROM payments

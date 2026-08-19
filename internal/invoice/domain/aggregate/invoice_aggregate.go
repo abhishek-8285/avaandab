@@ -2,6 +2,7 @@ package aggregate
 
 import (
 	"errors"
+	"math"
 	"time"
 
 	"transport-app/internal/shared"
@@ -25,6 +26,38 @@ const (
 	InvoiceStatusCancelled   InvoiceStatus = "cancelled"
 )
 
+// LineType constants for invoice line items (Spec 02 DDL CHECK constraint).
+const (
+	LineTypeFreight     = "freight"
+	LineTypeDetention   = "detention"
+	LineTypeAccessorial = "accessorial"
+)
+
+// LineItem is a single invoice line (freight, detention or accessorial).
+type LineItem struct {
+	ID           string
+	TenantID     shared.TenantID
+	InvoiceID    InvoiceID
+	TripID       *string
+	LineType     string
+	HSNSACCode   *string
+	Description  string
+	Unit         *string
+	Quantity     float64
+	UnitPrice    float64
+	Rate         float64
+	TaxableValue float64
+	CgstRate     float64
+	SgstRate     float64
+	IgstRate     float64
+	CgstAmount   float64
+	SgstAmount   float64
+	IgstAmount   float64
+	Amount       float64
+	Total        float64
+	RefID        *string // e.g. trip_detentions.id for detention lines
+}
+
 // InvoiceAggregate is the aggregate root representing a billing invoice.
 type InvoiceAggregate struct {
 	ID            InvoiceID
@@ -35,6 +68,9 @@ type InvoiceAggregate struct {
 	TripID        *string
 	Subtotal      float64
 	Tax           float64
+	Cgst          float64
+	Sgst          float64
+	Igst          float64
 	Discount      float64
 	Total         float64
 	PaymentStatus PaymentStatus
@@ -44,9 +80,15 @@ type InvoiceAggregate struct {
 	FinancialYear string
 	CreditBalance float64
 	Remarks       string
+	IRN           *string
+	IRNAckNo      *string
+	IRNAckDate    *string
+	SignedQR      *string
+	EwbNumber     *string
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	Version       int64
+	LineItems     []LineItem
 	events        []any
 }
 
@@ -135,6 +177,46 @@ func (a *InvoiceAggregate) Events() []any {
 // ClearEvents clears the recorded events list.
 func (a *InvoiceAggregate) ClearEvents() {
 	a.events = nil
+}
+
+// AddLineItem appends a line item and recomputes Subtotal (sum of all line
+// amounts) and Total (Subtotal + Tax - Discount). Spec 02 §6.
+func (a *InvoiceAggregate) AddLineItem(item LineItem) {
+	item.Amount = RoundMoney(item.Amount)
+	a.LineItems = append(a.LineItems, item)
+	a.RecomputeTotals()
+}
+
+// RecomputeTotals re-derives Subtotal, CGST, SGST, IGST, Tax, and Total from the line items.
+// It is a no-op when the invoice has no line items (flat booking pricing remains).
+func (a *InvoiceAggregate) RecomputeTotals() {
+	if len(a.LineItems) == 0 {
+		return
+	}
+	var subtotal, cgst, sgst, igst float64
+	hasLineTaxes := false
+	for _, li := range a.LineItems {
+		subtotal += li.Amount
+		if li.CgstAmount > 0 || li.SgstAmount > 0 || li.IgstAmount > 0 {
+			hasLineTaxes = true
+			cgst += li.CgstAmount
+			sgst += li.SgstAmount
+			igst += li.IgstAmount
+		}
+	}
+	a.Subtotal = RoundMoney(subtotal)
+	if hasLineTaxes {
+		a.Cgst = RoundMoney(cgst)
+		a.Sgst = RoundMoney(sgst)
+		a.Igst = RoundMoney(igst)
+		a.Tax = RoundMoney(a.Cgst + a.Sgst + a.Igst)
+	}
+	a.Total = RoundMoney(a.Subtotal + a.Tax - a.Discount)
+}
+
+// RoundMoney rounds to 2 decimal places (minor-unit precision).
+func RoundMoney(v float64) float64 {
+	return math.Round(v*100) / 100
 }
 
 // UpdatePaymentStatus updates the status of the invoice and records a payment received event.

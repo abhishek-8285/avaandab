@@ -24,6 +24,17 @@ type DashboardData struct {
 	PendingPaymentsCount   int
 	MonthlyRevenue         float64
 
+	// Charts (variant B)
+	RevenueSeries  []repository.MonthlyRevenue
+	RevenueByDay   []repository.RevenueByDay
+	BookingsByDay  []repository.BookingsByDay
+	StatusCounts   map[domain.TripStatus]int64
+	DeltaYesterday int64
+
+	// Alerts (variant B)
+	OverdueTrips []repository.TripWithJoins
+	IdleVehicles []domain.Vehicle
+
 	// Tables
 	UpcomingTrips  []repository.TripWithJoins
 	RecentBookings []repository.BookingWithJoins
@@ -64,21 +75,30 @@ func (s *DashboardService) GetDashboardData(ctx context.Context) (DashboardData,
 		recentBookings                                                               []repository.BookingWithJoins
 		recentPayments                                                               []repository.PaymentWithInvoice
 		recentActivity                                                               []repository.AuditLogWithUser
+		statusCounts                                                                 map[domain.TripStatus]int64
+		revenueSeries                                                                []repository.MonthlyRevenue
+		revenueByDay                                                                 []repository.RevenueByDay
+		bookingsByDay                                                                []repository.BookingsByDay
+		overdueTrips                                                                 []repository.TripWithJoins
+		idleVehicles                                                                 []domain.Vehicle
+		yesterdayCount                                                               int64
 	)
 
 	today := time.Now().Format("2006-01-02")
+	yesterday := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
 	g, ctx := errgroup.WithContext(ctx)
 
 	// 1. Today's trips by status
 	g.Go(func() error {
-		statusCounts, err := s.store.CountTripsByStatusForDate(ctx, today)
+		counts, err := s.store.CountTripsByStatusForDate(ctx, today)
 		if err == nil {
-			todaysTripsCount = statusCounts[domain.TripScheduled] + statusCounts[domain.TripAssigned] +
-				statusCounts[domain.TripStarted] + statusCounts[domain.TripCompleted] + statusCounts[domain.TripCancelled] +
-				statusCounts[domain.TripDraft]
-			activeTripsCount = statusCounts[domain.TripScheduled] + statusCounts[domain.TripAssigned] + statusCounts[domain.TripStarted]
-			completedTripsCount = statusCounts[domain.TripCompleted]
-			cancelledTripsCount = statusCounts[domain.TripCancelled]
+			statusCounts = counts
+			todaysTripsCount = counts[domain.TripScheduled] + counts[domain.TripAssigned] +
+				counts[domain.TripStarted] + counts[domain.TripCompleted] + counts[domain.TripCancelled] +
+				counts[domain.TripDraft]
+			activeTripsCount = counts[domain.TripScheduled] + counts[domain.TripAssigned] + counts[domain.TripStarted]
+			completedTripsCount = counts[domain.TripCompleted]
+			cancelledTripsCount = counts[domain.TripCancelled]
 		}
 		return nil
 	})
@@ -114,6 +134,7 @@ func (s *DashboardService) GetDashboardData(ctx context.Context) (DashboardData,
 	g.Go(func() error {
 		monthlyRev, err := s.store.GetMonthlyRevenue(ctx)
 		if err == nil {
+			revenueSeries = monthlyRev
 			currentMonth := time.Now().Format("2006-01")
 			for _, rev := range monthlyRev {
 				if rev.Month == currentMonth {
@@ -121,6 +142,57 @@ func (s *DashboardService) GetDashboardData(ctx context.Context) (DashboardData,
 					break
 				}
 			}
+		}
+		return nil
+	})
+
+	// 10. Revenue by day (last 30 days, for the area chart)
+	g.Go(func() error {
+		rows, err := s.store.GetRevenueByDay(ctx)
+		if err == nil {
+			revenueByDay = rows
+		}
+		return nil
+	})
+
+	// 11. Bookings by day (last 30 days, for the bar chart)
+	g.Go(func() error {
+		rows, err := s.store.CountBookingsByDay(ctx)
+		if err == nil {
+			bookingsByDay = rows
+		}
+		return nil
+	})
+
+	// 12. Overdue trips (alert feed)
+	g.Go(func() error {
+		trips, err := s.store.GetOverdueTrips(ctx)
+		if err == nil {
+			overdueTrips = trips
+		} else {
+			overdueTrips = []repository.TripWithJoins{}
+		}
+		return nil
+	})
+
+	// 13. Idle vehicles (alert feed)
+	g.Go(func() error {
+		vehicles, err := s.store.GetIdleVehicles(ctx)
+		if err == nil {
+			idleVehicles = vehicles
+		} else {
+			idleVehicles = []domain.Vehicle{}
+		}
+		return nil
+	})
+
+	// 14. Yesterday's trip count (for the delta chip)
+	g.Go(func() error {
+		counts, err := s.store.CountTripsByStatusForDate(ctx, yesterday)
+		if err == nil {
+			yesterdayCount = counts[domain.TripScheduled] + counts[domain.TripAssigned] +
+				counts[domain.TripStarted] + counts[domain.TripCompleted] + counts[domain.TripCancelled] +
+				counts[domain.TripDraft]
 		}
 		return nil
 	})
@@ -180,6 +252,13 @@ func (s *DashboardService) GetDashboardData(ctx context.Context) (DashboardData,
 		AvailableDriversCount:  availDriversCount,
 		PendingPaymentsCount:   pendingPaymentsCount,
 		MonthlyRevenue:         monthlyRevenue,
+		RevenueSeries:          revenueSeries,
+		RevenueByDay:           revenueByDay,
+		BookingsByDay:          bookingsByDay,
+		StatusCounts:           statusCounts,
+		DeltaYesterday:         todaysTripsCount - yesterdayCount,
+		OverdueTrips:           overdueTrips,
+		IdleVehicles:           idleVehicles,
 		UpcomingTrips:          upcomingTrips,
 		RecentBookings:         recentBookings,
 		RecentPayments:         recentPayments,

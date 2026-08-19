@@ -1,17 +1,17 @@
 {{define "kharcha_queue.html"}}
 {{if .PendingExpenses}}
     {{range .PendingExpenses}}
-    <div class="px-6 py-4 flex items-center gap-4 hover:bg-slate-50/60 transition-colors group"
+    <div class="px-4 py-2 flex items-center gap-4 hover:bg-surface-container-low transition-colors group"
          id="expense-row-{{.ID}}">
 
         <!-- Receipt or placeholder -->
         {{if .ReceiptURL}}
         <a href="{{nullString .ReceiptURL}}" target="_blank" rel="noopener">
             <img src="{{nullString .ReceiptURL}}"
-                 class="w-12 h-12 rounded-lg object-cover border border-slate-200 shrink-0 hover:opacity-90 transition" />
+                  class="w-12 h-12 rounded-lg object-cover border border-border-subtle shrink-0 hover:opacity-90 transition" />
         </a>
         {{else}}
-        <div class="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center text-slate-300 shrink-0">
+        <div class="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center text-text-muted shrink-0">
             <span class="material-symbols-outlined text-xl">receipt_long</span>
         </div>
         {{end}}
@@ -19,26 +19,45 @@
         <!-- Meta -->
         <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-sm font-extrabold text-slate-800">{{.DriverName}}</span>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide
-                    {{if eq .Category "advance"}}bg-blue-50 text-blue-700
-                    {{else if eq .Category "fuel"}}bg-orange-50 text-orange-700
-                    {{else if eq .Category "toll"}}bg-purple-50 text-purple-700
-                    {{else if eq .Category "food"}}bg-green-50 text-green-700
-                    {{else if eq .Category "repair"}}bg-red-50 text-red-700
-                    {{else}}bg-slate-100 text-slate-500{{end}}">
+                <span class="text-sm font-semibold text-on-surface">{{.DriverName}}</span>
+                <span class="px-2 py-1 rounded-full text-xs font-medium
+                    {{if eq .Category "advance"}}bg-status-info/10 text-status-info
+                    {{else if eq .Category "fuel"}}bg-status-warning/10 text-status-warning
+                    {{else if eq .Category "toll"}}bg-primary/10 text-primary
+                    {{else if eq .Category "food"}}bg-status-success/10 text-status-success
+                    {{else if eq .Category "repair"}}bg-status-alert/10 text-status-alert
+                    {{else}}bg-surface-container-low text-secondary{{end}}">
                     {{.Category}}
                 </span>
             </div>
-            <p class="text-xs text-slate-400 mt-0.5 truncate">{{.Description}}</p>
-            <p class="text-[10px] text-slate-300 mt-0.5 font-mono">
+            <p class="text-xs text-text-muted mt-0.5 truncate">{{.Description}}</p>
+            <p class="text-xs text-text-muted mt-0.5">
                 {{if .TripNumber}}Trip: {{.TripNumber}} · {{end}}{{datetime .CreatedAt}}
             </p>
+            {{if eq .AuditStatus "needs_review"}}
+            <span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-status-warning/10 text-status-warning text-[10px] font-bold border border-status-warning/30 cursor-help"
+                  title="Claimed {{printf "%.1f" .FuelLitres}}L, Expected {{printf "%.1f" .ExpectedLitres}}L ±{{printf "%.1f" .VariancePct}}% — review at /fuel/audit">
+                <span class="material-symbols-outlined text-xs" style="font-size:11px">warning</span>
+                AUDIT: NEEDS REVIEW
+            </span>
+            {{else if eq .AuditStatus "passed"}}
+            <span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-status-success/10 text-status-success text-[10px] font-bold border border-status-success/30 cursor-help"
+                  title="Claimed {{printf "%.1f" .FuelLitres}}L, Expected {{printf "%.1f" .ExpectedLitres}}L ±{{printf "%.1f" .VariancePct}}%">
+                <span class="material-symbols-outlined text-xs" style="font-size:11px">verified</span>
+                AUDIT PASSED
+            </span>
+            {{else if eq .AuditStatus "failed"}}
+            <span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-status-alert/10 text-status-alert text-[10px] font-bold border border-status-alert/30 cursor-help"
+                  title="Claimed {{printf "%.1f" .FuelLitres}}L, Expected {{printf "%.1f" .ExpectedLitres}}L ±{{printf "%.1f" .VariancePct}}%">
+                <span class="material-symbols-outlined text-xs" style="font-size:11px">cancel</span>
+                AUDIT FAILED
+            </span>
+            {{end}}
         </div>
 
         <!-- Amount -->
         <div class="text-right shrink-0 mr-2">
-            <p class="text-xl font-black text-slate-900">₹{{priceFormat .Amount}}</p>
+            <p class="text-base font-semibold text-on-surface tabular-nums">₹{{priceFormat .Amount}}</p>
         </div>
 
         <!-- Actions (reveal on hover) -->
@@ -48,17 +67,17 @@
                 hx-target="#expense-row-{{.ID}}"
                 hx-swap="outerHTML"
                 hx-indicator="#spin-{{.ID}}"
-                class="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold rounded-lg transition shadow-sm shadow-emerald-600/20">
+                class="flex items-center gap-1.5 px-4 py-2 bg-status-success hover:bg-status-success/90 text-on-primary text-xs font-semibold rounded-lg transition shadow-sm shadow-primary/20">
                 <span class="material-symbols-outlined text-sm" style="font-size:14px">check</span>
                 APPROVE
             </button>
             <button
                 onclick="openRejectModal('{{.ID}}', '{{.DriverName}}', '{{.Amount}}')"
-                class="px-4 py-2 bg-white border border-slate-200 hover:bg-rose-50 hover:border-rose-300 text-slate-500 hover:text-rose-600 text-xs font-extrabold rounded-lg transition">
+                class="px-4 py-2 bg-surface-container-lowest border border-border-subtle hover:bg-status-alert/10 hover:border-status-alert/30 text-secondary hover:text-status-alert text-xs font-semibold rounded-lg transition">
                 REJECT
             </button>
             <div id="spin-{{.ID}}" class="htmx-indicator ml-1">
-                <svg class="animate-spin h-4 w-4 text-slate-400" viewBox="0 0 24 24">
+                <svg class="animate-spin h-4 w-4 text-text-muted" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                 </svg>
@@ -68,11 +87,11 @@
     {{end}}
 {{else}}
 <div class="flex flex-col items-center justify-center py-16 text-center">
-    <div class="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mb-4">
-        <span class="material-symbols-outlined text-3xl text-emerald-400">check_circle</span>
+    <div class="w-16 h-16 rounded-full bg-status-success/10 flex items-center justify-center mb-4">
+        <span class="material-symbols-outlined text-3xl text-status-success">check_circle</span>
     </div>
-    <p class="text-slate-400 font-semibold text-sm">All clear! No pending approvals.</p>
-    <p class="text-slate-300 text-xs mt-1">New requests will appear here automatically.</p>
+    <p class="text-text-muted font-medium text-sm">All clear! No pending approvals.</p>
+    <p class="text-text-muted text-xs mt-1">New requests will appear here automatically.</p>
 </div>
 {{end}}
 {{end}}

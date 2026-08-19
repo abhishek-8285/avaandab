@@ -1,9 +1,9 @@
 # ALERTING + COMPLIANCE + E-WAY BILL + AIS-140 READINESS — Implementation Spec v2
 
 **Project:** Avandab fleet system — `/home/abhishek/Desktop/temux/basic`
-**Stack (verified):** Go 1.26, chi v5, SQLite (modernc) via `database/sql`, goose embedded migrations (`db/migrations/`, embedded by `db/migrations.go`), Datastar v1.0.2 + Tailwind templates (`internal/templates/`), casbin RBAC (`internal/auth/casbin.go`), typed IDs (`internal/service/ids.go`, `internal/shared/id/`), UoW (`internal/shared/uow/`, `internal/shared/ports/uow.go`), outbox-relay event bus (`cmd/server/main.go:609-616`, `internal/shared/outbox/relay.go`), agent system (`internal/agent/`).
-**Status:** Implementation-ready (updated — supersedes previous spec; incorporates decisions 1–6: migration ownership 00044–00048, unified alerts pipeline, compliance gate both assignment paths + StartTrip, e-way bill lifecycle worker, SOS flow, AIS-140/VLT design contract, agent integration, telemetry_alerts rebuild).
-**Scope:** Operational alerting pipeline, compliance dispatch gate, e-way bill lifecycle worker, SOS flow, AIS-140/VLT design contract, agent integration, RBAC seeds, schema migrations 00044–00048.
+**Stack (verified):** Go 1.26, chi v5, SQLite (modernc) via `database/sql`, goose embedded migrations (`db/migrations/`, embedded by `db/migrations.go`), Datastar v1.0.2 + Tailwind templates (`internal/templates/`), casbin RBAC (`internal/auth/casbin.go`), typed IDs (`internal/service/ids.go`, `internal/shared/id/`), UoW (`internal/shared/uow/`, `internal/shared/ports/uow.go`), outbox-relay event bus (`cmd/server/main.go:819-826`, `internal/shared/outbox/relay.go`), agent system (`internal/agent/`).
+**Status:** Implementation-ready (updated — supersedes previous spec; incorporates decisions 1–6: migration ownership **00045–00046 (this spec)** with e-way bill 00047 + GST/RBAC 00048 owned by spec 07 and telemetry_alerts rebuild → **00059**, unified alerts pipeline, compliance gate both assignment paths + StartTrip, e-way bill lifecycle worker (consumes spec 07's 00047), SOS flow, AIS-140/VLT design contract, agent integration, telemetry_alerts rebuild).
+**Scope:** Operational alerting pipeline, compliance dispatch gate, e-way bill lifecycle worker (consumes spec 07's 00047), SOS flow, AIS-140/VLT design contract, agent integration, RBAC seeds (folded into 00046), schema migrations **00045–00046 + telemetry_alerts rebuild 00059**.
 
 ---
 
@@ -27,10 +27,46 @@
 | Branding | "FlyFleet Daily Report" at `internal/founder/digest/daily.go:22`; "FlyFleet account" at `internal/operations/audit/login_audit.go:70`. New alert templates must match — no "Avandab" in user-facing strings. |
 | Assignment paths (BOTH) | **Web/API vertical-slice:** `internal/trip/application/assign_driver.go` (compliance check :66-82, license only), `assign_vehicle.go` (check :66-88, insurance/fitness/permit only), `start_trip.go`; wired in `internal/handlers/trips.go` (`AssignDriver` :308, `AssignVehicle` :325, `StartTrip` :342, Create auto-assign :164-178) and API handlers `internal/trip/presentation/api/handlers/trip_handler.go`. **Agent/legacy service path:** `internal/service/trip_service.go` `AssignDriver` :163, `AssignVehicle` :230, `StartTrip` :295 (agent tools `assign_driver`/`assign_vehicle` call these). |
 | Event bus | `internal/events/bus.go` `InMemoryBus`; outbox relay polls `outbox_events` (00020) every 5s (`relay.go:50`), dead-letter after 5 attempts (`:142`). Outbox table is currently **never written** by any use case. Legacy services publish in-memory: `TripCreated`, `TripStarted` (trip_service.go:320), `TripCompleted`, `TripDelivered` (:419), `BookingCreated`/`BookingConfirmed` (booking_service.go:82,176), telemetry `GPSDeviationAlert`/`FuelTheftAlert`. `TripAssignedEvent` exists (`internal/domain/trip/events.go:28`) but is **never published**. |
-| Migration head | Latest migration = `00038_route_fixes.sql`. Numbers 00039–00043 are free (other specs). 00044–00048 as assigned below. |
+| Migration head | HEAD = `00039_experiments.sql` (TAKEN by experiments — NOT free). `00040–00044` reserved by specs 01–04. **`00045–00046` owned by THIS spec; `00047` (e-way bill) + `00048` (GST) owned by spec 07; telemetry_alerts rebuild → `00059`.** |
 | No geofence/SOS/AIS code | No `geofence*`, `SOS*`, or AIS-140 symbols anywhere in `internal/`, `db/`, `mobile/`. All three are **contracts defined here**, sourced from the ingestion spec. |
 | Driver/vehicle expiry columns | `drivers`: `license_number`, `license_expiry` (00002). `vehicles`: `insurance_expiry`, `fitness_expiry`, `permit_expiry` (00003) + `rc_expiry` (00030). Vertical-slice aggregates: `internal/vehicle/domain/aggregate/vehicle_aggregate.go:44-46` (Insurance/Fitness/Permit — **no RC**), `internal/driver/domain/aggregate/driver_aggregate.go:30-31`. Legacy `domain.Vehicle` has `RCExpiry`. |
 | RBAC seed pattern | `db/migrations/00012_rbac.sql` — `INSERT OR IGNORE INTO permissions (name, description) VALUES ...`, admin gets all via `SELECT 1, id FROM permissions`; dispatcher/accountant/viewer via `LIKE` patterns. Casbin adapter splits `resource:action` (`internal/auth/casbin.go:58-63`). |
+
+### Verification Log (QA pass — 2026-08-19)
+
+Migration ownership (final): alerts **00045**, compliance + files + RBAC seeds **00046** (THIS spec); e-way bill lifecycle **00047** (SPEC 07 — this spec's worker consumes it, does not own it); GST e-invoice RBAC **00048** (SPEC 07); FASTag **00049** (SPEC 07); telemetry_alerts rebuild **00059** (THIS spec, from reserved range). HEAD = `00039_experiments.sql` (TAKEN). Outbox cite `609-616`→`819-826`; `newFounderNotifier` 682-698→~820.
+
+| Claim | Verdict | Correction / Evidence |
+|---|---|---|
+| E-way client is a stub (fake EWB/QR) | VERIFIED | `internal/integration/ewaybill/client.go:68-94` |
+| ComplianceService exists, UNWIRED | VERIFIED | `internal/service/compliance_service.go:27,79,131` |
+| Dead schema (compliance_checks/notifications/eway_bills/telemetry_alerts) | VERIFIED | no repo refs in `internal/repository/` |
+| Two buses (service vs outbox-relay) | VERIFIED | `service.go:75`; `main.go:819` relay |
+| No geofence/SOS/AIS code | VERIFIED | grep `geofence*\|SOS*\|AIS-140` → none in `internal/`/`db/`/`mobile/` |
+| `TripAssignedEvent` never published to bus | PARTIAL | defined + `RecordEvent` at `trip_aggregate.go:110`; not dispatched to bus today |
+| agent tools = 19 | VERIFIED | `internal/agent/tools.go` (19 `Name:` entries) |
+| Migrations 00044–00048 owned by THIS spec | WRONG | corrected: THIS spec owns **00045–00046**; **00047** (e-way bill) + **00048** (GST RBAC) owned by **spec 07**; telemetry_alerts rebuild → **00059** |
+| Latest 00038; 00039–00043 free | WRONG | HEAD `00039` TAKEN; `00040–00044` reserved by specs 01–04 |
+| Outbox relay at `main.go:609-616` | WRONG | actual `main.go:819-826` |
+
+### Severity & Effort (major changes)
+
+| Change | Severity | Effort |
+|---|---|---|
+| Migration ownership: THIS spec = 00045–00046 (+ telemetry_alerts rebuild 00059); 00047 (e-way bill) + 00048 (GST) owned by spec 07 | Low | S |
+| Unified alerts pipeline (dedup/storm/escalation) | High | L |
+| Compliance gate both paths + StartTrip + PUC | High | L |
+| E-way bill lifecycle worker | High | L |
+| SOS flow + AIS-140 contract | Med | M |
+| `telemetry_alerts` rebuild (13 types) | Med | M |
+
+### Architectural Decisions (Decision / Tradeoff / Cost)
+
+- **Two-store model (raw `telemetry_alerts` + canonical `alerts`).** Decision: raw log stays high-volume; `alerts` is deduped/cooldown/ackable. Tradeoff: dual-write on ingest. Cost: one rebuild (00059) + new table.
+- **Channel adapters + stubs.** Decision: `in_app` + `telegram` REAL; email/whatsapp/sms log-only until provider VERIFIED. Tradeoff: no external side-effects pre-verification.
+- **Compliance gate on both assignment paths + StartTrip + 7-day window + exemptions.** Decision: block by default; exemptions mitigate. Cost: gate in 2 vertical-slice + 1 legacy path.
+- **E-way extension gated on geofence evidence.** Decision: only extend if within `EWAYBILL_EXTENSION_KM` of destination. Cost: depends on geofence_events bus contract (spec 01/02).
+- **Cross-ref spec 17 (GPS provider strategy):** alert/telemetry event *types* consumed by this pipeline originate from ingestion spec 01, whose device-source strategy is governed by `17-gps-telematics-provider-strategy.md`.
 
 ---
 
@@ -50,26 +86,27 @@ SOSEvent (bus, ing.)     ──┘   alerts table (CANONICAL)                   
                                        └──▶ badge (layout.html) · agent get_open_alerts · RL rewards
 ```
 
-- **Raw event store vs canonical store:** `telemetry_alerts` stays the raw, high-volume event log (rebuilt in 00048 with widened CHECK). The new `alerts` table is the canonical operational alert store — deduped, cooldown-limited, severity-ranked, ackable, resolvable, channel-tracked.
+- **Raw event store vs canonical store:** `telemetry_alerts` stays the raw, high-volume event log (rebuilt in 00059 with widened CHECK). The new `alerts` table is the canonical operational alert store — deduped, cooldown-limited, severity-ranked, ackable, resolvable, channel-tracked.
 - **Rule engine:** `alert_rules` are per-source (telemetry, geofence, fuel, compliance, ewaybill, sos) threshold/type definitions. An alert fires when an incoming event matches a rule; `rule_overrides` lets admins tune threshold/severity/cooldown per tenant/vehicle without editing rules.
 - **Routing:** rule → channels (in_app always for actionable alerts; telegram for critical+; email/WhatsApp/SMS only when configured and provider verified — see §18).
 - **Storm batching:** multiple same-type alerts in a short window collapse into one alert with `occurrences` counter and a batched channel message (see §4).
 - **Escalation:** unacked critical alerts escalate per `escalation_schedule` (JSON: steps with delay + channel + target role).
-- **Outbox note:** the alert pipeline subscribes to the in-memory `events.EventBus` created in `internal/service/service.go:75` and to `outboxRelay`-dispatched events (`cmd/server/main.go:615`). For cross-restart durability of alert-relevant lifecycle events, emit `TripAssignedEvent`/`TripCancelledEvent` through an outbox write (see §7, §15) — the relay already exists.
+- **Outbox note:** the alert pipeline subscribes to the in-memory `events.EventBus` created in `internal/service/service.go:75` and to `outboxRelay`-dispatched events (`cmd/server/main.go:825`). For cross-restart durability of alert-relevant lifecycle events, emit `TripAssignedEvent`/`TripCancelledEvent` through an outbox write (see §7, §15) — the relay already exists.
 
 ---
 
-## 2. Alert rules model + DDL 00044
+## 2. Alert rules model + DDL 00045
 
 **Migration ownership (coordinated with other specs):**
 
-- `00044` = **THIS SPEC** — `alert_sources`, `alert_rules`, `rule_overrides`, `alerts`, `notifications_preferences`
-- `00045` = **THIS SPEC** — `compliance_exemptions` + `files` uploadable_type CHECK rebuild + `compliance_checks` index
-- `00046` = **THIS SPEC** — `eway_bills` ALTER + `eway_bill_events`
-- `00047` = **COORDINATED** — consolidated RBAC seeds; list only this spec's subset (§11)
-- `00048` = **THIS SPEC** — `telemetry_alerts` CHECK widening (rebuild) (§12)
+- `00045` = **THIS SPEC** — `alert_sources`, `alert_rules`, `rule_overrides`, `alerts`, `notifications_preferences`
+- `00046` = **THIS SPEC** — `compliance_exemptions` + `files` uploadable_type CHECK rebuild + `compliance_checks` index + **this spec's RBAC seeds (§11) folded here**
+- `00047` = **SPEC 07** (e-way bill lifecycle: `eway_bills` ALTER + `eway_bill_events`) — this spec's worker consumes the schema but does **NOT** own the migration
+- `00048` = **SPEC 07** (GST e-invoice RBAC seeds) — NOT owned by this spec
+- `00049` = **SPEC 07** (FASTag tables) — NOT owned by this spec
+- `00059` = **THIS SPEC** — `telemetry_alerts` CHECK widening (rebuild) (§12), number taken from the reserved 00059–00061 range
 
-**DDL 00044 — `db/migrations/00044_alerts_pipeline.sql`:**
+**DDL 00045 — `db/migrations/00045_alerts_pipeline.sql`:**
 
 ```sql
 -- +goose Up
@@ -84,7 +121,7 @@ CREATE TABLE IF NOT EXISTS alert_sources (
 CREATE TABLE IF NOT EXISTS alert_rules (
     id              TEXT PRIMARY KEY,
     source          TEXT NOT NULL REFERENCES alert_sources(name),
-    alert_type      TEXT NOT NULL,             -- must be one of the 00048 CHECK values for telemetry-sourced rules
+    alert_type      TEXT NOT NULL,             -- must be one of the 00059 CHECK values for telemetry-sourced rules
     name            TEXT NOT NULL,
     severity        TEXT NOT NULL DEFAULT 'warning'
                     CHECK (severity IN ('info','warning','critical','blocker')),
@@ -177,7 +214,7 @@ DROP TABLE IF EXISTS alert_rules;
 DROP TABLE IF EXISTS alert_sources;
 ```
 
-Default `alert_rules` rows (one per 00048 alert type, severity per type, cooldown 300s, storm window 60s/min 3, routing `{"in_app":true,"telegram":["critical","blocker"]}`) are seeded in the migration (preferred for determinism).
+Default `alert_rules` rows (one per 00059 alert type, severity per type, cooldown 300s, storm window 60s/min 3, routing `{"in_app":true,"telegram":["critical","blocker"]}`) are seeded in the migration (preferred for determinism).
 
 ---
 
@@ -221,7 +258,7 @@ type Provider interface {
 
 ## 4. Storm batching + dedup + escalation
 
-Engine — `internal/alerts/pipeline/engine.go` (new), consumed by a subscriber wired in `cmd/server/main.go` next to the founder handlers (`:609-616`).
+Engine — `internal/alerts/pipeline/engine.go` (new), consumed by a subscriber wired in `cmd/server/main.go` next to the founder handlers (`:819-826`).
 
 - **Dedup:** `dedup_key = rule.dedup_key_expr` evaluated per event (default `source:alert_type:entity_id`). On match with an existing `open`/`acknowledged` alert:
   - if within `cooldown_seconds` of `last_seen_at` → increment `occurrences`, update `last_seen_at`, **no new channel sends**;
@@ -240,10 +277,10 @@ Engine — `internal/alerts/pipeline/engine.go` (new), consumed by a subscriber 
 1. **New `CheckDispatchCompliance(ctx, driverID, vehicleID) (ComplianceResult, error)`** on `internal/service/compliance_service.go` (extend existing type; keep `EnforceDispatchCompliance` as a thin wrapper for backward compat with `test/master_integration_test.go:102`). It verifies **5 documents**:
    - Driver: `drivers.license_expiry` (00002)
    - Vehicle: `vehicles.rc_expiry`, `fitness_expiry`, `insurance_expiry` (00003 + 00030)
-   - **PUC**: new column — add `vehicles.puc_expiry DATE` in 00045 (`ALTER TABLE vehicles ADD COLUMN puc_expiry DATE;`) since no PUC field exists anywhere.
+   - **PUC**: new column — add `vehicles.puc_expiry DATE` in 00046 (`ALTER TABLE vehicles ADD COLUMN puc_expiry DATE;`) since no PUC field exists anywhere.
    - Plus doc-vault presence: `files.uploadable_type IN ('driver_license','vehicle_rc','vehicle_fitness','vehicle_insurance','vehicle_puc')` with `uploadable_id` matching the entity.
    - **7-day window:** any expiry `<= now + 7 days` (config `COMPLIANCE_EXPIRY_WINDOW_DAYS`) → `Valid=false`, reason "expires within 7 days" (this is the dispatch window; `compliance_checks` rows get `status='warning'` for window hits, `'expired'` for past).
-   - **`compliance_exemptions`** (00045): if an active exemption row exists for (entity_type, entity_id, doc_type), skip that doc with audit trail (`compliance_exempted` action). Exemption creation is admin-only, permission `compliance:update`, and expiry-capped (see 00045 DDL below).
+   - **`compliance_exemptions`** (00046): if an active exemption row exists for (entity_type, entity_id, doc_type), skip that doc with audit trail (`compliance_exempted` action). Exemption creation is admin-only, permission `compliance:update`, and expiry-capped (see 00046 DDL below).
 2. **Driver assignment** — `internal/trip/application/assign_driver.go:45` `checkDriverCompliance` → call the gate (driver side). Blocking error text: `"Dispatch blocked: <reason> (compliance)"`.
 3. **Vehicle assignment** — `internal/trip/application/assign_vehicle.go:45` `checkVehicleCompliance` → call the gate (vehicle side).
 4. **Legacy service path** — `internal/service/trip_service.go:163` (`AssignDriver`) and `:230` (`AssignVehicle`) → same gate (this is what agent tools `assign_driver`/`assign_vehicle` hit — `internal/agent/tools.go:434,460`).
@@ -251,7 +288,7 @@ Engine — `internal/alerts/pipeline/engine.go` (new), consumed by a subscriber 
 6. **UI surfacing** — `internal/handlers/trips.go:308-353` currently `http.Error` on failure; change to `renderPage`/`renderForm` with `FlashError` (pattern at :160) and, in `internal/templates/trip_view.html`, render a compliance banner (list of `compliance_checks` rows + missing docs) whenever the gate fails. Datastar fragment `GET /trips/{id}/compliance` re-renders the banner on doc upload.
 7. **Checkpoint recording** — each gate run writes `compliance_checks` rows (entity_type ∈ driver/vehicle/cargo, check_type ∈ rc/fitness/insurance/puc/license, status ∈ valid/expired/blocked/warning — matches existing CHECK in 00030) and emits bus event `ComplianceBlocked` → alert pipeline (§1) creates a compliance alert.
 
-**DDL 00045 — `db/migrations/00045_compliance_and_files.sql`:**
+**DDL 00046 — `db/migrations/00046_compliance_and_files.sql`:**
 
 ```sql
 -- +goose Up
@@ -299,7 +336,7 @@ Code parity: extend the subdir switch in `internal/service/file_service.go:88-98
 
 ## 6. Doc vault CHECK rebuild
 
-Covered by 00045 above. Also update:
+Covered by 00046 above. Also update:
 
 - `internal/domain/file` entity if it validates `uploadable_type` (grep `UploadableType` — only `file_service.go:127` assigns; `repository/sqlite` stores raw).
 - Doc upload UI/endpoint: `internal/handlers` file upload handler + `internal/templates/driver_edit.html` / `vehicle_edit.html` (new sections to upload rc/fitness/puc), permission `files:create` (already seeded in 00012).
@@ -309,7 +346,7 @@ Covered by 00045 above. Also update:
 
 ## 7. E-way bill lifecycle worker
 
-**Worker — `internal/ewaybill/worker.go` (new):** background loop (interval `EWAYBILL_WORKER_INTERVAL`, default 60s; goroutine started in `cmd/server/main.go` next to `runDailyDigest`, `:612-616`), driving rows of the `eway_bills` table (00031 schema + 00046 ALTER).
+**Worker — `internal/ewaybill/worker.go` (new):** background loop (interval `EWAYBILL_WORKER_INTERVAL`, default 60s; goroutine started in `cmd/server/main.go` next to `runDailyDigest`, `:612-616`), driving rows of the `eway_bills` table (00031 schema + **00047 ALTER — owned by spec 07**).
 
 **Lifecycle:**
 
@@ -324,9 +361,9 @@ trip created ──► generate (trip start, value>threshold) ──► Part-B v
 2. **Part-B vehicle update on dispatch** — subscribe to a newly published `TripAssignedEvent` (currently never published — publish it from `internal/trip/application/assign_driver.go:61` / `assign_vehicle.go:61` / legacy `trip_service.go` assignments) and from the worker poll when `trips.vehicle_id` set but `eway_bills.vehicle_number` empty. **Requires a real-provider adapter method `UpdateVehiclePartB(ctx, ewbNumber, vehicleNumber) (EWayBill, error)` added to `internal/integration/ewaybill/client.go:50-54` interface — VERIFY provider support (NIC e-way bill Part-B API) at implementation; stub returns fake success.**
 3. **Extension** — worker scans `eway_bills WHERE status='active' AND valid_until <= now + EXTENSION_LEAD_SECONDS (4h)` for trips in `in_transit`/`delivered`. **Gated:** only extend if geofence evidence exists — consume `geofence_events` from the bus (contract from ingestion/geofence spec: `GeofenceAlertEvent`/`geofence_events` rows with `{trip_id, vehicle_id, fence_id, lat, lng, at}`) and accept extension only when the latest vehicle position is within `EWAYBILL_EXTENSION_KM` (default 5 km) of trip destination (route endpoint from `internal/domain/route`). Provider method `Extend(ctx, ewbNumber) (EWayBill, error)` — stub returns fake `valid_until = now+24h`; **VERIFY provider support.** Without evidence: alert `ewaybill.extension_denied` (severity warning) via pipeline.
 4. **Cancel** — on `TripCancelled` (bus) or worker poll of `trips.status='cancelled'` with `eway_bills.status='active'`: provider `Cancel(ewbNumber, reason)`, set `status='cancelled'`, `cancelled_at`, `cancellation_reason`.
-5. **Audit trail** — every transition (generate/part_b/extend/cancel/failure) appends `eway_bill_events` (00046). No provider mutating call happens without a preceding event row (write-event-then-call, or compensate on failure).
+5. **Audit trail** — every transition (generate/part_b/extend/cancel/failure) appends `eway_bill_events` (**00047, owned by spec 07**). No provider mutating call happens without a preceding event row (write-event-then-call, or compensate on failure).
 
-**DDL 00046 — `db/migrations/00046_ewaybill_lifecycle.sql`:**
+**DDL 00047 (OWNED BY SPEC 07 — `07-gst-ewaybill-fastag.md` §3.3; reproduced here for reference; this spec does NOT redefine it):**
 
 ```sql
 -- +goose Up
@@ -372,7 +409,7 @@ Reuse `internal/domain/ewaybill/entity.go` (`Validate` ≥12-char EWB, `IsActive
 - **Canonical event:** `SOSEvent{ID, TripID, VehicleID, DriverID, Lat, Lng, At, Trigger: driver_app|panic_button|telematics}` — **contract from ingestion spec** (no code exists today; `mobile/src` has no SOS yet). This spec subscribes to bus topic `"SOSEvent"` (struct-name event type via the relay).
 - **Handling (`internal/alerts/pipeline/sos.go`):** immediately create canonical alert (`source='sos'`, severity `blocker`) and fan out:
   - `in_app` — all admins/dispatchers (users with `alerts:read`), immediately.
-  - `telegram` — founder/ops channel via the existing notifier path (`internal/founder/alerts/notifier.go`, `newFounderNotifier` in `cmd/server/main.go:682-698`; reuse `FOUNDER_TELEGRAM_BOT_TOKEN`/`FOUNDER_TELEGRAM_CHAT_ID` or separate `ALERT_TELEGRAM_*`), immediately.
+  - `telegram` — founder/ops channel via the existing notifier path (`internal/founder/alerts/notifier.go`, `newFounderNotifier` in `cmd/server/main.go:820`; reuse `FOUNDER_TELEGRAM_BOT_TOKEN`/`FOUNDER_TELEGRAM_CHAT_ID` or separate `ALERT_TELEGRAM_*`), immediately.
   - `email`/`whatsapp`/`sms` — only if configured per `notifications_preferences` + rule routing; adapters are log-only stubs (§3).
   - **Emergency escalation:** dial-out to `SOS_ESCALATION_PHONE` — **VERIFY provider (Twilio Voice / Msg91 / WhatsApp) at implementation; ship as log-only stub**.
 - **Admin action UI:** `internal/handlers/alerts.go` + `internal/templates/alerts_list.html` (new): SOS row shows map coords (lat/lng), vehicle/driver, trip; buttons Ack / Resolve (`alerts:update`), each audited (`sos_ack` / `sos_resolve` audit actions).
@@ -467,9 +504,9 @@ Contract notes: `LocationPacket.Emergency` feeds the SOS pipeline (§8) once the
 
 ---
 
-## 11. RBAC seeds 00047 (this spec's subset)
+## 11. RBAC seeds (folded into 00046, this spec's subset)
 
-`db/migrations/00047_rbac_seeds.sql` — coordinated with other specs (geofences, fuel, scorecard, shares, maintenance resources are owned by their respective specs; this spec only lists its own; the migration file is shared, each spec contributes its INSERT block). Admin auto-grant pattern from `00012_rbac.sql:92-93`:
+`db/migrations/00046_compliance_and_files.sql` (RBAC seeds folded into this spec's 00046 migration — coordinated with other specs; geofences, fuel, scorecard, shares, maintenance resources are owned by their respective specs and contribute their own INSERT blocks to their own migrations; this spec only lists its own subset). Admin auto-grant pattern from `00012_rbac.sql:92-93`:
 
 ```sql
 -- +goose Up
@@ -512,9 +549,9 @@ Permission-gate new routes with `middleware.RequirePermission(authSrv, "alerts",
 
 ---
 
-## 12. telemetry_alerts rebuild — DDL 00048
+## 12. telemetry_alerts rebuild — DDL 00059
 
-SQLite CHECK can't be altered in place → rebuild (12-step). This spec OWNS this migration. New CHECK list — **exact**:
+SQLite CHECK can't be altered in place → rebuild (12-step). This spec OWNS this migration (**00059**, from the reserved range). New CHECK list — **exact**:
 
 ```sql
 -- +goose Up
@@ -554,7 +591,7 @@ CREATE INDEX IF NOT EXISTS idx_telemetry_alerts_type ON telemetry_alerts(alert_t
 -- Reverse rebuild back to the 00030 CHECK set (fuel_theft, gps_deviation, temp_breach, speeding)
 ```
 
-Notes: the 13-type list **replaces** the old 4-type CHECK (`fuel_theft` becomes `theft_suspicion`/`siphon_confirmed`; `gps_deviation`, `temp_breach`, `speeding` retained). The ingestion spec's producers must emit the new type names; `internal/service/telemetry_service.go:61,93` currently emits `gps_deviation`/`fuel_theft` — update `fuel_theft` → `theft_suspicion` and persist to the table (currently it never persists). `telemetry_alerts` remains the raw event store; canonical alerts live in `alerts` (00044).
+Notes: the 13-type list **replaces** the old 4-type CHECK (`fuel_theft` becomes `theft_suspicion`/`siphon_confirmed`; `gps_deviation`, `temp_breach`, `speeding` retained). The ingestion spec's producers must emit the new type names; `internal/service/telemetry_service.go:61,93` currently emits `gps_deviation`/`fuel_theft` — update `fuel_theft` → `theft_suspicion` and persist to the table (currently it never persists). `telemetry_alerts` remains the raw event store; canonical alerts live in `alerts` (00045).
 
 ---
 
@@ -600,12 +637,12 @@ internal/agent/approval.go:62-64         — MutatingTools += extend_ewaybill
 internal/agent/subagents.go:82           — ops tools list
 internal/agent/orchestrator.go:127-149   — route keywords
 internal/integration/ewaybill/client.go:50-54 — interface += UpdateVehiclePartB, Extend (stubs)
-internal/service/telemetry_service.go:61,93 — type names + persist raw alerts (00048)
+internal/service/telemetry_service.go:61,93 — type names + persist raw alerts (00059)
 internal/config/config.go                — new env knobs (§14)
 .env.example                             — document new vars
 docs/ — AIS-140 contract note + this spec
-db/migrations/00044_alerts_pipeline.sql, 00045_compliance_and_files.sql,
-db/migrations/00046_ewaybill_lifecycle.sql, 00047_rbac_seeds.sql, 00048_telemetry_alerts_rebuild.sql
+db/migrations/00045_alerts_pipeline.sql, 00046_compliance_and_files.sql (includes this spec's RBAC seeds),
+db/migrations/00059_telemetry_alerts_rebuild.sql — e-way bill 00047 is owned by spec 07 (see 07-gst-ewaybill-fastag.md §3.3)
 ```
 
 ---
@@ -633,14 +670,13 @@ All added to `internal/config/config.go` (pattern `getEnv`/`getEnvInt`, `:177-19
 
 | # | File | Owner | Contents |
 |---|---|---|---|
-| 00039–00043 | (other specs) | ingestion / geofence / fuel / map | reserved |
-| 00044 | `00044_alerts_pipeline.sql` | THIS | alert_sources, alert_rules, rule_overrides, alerts, notifications_preferences + seeds |
-| 00045 | `00045_compliance_and_files.sql` | THIS | `vehicles.puc_expiry`, compliance_exemptions, compliance_checks index, files CHECK rebuild |
-| 00046 | `00046_ewaybill_lifecycle.sql` | THIS | eway_bills ALTER (8 cols), eway_bill_events |
-| 00047 | `00047_rbac_seeds.sql` | COORDINATED | this spec's subset: alerts:*, compliance:*, ewaybill:*, telemetry:* |
-| 00048 | `00048_telemetry_alerts_rebuild.sql` | THIS | widened CHECK (13 types), data-preserving rebuild |
+| 00040–00044 | (other specs) | ingestion / geofence / fuel / map | reserved |
+| 00045 | `00045_alerts_pipeline.sql` | THIS | alert_sources, alert_rules, rule_overrides, alerts, notifications_preferences + seeds |
+| 00046 | `00046_compliance_and_files.sql` | THIS | `vehicles.puc_expiry`, compliance_exemptions, compliance_checks index, files CHECK rebuild, **this spec's RBAC seeds (§11)** |
+| 00047 | `00047_ewaybill_lifecycle.sql` | **SPEC 07** | eway_bills ALTER (8 cols), eway_bill_events — owned by spec 07; this spec consumes it |
+| 00059 | `00059_telemetry_alerts_rebuild.sql` | THIS | widened CHECK (13 types), data-preserving rebuild (from reserved range) |
 
-Goose runs all `db/migrations/` via `db/migrations.go` embed — new files are picked up automatically (`cmd/server/main.go:138-153`). Order matters: 00047 permission names must exist before code gates routes; 00048 before ingestion spec producers emit new types. Deploy: run `server` once with new binary (goose `Up` on boot).
+Goose runs all `db/migrations/` via `db/migrations.go` embed — new files are picked up automatically (`cmd/server/main.go:138-153`). Order matters: 00046 permission names (this spec's RBAC seeds) must exist before code gates routes; 00059 before ingestion spec producers emit new types. Deploy: run `server` once with new binary (goose `Up` on boot).
 
 ---
 
@@ -653,7 +689,7 @@ Goose runs all `db/migrations/` via `db/migrations.go` embed — new files are p
 5. **Extension without evidence:** `extension_denied` alert; worker never calls provider without geofence proof row in `geofence_proof`.
 6. **Trip cancelled mid-lifecycle:** cancel wins; `eway_bill_events` gets `cancelled`; provider failure → `provider_error` + retry with `error_count` cap (5) then manual queue.
 7. **Provider outage:** `error_count`/`last_error` on eway_bills; worker backoff; alerts `ewaybill.provider_failure` (blocker for expired-in-flight).
-8. **telemetry_alerts rebuild:** 00048 preserves rows (INSERT SELECT) — but `fuel_theft` rows would violate the new CHECK on re-insert; map old `fuel_theft` → `theft_suspicion` in the SELECT (as done in §12), or delete stale rows first (data is raw events; mapping preferred).
+8. **telemetry_alerts rebuild:** 00059 preserves rows (INSERT SELECT) — but `fuel_theft` rows would violate the new CHECK on re-insert; map old `fuel_theft` → `theft_suspicion` in the SELECT (as done in §12), or delete stale rows first (data is raw events; mapping preferred).
 9. **files CHECK rebuild:** no FK references `files` (00001); drop/rename is safe. Keep `company_logo` + old types in the new CHECK.
 10. **Exemption expiry:** gate treats `exempt_until < now` as no exemption; a ticker or lazy check writes `compliance_checks status='warning'` when an exemption lapses with docs still missing.
 11. **Agent approval disabled** (`AGENT_REQUIRE_APPROVAL=false`): `extend_ewaybill` executes directly — acceptable since the worker gate (geofence evidence) still applies.
@@ -665,11 +701,11 @@ Goose runs all `db/migrations/` via `db/migrations.go` embed — new files are p
 
 ## 17. Phased rollout
 
-- **Phase 1 — Alerting core:** 00044; pipeline engine + dedup/cooldown; in_app (badge fix `app.go` + `layout.html`) + telegram adapters; alerts list page; storms. Ships without producers beyond telemetry bus events → wire `telemetry_service.go` persistence + type rename.
-- **Phase 2 — Compliance:** 00045; `CheckDispatchCompliance`; wire both assignment paths + StartTrip; doc vault UI for rc/fitness/puc; block banner in `trip_view.html`; `compliance_exemptions` admin UI.
-- **Phase 3 — E-way bill:** 00046; worker generate → Part-B → extension (gated) → cancel; `eway_bill_events` audit; agent `extend_ewaybill` + `get_open_alerts` + gate + RL hooks; publish `TripAssignedEvent` from both assignment paths.
-- **Phase 4 — SOS + RBAC:** 00047; SOS subscriber + admin UI + escalation; `SOS_ESCALATION_PHONE` stub.
-- **Phase 5 — Telemetry types + AIS-140:** 00048; ingestion spec producers align to the 13 types; `internal/vlt/contract.go` design-only doc.
+- **Phase 1 — Alerting core:** 00045; pipeline engine + dedup/cooldown; in_app (badge fix `app.go` + `layout.html`) + telegram adapters; alerts list page; storms. Ships without producers beyond telemetry bus events → wire `telemetry_service.go` persistence + type rename.
+- **Phase 2 — Compliance:** 00046; `CheckDispatchCompliance`; wire both assignment paths + StartTrip; doc vault UI for rc/fitness/puc; block banner in `trip_view.html`; `compliance_exemptions` admin UI.
+- **Phase 3 — E-way bill (00047, owned by spec 07):** worker generate → Part-B → extension (gated) → cancel; `eway_bill_events` audit; agent `extend_ewaybill` + `get_open_alerts` + gate + RL hooks; publish `TripAssignedEvent` from both assignment paths.
+- **Phase 4 — SOS + RBAC (00046, this spec):** SOS subscriber + admin UI + escalation; `SOS_ESCALATION_PHONE` stub.
+- **Phase 5 — Telemetry types + AIS-140 (00059):** ingestion spec producers align to the 13 types; `internal/vlt/contract.go` design-only doc.
 
 Each phase lands behind env flags where useful (`ALERTS_ENABLED`, `EWAYBILL_WORKER_ENABLED`) so rollout is reversible; stubs guarantee no external side effects until providers are verified.
 
@@ -687,5 +723,5 @@ Each phase lands behind env flags where useful (`ALERTS_ENABLED`, `EWAYBILL_WORK
 8. **Geofence evidence source** — the `geofence_events` bus topic is a contract from the geofence/ingestion spec; confirm its payload field names (`trip_id`, `fence_id`, `lat`, `lng`) before wiring the extension gate.
 9. **`TripAssignedEvent` publication** — currently never published (`internal/domain/trip/events.go:28` exists but no publisher); adding publishes from both assignment paths must not break existing subscribers (none subscribe today).
 10. **`notifications` legacy table (00025)** — still dead after Phase 1; confirm no other feature (login audit, error reporter) depends on the in-memory `notifications.Service` before deprecating; keep `internal/operations/notifications` as-is for `opserrors.Reporter`/`loginAuditSvc` (they use the `ports.NotificationService` interface — the alert pipeline is separate).
-11. **Viewer role scope** — 00047 viewer grants `alerts:read` etc.; confirm with product that viewers should see alerts (or restrict to dispatcher+).
+11. **Viewer role scope** — 00046 viewer grants `alerts:read` etc.; confirm with product that viewers should see alerts (or restrict to dispatcher+).
 12. **FlyFleet branding** — all user-facing alert copy (login alert `login_audit.go:70`, digest `daily.go:22`) uses FlyFleet; new alert templates must match (no "Avandab" in user-facing strings; Avandab stays the internal code name).

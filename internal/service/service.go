@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"log/slog"
 
 	"transport-app/internal/config"
@@ -11,6 +12,7 @@ import (
 	"transport-app/internal/events"
 	"transport-app/internal/founder"
 	"transport-app/internal/founder/alerts"
+	fuel "transport-app/internal/fuel"
 	"transport-app/internal/repository"
 )
 
@@ -55,15 +57,36 @@ type Services struct {
 	Settlements *DriverSettlementService
 	Telemetry   *TelemetryService
 	Kharcha     *KharchaService
+	FuelAudit   *FuelAuditService
+	Scorecard   *ScorecardService
+	Documents   *DocumentService
 
 	store Store
 	cfg   *config.Config
 	log   *slog.Logger
 }
 
+// DB returns the underlying sql.DB if available.
+func (s *Services) DB() *sql.DB {
+	if s == nil || s.store == nil {
+		return nil
+	}
+	if getter, ok := s.store.(repository.DBGetter); ok && getter != nil {
+		return getter.DB()
+	}
+	return nil
+}
+
 // NewServices creates all services with the given dependencies.
-func NewServices(store Store, cfg *config.Config, log *slog.Logger) *Services {
+// eventBus is the single shared event bus: services publish to it and the
+// outbox relay, founder handlers, and automation subscribers all listen on
+// the SAME instance. Passing a nil bus creates a local one (test convenience).
+func NewServices(store Store, cfg *config.Config, log *slog.Logger, eventBus events.EventBus) *Services {
 	s := &Services{store: store, cfg: cfg, log: log}
+
+	if eventBus == nil {
+		eventBus = events.NewInMemoryBus()
+	}
 
 	var tm repository.TxManager
 	if dbGetter, ok := store.(repository.DBGetter); ok {
@@ -72,7 +95,7 @@ func NewServices(store Store, cfg *config.Config, log *slog.Logger) *Services {
 		log.Warn("store does not implement DB() — TxManager unavailable")
 	}
 
-	bs := baseService{store: store, cfg: cfg, log: log, txManager: tm, events: events.NewInMemoryBus()}
+	bs := baseService{store: store, cfg: cfg, log: log, txManager: tm, events: eventBus}
 	s.Auth = &AuthService{baseService: bs}
 	s.Users = &UserService{baseService: bs}
 	s.Drivers = &DriverService{baseService: bs}
@@ -86,8 +109,10 @@ func NewServices(store Store, cfg *config.Config, log *slog.Logger) *Services {
 	s.Settings = &CompanySettingsService{baseService: bs}
 	s.Dashboard = &DashboardService{baseService: bs}
 	s.Files = &FileService{baseService: bs}
+	s.Documents = NewDocumentService(bs, s.Files)
 	s.Audit = &AuditLogService{baseService: bs}
 	s.Compliance = &ComplianceService{baseService: bs}
+	s.Trips.compliance = s.Compliance
 	s.Settlements = &DriverSettlementService{
 		baseService:       bs,
 		defaultFare:       defaultSettlementFare,
@@ -96,6 +121,19 @@ func NewServices(store Store, cfg *config.Config, log *slog.Logger) *Services {
 	}
 	s.Telemetry = &TelemetryService{baseService: bs}
 	s.Kharcha = &KharchaService{baseService: bs}
+
+	// Fuel claim audit service (Spec 03 §3). The ConfigReader reads
+	// company_config with a short-lived cache; nil-safe when the store has
+	// no raw DB access (tests with fakes fall back to compiled defaults).
+	if dbGetter, ok := store.(repository.DBGetter); ok {
+		s.FuelAudit = &FuelAuditService{baseService: bs, config: fuel.NewConfigReader(dbGetter.DB())}
+
+		// Driver scorecard (Spec 03 §4). Built over the same raw DB. The
+		// settlement service receives it as a dependency for the performance
+		// bonus hook (Spec 03 §7, gotcha 6 — nil-safe for backward compat).
+		s.Scorecard = NewScorecardService(bs, dbGetter.DB())
+		s.Settlements.scorecard = s.Scorecard
+	}
 
 	// Instantiate Telegram Bot Notifier if token configured, otherwise graceful fallback
 	var founderNotifier founder.Notifier = alerts.NewTelegramBotNotifier(nil, 0)
@@ -112,7 +150,7 @@ func (s *Services) initEventHandlers() {
 	bus := s.Bookings.events
 
 	// BookingConfirmed → TripCreated: automatically create a trip when a booking is confirmed.
-	bus.Subscribe("BookingConfirmed", func(ctx context.Context, e events.Event) error {
+	bus.Subscribe(events.BookingConfirmed, func(ctx context.Context, e events.Event) error {
 		evt, ok := e.Payload.(bookingevents.BookingConfirmedEvent)
 		if !ok {
 			return nil
@@ -134,7 +172,7 @@ func (s *Services) initEventHandlers() {
 	})
 
 	// TripCompleted → InvoiceGenerated: automatically generate an invoice when a trip completes.
-	bus.Subscribe("TripCompleted", func(ctx context.Context, e events.Event) error {
+	bus.Subscribe(events.TripCompleted, func(ctx context.Context, e events.Event) error {
 		evt, ok := e.Payload.(tripevents.TripCompletedEvent)
 		if !ok {
 			return nil
@@ -144,7 +182,7 @@ func (s *Services) initEventHandlers() {
 	})
 
 	// Rule 2: TripDelivered → Auto-generate GST Invoice + Driver Settlement Statement
-	bus.Subscribe("TripDelivered", func(ctx context.Context, e events.Event) error {
+	bus.Subscribe(events.TripDelivered, func(ctx context.Context, e events.Event) error {
 		payload, ok := e.Payload.(map[string]interface{})
 		if !ok {
 			return nil

@@ -1,0 +1,26 @@
+{{range .Zones}}
+<tr class="hover:bg-surface-container-low transition-colors group">
+    <td class="py-3 px-6 font-medium text-on-surface">{{.Name}}</td>
+    <td class="py-3 px-6 text-secondary text-xs uppercase tracking-wide">{{.Kind}}</td>
+    <td class="py-3 px-6 text-secondary text-xs">{{.Shape}}</td>
+    <td class="py-3 px-6 text-secondary font-mono text-xs">{{nullString .RouteName}}</td>
+    <td class="py-3 px-6 text-secondary" data-numeric>{{.Priority}}</td>
+    <td class="py-3 px-6">
+        {{if .IsActive}}
+        {{template "status_dot.html" (dict "Tone" "success" "Label" "Active")}}
+        {{else}}
+        {{template "status_dot.html" (dict "Tone" "neutral" "Label" "Disabled")}}
+        {{end}}
+    </td>
+    <td class="py-3 px-6 text-right whitespace-nowrap">
+        {{if can $.User "geofences" "update"}}
+        <a href="/geofences/{{.ID}}/edit" class="action-edit">Edit</a>
+        {{end}}
+        {{if can $.User "geofences" "delete"}}
+        <form method="POST" action="/geofences/{{.ID}}/delete" class="inline-flex" hx-target="#geofence-rows" hx-swap="outerHTML" onsubmit="return confirm('Delete geofence {{.Name}}?')">
+            <button type="submit" class="action-delete text-red-600 hover:text-red-800">Delete</button>
+        </form>
+        {{end}}
+    </td>
+</tr>
+{{end}}

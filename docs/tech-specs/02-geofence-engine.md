@@ -1,12 +1,60 @@
 # GEOFENCE ENGINE — Implementation Spec v2
 
 **Module:** `internal/geofence/` (new vertical slice, mirrors `internal/trip/` structure)
-**Migration:** `db/migrations/00041_geofence_engine.sql` (next free: latest is `00038`)
+**Migration:** `db/migrations/00042_geofence_engine.sql` (next free: latest is `00039_experiments.sql`)
 **Project:** Avandab fleet system — `/home/abhishek/Desktop/temux/basic`
-**Stack (verified):** Go 1.26, chi v5.3.1, goose v3.27.3, SQLite (modernc), casbin v2.135.0, Datastar v1.0.2 + Tailwind templates, outbox-relay event bus (`cmd/server/main.go:609-616`), typed IDs, UoW pattern.
+**Stack (verified):** Go 1.26, chi v5.3.1, goose v3.27.3, SQLite (modernc), casbin v2.135.0, Datastar v1.0.2 + Tailwind templates, outbox-relay event bus (`cmd/server/main.go:819-826`), typed IDs, UoW pattern.
 **Status:** Implementation-ready, updated (full-scope detention invoicing + FlyFleet-style drawing UI).
 
 ---
+
+## 0. Verification Log (QA pass — 2026-08-19)
+
+Migration renumber: geofence `00041` → **`00042`** (head is `00039_experiments.sql`, TAKEN;
+ingestion owns `00040/00041`). `company_config` is created HERE (corrected index: `00042`);
+fuel spec 03 must only seed it (collision flagged). Outbox cite `609-616` → `819-826`.
+
+### Verification Log table
+
+| Claim | Verdict | Correction / Evidence (file:line) |
+|---|---|---|
+| Geofence package / `DwellWorker` / `geofence_events` exist | CANT-VERIFY | no `geofence*` symbol in `internal/`/`db/` (grep) — design-only |
+| `reach_pickup.go` / `start_transit.go` use cases exist | VERIFIED | `internal/trip/application/reach_pickup.go`, `start_transit.go` present |
+| Outbox relay at `main.go:609-616` | WRONG | actual `main.go:819-826` (`outbox.NewRelay` @825) |
+| Latest migration 00038 (geofence `00041`) | WRONG | head `00039_experiments`; geofence **00042** |
+| `company_config` created in this spec | VERIFIED (plan) | but spec 03 also CREATEs it → **collision**, fix spec 03 to seed-only |
+| Trip transitions avoid `deliver.go` | VERIFIED (design) | `deliver.go` only via `/trips/{id}/deliver` per handler |
+| No lat/lng on `routes` | VERIFIED | `00005/00031/00038` schema confirmed no coord cols |
+| `AssignVehicle` records no event | VERIFIED (design) | trip_aggregate.go `AssignVehicle` has no RecordEvent |
+
+### Severity & Effort (major changes)
+
+| Change | Severity | Effort |
+|---|---|---|
+| Migration renumber 00041 → 00042 | Low | S |
+| `company_config` canonical creation here | Med | S |
+| Geofence DDL + RBAC seeds | High | M |
+| Dwell 4-state machine + geo math | High | L |
+| Detention → invoice line items | High | L |
+| Leaflet drawing UI | Med | M |
+| Auto trip-transition wiring | High | M |
+
+### Architectural Decisions (Decision / Tradeoff / Cost)
+
+- **Geofence algorithm: ray-cast PIP + haversine buffer/hysteresis.** Decision: pure
+  functions, unit-tested, equirectangular projection for edge distance (≤5km scale).
+  Tradeoff: polygon hysteresis is approximated (boolean containment + edge-distance), not a
+  true Minkowski offset — acceptable at GPS noise scale. Cost: none; deterministic, no deps.
+- **Dwell state in `engine_state` (DB, per-vehicle).** Decision: persist to survive restart.
+  Tradeoff: extra writes per fix vs crash-safe resumption. Cost: 1 row/vehicle.
+- **Trip transitions fired by worker (not bus round-trip).** Decision: direct use-case call.
+  Tradeoff: tighter coupling to trip aggregate, but avoids event-loop latency. Cost: worker
+  must hold no domain state (per spec).
+- **Detention billing via `invoice_line_items` + `GenerateInvoiceCommand.LineItems`.**
+  Decision: paid invoices never auto-attached (admin-only). Tradeoff: protects billed
+  invoices; requires admin endpoint. Cost: extra reconciliation code.
+- **`company_config` ownership.** Decision: create once at 00042; all other specs seed rows.
+  (See collision fix in spec 03.)
 
 ## 1) Architecture + Bus Flow
 
@@ -26,7 +74,7 @@ DwellWorker (internal/geofence/infrastructure/worker/dwell_worker.go)
         ├──► geofence_events rows (durable event/alert log)
         └──► outbox_events  (via outbox.OutboxWriter)
                     │
-                    ▼  relay poll 5s  [cmd/server/main.go:615 outbox.NewRelay(database, eventBus, logger)]
+                    ▼  relay poll 5s  [cmd/server/main.go:825 outbox.NewRelay(database, eventBus, logger)]
               main.go eventBus (events.InMemoryBus)
                     │
                     ├──► alerting spec consumer (subscribes "GeofenceAlertEvent")
@@ -35,7 +83,7 @@ DwellWorker (internal/geofence/infrastructure/worker/dwell_worker.go)
 
 Bus rules (verified):
 
-- **Use only the outbox-relay bus**: vertical-slice repos write `outbox_events` via `outbox.OutboxWriter.SaveEvents(ctx, aggregateID, aggregateType, events)` (`internal/shared/outbox/outbox.go`); `Relay.publish` unmarshals payload into `map[string]any` and dispatches `events.Event{Type: <struct name>, Payload: map}` onto the `eventBus` created at `cmd/server/main.go:609`.
+- **Use only the outbox-relay bus**: vertical-slice repos write `outbox_events` via `outbox.OutboxWriter.SaveEvents(ctx, aggregateID, aggregateType, events)` (`internal/shared/outbox/outbox.go`); `Relay.publish` unmarshals payload into `map[string]any` and dispatches `events.Event{Type: <struct name>, Payload: map}` onto the `eventBus` created at `cmd/server/main.go:819`.
 - **Never the old bus**: `internal/service/service.go:59` builds a private `events.NewInMemoryBus()` (`bs.events`) used only by old `TripService`/`InvoiceService` subscribers. Geofence code must not touch it.
 - **Event type strings are Go struct names** (`getEventTypeName`, outbox.go:79): vertical-slice trip events arrive as `"TripStartedEvent"`, `"TripReachedPickupEvent"`, `"TripInTransitEvent"`, `"TripCompletedEvent"`, payload keys `"TripID"`, `"TenantID"`, `"OccurredAt"` (no JSON tags on `trip_aggregate.go` events — do not rely on lowercase keys).
 - Trip transitions are triggered **directly from the dwell worker** (same process, real-time), not via bus round-trip. Bus consumption is for cross-module reactions only (e.g., future alerting, invoice module listening for `"TripCompletedEvent"`).
@@ -63,7 +111,7 @@ Worker emits via `outbox.NewOutboxWriter(db).SaveEvents(ctx, vehicleID, "Vehicle
 
 ---
 
-## 2) Data Model DDL — `db/migrations/00041_geofence_engine.sql`
+## 2) Data Model DDL — `db/migrations/00042_geofence_engine.sql`
 
 ```sql
 -- +goose Up
@@ -219,7 +267,7 @@ DELETE FROM permissions WHERE name LIKE 'geofences:%';
 
 Notes:
 
-- Latest migration today is `00038_route_fixes.sql`; `00041` is the agreed number (00039/00040 reserved by ingestion spec).
+- Latest migration today is `00039_experiments.sql` (head is now TAKEN by experiments); `00042` is the agreed number (**00040/00041 reserved by ingestion spec 01**).
 - RBAC: casbin adapter loads `role_permissions` (internal/auth/casbin.go:34) into `p = role, resource, action`; admin grant pattern copied from `00012_rbac.sql`. Policy loads at startup — restart or `authSvc.Reload()` after seeding.
 - No lat/lng on `routes` (verified 00005/00031/00038) → `geofences.route_name` fallback matches `routes.source` / `routes.destination` (LOWER/TRIM, same normalization as `source_normalized`/`dest_normalized`).
 - `telemetry_alerts` (00030) has a restrictive CHECK on `alert_type` — do not reuse it; `geofence_events` is the geofence log.
@@ -429,7 +477,7 @@ Admin edit surface: extend `settings.html` section (Settings handler) with a geo
 
 | Path | Purpose |
 |---|---|
-| `db/migrations/00041_geofence_engine.sql` | §2 DDL (+ `company_config`) |
+| `db/migrations/00042_geofence_engine.sql` | §2 DDL (+ `company_config`) |
 | `internal/geofence/domain/geo.go` | haversine, ray-cast PIP, edge distance |
 | `internal/geofence/domain/geofence.go` | Geofence aggregate (id/tenant/name/kind/shape/geometry/route_name/priority/is_active; `Contains(lat,lng,phase)` with buffer/hysteresis) |
 | `internal/geofence/domain/repository.go` | GeofenceRepository, EngineStateRepository, DetentionRepository, GeofenceEventRepository, ConfigRepository |
@@ -459,7 +507,7 @@ Admin edit surface: extend `settings.html` section (Settings handler) with a geo
 | `internal/handlers/trips.go` | `CompleteTrip` (line 398): load closed detentions → pass `LineItems` → mark `attached` |
 | `internal/handlers/app.go` | add `Geofences *GeofenceHandlers` field (pattern at line 44/81) |
 | `internal/templates/layout.html` | sidebar nav link `/geofences` |
-| `internal/templates/invoice_view.html` | render `invoice_line_items` table (line items exist only after 00041 + this spec) |
+| `internal/templates/invoice_view.html` | render `invoice_line_items` table (line items exist only after 00042 + this spec) |
 | `internal/vehicle/domain/aggregate/vehicle_aggregate.go` + converters + `internal/vehicle/application/create_vehicle.go`/`update_vehicle.go` + sqlc `db/query/vehicles.sql` | `TankCapacityLitres`, `FuelSensorFitted`, `MaintenanceDue` (regen sqlc here is fine — vehicles.sql already in queries; alternative: plain SQL in vehicle repo) |
 
 **Untouched (explicit):** `internal/trip/domain/aggregate/trip_aggregate.go`, all `internal/trip/application/*.go` use cases (called, not modified), `internal/service/trip_service.go` + `bs.events` old bus, `internal/telemetry/sync.go` (ingestion stays), `internal/shared/outbox/*`, `internal/auth/casbin.go`.
@@ -468,7 +516,7 @@ Admin edit surface: extend `settings.html` section (Settings handler) with a geo
 
 ## 11) Migration Plan
 
-1. `goose up` applies `00041` (DDL + RBAC seeds). Casbin picks up `geofences:*` on next startup (or `authSvc.Reload()` after seeding in tests).
+1. `goose up` applies `00042` (DDL + RBAC seeds). Casbin picks up `geofences:*` on next startup (or `authSvc.Reload()` after seeding in tests).
 2. No sqlc regen for geofence/company_config/invoice_line_items — all new queries hand-written (`database/sql` + `repository.TxFromContext`).
 3. Vehicle field additions: `db/query/vehicles.sql` + regen (existing generated file, safe) OR hand-written SQL in vehicle repo to avoid regen — pick one, keep consistent.
 4. Rollback: `goose down` per DDL in §2.
@@ -493,7 +541,7 @@ Admin edit surface: extend `settings.html` section (Settings handler) with a geo
 
 ## 13) Phased Rollout
 
-- **Phase A — zones**: 00041, zone CRUD + Leaflet drawing UI + RBAC + company_config admin form. No engine.
+- **Phase A — zones**: 00042, zone CRUD + Leaflet drawing UI + RBAC + company_config admin form. No engine.
 - **Phase B — observation**: dwell worker + state machine + `geofence_events` + alerts (outbox `GeofenceAlertEvent`); `auto_reach_pickup`/`auto_start_transit` = false; detention rows created but not billed. Ship to staging, validate against real telemetry.
 - **Phase C — trip transitions**: flip config flags; wire `ReachPickupUseCase`/`StartTransitUseCase`; add failure dashboards (transition rejections logged with aggregate guard errors).
 - **Phase D — detention invoicing**: `invoice_line_items` + `GenerateInvoiceCommand.LineItems` + completion auto-attach + admin attach/waive; invoice view rendering. `detention_rate_per_hour` configured per company.
@@ -503,12 +551,12 @@ Admin edit surface: extend `settings.html` section (Settings handler) with a geo
 ## 14) VERIFY Items
 
 1. `grep -rn "geofence" internal/ --include="*.go"` → only new files (no prior implementation).
-2. Latest migration is `00038`; `00041` applies cleanly with `goose up` and rolls back.
+2. Latest migration is `00039_experiments.sql` (head); `00042` applies cleanly with `goose up` and rolls back.
 3. Event names: relay dispatches struct names — verify worker/alerting consumers subscribe to `"TripStartedEvent"`, `"TripReachedPickupEvent"`, `"TripCompletedEvent"`, `"GeofenceAlertEvent"` exactly.
 4. Trip transitions only via `internal/trip/application/reach_pickup.go` / `start_transit.go`; no other caller added; `deliver.go` callers unchanged.
-5. `cmd/server/main.go:615` relay is the only bus the worker writes through (outbox_events); no import of `internal/service` baseService bus.
+5. `cmd/server/main.go:825` relay is the only bus the worker writes through (outbox_events); no import of `internal/service` baseService bus.
 6. `GenerateInvoiceCommand` remains backward-compatible (LineItems nil → old behaviour; existing tests in `internal/invoice/` pass).
-7. Casbin: after 00041, `Can(user, "geofences", "create")` true for admin/dispatcher, `read` for viewer.
+7. Casbin: after 00042, `Can(user, "geofences", "create")` true for admin/dispatcher, `read` for viewer.
 8. Telemetry ingestion: `POST /api/v1/telemetry/snapshots` accepts payloads today (`telemetry/sync.go` `snapshotHandler`); worker reads `telemetry_snapshots` — confirm snapshot `vehicle_id` populated (nullable today; backfill by trip lookup).
 9. `internal/static/js/leaflet.js` served at `/static/js/leaflet.js` (main.go:459 static file server); Google tile URL reachable without key.
 10. `go build ./...` and `go test ./internal/geofence/... ./internal/invoice/...` green; geo functions unit-tested (ray-cast + haversine fixtures incl. degenerate polygons, boundary points, buffer/hysteresis thresholds).

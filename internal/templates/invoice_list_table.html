@@ -1,0 +1,46 @@
+<div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-border-subtle">
+        <thead class="bg-surface-container-low font-label-caps text-[11px] text-secondary uppercase tracking-wider">
+            <tr>
+                <th class="th-cell">Invoice #</th>
+                <th class="th-cell">Customer</th>
+                <th class="th-cell">Trip #</th>
+                <th class="th-cell">Subtotal (₹)</th>
+                <th class="th-cell">Tax (₹)</th>
+                <th class="th-cell">Total (₹)</th>
+                <th class="th-cell">Status</th>
+                <th class="th-cell-right">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-border-subtle text-sm text-on-surface">
+            {{if .Invoices}}
+            {{range .Invoices}}
+            <tr class="hover:bg-surface-container-low transition-colors group">
+                <td class="td-cell-strong font-mono" data-numeric>{{.InvoiceNumber}}</td>
+                <td class="td-cell">{{.CustomerName}}</td>
+                <td class="td-cell font-mono text-xs">{{if .TripNumber}}{{.TripNumber}}{{else}}-{{end}}</td>
+                <td class="td-cell font-mono text-xs" data-numeric>₹{{printf "%.2f" .Subtotal}}</td>
+                <td class="td-cell font-mono text-xs" data-numeric>₹{{printf "%.2f" .Tax}}</td>
+                <td class="td-cell-strong font-mono" data-numeric>₹{{printf "%.2f" .Total}}</td>
+                <td class="td-cell">
+                    <span class="status-badge {{statusBadge .PaymentStatus}}">{{.PaymentStatus}}</span>
+                </td>
+                <td class="td-cell-actions">
+                    <a href="/invoices/{{.ID}}" class="action-view">View Invoice</a>
+                </td>
+            </tr>
+            {{end}}
+            {{else}}
+            <tr>
+                <td colspan="8" class="py-12 text-center text-secondary">
+                    {{template "empty_state.html" (dict "Icon" "description" "Title" "No invoices found" "Message" "No invoices match the current filters.")}}
+                </td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+
+<div class="p-4 border-t border-border-subtle bg-surface-container-lowest">
+    {{template "pagination.html" .}}
+</div>

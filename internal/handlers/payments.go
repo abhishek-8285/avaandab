@@ -11,6 +11,7 @@ import (
 	"transport-app/internal/middleware"
 	paymentapp "transport-app/internal/payment/application"
 	paymentagg "transport-app/internal/payment/domain/aggregate"
+	"transport-app/internal/shared"
 	clock "transport-app/internal/shared/clock"
 	id "transport-app/internal/shared/id"
 	uow "transport-app/internal/shared/uow"
@@ -51,7 +52,7 @@ func (h *PaymentHandlers) List(w http.ResponseWriter, r *http.Request) {
 
 	method := r.URL.Query().Get("method")
 	res, err := h.listUC.Execute(r.Context(), paymentapp.ListPaymentsQuery{
-		TenantID: "1",
+		TenantID: shared.TenantIDFromContext(r.Context()),
 		Page:     pp.Page,
 		Limit:    pp.Limit,
 		Method:   method,
@@ -133,7 +134,7 @@ func (h *PaymentHandlers) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_, err = h.recordUC.Execute(r.Context(), paymentapp.RecordPaymentCommand{
-		TenantID:    "1",
+		TenantID:    shared.TenantIDFromContext(r.Context()),
 		InvoiceID:   invoiceID,
 		PaymentDate: paymentDate,
 		Amount:      amount,
@@ -174,7 +175,7 @@ func (h *PaymentHandlers) View(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	payment, err := h.getUC.Execute(r.Context(), paymentapp.GetPaymentQuery{
 		ID:       paymentagg.PaymentID(id),
-		TenantID: "1",
+		TenantID: shared.TenantIDFromContext(r.Context()),
 	})
 	if err != nil {
 		http.Error(w, "Payment not found", http.StatusNotFound)

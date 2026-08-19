@@ -8,7 +8,6 @@ package sqlite
 import (
 	"context"
 	"database/sql"
-	"time"
 )
 
 const createFile = `-- name: CreateFile :one
@@ -28,19 +27,7 @@ type CreateFileParams struct {
 	UploadableID   sql.NullString `json:"uploadable_id"`
 }
 
-type CreateFileRow struct {
-	ID             string         `json:"id"`
-	Filename       string         `json:"filename"`
-	OriginalName   string         `json:"original_name"`
-	Path           string         `json:"path"`
-	Size           int64          `json:"size"`
-	MimeType       string         `json:"mime_type"`
-	UploadableType string         `json:"uploadable_type"`
-	UploadableID   sql.NullString `json:"uploadable_id"`
-	CreatedAt      time.Time      `json:"created_at"`
-}
-
-func (q *Queries) CreateFile(ctx context.Context, arg CreateFileParams) (CreateFileRow, error) {
+func (q *Queries) CreateFile(ctx context.Context, arg CreateFileParams) (File, error) {
 	row := q.db.QueryRowContext(ctx, createFile,
 		arg.ID,
 		arg.Filename,
@@ -51,7 +38,7 @@ func (q *Queries) CreateFile(ctx context.Context, arg CreateFileParams) (CreateF
 		arg.UploadableType,
 		arg.UploadableID,
 	)
-	var i CreateFileRow
+	var i File
 	err := row.Scan(
 		&i.ID,
 		&i.Filename,
@@ -94,21 +81,9 @@ SELECT id, filename, original_name, path, size, mime_type, uploadable_type, uplo
 FROM files WHERE id = ?
 `
 
-type GetFileByIDRow struct {
-	ID             string         `json:"id"`
-	Filename       string         `json:"filename"`
-	OriginalName   string         `json:"original_name"`
-	Path           string         `json:"path"`
-	Size           int64          `json:"size"`
-	MimeType       string         `json:"mime_type"`
-	UploadableType string         `json:"uploadable_type"`
-	UploadableID   sql.NullString `json:"uploadable_id"`
-	CreatedAt      time.Time      `json:"created_at"`
-}
-
-func (q *Queries) GetFileByID(ctx context.Context, id string) (GetFileByIDRow, error) {
+func (q *Queries) GetFileByID(ctx context.Context, id string) (File, error) {
 	row := q.db.QueryRowContext(ctx, getFileByID, id)
-	var i GetFileByIDRow
+	var i File
 	err := row.Scan(
 		&i.ID,
 		&i.Filename,
@@ -135,27 +110,15 @@ type GetFilesByUploadableParams struct {
 	UploadableID   sql.NullString `json:"uploadable_id"`
 }
 
-type GetFilesByUploadableRow struct {
-	ID             string         `json:"id"`
-	Filename       string         `json:"filename"`
-	OriginalName   string         `json:"original_name"`
-	Path           string         `json:"path"`
-	Size           int64          `json:"size"`
-	MimeType       string         `json:"mime_type"`
-	UploadableType string         `json:"uploadable_type"`
-	UploadableID   sql.NullString `json:"uploadable_id"`
-	CreatedAt      time.Time      `json:"created_at"`
-}
-
-func (q *Queries) GetFilesByUploadable(ctx context.Context, arg GetFilesByUploadableParams) ([]GetFilesByUploadableRow, error) {
+func (q *Queries) GetFilesByUploadable(ctx context.Context, arg GetFilesByUploadableParams) ([]File, error) {
 	rows, err := q.db.QueryContext(ctx, getFilesByUploadable, arg.UploadableType, arg.UploadableID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetFilesByUploadableRow
+	var items []File
 	for rows.Next() {
-		var i GetFilesByUploadableRow
+		var i File
 		if err := rows.Scan(
 			&i.ID,
 			&i.Filename,

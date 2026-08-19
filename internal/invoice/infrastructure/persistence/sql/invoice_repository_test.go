@@ -45,6 +45,14 @@ CREATE TABLE invoices (
 	tenant_id TEXT NOT NULL DEFAULT '1',
 	created_at DATETIME NOT NULL DEFAULT (datetime('now')),
 	updated_at DATETIME NOT NULL DEFAULT (datetime('now')),
+	cgst REAL NOT NULL DEFAULT 0.0,
+	sgst REAL NOT NULL DEFAULT 0.0,
+	igst REAL NOT NULL DEFAULT 0.0,
+	irn TEXT,
+	irn_ack_no TEXT,
+	irn_ack_date TEXT,
+	signed_qr TEXT,
+	ewb_number TEXT,
 	FOREIGN KEY (booking_id) REFERENCES bookings(id),
 	FOREIGN KEY (customer_id) REFERENCES customers(id),
 	FOREIGN KEY (trip_id) REFERENCES trips(id)
@@ -58,6 +66,33 @@ CREATE TABLE outbox_events (
 	created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	published_at DATETIME
 );
+CREATE TABLE invoice_line_items (
+	id          TEXT PRIMARY KEY,
+	tenant_id   TEXT NOT NULL DEFAULT '1',
+	invoice_id  TEXT NOT NULL,
+	trip_id     TEXT,
+	line_type   TEXT NOT NULL CHECK (line_type IN ('freight','detention','accessorial')),
+	hsn_sac_code TEXT,
+	description TEXT NOT NULL,
+	unit        TEXT,
+	quantity    REAL NOT NULL DEFAULT 1,
+	unit_price  REAL NOT NULL DEFAULT 0,
+	rate        REAL NOT NULL DEFAULT 0,
+	taxable_value REAL NOT NULL DEFAULT 0,
+	cgst_rate   REAL NOT NULL DEFAULT 0,
+	sgst_rate   REAL NOT NULL DEFAULT 0,
+	igst_rate   REAL NOT NULL DEFAULT 0,
+	cgst_amount REAL NOT NULL DEFAULT 0,
+	sgst_amount REAL NOT NULL DEFAULT 0,
+	igst_amount REAL NOT NULL DEFAULT 0,
+	amount      REAL NOT NULL DEFAULT 0,
+	total       REAL NOT NULL DEFAULT 0,
+	ref_id      TEXT,
+	created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	FOREIGN KEY (invoice_id) REFERENCES invoices(id),
+	FOREIGN KEY (trip_id) REFERENCES trips(id)
+);
+CREATE INDEX idx_invoice_line_items_invoice ON invoice_line_items(invoice_id);
 `
 
 func setupInvoiceDB(t *testing.T) *sql.DB {

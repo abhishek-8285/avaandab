@@ -1,0 +1,106 @@
+<div class="max-w-7xl mx-auto space-y-6">
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-on-surface">FASTag Management</h1>
+            <p class="text-sm text-text-muted">Monitor tag wallet balances, toll deduction events, and greedy trip reconciliation.</p>
+        </div>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-surface-container-low rounded-lg p-5 border border-border-subtle shadow-sm">
+            <span class="text-xs font-medium text-text-muted uppercase">Active Wallets</span>
+            <div class="text-2xl font-bold text-on-surface mt-1">{{.Extra.TotalTags}}</div>
+        </div>
+        <div class="bg-surface-container-low rounded-lg p-5 border border-border-subtle shadow-sm">
+            <span class="text-xs font-medium text-text-muted uppercase">Total Wallet Balance</span>
+            <div class="text-2xl font-bold text-primary mt-1">₹{{printf "%.2f" .Extra.TotalBalance}}</div>
+        </div>
+        <div class="bg-surface-container-low rounded-lg p-5 border border-border-subtle shadow-sm">
+            <span class="text-xs font-medium text-text-muted uppercase">Pending Reconciliation</span>
+            <div class="text-2xl font-bold text-status-warn mt-1">{{.Extra.PendingReconcile}}</div>
+        </div>
+    </div>
+
+    <!-- Reconcile Form & Tag Wallet Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Tag Wallets -->
+        <div class="lg:col-span-2 bg-surface-container-low rounded-lg border border-border-subtle p-5 shadow-sm">
+            <h2 class="text-lg font-semibold text-on-surface mb-4">Tag Wallet Balances</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-on-surface">
+                    <thead class="bg-surface-container-high text-xs uppercase text-text-muted">
+                        <tr>
+                            <th class="px-4 py-2.5">Vehicle</th>
+                            <th class="px-4 py-2.5">Tag ID</th>
+                            <th class="px-4 py-2.5">Issuer / Class</th>
+                            <th class="px-4 py-2.5">Balance</th>
+                            <th class="px-4 py-2.5">Status</th>
+                            <th class="px-4 py-2.5">Last Sync</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border-subtle">
+                        {{range .Extra.Tags}}
+                        <tr class="hover:bg-surface-container-highest/50">
+                            <td class="px-4 py-3 font-medium">{{.VehicleNumber}}</td>
+                            <td class="px-4 py-3 font-mono text-xs">{{.TagID}}</td>
+                            <td class="px-4 py-3 text-xs">{{.Issuer}} <span class="text-text-muted">({{.TagClass}})</span></td>
+                            <td class="px-4 py-3 font-semibold text-primary">₹{{printf "%.2f" .Balance}}</td>
+                            <td class="px-4 py-3">
+                                <span class="px-2 py-0.5 text-xs font-medium rounded-full {{if eq .Status "ACTIVE"}}bg-status-success/20 text-status-success{{else}}bg-status-alert/20 text-status-alert{{end}}">
+                                    {{.Status}}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-xs text-text-muted">{{.LastSyncStr}}</td>
+                        </tr>
+                        {{else}}
+                        <tr>
+                            <td colspan="6" class="px-4 py-6 text-center text-text-muted">No FASTag tags registered.</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Reconciliation Action Card -->
+        <div class="bg-surface-container-low rounded-lg border border-border-subtle p-5 shadow-sm flex flex-col justify-between">
+            <div>
+                <h2 class="text-lg font-semibold text-on-surface mb-2">Toll Reconciliation</h2>
+                <p class="text-xs text-text-muted mb-4">Pull provider toll logs, greedily match them to active trip time windows, and automatically create driver kharcha ledger entries.</p>
+                
+                {{if can .User "fastag" "update"}}
+                <form method="POST" action="/fastag/reconcile" class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-medium text-text-muted mb-1">Vehicle Number (Optional)</label>
+                        <input type="text" name="vehicle_number" placeholder="e.g. MH12AB1234 (blank for all)" class="w-full text-sm border border-border-subtle rounded px-3 py-2 bg-surface-container text-on-surface" />
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-medium text-text-muted mb-1">From Date</label>
+                            <input type="date" name="from_date" class="w-full text-sm border border-border-subtle rounded px-2 py-2 bg-surface-container text-on-surface" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-text-muted mb-1">To Date</label>
+                            <input type="date" name="to_date" class="w-full text-sm border border-border-subtle rounded px-2 py-2 bg-surface-container text-on-surface" />
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full mt-2 px-4 py-2.5 rounded bg-primary text-on-primary font-medium text-sm hover:opacity-90 transition">
+                        Run Reconciliation
+                    </button>
+                </form>
+                {{else}}
+                <div class="p-3 bg-surface-container text-xs text-text-muted rounded">
+                    You have read-only access to FASTag data.
+                </div>
+                {{end}}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="bg-surface-container-low rounded-lg border border-border-subtle p-5 shadow-sm">
+        <h2 class="text-lg font-semibold text-on-surface mb-4">Recent Toll Deductions</h2>
+        {{template "fastag_transactions.html" .Extra.Transactions}}
+    </div>
+</div>

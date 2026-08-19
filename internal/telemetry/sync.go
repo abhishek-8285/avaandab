@@ -4,11 +4,17 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
+
+	"transport-app/internal/eta"
+	"transport-app/internal/telemetry/providers"
 )
 
+// GPSLogPayload is a single GPS log uploaded in batch by the mobile app.
 type GPSLogPayload struct {
 	ID        int64   `json:"id"`
 	Latitude  float64 `json:"latitude"`
@@ -16,11 +22,16 @@ type GPSLogPayload struct {
 	Timestamp string  `json:"timestamp"`
 }
 
+// SyncBatchRequest is the mobile-app sync payload. DeviceID is the synthetic
+// device IMEI (app-<uuid>) registered in telemetry_devices (Decision D3).
 type SyncBatchRequest struct {
-	DriverID string          `json:"driver_id"`
+	DeviceID string          `json:"device_id"`
+	DriverID string          `json:"driver_id,omitempty"`
 	Logs     []GPSLogPayload `json:"logs"`
 }
 
+// SyncBatchResponse acknowledges a sync batch. SyncedIDs contains the offline
+// log IDs that were accepted into the pipeline.
 type SyncBatchResponse struct {
 	Success     bool    `json:"success"`
 	SyncedCount int     `json:"synced_count"`
@@ -28,6 +39,7 @@ type SyncBatchResponse struct {
 	ServerTime  string  `json:"server_time"`
 }
 
+// TelemetrySnapshotPayload is a full state snapshot from the mobile app.
 type TelemetrySnapshotPayload struct {
 	ID        string  `json:"id,omitempty"`
 	TripID    string  `json:"trip_id"`
@@ -40,87 +52,131 @@ type TelemetrySnapshotPayload struct {
 	Odometer  float64 `json:"odometer"`
 }
 
-func RegisterTelemetryRoutes(r chi.Router, databases ...*sql.DB) {
-	var database *sql.DB
-	if len(databases) > 0 {
-		database = databases[0]
-	}
-	r.Post("/api/v1/telemetry/sync", HandleTelemetrySync)
-	r.Post("/api/v1/telemetry/snapshots", snapshotHandler(database))
+// RegisterTelemetryRoutes mounts the sync + snapshots endpoints plus the live
+// tracking feed (Spec 04 §7). These live inside the RequireAPIAuth group
+// (mobile app sends a Bearer token) and use absolute paths to preserve the
+// /api/v1/telemetry/ prefix.
+func RegisterTelemetryRoutes(r chi.Router, ing *Ingestor, db *sql.DB, staleMin time.Duration, etaSvc ...*eta.EtaService) {
+	r.Post("/api/v1/telemetry/sync", HandleTelemetrySync(ing))
+	r.Post("/api/v1/telemetry/snapshots", HandleTelemetrySnapshots(ing))
+	r.Get("/api/v1/telemetry/live", LiveHandler(db, staleMin, etaSvc...))
 }
 
-func snapshotHandler(database *sql.DB) http.HandlerFunc {
+// HandleTelemetrySync processes a batch of GPS logs from the mobile app.
+// Each log becomes a RawFrame routed through the canonical pipeline. Only
+// frames that were Accepted (including deduped replays) contribute their
+// offline log ID to synced_ids.
+func HandleTelemetrySync(ing *Ingestor) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		var snap TelemetrySnapshotPayload
-		if err := json.NewDecoder(r.Body).Decode(&snap); err != nil || snap.TripID == "" {
-			w.WriteHeader(http.StatusBadRequest)
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Invalid snapshot payload"})
+
+		var req SyncBatchRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"success": "false", "error": "Invalid request payload"})
 			return
 		}
-		id := snap.ID
-		if id == "" {
-			id = generateSnapshotID()
-		}
-		if database != nil {
-			at, err := time.Parse(time.RFC3339, snap.Timestamp)
+
+		syncedIDs := make([]int64, 0, len(req.Logs))
+		for _, logItem := range req.Logs {
+			ts, err := time.Parse(time.RFC3339, logItem.Timestamp)
 			if err != nil {
-				w.WriteHeader(http.StatusBadRequest)
-				_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Invalid timestamp"})
-				return
+				continue // skip unparseable timestamps
 			}
-			if _, err := database.ExecContext(r.Context(), `INSERT OR REPLACE INTO telemetry_snapshots (id, trip_id, vehicle_id, timestamp, latitude, longitude, speed, fuel_level, odometer) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, id, snap.TripID, snap.VehicleID, at, snap.Latitude, snap.Longitude, snap.Speed, snap.FuelLevel, snap.Odometer); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Failed to store snapshot"})
-				return
+
+			// If no DeviceID was provided, fall back to DriverID-derived
+			// synthetic device (Decision D3), or just ack without device.
+			imei := req.DeviceID
+			if imei == "" {
+				imei = req.DriverID
+			}
+
+			frame := providers.RawFrame{
+				IMEI:          imei,
+				Latitude:      logItem.Latitude,
+				Longitude:     logItem.Longitude,
+				Provider:      "own",
+				ProviderMsgID: "sync:" + strconv.FormatInt(logItem.ID, 10),
+				RawPayload:    []byte(`{"source":"sync_batch"}`),
+				DeviceTime:    ts,
+			}
+
+			result, err := ing.IngestRawFrame(r.Context(), frame)
+			if err != nil {
+				continue
+			}
+			if result.Accepted {
+				syncedIDs = append(syncedIDs, logItem.ID)
 			}
 		}
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "snapshot_id": id, "server_time": time.Now().Format(time.RFC3339)})
+
+		resp := SyncBatchResponse{
+			Success:     true,
+			SyncedCount: len(syncedIDs),
+			SyncedIDs:   syncedIDs,
+			ServerTime:  time.Now().Format(time.RFC3339),
+		}
+		_ = json.NewEncoder(w).Encode(resp)
 	}
 }
 
-func generateSnapshotID() string {
-	return "snap-" + time.Now().UTC().Format("20060102150405.000000000")
-}
+// HandleTelemetrySnapshots processes a state snapshot from the mobile app.
+// Routes through the pipeline (no direct INSERT OR REPLACE) per Spec 01 §7
+// Modify list. The device is resolved by vehicle_id.
+func HandleTelemetrySnapshots(ing *Ingestor) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 
-func HandleTelemetrySync(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
+		var snap TelemetrySnapshotPayload
+		if err := json.NewDecoder(r.Body).Decode(&snap); err != nil || snap.VehicleID == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"success": "false", "error": "Invalid snapshot payload"})
+			return
+		}
 
-	var req SyncBatchRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Invalid request payload"})
-		return
+		// Resolve the device by vehicle_id so the pipeline can look it up.
+		var imei string
+		if d, err := ing.deviceStore.GetByVehicleID(r.Context(), snap.VehicleID); err == nil && d != nil {
+			imei = d.IMEI
+		}
+
+		at, err := time.Parse(time.RFC3339, snap.Timestamp)
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"success": "false", "error": "Invalid timestamp"})
+			return
+		}
+
+		speed := snap.Speed
+		fuel := snap.FuelLevel
+		odo := snap.Odometer
+		frame := providers.RawFrame{
+			IMEI:          imei,
+			TripID:        snap.TripID,
+			Latitude:      snap.Latitude,
+			Longitude:     snap.Longitude,
+			Speed:         speed,
+			Provider:      "own",
+			ProviderMsgID: "snap:" + snap.ID,
+			RawPayload:    []byte(`{"source":"snapshot"}`),
+			DeviceTime:    at,
+			FuelLevel:     &fuel,
+			Odometer:      &odo,
+		}
+
+		result, err := ing.IngestRawFrame(r.Context(), frame)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"success": "false", "error": "pipeline failed"})
+			return
+		}
+
+		sid := snap.ID
+		if sid == "" {
+			sid = uuid.NewString() // Decision D5: new rows use UUIDs
+		}
+
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"success":     result.Accepted,
+			"quarantined": result.Quarantined,
+			"snapshot_id": sid,
+			"server_time": time.Now().Format(time.RFC3339),
+		})
 	}
-
-	syncedIDs := make([]int64, 0, len(req.Logs))
-	for _, logItem := range req.Logs {
-		syncedIDs = append(syncedIDs, logItem.ID)
-	}
-
-	resp := SyncBatchResponse{
-		Success:     true,
-		SyncedCount: len(syncedIDs),
-		SyncedIDs:   syncedIDs,
-		ServerTime:  time.Now().Format(time.RFC3339),
-	}
-
-	_ = json.NewEncoder(w).Encode(resp)
-}
-
-func HandleTelemetrySnapshots(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	var snap TelemetrySnapshotPayload
-	if err := json.NewDecoder(r.Body).Decode(&snap); err != nil || snap.TripID == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Invalid snapshot payload"})
-		return
-	}
-
-	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"success":     true,
-		"snapshot_id": "snap-9001",
-		"server_time": time.Now().Format(time.RFC3339),
-	})
 }

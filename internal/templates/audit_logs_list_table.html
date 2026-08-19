@@ -1,0 +1,38 @@
+<div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-border-subtle">
+        <thead class="bg-surface-container-low font-label-caps text-[11px] text-secondary uppercase tracking-wider">
+            <tr>
+                <th class="th-cell">Timestamp</th>
+                <th class="th-cell">User Account</th>
+                <th class="th-cell">Action</th>
+                <th class="th-cell">Target Table</th>
+                <th class="th-cell">Record ID</th>
+                <th class="th-cell-right">IP Address</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-border-subtle text-sm text-on-surface">
+            {{if or .AuditLogs .Logs}}
+            {{range (or .AuditLogs .Logs)}}
+            <tr class="hover:bg-surface-container-low transition-colors group">
+                <td class="td-cell font-mono text-xs" data-numeric>{{datetime .CreatedAt}}</td>
+                <td class="td-cell">{{if .UserName}}{{.UserName}}{{else}}<span class="text-text-muted">System</span>{{end}}</td>
+                <td class="td-cell-strong uppercase">{{.Action}}</td>
+                <td class="td-cell font-mono text-xs">{{.TableName}}</td>
+                <td class="td-cell font-mono text-xs">{{if .RecordID}}{{.RecordID}}{{else}}-{{end}}</td>
+                <td class="td-cell-right font-mono text-xs">{{if .IPAddress}}{{.IPAddress}}{{else}}-{{end}}</td>
+            </tr>
+            {{end}}
+            {{else}}
+            <tr>
+                <td colspan="6" class="py-12 text-center text-secondary">
+                    {{template "empty_state.html" (dict "Icon" "history" "Title" "No audit log records found" "Message" "No audit activities match the search filter.")}}
+                </td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+
+<div class="p-4 border-t border-border-subtle bg-surface-container-lowest">
+    {{template "pagination.html" .}}
+</div>

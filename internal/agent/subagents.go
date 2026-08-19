@@ -93,7 +93,7 @@ Rules:
 1. For "today's trips" list status, trip number, route and driver.
 2. Before assigning a driver or vehicle, confirm the trip id with the user if not given. Assignments require admin sign-off.
 3. Report revenue and dashboard figures in INR.`,
-			Tools: pick("list_trips", "get_trip", "list_available_drivers", "list_available_vehicles", "assign_driver", "assign_vehicle", "get_dashboard", "get_revenue"),
+			Tools: pick("list_trips", "get_trip", "list_available_drivers", "list_available_vehicles", "assign_driver", "assign_vehicle", "get_dashboard", "get_revenue", "get_open_alerts", "extend_ewaybill"),
 		},
 	}
 

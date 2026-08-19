@@ -21,6 +21,7 @@ func (h *KharchaHandlers) Routes(r chi.Router) {
 	r.With(middleware.ResourcePermission(h.AuthSrv, "trips", "read")).Get("/", h.Dashboard)
 	r.With(middleware.ResourcePermission(h.AuthSrv, "trips", "read")).Get("/pending", h.PendingQueue)
 	r.With(middleware.ResourcePermission(h.AuthSrv, "trips", "read")).Get("/ledger", h.Ledger)
+	r.With(middleware.ResourcePermission(h.AuthSrv, "trips", "update")).Post("/create", h.Create)
 	r.With(middleware.ResourcePermission(h.AuthSrv, "trips", "update")).Post("/{id}/approve", h.Approve)
 	r.With(middleware.ResourcePermission(h.AuthSrv, "trips", "update")).Post("/{id}/reject", h.Reject)
 }
@@ -34,6 +35,7 @@ func (h *KharchaHandlers) Dashboard(w http.ResponseWriter, r *http.Request) {
 	ledger, _ := h.Services.Kharcha.ListLedger(ctx, "")
 	stats, _ := h.Services.Kharcha.GetKharchaStats(ctx)
 	trips, _, _ := h.Services.Trips.ListTrips(ctx, "", "in_transit", 100, 0)
+	drivers, _, _ := h.Services.Drivers.ListDrivers(ctx, "", "", 1000, 0)
 
 	h.renderPage(w, r, "kharcha_dashboard.html", PageData{
 		Title: "Kharcha Ledger",
@@ -43,6 +45,7 @@ func (h *KharchaHandlers) Dashboard(w http.ResponseWriter, r *http.Request) {
 			"LedgerEntries":   ledger,
 			"Stats":           stats,
 			"ActiveTrips":     trips,
+			"Drivers":         drivers,
 		},
 	})
 }
@@ -62,6 +65,58 @@ func (h *KharchaHandlers) Ledger(w http.ResponseWriter, r *http.Request) {
 	h.renderFragment(w, "kharcha_ledger_rows.html", map[string]interface{}{
 		"LedgerEntries": entries,
 	})
+}
+
+// POST /kharcha/create — create a new driver expense claim (web form).
+// Fuel claims capture fuel_litres for the audit flow (Spec 03 §3.2 step 1).
+func (h *KharchaHandlers) Create(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	_, ok := h.getUserFromContext(r)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+
+	tripID := r.FormValue("trip_id")
+	driverID := r.FormValue("driver_id")
+	category := r.FormValue("category")
+	description := r.FormValue("description")
+	receiptURL := r.FormValue("receipt_url")
+
+	var amount float64
+	_, _ = fmt.Sscanf(r.FormValue("amount"), "%f", &amount)
+
+	var fuelLitres float64
+	if category == "fuel" {
+		_, _ = fmt.Sscanf(r.FormValue("fuel_litres"), "%f", &fuelLitres)
+	}
+
+	expenseID, err := h.Services.Kharcha.CreateExpense(ctx, tripID, driverID, category, amount, description, receiptURL, fuelLitres)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = fmt.Fprintf(w, `<div class="px-6 py-4 bg-red-50 text-red-600 text-sm font-semibold border-l-4 border-red-500">Error: %s</div>`, template.HTMLEscapeString(err.Error()))
+		return
+	}
+
+	// If a fuel claim, queue it for the audit pass immediately.
+	if category == "fuel" && h.Services.FuelAudit != nil {
+		_, _ = h.Services.FuelAudit.AuditPendingClaims(ctx)
+	}
+
+	if isDatastarRequest(r) {
+		expense, err := h.Services.Kharcha.GetExpenseByID(ctx, expenseID)
+		if err == nil {
+			h.renderFragment(w, "kharcha_row_approved.html", expense)
+			return
+		}
+	}
+
+	http.Redirect(w, r, "/kharcha", http.StatusSeeOther)
 }
 
 // POST /kharcha/{id}/approve — HTMX inline swap: approve and replace the row.

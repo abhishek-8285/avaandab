@@ -13,6 +13,7 @@ import (
 	"transport-app/internal/config"
 	"transport-app/internal/domain"
 	"transport-app/internal/domain/types"
+	"transport-app/internal/events"
 	"transport-app/internal/service"
 )
 
@@ -35,7 +36,7 @@ func testLogger() *slog.Logger {
 
 func newTestServices(t *testing.T) *service.Services {
 	t.Helper()
-	return service.NewServices(nil, testConfig(), testLogger())
+	return service.NewServices(nil, testConfig(), testLogger(), events.NewInMemoryBus())
 }
 
 func TestComplianceService_ValidateDriverCompliance_WithoutStore(t *testing.T) {
@@ -108,7 +109,7 @@ func TestTelemetryService_ProcessTelemetryStream(t *testing.T) {
 	alerts, err = svc.Telemetry.ProcessTelemetryStream(ctx, dpFuelTheft, 45.0)
 	require.NoError(t, err)
 	require.Len(t, alerts, 1)
-	assert.Equal(t, "fuel_theft", alerts[0].AlertType)
+	assert.Equal(t, "theft_suspicion", alerts[0].AlertType)
 }
 
 func TestDriverSettlementService_CreateSettlementForTrip(t *testing.T) {

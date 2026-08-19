@@ -1,0 +1,26 @@
+<div class="max-w-3xl mx-auto bg-surface-container-lowest border border-border-subtle rounded shadow-sm">
+    <div class="px-6 py-4 border-b border-border-subtle flex items-center justify-between">
+        <h3 class="text-base font-semibold text-on-surface font-display">Register Devices</h3>
+        <a href="/telemetry/devices" class="text-sm text-secondary hover:text-primary">Back to devices</a>
+    </div>
+
+    <div class="p-6">
+        <p class="text-sm text-secondary mb-4">
+            Paste a JSON array or CSV (one device per line: <code class="font-mono text-xs bg-surface-container px-1 rounded">imei,serial_number,device_type,vehicle_id</code>).
+            The whole batch is registered atomically — if any IMEI already exists or is duplicated, the entire batch is rejected.
+        </p>
+
+        <form method="POST" action="/telemetry/devices/bulk" class="space-y-4">
+            <div>
+                <label for="bulk" class="block text-xs font-medium text-secondary mb-1">Devices (JSON or CSV)</label>
+                <textarea id="bulk" name="bulk" rows="12"
+                    class="w-full bg-surface-container-low border border-border-subtle rounded-md p-3 font-mono text-xs text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                    placeholder='[{"imei":"867530050123456","serial_number":"SN-001","device_type":"hardware","vehicle_id":"veh-1"}]' required></textarea>
+            </div>
+            <div class="flex items-center gap-3">
+                {{template "btn.html" (dict "Label" "Register Devices" "Type" "submit" "Icon" "add")}}
+                <a href="/telemetry/devices" class="text-sm text-secondary hover:text-primary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>

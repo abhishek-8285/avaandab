@@ -154,8 +154,8 @@ func TestRule3_TelemetryExceptionAlerting(t *testing.T) {
 	if len(alertsFuel) == 0 {
 		t.Fatalf("expected Fuel Theft alert for >10L drop with ignition OFF, got 0 alerts")
 	}
-	if alertsFuel[0].AlertType != "fuel_theft" {
-		t.Fatalf("expected alert type 'fuel_theft', got %s", alertsFuel[0].AlertType)
+	if alertsFuel[0].AlertType != "theft_suspicion" {
+		t.Fatalf("expected alert type 'theft_suspicion', got %s", alertsFuel[0].AlertType)
 	}
 }
 

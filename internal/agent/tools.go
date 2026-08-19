@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"transport-app/internal/domain"
+	"transport-app/internal/ewaybill"
 	"transport-app/internal/service"
 )
 
@@ -407,6 +408,11 @@ func RegisterTools(env *ToolEnv) []*RegisteredTool {
 				}
 				out := make([]row, 0, len(vehicles))
 				for _, v := range vehicles {
+					if env.Services != nil && env.Services.Vehicles != nil {
+						if blocked, _, err := env.Services.Vehicles.IsMaintenanceBlocked(ctx, v.ID.String()); err == nil && blocked {
+							continue
+						}
+					}
 					out = append(out, row{v.ID.String(), v.RegistrationNumber, string(v.VehicleType), v.Capacity})
 				}
 				if len(out) == 0 {
@@ -720,6 +726,93 @@ func RegisterTools(env *ToolEnv) []*RegisteredTool {
 					"pending_payments":   data.PendingPaymentsCount,
 					"monthly_revenue":    data.MonthlyRevenue,
 				})
+			},
+		},
+		{
+			Name:        "get_open_alerts",
+			Description: "List open operational alerts (source, severity, entity, title). Optional severity filter.",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"severity": optStr("optional severity filter: warning, critical, blocker"),
+				},
+			},
+			Handler: func(ctx context.Context, args json.RawMessage) (string, error) {
+				var in struct {
+					Severity string `json:"severity"`
+				}
+				if len(args) > 0 {
+					_ = json.Unmarshal(args, &in)
+				}
+				db := env.Services.DB()
+				if db == nil {
+					return "database not available", nil
+				}
+				query := `SELECT id, source, alert_type, severity, entity_type, entity_id, title, message, status, created_at FROM alerts WHERE status = 'open'`
+				var queryArgs []any
+				if in.Severity != "" {
+					query += ` AND severity = ?`
+					queryArgs = append(queryArgs, in.Severity)
+				}
+				query += ` ORDER BY created_at DESC LIMIT 20`
+
+				rows, err := db.QueryContext(ctx, query, queryArgs...)
+				if err != nil {
+					return "No alerts found: " + err.Error(), nil
+				}
+				defer rows.Close()
+
+				type alertRow struct {
+					ID         string `json:"id"`
+					Source     string `json:"source"`
+					AlertType  string `json:"alert_type"`
+					Severity   string `json:"severity"`
+					EntityType string `json:"entity_type"`
+					EntityID   string `json:"entity_id"`
+					Title      string `json:"title"`
+					Message    string `json:"message"`
+					Status     string `json:"status"`
+					CreatedAt  string `json:"created_at"`
+				}
+				var list []alertRow
+				for rows.Next() {
+					var a alertRow
+					if err := rows.Scan(&a.ID, &a.Source, &a.AlertType, &a.Severity, &a.EntityType, &a.EntityID, &a.Title, &a.Message, &a.Status, &a.CreatedAt); err == nil {
+						list = append(list, a)
+					}
+				}
+				if len(list) == 0 {
+					return "No open alerts found.", nil
+				}
+				return jsonString(list)
+			},
+		},
+		{
+			Name:        "extend_ewaybill",
+			Description: "Request e-way bill extension for a trip. Requires trip id. Subject to geofence evidence gate.",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"trip_id": optStr("required trip id to extend eway bill for"),
+				},
+				"required": []string{"trip_id"},
+			},
+			Handler: func(ctx context.Context, args json.RawMessage) (string, error) {
+				var in struct {
+					TripID string `json:"trip_id"`
+				}
+				if err := json.Unmarshal(args, &in); err != nil {
+					return "", err
+				}
+				if in.TripID == "" {
+					return "", fmt.Errorf("trip_id is required")
+				}
+				db := env.Services.DB()
+				if db == nil {
+					return "database not available", nil
+				}
+				worker := ewaybill.NewWorker(db, nil, nil, nil, ewaybill.Config{})
+				return worker.ExtendForTrip(ctx, in.TripID)
 			},
 		},
 	}

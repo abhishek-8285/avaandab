@@ -2,10 +2,63 @@
 
 **Project:** Avandab fleet system — `/home/abhishek/Desktop/temux/basic`
 **Stack (verified):** Go 1.26, chi v5.3.1, SQLite (modernc), goose v3.27.3, Datastar v1.0.2 (vendored), Tailwind (vendored), Casbin RBAC, outbox→in-memory event bus.
-**Status:** Implementation-ready (updated — map stack locked to the FlyFleet pattern; 00043 owns share/maintenance DDL).
+**Status:** Implementation-ready (updated — map stack locked to the FlyFleet pattern; 00044 owns share/maintenance DDL).
 **Audit date:** 2026-08-17
 
 ---
+
+## 0. Verification Log (QA pass — 2026-08-19)
+
+Migration renumber: share/maintenance `00043` → **`00044`**; `vehicles.maintenance_due` ref
+`00041` → **`00042`** (geofence spec). Head `00039_experiments.sql`. All `main.go` route-group
+line numbers corrected (public group ends ~714 `/contact-us`; protected group 729; API group
+445-461; telemetry routes 448; Timeout 269; outbox 819-826; runDailyDigest 823). `dashboard.go`
+is 99 lines, not 37.
+
+### Verification Log table
+
+| Claim | Verdict | Correction / Evidence (file:line) |
+|---|---|---|
+| No WebSocket hub / SSE exists | VERIFIED | grep `websocket\|Upgrader\|text/event-stream\|EventSource` → 0 in internal/ + cmd/ |
+| `dashboard.go` is 37-line KPI renderer | WRONG | actual **99 lines** (`wc -l internal/handlers/dashboard.go`) |
+| Route groups at 519/522, API 350-361, Timeout 255, outbox 609-616 | WRONG | `/contact-us` 714, protected 729, API 445-461, telemetry 448, Timeout 269, outbox 819-826, runDailyDigest 823 |
+| `snapshotHandler` INSERT OR REPLACE @sync.go:72 | VERIFIED | `internal/telemetry/sync.go:72` |
+| `assign_vehicle`/`assign_driver` compliance lines 66-88/66-82 | VERIFIED | `internal/trip/application/assign_vehicle.go:66`, `assign_driver.go:66` |
+| `vehicles.maintenance_due` belongs to geofence 00041 | WRONG | corrected **00042** (geofence spec) |
+| Share/maintenance owned by 00043 | WRONG | corrected **00044** |
+| `files.uploadable_type` narrow CHECK | VERIFIED | `db/migrations/00001_initial.sql:67` |
+| Leaflet/OSM/FlyFleet map refs | CANT-VERIFY | FlyFleet external repo not in this workspace; treat as design reference |
+
+### Severity & Effort (major changes)
+
+| Change | Severity | Effort |
+|---|---|---|
+| Migration renumber 00043 → 00044 | Low | S |
+| SSE hub (`internal/realtime`) | High | M |
+| Share links (PIN, sliding expiry, revoke) | High | M |
+| Hybrid ETA calculator | Med | M |
+| Preventive-maintenance worker + DTC | High | L |
+| Maintenance dispatch blockers (2 paths + agent) | High | L |
+| CSP on map pages | Low | S |
+
+### Architectural Decisions (Decision / Tradeoff / Cost)
+
+- **Real-time transport: SSE over WebSocket.** Decision: build SSE (`text/event-stream`) from
+  scratch; no new deps. Tradeoff: one-directional (server→client) only — fine for live map.
+  Cost: none; `EventSource` auto-reconnects. Multi-instance falls back to REST polling
+  (`/api/v1/telemetry/live` is source of truth).
+- **Single-process in-memory hub.** Decision: per-process fan-out, 64-buf drop + reconnect.
+  Tradeoff: not shared across instances; acceptable for single-binary deploy. Cost: documented.
+- **Share links bound to TRIP, token SHA-256, optional PIN, sliding expiry capped by
+  `SHARE_LINK_MAX_TTL_HOURS`.** Decision: DB-leak safe, enumeration-resistant (uniform 404/410).
+  Tradeoff: `/data` reads do not extend TTL (anti-thrash). Cost: crypto/rand + rate-limit.
+- **Hybrid ETA (0.7 telemetry + 0.3 scheduled) + monotonic guard.** Decision: tolerate stale
+  telemetry; guard prevents ETA jumping backward. Tradeoff: ±15 min window only (never exact).
+  Cost: `audit_logs` writes on guard clamps.
+- **Maintenance blocker in both assignment paths + agent.** Decision: non-fatal first release,
+  then hard block; admin override column. Tradeoff: safer rollout. Cost: duplicated gate logic.
+- **Cross-ref spec 17 (GPS provider strategy):** the live map consumes telemetry via the bus
+  contract from ingestion spec 01; the GPS data SOURCE strategy is owned by `17-gps-telematics-provider-strategy.md`.
 
 ## 1. Architecture
 
@@ -32,9 +85,9 @@ telemetry_snapshots (00031) ──INSERT──▶ publish bus event "telemetry.s
                  GET /share/{token}/data (JSON poll, rate-limited)
 ```
 
-- **No WebSocket hub exists** (verified: `internal/handlers/dashboard.go` is a 37-line KPI renderer; grep for `websocket|Upgrader|text/event-stream|EventSource` across `internal/` and `cmd/` returns zero matches). Real-time push is designed from scratch as **SSE**: zero new dependencies, `EventSource` auto-reconnects, works through Datastar pages.
-- **Single-process hub.** `internal/realtime` hub is in-memory, per-process. Fits the current single-binary deployment. Multi-instance deployments fall back to REST polling (the `/live` endpoint is the source of truth; SSE is an accelerator). Documented in edge cases (11.4).
-- **Ingestion hook:** the existing `snapshotHandler` (`internal/telemetry/sync.go:52-80`) publishes `events.Event{Type: "telemetry.snapshot", Payload: snapshot}` to the bus after a successful `INSERT`. When the ingestion spec (migration 00040) replaces this handler, it emits the same event type — hub API unchanged.
+- **No WebSocket hub exists** (verified: `internal/handlers/dashboard.go` is a 99-line KPI renderer (not 37); grep for `websocket|Upgrader|text/event-stream|EventSource` across `internal/` and `cmd/` returns zero matches). Real-time push is designed from scratch as **SSE**: zero new dependencies, `EventSource` auto-reconnects, works through Datastar pages.
+- **Single-process hub.** `internal/realtime` hub is in-memory, per-process. Fits the current single-binary deployment. Multi-instance deployments fall back to REST polling (the `/live` endpoint is the source of truth; SSE is an accelerator). Documented in edge cases (11.4). **Telemetry data source:** the hub consumes the in-memory `PositionEvent` published via the Dual-Write Fast-Path (Spec 01); REST `/api/v1/telemetry/live` remains the source of truth for recovery and multi-instance.
+- **Ingestion hook:** the existing `snapshotHandler` (`internal/telemetry/sync.go:52-80`) publishes `events.Event{Type: "telemetry.snapshot", Payload: snapshot}` to the bus after a successful `INSERT`. When the ingestion spec (migration 00041) replaces this handler, it emits the same event type — hub API unchanged — and additionally publishes the in-memory `PositionEvent` via the Dual-Write Fast-Path (Spec 01); the hub consumes both.
 
 ### 1.2 SSE hub design (`internal/realtime/`)
 
@@ -45,13 +98,19 @@ New package, three files:
   - `Subscribe(ctx, filter) (<-chan []byte, unsubscribe func())` — buffered channel cap 64; slow consumers dropped (channel full → close, client reconnects).
   - `Publish(ctx, e events.Event)` — non-blocking fan-out to matching subscribers (called from the bus handler goroutine; never block ingestion).
   - `Run(ctx)` — heartbeat goroutine: writes `: keepalive\n\n` every `SSE_KEEPALIVE_SEC` (default 15) to all subscribers.
-- `bus.go` — `AttachToBus(bus events.EventBus, h *Hub)`: subscribes to `"telemetry.snapshot"`, `"trip.status_changed"`, `"maintenance.due"`, `"maintenance.cleared"` and forwards to the hub.
+- `bus.go` — `AttachToBus(bus events.EventBus, h *Hub)`: subscribes to `PositionEvent` (published via the Dual-Write Fast-Path, Spec 01), `"trip.status_changed"`, `"maintenance.due"`, `"maintenance.cleared"` and forwards to the hub.
 - `handler.go` — `StreamHandler(h *Hub)`:
   - Sets `Content-Type: text/event-stream`, `Cache-Control: no-cache`, `X-Accel-Buffering: no`.
   - Flushes immediately; writes `event: telemetry\ndata: {json}\n\n` per snapshot; exits on `r.Context().Done()` (client disconnect **or** the global 60 s `chiMiddleware.Timeout` — see below).
   - Optional `?trip_id=` / `?vehicle_id=` query filter.
 
-**Timeout caveat (must implement):** `cmd/server/main.go:255` applies `chiMiddleware.Timeout(60s)` globally; it would kill SSE connections at 60 s. Fix: wrap with a path-skip middleware in `internal/middleware/middleware.go`:
+**Position source (Dual-Write Fast-Path, Spec 01):** the hub's realtime telemetry feed is the
+in-memory `PositionEvent` published directly by the ingestion pipeline (sub-second latency, not
+the ~5 s outbox relay). REST `GET /api/v1/telemetry/live` stays the source of truth: on
+reconnect and in multi-instance deploys, clients re-poll `/live` to catch events the local
+process never saw.
+
+**Timeout caveat (must implement):** `cmd/server/main.go:269` applies `chiMiddleware.Timeout(60s)` globally; it would kill SSE connections at 60 s. Fix: wrap with a path-skip middleware in `internal/middleware/middleware.go`:
 
 ```go
 // SkipForPaths excludes paths from a middleware (SSE streams must outlive the 60s request timeout).
@@ -62,13 +121,13 @@ Applied in main.go: `r.Use(middleware.SkipForPaths(chiMiddleware.Timeout(60*time
 
 ### 1.3 Pages
 
-- **`GET /tracking`** (protected web group, `cmd/server/main.go:522-594`): server-rendered Datastar page (`internal/templates/tracking.html`). Leaflet map + markercluster; marker states running / stopped / no_signal / maintenance_due; popup: vehicle no., speed, fuel %, odometer, ETA window, trip number. Data via REST poll `GET /api/v1/telemetry/live` every `MAP_POLL_SEC` (default 10); SSE stream optional enhancement behind a toggle.
-- **`GET /share/{token}`** (public, registered BEFORE the protected group at `main.go:522`, i.e. in the public block after `/contact-us` at `main.go:519`): no auth, rate-limited. Leaflet map, single vehicle marker, ETA window ±15 min, status. Polls `GET /share/{token}/data` every 30 s. No SSE on the public surface.
+- **`GET /tracking`** (protected web group, `cmd/server/main.go:729+`): server-rendered Datastar page (`internal/templates/tracking.html`). Leaflet map + markercluster; marker states running / stopped / no_signal / maintenance_due; popup: vehicle no., speed, fuel %, odometer, ETA window, trip number. Data via REST poll `GET /api/v1/telemetry/live` every `MAP_POLL_SEC` (default 10); SSE stream optional enhancement behind a toggle.
+- **`GET /share/{token}`** (public, registered BEFORE the protected group at `main.go:729`, i.e. in the public block after `/contact-us` at `main.go:714`): no auth, rate-limited. Leaflet map, single vehicle marker, ETA window ±15 min, status. Polls `GET /share/{token}/data` every 30 s. No SSE on the public surface.
 - **`GET /maintenance`** (protected): schedules, due list, DTC list, record entry forms (Datastar fragments).
 
 ### 1.4 RBAC
 
-New resources `shares` and `maintenance` seeded in 00043 (permissions table + `role_permissions` for roles 1 admin, 2 dispatcher — **must re-seed explicitly**, the blanket `SELECT 1, id FROM permissions` in 00012 runs once at that migration, not on every insert).
+New resources `shares` and `maintenance` seeded in 00044 (permissions table + `role_permissions` for roles 1 admin, 2 dispatcher — **must re-seed explicitly**, the blanket `SELECT 1, id FROM permissions` in 00012 runs once at that migration, not on every insert).
 
 ---
 
@@ -122,9 +181,9 @@ Apply on `/tracking`, `/share/*`, `/maintenance` routes only.
 
 ---
 
-## 3. DDL — `db/migrations/00043_share_links_and_maintenance.sql`
+## 3. DDL — `db/migrations/00044_share_links_and_maintenance.sql`
 
-Ownership: **00043 = share_links + maintenance_schedules + maintenance_records + dtc_events + company_settings maintenance defaults + admin-override columns + RBAC seeds**. `vehicles.maintenance_due` belongs to **00041 (geofence spec — reference only)**; this migration never adds it. Goose applies numerically, so 00041 always precedes 00043.
+Ownership: **00044 = share_links + maintenance_schedules + maintenance_records + dtc_events + company_settings maintenance defaults + admin-override columns + RBAC seeds**. `vehicles.maintenance_due` belongs to **00042 (geofence spec — reference only)**; this migration never adds it. Goose applies numerically, so 00042 always precedes 00044.
 
 ```sql
 -- +goose Up
@@ -209,7 +268,7 @@ ALTER TABLE company_settings ADD COLUMN maintenance_default_interval_km REAL;
 ALTER TABLE company_settings ADD COLUMN maintenance_default_interval_days INTEGER;
 ALTER TABLE company_settings ADD COLUMN maintenance_critical_dtcs TEXT;  -- comma-separated codes
 
--- ── Admin override (flag itself lives in 00041) ──────────────────────
+-- ── Admin override (flag itself lives in 00042) ──────────────────────
 ALTER TABLE vehicles ADD COLUMN maintenance_override_by TEXT;
 ALTER TABLE vehicles ADD COLUMN maintenance_override_at DATETIME;
 ALTER TABLE vehicles ADD COLUMN maintenance_override_reason TEXT;
@@ -250,7 +309,7 @@ ALTER TABLE vehicles DROP COLUMN maintenance_override_at;
 ALTER TABLE vehicles DROP COLUMN maintenance_override_reason;
 ```
 
-Note: `files.uploadable_type` CHECK (`00001_initial.sql:67`) is narrow (`driver_license|vehicle_insurance|vehicle_permit|company_logo`) — maintenance attachments are **out of scope** for v1 (records store vendor/notes as text). Extending the CHECK requires a SQLite table rebuild; deferred to the compliance spec (00045).
+Note: `files.uploadable_type` CHECK (`00001_initial.sql:67`) is narrow (`driver_license|vehicle_insurance|vehicle_permit|company_logo`) — maintenance attachments are **out of scope** for v1 (records store vendor/notes as text). Extending the CHECK requires a SQLite table rebuild; deferred to the compliance spec (00046).
 
 ---
 
@@ -278,7 +337,7 @@ Note: `files.uploadable_type` CHECK (`00001_initial.sql:67`) is narrow (`driver_
 
 ### 4.4 Route registration order (explicit requirement)
 
-`/share/*` public routes are registered in the **public web group** (`cmd/server/main.go:482-519` block, after `/contact-us` at line 519) — i.e. **before** the `RequireAuth` protected group at line 522. They must never appear inside the protected group. `GET /tracking`, `/shares`, `/maintenance` go inside the protected group. `GET /api/v1/telemetry/live` + `/stream` go inside the protected API group (`main.go:350-361`), registered via the existing `telemetry.RegisterTelemetryRoutes(r, database)` call at line 354.
+`/share/*` public routes are registered in the **public web group** (`cmd/server/main.go` public web group ends ~line 714, after `/contact-us`) — i.e. **before** the `RequireAuth` protected group at line 729. They must never appear inside the protected group. `GET /tracking`, `/shares`, `/maintenance` go inside the protected group. `GET /api/v1/telemetry/live` + `/stream` go inside the protected API group (`main.go:445-461`), registered via the existing `telemetry.RegisterTelemetryRoutes(r, database)` call at line 448.
 
 ---
 
@@ -288,7 +347,7 @@ Note: `files.uploadable_type` CHECK (`00001_initial.sql:67`) is narrow (`driver_
 
 - Route: `distance`, `estimated_hours`, `reverse_distance` (from `routes`; `internal/domain/route/entity.go` `GetDistanceAndFare`).
 - Trip: `status`, `started_at`, `departure_time`, `arrival_time` (`trips` table per 00007/00026).
-- Telemetry: `telemetry_snapshots` rows for trip/vehicle — `timestamp, speed, odometer` (only fields available today; no heading/accuracy — enrichment is ingestion spec 00040, reference only).
+- Telemetry: `telemetry_snapshots` rows for trip/vehicle — `timestamp, speed, odometer` (only fields available today; no heading/accuracy — enrichment is ingestion spec 00041, reference only).
 
 ### 5.2 Steps
 
@@ -315,17 +374,17 @@ Note: `files.uploadable_type` CHECK (`00001_initial.sql:67`) is narrow (`driver_
 
 ### 6.1 Worker loop
 
-`internal/maintenance/worker.go` — `Worker{db, bus, logger}`, started from `cmd/server/main.go` next to `runDailyDigest` (line 613 pattern): `go maintenanceWorker.Run(ctx)`. Ticker `PM_CHECK_INTERVAL_MIN` (default 15), gated by `PM_ENABLED` (default `true`; if `vehicles.maintenance_due` column absent — 00041 not yet applied — log warn and skip flag updates).
+`internal/maintenance/worker.go` — `Worker{db, bus, logger}`, started from `cmd/server/main.go` next to `runDailyDigest` (line 823 pattern): `go maintenanceWorker.Run(ctx)`. Ticker `PM_CHECK_INTERVAL_MIN` (default 15), gated by `PM_ENABLED` (default `true`; if `vehicles.maintenance_due` column absent — 00042 not yet applied — log warn and skip flag updates).
 
 Per tick, per active schedule (`maintenance_schedules.active=1`):
 
 - **Odometer due:** latest odometer (max `odometer` in `telemetry_snapshots` for the vehicle, else `vehicles.odometer`) `>= due_km` (or `last_done_km + interval_km`).
 - **Date due:** `now >= due_at` (or `last_done_at + interval_days`).
-- On due → `UPDATE vehicles SET maintenance_due = 1 WHERE id = ?` (column from 00041), insert `notifications` row (table exists, 00025), publish `events.Event{Type: "maintenance.due"}` (feeds SSE + founder alerts).
+- On due → `UPDATE vehicles SET maintenance_due = 1 WHERE id = ?` (column from 00042), insert `notifications` row (table exists, 00025), publish `events.Event{Type: "maintenance.due"}` (feeds SSE + founder alerts).
 
 ### 6.2 DTC intake
 
-- Subscribe to bus event **`"alert.dtc"`** (payload: `{vehicle_id, trip_id, dtc_code, severity, description, occurred_at}`) — emitted by the ingestion pipeline (00040 reference) and, defensively, by a startup catch-up scan of `telemetry_alerts` (00030) rows matching a `dtc_` alert_type. The existing founder `AlertEvent` (`internal/founder/alerts/event.go:28`, `Metadata map[string]interface{}`) is the transport when ingestion routes through founder — worker also subscribes to `"AlertEvent"` and extracts `Metadata["dtc_codes"]` if present.
+- Subscribe to bus event **`"alert.dtc"`** (payload: `{vehicle_id, trip_id, dtc_code, severity, description, occurred_at}`) — emitted by the ingestion pipeline (00041 reference) and, defensively, by a startup catch-up scan of `telemetry_alerts` (00030) rows matching a `dtc_` alert_type. The existing founder `AlertEvent` (`internal/founder/alerts/event.go:28`, `Metadata map[string]interface{}`) is the transport when ingestion routes through founder — worker also subscribes to `"AlertEvent"` and extracts `Metadata["dtc_codes"]` if present.
 - Insert into `dtc_events` (dedup via unique index `(vehicle_id, dtc_code, occurred_at)`); if `severity == 'critical'` or code ∈ `company_settings.maintenance_critical_dtcs` → `maintenance_due = 1` + publish `maintenance.due`.
 - **Resolution:** recording a `maintenance_record` for the vehicle triggers recompute: if no active schedule due and no unresolved critical DTC → `maintenance_due = 0`, publish `maintenance.cleared`.
 
@@ -335,16 +394,16 @@ Block condition: `vehicles.maintenance_due = 1` (or unresolved critical DTC) **a
 
 **Path A — web UI + REST API use cases (shared):**
 
-1. `internal/trip/application/assign_vehicle.go` — `checkVehicleCompliance` (lines 66-88): add maintenance check after the existing status/expiry checks. Needs `v.MaintenanceDue` on the vehicle aggregate (field added when 00041 lands — `internal/vehicle/domain/aggregate/vehicle_aggregate.go`) plus unresolved-critical-DTC lookup via new `MaintenanceRepository` (see below). Override: new `OverrideMaintenance bool` + `OverrideReason string` on `AssignVehicleCommand`; when set, `logAudit(txCtx, "assign_vehicle_override", ...)`.
+1. `internal/trip/application/assign_vehicle.go` — `checkVehicleCompliance` (lines 66-88): add maintenance check after the existing status/expiry checks. Needs `v.MaintenanceDue` on the vehicle aggregate (field added when 00042 lands — `internal/vehicle/domain/aggregate/vehicle_aggregate.go`) plus unresolved-critical-DTC lookup via new `MaintenanceRepository` (see below). Override: new `OverrideMaintenance bool` + `OverrideReason string` on `AssignVehicleCommand`; when set, `logAudit(txCtx, "assign_vehicle_override", ...)`.
 2. `internal/trip/application/assign_driver.go` — `checkDriverCompliance` (lines 66-82): add same maintenance check **when the trip already carries a vehicle** (reassignment case; `t.VehicleID` from `repo.Find`). Driver-assign stays blocked for a blocked vehicle; final authority remains the vehicle-assign step. Same override fields on `AssignDriverCommand`.
 3. Handlers wiring: `internal/handlers/trips.go:72-73` (web) and `internal/trip/presentation/api/handlers/trip_handler.go:74` (REST) pass `override` form/JSON field through to the commands. RBAC: override accepted only when actor holds `maintenance:update` (checked via `middleware.ResourcePermission` on a distinct route variant or in-use-case via `authSrv` — use-case has no actor; enforce in handlers).
 
 **Path B — service layer (agent tools, tests):**
 
 4. `internal/service/trip_service.go` — `AssignVehicle` (line ~225) and `AssignDriver` (line 163): after existing `CanAcceptTrip`/conflict checks, call `s.store.IsMaintenanceBlocked(ctx, vehicleID)` (new `SQLRepository` method, `internal/repository/sqlite/vehicles.go`) and return a typed error.
-5. `internal/agent/tools.go` — `list_available_vehicles` (line ~389): filter out `maintenance_due` vehicles (add to the query); `assign_vehicle`/`assign_driver` (lines 416-452) surface the service-layer error verbatim. `GetAvailableVehicles` query: `db/query/vehicles.sql:52` — add `AND maintenance_due = 0` (guarded: column from 00041; query regenerated after both migrations exist).
+5. `internal/agent/tools.go` — `list_available_vehicles` (line ~389): filter out `maintenance_due` vehicles (add to the query); `assign_vehicle`/`assign_driver` (lines 416-452) surface the service-layer error verbatim. `GetAvailableVehicles` query: `db/query/vehicles.sql:52` — add `AND maintenance_due = 0` (guarded: column from 00042; query regenerated after both migrations exist).
 
-**Override UX:** vehicle page (`vehicle_edit.html`/`vehicle_view.html`) — admin sets `maintenance_override_by/at/reason` (00043 columns) with audit; override only lifts the *block*, flag stays set until work recorded.
+**Override UX:** vehicle page (`vehicle_edit.html`/`vehicle_view.html`) — admin sets `maintenance_override_by/at/reason` (00044 columns) with audit; override only lifts the *block*, flag stays set until work recorded.
 
 ### 6.4 Repository wiring
 
@@ -355,7 +414,7 @@ Block condition: `vehicles.maintenance_due = 1` (or unresolved critical DTC) **a
 
 ## 7. API routes (all under existing auth groups)
 
-### Public (before protected group, `main.go:482-519` block)
+### Public (before protected group, `main.go: ~714` block)
 
 | Method | Path | Handler | Auth / limits |
 |---|---|---|---|
@@ -363,7 +422,7 @@ Block condition: `vehicles.maintenance_due = 1` (or unresolved critical DTC) **a
 | POST | `/share/{token}/verify` | `ShareHandlers.VerifyPIN` | none; `RateLimit(10)` |
 | GET | `/share/{token}/data` | `ShareHandlers.Data` | none; `RateLimit(30)`; `NoCache` |
 
-### Protected web group (`main.go:522-594`)
+### Protected web group (`main.go:729+`)
 
 | Method | Path | Handler | RBAC |
 |---|---|---|---|
@@ -376,7 +435,7 @@ Block condition: `vehicles.maintenance_due = 1` (or unresolved critical DTC) **a
 | POST | `/maintenance/records` | `MaintenanceHandlers.Record` | `maintenance:create` |
 | GET | `/maintenance/dtc` | `MaintenanceHandlers.DtcList` | `maintenance:read` |
 
-### Protected API group (`main.go:350-361`, via `telemetry.RegisterTelemetryRoutes` at :354)
+### Protected API group (`main.go:445-461`, via `telemetry.RegisterTelemetryRoutes` at :448)
 
 | Method | Path | Handler | Notes |
 |---|---|---|---|
@@ -395,7 +454,7 @@ Marker state rules: `maintenance_due` overrides others when flag set; else `no_s
 |---|---|
 | `internal/realtime/hub.go` | SSE hub (subscribe/publish/heartbeat) |
 | `internal/realtime/hub_test.go` | Fan-out, slow-consumer drop, filter tests |
-| `internal/realtime/bus.go` | `AttachToBus` — forwards `telemetry.snapshot` / `trip.status_changed` / `maintenance.due` / `maintenance.cleared` to hub |
+| `internal/realtime/bus.go` | `AttachToBus` — forwards `PositionEvent` (Dual-Write Fast-Path) / `trip.status_changed` / `maintenance.due` / `maintenance.cleared` to hub |
 | `internal/realtime/handler.go` | `StreamHandler` (SSE) |
 | `internal/telemetry/live.go` | `LiveHandler` (REST JSON) + snapshot→bus publish helper |
 | `internal/eta/service.go` | Hybrid ETA calculator (5.2) |
@@ -409,14 +468,14 @@ Marker state rules: `maintenance_due` overrides others when flag set; else `no_s
 | `internal/templates/tracking.html` | Leaflet map page (Datastar poll) |
 | `internal/templates/share_public.html` | Public share page (+ `_pin_form.html` fragment) |
 | `internal/templates/maintenance_index.html` | Schedules/due/DTC list + record forms |
-| `db/migrations/00043_share_links_and_maintenance.sql` | Section 3 DDL |
+| `db/migrations/00044_share_links_and_maintenance.sql` | Section 3 DDL |
 | `db/query/share_links.sql`, `db/query/maintenance.sql` | sqlc queries |
 
 ### Modify
 
 | File | Change |
 |---|---|
-| `cmd/server/main.go` | Public `/share/*` routes before line 522; `/tracking`, `/shares`, `/maintenance` in protected group (:522-594); `telemetry.RegisterTelemetryRoutes` gains live/stream (existing call :354); hub init + `AttachToBus` + `go hub.Run(ctx)` near outbox relay (:609-616); `go maintenanceWorker.Run(ctx)`; `SkipForPaths` wrapper on `chiMiddleware.Timeout` (:255); new handler groups on `app` |
+| `cmd/server/main.go` | Public `/share/*` routes before line 729; `/tracking`, `/shares`, `/maintenance` in protected group (:729+); `telemetry.RegisterTelemetryRoutes` gains live/stream (existing call :448); hub init + `AttachToBus` + `go hub.Run(ctx)` near outbox relay (:819-826); `go maintenanceWorker.Run(ctx)`; `SkipForPaths` wrapper on `chiMiddleware.Timeout` (:269); new handler groups on `app` |
 | `internal/middleware/middleware.go` | `SkipForPaths` + `ContentSecurityPolicy` (section 2) |
 | `internal/config/config.go` | Section 9 vars |
 | `internal/telemetry/sync.go` | `snapshotHandler` publishes `telemetry.snapshot` to bus after INSERT (bus passed in via `RegisterTelemetryRoutes`) |
@@ -430,7 +489,7 @@ Marker state rules: `maintenance_due` overrides others when flag set; else `no_s
 | `internal/repository/sqlite/trips.go` | Share-link / ETA helper reads (or use sqlc directly) |
 | `internal/shared/ports/uow.go` + `internal/shared/uow/uow.go` | `Maintenance() any` in provider |
 | `internal/agent/tools.go` | `list_available_vehicles` filter (:389-412); errors surface (:416-452) |
-| `internal/vehicle/domain/aggregate/vehicle_aggregate.go` | `MaintenanceDue bool` + override fields (populated after 00041 lands) |
+| `internal/vehicle/domain/aggregate/vehicle_aggregate.go` | `MaintenanceDue bool` + override fields (populated after 00042 lands) |
 | `internal/templates/layout.html` | Conditional Leaflet asset block |
 | `internal/templates/trip_view.html` | "Share link" button + copy widget (near :20-28 assignment forms) |
 | `internal/templates/vehicle_view.html` | Maintenance due badge + override form |
@@ -465,11 +524,11 @@ Marker state rules: `maintenance_due` overrides others when flag set; else `no_s
 
 ## 10. Migration plan
 
-1. **00041 (geofence spec, reference only)** adds `vehicles.maintenance_due`. Goose ordering guarantees it precedes 00043. Until it lands, worker skips flag writes (`PM_ENABLED` tolerant), and vehicle aggregate simply lacks the field.
-2. **00043 (this spec)** — section 3 DDL. Applied automatically at boot (`main.go:150` `provider.Up`); no manual step.
-3. **sqlc regenerate** after 00043 + 00041: `sqlc generate` → new `db/generated/sqlite/{share_links,maintenance}.sql.go` + modified `vehicles.sql.go`. Do this only after both migrations exist on disk (sqlc reads schema from `db/migrations`).
+1. **00042 (geofence spec, reference only)** adds `vehicles.maintenance_due`. Goose ordering guarantees it precedes 00044. Until it lands, worker skips flag writes (`PM_ENABLED` tolerant), and vehicle aggregate simply lacks the field.
+2. **00044 (this spec)** — section 3 DDL. Applied automatically at boot (`main.go:150` `provider.Up`); no manual step.
+3. **sqlc regenerate** after 00044 + 00042: `sqlc generate` → new `db/generated/sqlite/{share_links,maintenance}.sql.go` + modified `vehicles.sql.go`. Do this only after both migrations exist on disk (sqlc reads schema from `db/migrations`).
 4. **Vendored assets** — Leaflet + markercluster committed under `internal/static/` (no CDN).
-5. **RBAC** — seeded inside 00043 (roles 1, 2). Existing sessions unaffected; Casbin reloads policies from DB per request (`auth.NewCasbinAuthorizationService(database)`).
+5. **RBAC** — seeded inside 00044 (roles 1, 2). Existing sessions unaffected; Casbin reloads policies from DB per request (`auth.NewCasbinAuthorizationService(database)`).
 6. Rollout order per phase 12 — each phase shippable independently.
 
 ---
@@ -480,8 +539,8 @@ Marker state rules: `maintenance_due` overrides others when flag set; else `no_s
 2. **Token abuse.** Unknown/expired/revoked → identical 404/410 (no existence oracle). PIN: 5 fails → 15 min lock (`locked_until`); per-IP `RateLimit(10)` on verify. Token stored hashed (SHA-256) — DB leak yields nothing usable. `SHARE_LINK_MAX_ACTIVE` cap per trip prevents link sprawl. Revoke kills instantly (checked before PIN cookie).
 3. **Sliding expiry thrashers.** A client polling `/share/{token}/data` every 30 s keeps the link alive indefinitely — cap at `created_at + SHARE_LINK_MAX_TTL_HOURS` (hard stop). Only page + verify views refresh; `/data` reads do not extend.
 4. **Fleet scale.** Single-process hub: fan-out is O(subscribers); 64-buffer drop + EventSource reconnect prevents slow-client backpressure. SQLite: `/live` query uses `idx_telemetry_snapshots_trip` (trip_id, timestamp) with a `WHERE timestamp > now−15min` window and `LIMIT` per trip (latest row per vehicle via window function). Poll page at `MAP_POLL_SEC=10`; markercluster keeps DOM nodes bounded. Multi-instance: SSE only sees local process events — document polling as the consistent path; hub optional.
-5. **Maintenance flag races.** Worker tick vs assignment transaction: assignment reads flag in the same UoW tx as the trip update; worker UPDATE is a single statement — no torn state. Override recorded atomically in 00043 columns; race between override and block → block wins unless override exists at read time.
-6. **DTC storm.** Dedupe: one `dtc_events` row per (vehicle, code, occurred_at bucket 1 min) via the partial unique index (00043).
+5. **Maintenance flag races.** Worker tick vs assignment transaction: assignment reads flag in the same UoW tx as the trip update; worker UPDATE is a single statement — no torn state. Override recorded atomically in 00044 columns; race between override and block → block wins unless override exists at read time.
+6. **DTC storm.** Dedupe: one `dtc_events` row per (vehicle, code, occurred_at bucket 1 min) via the partial unique index (00044).
 7. **No odometer.** ETA uses time-proportional remaining; speed component still valid; document `eta_method: "telemetry_time_prop"`.
 8. **`files.uploadable_type` narrow CHECK** — maintenance docs out of v1 scope (see section 3 note).
 9. **SSE through `chiMiddleware.Compress(5)`** — chi's compress writer implements `http.Flusher`; keep `X-Accel-Buffering: no` and flush per event. Verified acceptable; if proxied (nginx/cloudflare), buffering disabled by that header.
@@ -491,10 +550,10 @@ Marker state rules: `maintenance_due` overrides others when flag set; else `no_s
 ## 12. Phased rollout
 
 - **Phase 1 — Map + polling (no new infra):** `GET /tracking`, `GET /api/v1/telemetry/live`, Leaflet + markercluster, marker states. Templates + handlers + vendored assets. Works with zero server changes beyond routes.
-- **Phase 2 — SSE:** `internal/realtime` hub + `/stream` + `SkipForPaths` timeout fix + snapshot→bus publish. Tracking page opts in; polling remains fallback.
-- **Phase 3 — Share links:** 00043 share_links DDL + public routes + PIN + sliding expiry + revoke + `/share/*` templates. ETA wired from Phase 4 algorithm; until then share shows scheduled window.
+- **Phase 2 — SSE:** `internal/realtime` hub + `/stream` + `SkipForPaths` timeout fix + consume in-memory `PositionEvent` (Spec 01 Dual-Write Fast-Path). Tracking page opts in; polling remains fallback.
+- **Phase 3 — Share links:** 00044 share_links DDL + public routes + PIN + sliding expiry + revoke + `/share/*` templates. ETA wired from Phase 4 algorithm; until then share shows scheduled window.
 - **Phase 4 — ETA:** `internal/eta` hybrid calculator + monotonic guard + audit; wire into `/live`, `/share/{token}/data`, popups.
-- **Phase 5 — Preventive maintenance:** 00043 maintenance tables + worker + DTC intake + flags; blockers **wired but non-fatal** (log + warn) for one release; then hard block in both assignment paths + agent tools + override UI. Depends on 00041 (`maintenance_due` column).
+- **Phase 5 — Preventive maintenance:** 00044 maintenance tables + worker + DTC intake + flags; blockers **wired but non-fatal** (log + warn) for one release; then hard block in both assignment paths + agent tools + override UI. Depends on 00042 (`maintenance_due` column).
 - **Phase 6 — Hardening:** CSP on map pages, load tests on `/live` at 500+ vehicles, share-link abuse drills.
 
 ---
@@ -504,7 +563,7 @@ Marker state rules: `maintenance_due` overrides others when flag set; else `no_s
 **Avandab paths (all verified during this audit):**
 
 - [ ] `internal/handlers/dashboard.go` — 37-line KPI page, no WS/SSE anywhere (grep `websocket|text/event-stream|EventSource` → zero).
-- [ ] `cmd/server/main.go` — public web group ends ~line 519 (`/contact-us`); protected web group starts line 522; protected API group lines 350-361 with `telemetry.RegisterTelemetryRoutes(r, database)` at 354; `chiMiddleware.Timeout(60s)` at 255; outbox relay + bus at 609-616; `runDailyDigest` goroutine pattern at 613.
+- [ ] `cmd/server/main.go` — public web group ends ~line 714 (`/contact-us`); protected web group starts line 729; protected API group lines 445-461 with `telemetry.RegisterTelemetryRoutes(r, database)` at 448; `chiMiddleware.Timeout(60s)` at 269; outbox relay + bus at 819-826; `runDailyDigest` goroutine pattern at 823.
 - [ ] `internal/telemetry/sync.go` — `snapshotHandler` insert at line 72; payload struct lines 31-41 (no heading/ignition/engine_hours/accuracy).
 - [ ] `db/migrations/00031_avandab_critical_fixes.sql` — `telemetry_snapshots` cols (id, trip_id, vehicle_id, timestamp, lat, lng, speed, fuel_level, odometer) + `idx_telemetry_snapshots_trip`.
 - [ ] `db/migrations/00005_routes.sql` + 00031 + 00038 — routes cols incl. `distance`, `estimated_hours`, `reverse_distance`, `reverse_standard_fare`, `is_active`.
@@ -512,11 +571,11 @@ Marker state rules: `maintenance_due` overrides others when flag set; else `no_s
 - [ ] `internal/trip/application/assign_vehicle.go` (`checkVehicleCompliance` :66-88) and `assign_driver.go` (`checkDriverCompliance` :66-82) — the two UoW assignment paths (web `internal/handlers/trips.go:72-73`; API `internal/trip/presentation/api/handlers/trip_handler.go:74`).
 - [ ] `internal/service/trip_service.go` — service-layer `AssignDriver` :163 / `AssignVehicle` ~:225 (agent path via `internal/agent/tools.go:416,434`).
 - [ ] `internal/shared/ports/uow.go` `RepositoryProvider` — add `Maintenance()`; impl in `internal/shared/uow/uow.go`.
-- [ ] `db/query/vehicles.sql:52` `GetAvailableVehicles` — add maintenance filter after 00041.
+- [ ] `db/query/vehicles.sql:52` `GetAvailableVehicles` — add maintenance filter after 00042.
 - [ ] `internal/middleware/middleware.go:245` `SecurityHeaders` — no CSP today; `RateLimit` in `ratelimit.go` (per-IP, 1-min window, 16 shards).
 - [ ] `internal/config/config.go` — plain env loader; add section 9 vars.
 - [ ] `internal/templates/layout.html:15-16` — vendored datastar.js + tailwind.css (no CDN precedent).
-- [ ] `db/migrations/00012_rbac.sql` — permission seed pattern; role_permissions (1=admin all, 2=dispatcher); re-seed needed in 00043.
+- [ ] `db/migrations/00012_rbac.sql` — permission seed pattern; role_permissions (1=admin all, 2=dispatcher); re-seed needed in 00044.
 - [ ] `internal/founder/alerts/event.go:28` — `AlertEvent` with `Metadata` map (DTC transport).
 
 **FlyFleet references (verified; note corrected paths):**
@@ -530,7 +589,7 @@ Marker state rules: `maintenance_due` overrides others when flag set; else `no_s
 
 **Post-implementation:**
 
-- [ ] `goose` applies 00043 clean on a fresh DB and on the existing `transport.db` (with 00031-00038 applied).
+- [ ] `goose` applies 00044 clean on a fresh DB and on the existing `transport.db` (with 00031-00038 applied).
 - [ ] `sqlc generate` output compiles; `go build ./...` + `go vet ./...` clean.
 - [ ] Public `/share/{token}` reachable while logged out; `/tracking` 302s to `/login` when logged out.
 - [ ] SSE stream survives > 60 s (Timeout skip verified with curl `--max-time 90`).

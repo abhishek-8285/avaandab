@@ -53,5 +53,5 @@ SELECT id, tenant_id, source, destination, source_normalized, dest_normalized,
        distance, estimated_hours, standard_fare, reverse_distance, reverse_standard_fare,
        direction, is_active, remarks, created_at, updated_at
 FROM routes
-WHERE source_normalized = LOWER(TRIM(?)) AND dest_normalized = LOWER(TRIM(?))
-  AND tenant_id = ?;
+WHERE source_normalized = LOWER(TRIM(:source)) AND dest_normalized = LOWER(TRIM(:destination))
+  AND tenant_id = :tenant_id;

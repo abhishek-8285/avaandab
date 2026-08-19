@@ -2,18 +2,20 @@ package accounting
 
 import (
 	"context"
-	"fmt"
-	"log/slog"
+	"errors"
+	"strings"
 	"time"
-
-	"github.com/google/uuid"
 )
+
+// ErrDisabled indicates that the external accounting integration is disabled.
+var ErrDisabled = errors.New("accounting integration disabled")
 
 // Config holds connection settings for the external accounting API.
 type Config struct {
 	Endpoint string
 	APIKey   string
 	Enabled  bool
+	Provider string
 }
 
 // LineItem represents a single invoice line item.
@@ -94,52 +96,19 @@ type Client interface {
 	PushJournalEntry(ctx context.Context, entry JournalEntry) (JournalEntryResult, error)
 }
 
-type stubClient struct {
-	cfg Config
-}
-
-// NewClient returns a stub accounting client that logs calls and returns fake data.
+// NewClient returns an accounting client for the configured provider.
 func NewClient(cfg Config) Client {
 	if cfg.Endpoint == "" {
 		cfg.Endpoint = "https://api.accounting.example.com"
 	}
-	return &stubClient{cfg: cfg}
-}
-
-func (c *stubClient) ExportInvoice(ctx context.Context, invoice ExportedInvoice) (ExportResult, error) {
-	slog.Default().Info("[accounting] ExportInvoice called", "endpoint", c.cfg.Endpoint, "enabled", c.cfg.Enabled, "invoice", invoice.InvoiceNumber)
-	if !c.cfg.Enabled {
-		return ExportResult{}, fmt.Errorf("accounting integration disabled")
+	switch strings.ToLower(cfg.Provider) {
+	case "tally":
+		return &tallyClient{cfg: cfg}
+	case "zoho":
+		return &zohoClient{cfg: cfg}
+	case "quickbooks":
+		return &quickbooksClient{cfg: cfg}
+	default:
+		return &mockClient{cfg: cfg}
 	}
-	return ExportResult{
-		SyncID:     uuid.New().String(),
-		Status:     "SUCCESS",
-		ExternalID: "EXT-" + invoice.InvoiceNumber,
-		Message:    "Invoice exported successfully",
-	}, nil
-}
-
-func (c *stubClient) SyncContacts(ctx context.Context, contacts []Contact) (SyncResult, error) {
-	slog.Default().Info("[accounting] SyncContacts called", "endpoint", c.cfg.Endpoint, "enabled", c.cfg.Enabled, "count", len(contacts))
-	if !c.cfg.Enabled {
-		return SyncResult{}, fmt.Errorf("accounting integration disabled")
-	}
-	return SyncResult{
-		Synced:  len(contacts),
-		Failed:  0,
-		Errors:  nil,
-		Message: fmt.Sprintf("Synced %d contacts", len(contacts)),
-	}, nil
-}
-
-func (c *stubClient) PushJournalEntry(ctx context.Context, entry JournalEntry) (JournalEntryResult, error) {
-	slog.Default().Info("[accounting] PushJournalEntry called", "endpoint", c.cfg.Endpoint, "enabled", c.cfg.Enabled, "reference", entry.Reference)
-	if !c.cfg.Enabled {
-		return JournalEntryResult{}, fmt.Errorf("accounting integration disabled")
-	}
-	return JournalEntryResult{
-		EntryID: uuid.New().String(),
-		Status:  "SUCCESS",
-		Message: "Journal entry pushed successfully",
-	}, nil
 }

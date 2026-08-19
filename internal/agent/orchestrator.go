@@ -140,6 +140,8 @@ func (o *Orchestrator) keywordRoute(query string) string {
 		return true
 	}
 	switch {
+	case hasAll("alert"), hasAll("alerts"), hasAll("eway"), hasAll("eway bill"), hasAll("e-way"), hasAll("sos"), hasAll("emergency"):
+		return "ops"
 	case hasAll("driver", "expense"), hasAll("kharcha"), hasAll("expense", "approve"), hasAll("expense", "reject"), hasAll("diesel"), hasAll("toll"):
 		return "kharcha"
 	case hasAll("invoice"), hasAll("payment"), hasAll("unpaid"), hasAll("outstanding"), hasAll("upi"), hasAll("cheque"), hasAll("balance"):

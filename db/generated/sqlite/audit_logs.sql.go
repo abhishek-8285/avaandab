@@ -23,6 +23,19 @@ func (q *Queries) CountAuditLogs(ctx context.Context) (int64, error) {
 	return count, err
 }
 
+const countAuditLogsSince = `-- name: CountAuditLogsSince :one
+SELECT COUNT(*) AS count
+FROM audit_logs
+WHERE created_at > ?1
+`
+
+func (q *Queries) CountAuditLogsSince(ctx context.Context, since time.Time) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countAuditLogsSince, since)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createAuditLog = `-- name: CreateAuditLog :one
 INSERT INTO audit_logs (id, user_id, action, table_name, record_id, old_values, new_values, ip_address)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?)

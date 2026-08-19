@@ -23,6 +23,7 @@ const (
 	CategoryTrialMonitoring Category = "TRIAL_MONITORING"
 	CategoryPayment         Category = "PAYMENT"
 	CategoryCustomerSuccess Category = "CUSTOMER_SUCCESS"
+	CategoryFuel            Category = "FUEL"
 )
 
 type AlertEvent struct {

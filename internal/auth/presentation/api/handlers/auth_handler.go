@@ -11,6 +11,7 @@ import (
 	"transport-app/internal/auth"
 	"transport-app/internal/domain"
 	"transport-app/internal/service"
+	"transport-app/internal/shared"
 )
 
 // APIAuthHandler handles REST authentication endpoints.
@@ -80,7 +81,7 @@ func (h *APIAuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	token, err := auth.IssueAPIToken(h.secret, auth.APITokenClaims{
 		UserID:    string(user.ID),
 		Role:      roleName,
-		TenantID:  "1",
+		TenantID:  string(shared.DefaultTenant),
 		IssuedAt:  time.Now().Unix(),
 		ExpiresAt: expiresAt.Unix(),
 	})
@@ -136,7 +137,7 @@ func (h *APIAuthHandler) IssueToken(w http.ResponseWriter, r *http.Request) {
 	token, err := auth.IssueAPIToken(h.secret, auth.APITokenClaims{
 		UserID:    string(result.User.ID),
 		Role:      string(result.User.Role.Name),
-		TenantID:  "1", // Single-tenant; extend when multi-tenancy is added.
+		TenantID:  string(shared.DefaultTenant), // Single-tenant; extend when multi-tenancy is added.
 		IssuedAt:  time.Now().Unix(),
 		ExpiresAt: expiresAt.Unix(),
 	})

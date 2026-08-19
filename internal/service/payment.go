@@ -81,7 +81,7 @@ func (s *PaymentService) RecordPayment(ctx context.Context, invoiceID domain.Inv
 	s.log.Info("payment recorded", "payment_id", created.ID, "invoice_id", invoiceID, "amount", amount)
 	s.logAudit(ctx, nil, "create", "payments", string(created.ID), nil, nil)
 	s.events.Publish(ctx, events.Event{
-		Type: "PaymentRecorded",
+		Type: events.PaymentRecorded,
 		Payload: paymentevents.PaymentRecorded{
 			PaymentID:  created.ID,
 			InvoiceID:  invoiceID,

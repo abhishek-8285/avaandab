@@ -56,7 +56,7 @@ func setupWebhookTest(t *testing.T) (context.Context, *paymentApp.RazorpayWebhoo
 	sqlUoW := uow.NewSQLUnitOfWork(db)
 	idGen := id.NewUUIDGenerator()
 	realClock := clock.NewRealClock()
-	ctx := context.Background()
+	ctx := ContextWithTestTenant(context.Background())
 
 	svc := NewTestServices(t, db)
 	customer, err := svc.Customers.CreateCustomer(ctx, "Webhook Co", "Webhook", "555-7777", "webhook@example.com", "", "", "")
@@ -133,6 +133,10 @@ func TestRazorpayWebhook_IdempotentRedelivery(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestRazorpayWebhook_MissingInvoiceNotes proves a payment.captured webhook
+// without notes.invoice_id is acknowledged (HTTP 200 semantics) rather than
+// rejected — Razorpay must not retry forever, but the money must not be
+// silently dropped (Spec 11 §5.1).
 func TestRazorpayWebhook_MissingInvoiceNotes(t *testing.T) {
 	ctx, uc, sign, _ := setupWebhookTest(t)
 	body, _ := json.Marshal(map[string]interface{}{
@@ -146,6 +150,7 @@ func TestRazorpayWebhook_MissingInvoiceNotes(t *testing.T) {
 			},
 		},
 	})
-	_, err := uc.Execute(ctx, body, sign(body))
-	assert.ErrorIs(t, err, paymentApp.ErrWebhookInvoiceMissing)
+	id, err := uc.Execute(ctx, body, sign(body))
+	require.NoError(t, err, "missing invoice_id must be acknowledged, not rejected")
+	assert.Empty(t, id, "no payment row is created for an unattributable webhook")
 }

@@ -13,7 +13,7 @@ import (
 const ensureCompanySettings = `-- name: EnsureCompanySettings :one
 INSERT OR IGNORE INTO company_settings (id, company_name, currency, timezone, gst_enabled, gst_rate, booking_prefix, trip_prefix, invoice_prefix, financial_year)
 VALUES (1, 'Transport Company', 'INR', 'Asia/Kolkata', 0, 0.0, 'BK', 'TR', 'INV', NULL)
-RETURNING id, company_name, logo_path, currency, timezone, gst_enabled, gst_rate, booking_prefix, trip_prefix, invoice_prefix, created_at, updated_at, address, phone, email, gst_number, financial_year
+RETURNING id, company_name, logo_path, currency, timezone, gst_enabled, gst_rate, booking_prefix, trip_prefix, invoice_prefix, created_at, updated_at, address, phone, email, gst_number, financial_year, maintenance_default_interval_km, maintenance_default_interval_days, maintenance_critical_dtcs, state_code
 `
 
 func (q *Queries) EnsureCompanySettings(ctx context.Context) (CompanySetting, error) {
@@ -37,12 +37,16 @@ func (q *Queries) EnsureCompanySettings(ctx context.Context) (CompanySetting, er
 		&i.Email,
 		&i.GstNumber,
 		&i.FinancialYear,
+		&i.MaintenanceDefaultIntervalKm,
+		&i.MaintenanceDefaultIntervalDays,
+		&i.MaintenanceCriticalDtcs,
+		&i.StateCode,
 	)
 	return i, err
 }
 
 const getCompanySettings = `-- name: GetCompanySettings :one
-SELECT id, company_name, logo_path, currency, timezone, gst_enabled, gst_rate, booking_prefix, trip_prefix, invoice_prefix, created_at, updated_at, address, phone, email, gst_number, financial_year FROM company_settings WHERE id = 1
+SELECT id, company_name, logo_path, currency, timezone, gst_enabled, gst_rate, booking_prefix, trip_prefix, invoice_prefix, created_at, updated_at, address, phone, email, gst_number, financial_year, maintenance_default_interval_km, maintenance_default_interval_days, maintenance_critical_dtcs, state_code FROM company_settings WHERE id = 1
 `
 
 func (q *Queries) GetCompanySettings(ctx context.Context) (CompanySetting, error) {
@@ -66,6 +70,10 @@ func (q *Queries) GetCompanySettings(ctx context.Context) (CompanySetting, error
 		&i.Email,
 		&i.GstNumber,
 		&i.FinancialYear,
+		&i.MaintenanceDefaultIntervalKm,
+		&i.MaintenanceDefaultIntervalDays,
+		&i.MaintenanceCriticalDtcs,
+		&i.StateCode,
 	)
 	return i, err
 }
@@ -78,7 +86,7 @@ SET company_name = ?, logo_path = ?, currency = ?, timezone = ?,
     address = ?, phone = ?, email = ?, gst_number = ?,
     updated_at = datetime('now')
 WHERE id = 1
-RETURNING id, company_name, logo_path, currency, timezone, gst_enabled, gst_rate, booking_prefix, trip_prefix, invoice_prefix, created_at, updated_at, address, phone, email, gst_number, financial_year
+RETURNING id, company_name, logo_path, currency, timezone, gst_enabled, gst_rate, booking_prefix, trip_prefix, invoice_prefix, created_at, updated_at, address, phone, email, gst_number, financial_year, maintenance_default_interval_km, maintenance_default_interval_days, maintenance_critical_dtcs, state_code
 `
 
 type UpdateCompanySettingsParams struct {
@@ -134,6 +142,10 @@ func (q *Queries) UpdateCompanySettings(ctx context.Context, arg UpdateCompanySe
 		&i.Email,
 		&i.GstNumber,
 		&i.FinancialYear,
+		&i.MaintenanceDefaultIntervalKm,
+		&i.MaintenanceDefaultIntervalDays,
+		&i.MaintenanceCriticalDtcs,
+		&i.StateCode,
 	)
 	return i, err
 }

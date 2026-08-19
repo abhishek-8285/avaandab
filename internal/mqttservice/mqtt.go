@@ -1,6 +1,7 @@
 package mqttservice
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -16,11 +17,23 @@ type GPSTelemetryPayload struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
+// TelemetryHandler is invoked for each canonical GPS message received on
+// "avandab/telemetry/devices/{imei}/gps". Paho does not expose the publishing
+// client's username in the message callback (Spec 01 gotcha D8 #1): the topic
+// IMEI is extracted from the topic string, and the handler validates it against
+// the payload IMEI. Broker ACL (Mosquitto acl_file) provides connection-level
+// spoof protection.
+type TelemetryHandler func(ctx context.Context, topic string, payload []byte)
+
+// MQTTBroker wraps a Paho MQTT client.
 type MQTTBroker struct {
-	client mqtt.Client
+	client  mqtt.Client
+	handler TelemetryHandler
 }
 
-func NewMQTTBroker(brokerURL string) *MQTTBroker {
+// NewMQTTBroker creates and connects a broker that subscribes to canonical
+// GPS telemetry topics. When handler is nil, messages are logged only.
+func NewMQTTBroker(brokerURL string, handler TelemetryHandler) *MQTTBroker {
 	opts := mqtt.NewClientOptions().AddBroker(brokerURL)
 	opts.SetClientID("avandab_backend_server")
 	opts.SetKeepAlive(60 * time.Second)
@@ -30,25 +43,45 @@ func NewMQTTBroker(brokerURL string) *MQTTBroker {
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		log.Printf("[MQTT WARNING] Could not connect to MQTT Broker (%s): %v (running fallback mode)", brokerURL, token.Error())
 	} else {
-		log.Printf("[MQTT WARNING] Connected to MQTT broker at %s but integration is a stub (telemetry is logged only)", brokerURL)
+		log.Printf("[MQTT] Connected to broker at %s", brokerURL)
 	}
 
-	b := &MQTTBroker{client: client}
+	b := &MQTTBroker{client: client, handler: handler}
 	b.subscribeTelemetry()
 	return b
 }
 
+// subscribeTelemetry subscribes to the canonical device topic (routing to the
+// handler) and keeps the legacy driver topic as a log-only bridge for the
+// mobile app until it is retrofitted (Spec 01 Phase 3).
 func (b *MQTTBroker) subscribeTelemetry() {
 	if !b.client.IsConnected() {
 		return
 	}
-	topic := "avandab/telemetry/drivers/+/gps"
-	b.client.Subscribe(topic, 1, func(c mqtt.Client, m mqtt.Message) {
-		var payload GPSTelemetryPayload
-		if err := json.Unmarshal(m.Payload(), &payload); err == nil {
-			log.Printf("[MQTT TELEMETRY RECV] Driver %s -> Lat: %.4f, Lng: %.4f", payload.DriverID, payload.Latitude, payload.Longitude)
-		}
-	})
+
+	// Canonical topic: own GPS hardware devices.
+	canonicalTopic := "avandab/telemetry/devices/+/gps"
+	if b.handler != nil {
+		b.client.Subscribe(canonicalTopic, 1, asPahoHandler(b.handler))
+	} else {
+		b.client.Subscribe(canonicalTopic, 1, logOnlyHandler)
+	}
+
+	// Legacy bridge: mobile app still publishes here.
+	// Log-only until the mobile app is retrofitted (Spec 01 Phase 3).
+	b.client.Subscribe("avandab/telemetry/drivers/+/gps", 1, logOnlyHandler)
+}
+
+// logOnlyHandler logs a message without processing it.
+func logOnlyHandler(_ mqtt.Client, m mqtt.Message) {
+	log.Printf("[MQTT LEGACY] %s: %s", m.Topic(), string(m.Payload()))
+}
+
+// asPahoHandler adapts a TelemetryHandler to Paho's message callback signature.
+func asPahoHandler(h TelemetryHandler) mqtt.MessageHandler {
+	return func(_ mqtt.Client, m mqtt.Message) {
+		h(context.Background(), m.Topic(), m.Payload())
+	}
 }
 
 func (b *MQTTBroker) PublishTripUpdate(driverID string, tripID string, status string) {

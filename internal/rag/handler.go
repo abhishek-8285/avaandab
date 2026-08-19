@@ -6,16 +6,57 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 )
 
 type Handler struct {
-	service *Service
+	service     *Service
+	allowedDirs []string
 }
 
 func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
+}
+
+// WithAllowedDirs restricts which directories /api/rag/index and
+// /api/rag/reindex may index. An empty list disables directory indexing
+// entirely (fail-closed): callers must use the configured allow-list.
+func (h *Handler) WithAllowedDirs(dirs []string) *Handler {
+	clean := make([]string, 0, len(dirs))
+	for _, d := range dirs {
+		d = strings.TrimSpace(d)
+		if d == "" {
+			continue
+		}
+		abs, err := filepath.Abs(d)
+		if err == nil {
+			d = abs
+		}
+		clean = append(clean, filepath.Clean(d))
+	}
+	h.allowedDirs = clean
+	return h
+}
+
+// allowedDirectory reports whether dir is an absolute prefix of an allowed directory.
+// Path-traversal and symlink escapes are rejected by resolving to absolute paths.
+func (h *Handler) allowedDirectory(dir string) bool {
+	if len(h.allowedDirs) == 0 {
+		return false
+	}
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		return false
+	}
+	abs = filepath.Clean(abs)
+	for _, allowed := range h.allowedDirs {
+		if abs == allowed || strings.HasPrefix(abs, allowed+string(os.PathSeparator)) {
+			return true
+		}
+	}
+	return false
 }
 
 // Service exposes the underlying RAG service (for the agent support tool).
@@ -127,6 +168,12 @@ func (h *Handler) handleIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !h.allowedDirectory(req.Directory) {
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(APIError{Error: "directory is not in the configured allow-list"})
+		return
+	}
+
 	count, err := h.service.IndexDirectory(req.Directory)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -179,6 +226,12 @@ func (h *Handler) handleReindex(w http.ResponseWriter, r *http.Request) {
 	if req.Directory == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(APIError{Error: "directory is required"})
+		return
+	}
+
+	if !h.allowedDirectory(req.Directory) {
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(APIError{Error: "directory is not in the configured allow-list"})
 		return
 	}
 

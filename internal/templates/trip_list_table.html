@@ -1,0 +1,49 @@
+<div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-border-subtle">
+        <thead class="bg-surface-container-low font-label-caps text-[11px] text-secondary uppercase tracking-wider">
+            <tr>
+                <th class="th-cell w-32">Trip ID</th>
+                <th class="th-cell">Driver</th>
+                <th class="th-cell">Vehicle</th>
+                <th class="th-cell">Route</th>
+                <th class="th-cell">Status</th>
+                <th class="th-cell-right">Departure</th>
+                <th class="th-cell-right">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-border-subtle text-sm text-on-surface">
+            {{if .Trips}}
+            {{range .Trips}}
+            <tr class="hover:bg-surface-container-low transition-colors group">
+                <td class="td-cell-strong font-mono" data-numeric>{{.TripNumber}}</td>
+                <td class="td-cell font-medium text-on-surface">
+                    {{if .DriverFirstName}}{{.DriverFirstName}} {{.DriverLastName}}{{else}}<span class="text-secondary italic">Unassigned</span>{{end}}
+                </td>
+                <td class="td-cell text-secondary">
+                    {{if .VehicleRegistration}}<span class="font-mono text-xs">{{.VehicleRegistration}}</span>{{else}}<span class="italic">Unassigned</span>{{end}}
+                </td>
+                <td class="td-cell text-on-surface font-medium">{{.RouteSource}} → {{.RouteDestination}}</td>
+                <td class="td-cell">
+                    <span class="status-badge {{statusBadge .Status}}">{{.Status}}</span>
+                </td>
+                <td class="td-cell-right text-secondary tabular-nums font-mono text-xs" data-numeric>{{datetime .DepartureTime}}</td>
+                <td class="td-cell-actions">
+                    <a href="/trips/{{.ID}}" class="action-view mr-2">View</a>
+                    <a href="/trips/{{.ID}}/edit" class="action-edit">Edit</a>
+                </td>
+            </tr>
+            {{end}}
+            {{else}}
+            <tr>
+                <td colspan="7" class="py-12 text-center text-secondary">
+                    {{template "empty_state.html" (dict "Icon" "commute" "Title" "No trips found" "Message" "No trips match the current filters." "ActionHref" "/trips/new" "ActionIcon" "add" "ActionLabel" "New Trip")}}
+                </td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+
+<div class="p-4 border-t border-border-subtle bg-surface-container-lowest">
+    {{template "pagination.html" .}}
+</div>

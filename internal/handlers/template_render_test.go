@@ -9,6 +9,7 @@ import (
 
 	"transport-app/internal/booking/application"
 	driverapp "transport-app/internal/driver/application"
+	"transport-app/internal/ewaybill"
 	invoiceapp "transport-app/internal/invoice/application"
 	paymentapp "transport-app/internal/payment/application"
 	tripapp "transport-app/internal/trip/application"
@@ -67,6 +68,13 @@ func TestAllTemplatesRenderCleanly(t *testing.T) {
 		Tax:           180.00,
 		Total:         1180.00,
 		PaymentStatus: "pending",
+		CGST:          90.00,
+		SGST:          90.00,
+		IGST:          0.00,
+		IRN:           "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+		IRNAckNo:      "ACK-1001",
+		IRNAckDate:    "2026-08-19",
+		SignedQR:      "data:image/png;base64,sample",
 		CreatedAt:     time.Now(),
 	}
 
@@ -192,6 +200,117 @@ func TestAllTemplatesRenderCleanly(t *testing.T) {
 					"RecentBookings":         []application.BookingResponseDTO{sampleBookingDTO},
 					"RecentPayments":         []paymentapp.PaymentResponseDTO{samplePaymentDTO},
 				},
+			},
+		})},
+		{"dashboard.html", buildTemplateData(PageData{
+			Title: "Dashboard",
+			Extra: map[string]interface{}{
+				"DashboardVariant": "B",
+				"ChartData": map[string]interface{}{
+					"variant":       "B",
+					"statusCounts":  map[string]int64{"scheduled": 3, "completed": 1},
+					"revenueByDay":  []map[string]interface{}{{"Day": "2026-08-18", "Total": 1200.0}},
+					"bookingsByDay": []map[string]interface{}{{"Day": "2026-08-18", "Count": 4}},
+				},
+				"Stats": map[string]interface{}{
+					"TodaysTripsCount":       4,
+					"ActiveTripsCount":       3,
+					"CompletedTripsCount":    1,
+					"CancelledTripsCount":    0,
+					"AvailableVehiclesCount": 5,
+					"AvailableDriversCount":  3,
+					"PendingPaymentsCount":   2,
+					"MonthlyRevenue":         15000.0,
+					"DeltaYesterday":         1,
+					"OverdueTrips":           []tripapp.TripResponseDTO{sampleTripDTO},
+					"IdleVehicles": []map[string]interface{}{{
+						"RegistrationNumber": "KA-01-HH-1234",
+						"VehicleType":        "truck",
+						"UpdatedAt":          time.Now(),
+					}},
+					"UpcomingTrips":  []tripapp.TripResponseDTO{sampleTripDTO},
+					"RecentBookings": []application.BookingResponseDTO{sampleBookingDTO},
+					"RecentPayments": []paymentapp.PaymentResponseDTO{samplePaymentDTO},
+				},
+			},
+		})},
+		{"invoice_line_items.html", buildTemplateData(PageData{
+			Title: "Invoice Line Items",
+			Extra: map[string]interface{}{
+				"Invoice":      sampleInvoiceDTO,
+				"Customer":     map[string]string{"Name": "ACME", "GST": "27AAACP0000M1Z9", "State": "27"},
+				"IsIntraState": true,
+				"LineItems": []LineItemRecord{{
+					ID:           "li-1",
+					InvoiceID:    "inv-1",
+					HSNSACCode:   "996511",
+					Description:  "Freight",
+					Unit:         "NOS",
+					Quantity:     1,
+					Rate:         1000,
+					TaxableValue: 1000,
+					CGSTRate:     9,
+					SGSTRate:     9,
+					CGSTAmount:   90,
+					SGSTAmount:   90,
+					Total:        1180,
+				}},
+				"HSNCodes": []HSNSACRecord{{Code: "996511", Description: "Freight", Type: "SAC", Rate: 18}},
+				"TaxSplit": TaxSplitSummary{TaxableTotal: 1000, IsIntraState: true, Cgst: 90, Sgst: 90, Total: 1180},
+			},
+		})},
+		{"ewaybill_index.html", buildTemplateData(PageData{
+			Title: "E-Way Bills",
+			Extra: map[string]interface{}{
+				"Stats": EWBStats{Total: 1, Active: 1},
+				"EWayBills": []EWBListItem{{
+					ID:             "ewb-1",
+					TripID:         "trip-1",
+					TripNumber:     "TRP-001",
+					EwbNumber:      "EWB-12345",
+					VehicleNumber:  "MH12AB1234",
+					FromPlace:      "Mumbai",
+					ToPlace:        "Pune",
+					GoodsValue:     60000,
+					Status:         "active",
+					ValidUntil:     time.Now().Add(24 * time.Hour),
+					ExtensionCount: 0,
+					CreatedAt:      time.Now(),
+				}},
+				"Trips": []TripOption{{ID: "trip-1", TripNumber: "TRP-001", Source: "Mumbai", Destination: "Pune"}},
+			},
+		})},
+		{"ewaybill_detail.html", buildTemplateData(PageData{
+			Title: "EWB Detail",
+			Extra: map[string]interface{}{
+				"EWayBill": &ewaybill.EWayBillRecord{
+					ID:             "ewb-1",
+					TripID:         "trip-1",
+					EwbNumber:      "EWB-12345",
+					FromPlace:      "Mumbai",
+					FromStateCode:  "27",
+					ToPlace:        "Pune",
+					ToStateCode:    "27",
+					GoodsValue:     60000,
+					Distance:       150,
+					DocType:        "INV",
+					DocNo:          "INV-001",
+					DocDate:        "2026-08-19",
+					Status:         "active",
+					GenMode:        "MANUAL",
+					ValidUntil:     time.Now().Add(24 * time.Hour),
+					ExtensionCount: 0,
+					CreatedAt:      time.Now(),
+				},
+				"Events": []EWBEventRecord{{
+					ID:        "ev-1",
+					EwbNumber: "EWB-12345",
+					TripID:    "trip-1",
+					EventType: "PART_A_GENERATED",
+					Payload:   "{}",
+					CreatedBy: "system",
+					CreatedAt: time.Now(),
+				}},
 			},
 		})},
 	}

@@ -408,3 +408,22 @@ func (r *SQLRepository) CountTripsByStatusForDate(ctx context.Context, date stri
 	}
 	return result, nil
 }
+
+func (r *SQLRepository) GetOverdueTrips(ctx context.Context) ([]repository.TripWithJoins, error) {
+	rows, err := r.Q(ctx).GetOverdueTrips(ctx, string(shared.TenantIDFromContext(ctx)))
+	if err != nil {
+		return nil, err
+	}
+	result := make([]repository.TripWithJoins, len(rows))
+	for i, row := range rows {
+		result[i] = tripRowToWithJoins(
+			row.ID, row.TripNumber, row.BookingID, row.DriverID, row.VehicleID,
+			row.RouteID, row.DepartureTime, row.ArrivalTime, row.Status, row.Remarks,
+			row.CreatedAt, row.UpdatedAt,
+			row.DriverDisplayID, row.DriverFirstName, row.DriverLastName,
+			row.VehicleRegistrationNumber, row.VehicleNumber,
+			row.RouteSource, row.RouteDestination,
+		)
+	}
+	return result, nil
+}

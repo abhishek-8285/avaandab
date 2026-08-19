@@ -16,6 +16,13 @@ type BookingRepository interface {
 	DeleteBooking(ctx context.Context, id types.BookingID) error
 	SearchBookings(ctx context.Context, query string, status string, limit, offset int) ([]BookingWithJoins, error)
 	CountBookings(ctx context.Context, query string, status string) (int64, error)
+	CountBookingsByDay(ctx context.Context) ([]BookingsByDay, error)
+}
+
+// BookingsByDay is a single day's booking count.
+type BookingsByDay struct {
+	Day   string
+	Count int64
 }
 
 // BookingWithJoins includes customer and route details.

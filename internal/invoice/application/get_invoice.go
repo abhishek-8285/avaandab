@@ -27,6 +27,13 @@ type InvoiceResponseDTO struct {
 	Discount        float64   `json:"discount"`
 	Total           float64   `json:"total"`
 	PaymentStatus   string    `json:"payment_status"`
+	CGST            float64   `json:"cgst"`
+	SGST            float64   `json:"sgst"`
+	IGST            float64   `json:"igst"`
+	IRN             string    `json:"irn"`
+	IRNAckNo        string    `json:"irn_ack_no"`
+	IRNAckDate      string    `json:"irn_ack_date"`
+	SignedQR        string    `json:"signed_qr"`
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
 }
@@ -76,6 +83,13 @@ func (uc *GetInvoiceUseCase) Execute(ctx context.Context, q GetInvoiceQuery) (In
 			Discount:        inv.Discount,
 			Total:           inv.Total,
 			PaymentStatus:   inv.PaymentStatus,
+			CGST:            inv.CGST,
+			SGST:            inv.SGST,
+			IGST:            inv.IGST,
+			IRN:             inv.IRN,
+			IRNAckNo:        inv.IRNAckNo,
+			IRNAckDate:      inv.IRNAckDate,
+			SignedQR:        inv.SignedQR,
 			CreatedAt:       inv.CreatedAt,
 			UpdatedAt:       inv.UpdatedAt,
 		}

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"net/http"
 	"strconv"
 	"time"
@@ -9,6 +10,7 @@ import (
 
 	"transport-app/internal/domain"
 	"transport-app/internal/middleware"
+	"transport-app/internal/shared"
 	clock "transport-app/internal/shared/clock"
 	id "transport-app/internal/shared/id"
 	uow "transport-app/internal/shared/uow"
@@ -55,7 +57,7 @@ func (h *VehicleHandlers) List(w http.ResponseWriter, r *http.Request) {
 	pp := parsePaginationParams(r)
 
 	res, err := h.listUC.Execute(r.Context(), vehicleapp.ListVehiclesQuery{
-		TenantID: "1",
+		TenantID: shared.TenantIDFromContext(r.Context()),
 		Page:     pp.Page,
 		Limit:    pp.Limit,
 		Search:   pp.Query,
@@ -122,7 +124,7 @@ func (h *VehicleHandlers) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_, err = h.createUC.Execute(r.Context(), vehicleapp.CreateVehicleCommand{
-		TenantID:           "1",
+		TenantID:           shared.TenantIDFromContext(r.Context()),
 		RegistrationNumber: r.PostFormValue("registration_number"),
 		VehicleNumber:      r.PostFormValue("vehicle_number"),
 		VehicleType:        vehicleagg.VehicleType(r.PostFormValue("vehicle_type")),
@@ -151,14 +153,31 @@ func (h *VehicleHandlers) View(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	vehicle, err := h.getUC.Execute(r.Context(), vehicleapp.GetVehicleQuery{
 		ID:       vehicleagg.VehicleID(id),
-		TenantID: "1",
+		TenantID: shared.TenantIDFromContext(r.Context()),
 	})
 	if err != nil {
 		http.Error(w, "Vehicle not found", http.StatusNotFound)
 		return
 	}
 	files, _ := h.Services.Files.GetFilesByEntity(r.Context(), "vehicle_insurance", id)
-	h.renderPage(w, r, "vehicle_view.html", PageData{Title: "View Vehicle", Extra: map[string]interface{}{"Vehicle": vehicle, "Files": files}})
+
+	var maintDue, maintOvBy, maintOvReason sql.NullString
+	var maintOvAt sql.NullTime
+	_ = h.DB.QueryRowContext(r.Context(), `
+		SELECT maintenance_due, maintenance_override_by, maintenance_override_at, maintenance_override_reason
+		FROM vehicles WHERE id = ?`, id).Scan(&maintDue, &maintOvBy, &maintOvAt, &maintOvReason)
+
+	extra := map[string]interface{}{
+		"Vehicle":                   vehicle,
+		"Files":                     files,
+		"MaintenanceDue":            maintDue.String,
+		"MaintenanceOverrideBy":     maintOvBy.String,
+		"MaintenanceOverrideReason": maintOvReason.String,
+		"IsMaintenanceDue":          maintDue.Valid && maintDue.String != "",
+		"IsMaintenanceOverridden":   maintOvBy.Valid && maintOvBy.String != "",
+	}
+
+	h.renderPage(w, r, "vehicle_view.html", PageData{Title: "View Vehicle", Extra: extra})
 }
 
 func (h *VehicleHandlers) Edit(w http.ResponseWriter, r *http.Request) {
@@ -166,13 +185,29 @@ func (h *VehicleHandlers) Edit(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	vehicle, err := h.getUC.Execute(r.Context(), vehicleapp.GetVehicleQuery{
 		ID:       vehicleagg.VehicleID(id),
-		TenantID: "1",
+		TenantID: shared.TenantIDFromContext(r.Context()),
 	})
 	if err != nil {
 		http.Error(w, "Vehicle not found", http.StatusNotFound)
 		return
 	}
-	h.renderForm(w, r, "vehicle_edit.html", PageData{Title: "Edit Vehicle", Extra: map[string]interface{}{"Vehicle": vehicle}})
+
+	var maintDue, maintOvBy, maintOvReason sql.NullString
+	var maintOvAt sql.NullTime
+	_ = h.DB.QueryRowContext(r.Context(), `
+		SELECT maintenance_due, maintenance_override_by, maintenance_override_at, maintenance_override_reason
+		FROM vehicles WHERE id = ?`, id).Scan(&maintDue, &maintOvBy, &maintOvAt, &maintOvReason)
+
+	extra := map[string]interface{}{
+		"Vehicle":                   vehicle,
+		"MaintenanceDue":            maintDue.String,
+		"MaintenanceOverrideBy":     maintOvBy.String,
+		"MaintenanceOverrideReason": maintOvReason.String,
+		"IsMaintenanceDue":          maintDue.Valid && maintDue.String != "",
+		"IsMaintenanceOverridden":   maintOvBy.Valid && maintOvBy.String != "",
+	}
+
+	h.renderForm(w, r, "vehicle_edit.html", PageData{Title: "Edit Vehicle", Extra: extra})
 }
 
 func (h *VehicleHandlers) Update(w http.ResponseWriter, r *http.Request) {
@@ -213,7 +248,7 @@ func (h *VehicleHandlers) Update(w http.ResponseWriter, r *http.Request) {
 
 	err = h.updateUC.Execute(r.Context(), vehicleapp.UpdateVehicleCommand{
 		ID:                 vehicleagg.VehicleID(id),
-		TenantID:           "1",
+		TenantID:           shared.TenantIDFromContext(r.Context()),
 		RegistrationNumber: r.PostFormValue("registration_number"),
 		VehicleNumber:      r.PostFormValue("vehicle_number"),
 		VehicleType:        vehicleagg.VehicleType(r.PostFormValue("vehicle_type")),
@@ -252,7 +287,7 @@ func (h *VehicleHandlers) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 
 	vehicle, err := h.getUC.Execute(r.Context(), vehicleapp.GetVehicleQuery{
 		ID:       vehicleagg.VehicleID(id),
-		TenantID: "1",
+		TenantID: shared.TenantIDFromContext(r.Context()),
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -261,7 +296,7 @@ func (h *VehicleHandlers) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 
 	err = h.updateUC.Execute(r.Context(), vehicleapp.UpdateVehicleCommand{
 		ID:                 vehicleagg.VehicleID(id),
-		TenantID:           "1",
+		TenantID:           shared.TenantIDFromContext(r.Context()),
 		RegistrationNumber: vehicle.RegistrationNumber,
 		VehicleNumber:      vehicle.VehicleNumber,
 		VehicleType:        vehicleagg.VehicleType(vehicle.VehicleType),

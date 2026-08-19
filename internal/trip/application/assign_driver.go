@@ -8,6 +8,8 @@ import (
 
 	driverDomain "transport-app/internal/driver/domain"
 	driverAgg "transport-app/internal/driver/domain/aggregate"
+	maintsql "transport-app/internal/maintenance/infrastructure/sql"
+	"transport-app/internal/repository"
 	"transport-app/internal/shared"
 	"transport-app/internal/shared/ports"
 	"transport-app/internal/trip/domain"
@@ -15,9 +17,11 @@ import (
 )
 
 type AssignDriverCommand struct {
-	TripID   aggregate.TripID
-	DriverID string
-	TenantID shared.TenantID
+	TripID              aggregate.TripID
+	DriverID            string
+	TenantID            shared.TenantID
+	OverrideMaintenance bool
+	OverrideReason      string
 }
 
 type AssignDriverUseCase struct {
@@ -44,6 +48,19 @@ func (uc *AssignDriverUseCase) Execute(ctx context.Context, cmd AssignDriverComm
 		}
 		if err := uc.checkDriverCompliance(txCtx, cmd.DriverID, cmd.TenantID); err != nil {
 			return err
+		}
+		// When trip already carries a vehicle, ensure that vehicle is not blocked for maintenance
+		if t.VehicleID != nil && *t.VehicleID != "" {
+			if maintRepo, ok := txCtx.Repositories().Maintenance().(*maintsql.MaintenanceRepository); ok {
+				blocked, reason, err := maintRepo.IsMaintenanceBlocked(txCtx, *t.VehicleID)
+				if err == nil && blocked {
+					if !cmd.OverrideMaintenance {
+						return errors.New(reason)
+					}
+					reasonJSON := fmt.Sprintf(`{"vehicle_id":%q,"driver_id":%q,"reason":%q}`, *t.VehicleID, cmd.DriverID, cmd.OverrideReason)
+					logAudit(txCtx, "assign_driver_override", string(cmd.TripID), nil, &reasonJSON)
+				}
+			}
 		}
 		conflicts, err := repo.CheckDriverConflict(txCtx, cmd.DriverID, cmd.TenantID, string(cmd.TripID))
 		if err != nil {
@@ -75,8 +92,40 @@ func (uc *AssignDriverUseCase) checkDriverCompliance(ctx ports.TxContext, driver
 	if d.Status == driverAgg.DriverInactive || d.Status == driverAgg.DriverLeave {
 		return fmt.Errorf("driver %s is not assignable (status: %s)", driverID, d.Status)
 	}
-	if !d.LicenseExpiry.IsZero() && d.LicenseExpiry.Before(uc.clock.Now().Truncate(24*time.Hour)) {
-		return fmt.Errorf("driver %s license expired on %s", driverID, d.LicenseExpiry.Format("2006-01-02"))
+	now := uc.clock.Now().Truncate(24 * time.Hour)
+	if !d.LicenseExpiry.IsZero() && d.LicenseExpiry.Before(now) {
+		if isExempt(ctx, "driver", driverID, "license") {
+			recordComplianceCheck(ctx, "driver", driverID, "license", "warning", "bypassed by exemption")
+			return nil
+		}
+		recordComplianceCheck(ctx, "driver", driverID, "license", "expired", "driver license expired")
+		return fmt.Errorf("Dispatch blocked: driver license expired (compliance)")
 	}
 	return nil
+}
+
+func isExempt(ctx ports.TxContext, entityType, entityID, docType string) bool {
+	dbGetter, ok := ctx.Repositories().AuditLogs().(repository.DBGetter)
+	if !ok || dbGetter == nil || dbGetter.DB() == nil {
+		return false
+	}
+	var id string
+	err := dbGetter.DB().QueryRowContext(ctx, `
+		SELECT id FROM compliance_exemptions
+		WHERE entity_type = ? AND entity_id = ? AND (doc_type = ? OR doc_type = 'all' OR (? = 'permit' AND doc_type = 'rc') OR (? = 'rc' AND doc_type = 'permit'))
+		  AND exempt_until > CURRENT_TIMESTAMP
+		LIMIT 1`, entityType, entityID, docType, docType, docType).Scan(&id)
+	return err == nil && id != ""
+}
+
+func recordComplianceCheck(ctx ports.TxContext, entityType, entityID, checkType, status, details string) {
+	dbGetter, ok := ctx.Repositories().AuditLogs().(repository.DBGetter)
+	if !ok || dbGetter == nil || dbGetter.DB() == nil {
+		return
+	}
+	id := fmt.Sprintf("chk-%d", time.Now().UnixNano())
+	_, _ = dbGetter.DB().ExecContext(ctx, `
+		INSERT INTO compliance_checks (id, entity_type, entity_id, check_type, status, details, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+		id, entityType, entityID, checkType, status, details)
 }

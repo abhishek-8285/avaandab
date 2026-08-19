@@ -30,4 +30,22 @@ type PaymentRepository interface {
 	GetReadModel(ctx context.Context, id aggregate.PaymentID, tenantID shared.TenantID) (PaymentReadModel, error)
 	GetPaymentsByInvoice(ctx context.Context, invoiceID string, tenantID shared.TenantID) ([]PaymentReadModel, error)
 	SearchReadModels(ctx context.Context, tenantID shared.TenantID, method string, limit int, offset int) ([]PaymentReadModel, int64, error)
+
+	// SetRazorpayFields stores the Razorpay order/payment/signature identifiers
+	// on an existing payment row. Used by the /verify flow (Spec 11 §5.1).
+	SetRazorpayFields(ctx context.Context, id aggregate.PaymentID, tenantID shared.TenantID, orderID, paymentID, signature string) error
+
+	// ExistsRazorpayPayment returns the payment ID already recorded against a
+	// Razorpay payment ID, or sql.ErrNoRows when none exists. Arbiter for the
+	// /verify-vs-webhook race (UNIQUE partial index idx_payments_razorpay_payment).
+	ExistsRazorpayPayment(ctx context.Context, tenantID shared.TenantID, paymentID string) (aggregate.PaymentID, error)
+
+	// ExistsWebhookEvent returns the payment ID already processed for a Razorpay
+	// webhook event ID, or sql.ErrNoRows when none exists. Restart-safe
+	// idempotency (UNIQUE partial index idx_payments_webhook_event).
+	ExistsWebhookEvent(ctx context.Context, tenantID shared.TenantID, eventID string) (aggregate.PaymentID, error)
+
+	// SetWebhookEventID persists the Razorpay webhook event ID on a payment row
+	// so duplicate webhook deliveries are deduplicated across restarts.
+	SetWebhookEventID(ctx context.Context, id aggregate.PaymentID, tenantID shared.TenantID, eventID string) error
 }

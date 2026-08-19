@@ -3,35 +3,37 @@
 @plugin "@tailwindcss/container-queries";
 
 @theme {
-  /* Brand scale */
-  --color-brand-50: #f0fdfa;
-  --color-brand-100: #ccfbf1;
-  --color-brand-200: #99f6e4;
-  --color-brand-300: #5eead4;
-  --color-brand-400: #2dd3ee;
-  --color-brand-500: #14b8b8;
-  --color-brand-600: #0d9488;
-  --color-brand-700: #0f766e;
-  --color-brand-800: #115e59;
-  --color-brand-900: #134e4a;
+  /* Brand scale (indigo) */
+  --color-brand-50: #eef2ff;
+  --color-brand-100: #e0e7ff;
+  --color-brand-200: #c7d2fe;
+  --color-brand-300: #a5b4fc;
+  --color-brand-400: #818cf8;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #5e6ad2;
+  --color-brand-700: #4f57c4;
+  --color-brand-800: #4338ca;
+  --color-brand-900: #3730a3;
 
-  /* Material Design 3 system colours */
-  --color-primary: #00685f;
+  /* Primary (indigo) */
+  --color-primary: #5e6ad2;
   --color-on-primary: #ffffff;
-  --color-primary-container: #008378;
-  --color-on-primary-container: #f4fffc;
-  --color-primary-fixed: #89f5e7;
-  --color-primary-fixed-dim: #6bd8cb;
-  --color-on-primary-fixed: #00201d;
-  --color-on-primary-fixed-variant: #005049;
-  --color-inverse-primary: #6bd8cb;
+  --color-primary-container: #e0e7ff;
+  --color-on-primary-container: #312e81;
+  --color-primary-fixed: #c7d2fe;
+  --color-primary-fixed-dim: #a5b4fc;
+  --color-on-primary-fixed: #1a1a2e;
+  --color-on-primary-fixed-variant: #4f46e5;
+  --color-inverse-primary: #a5b4fc;
+  --color-accent: #635bff;
+  --color-on-accent: #ffffff;
 
   --color-secondary: #565e74;
   --color-on-secondary: #ffffff;
-  --color-secondary-container: #dae2fd;
-  --color-on-secondary-container: #5c647a;
-  --color-secondary-fixed: #dae2fd;
-  --color-secondary-fixed-dim: #bec6e0;
+  --color-secondary-container: #e8ecf4;
+  --color-on-secondary-container: #3f465c;
+  --color-secondary-fixed: #e8ecf4;
+  --color-secondary-fixed-dim: #cdd4e2;
   --color-on-secondary-fixed: #131b2e;
   --color-on-secondary-fixed-variant: #3f465c;
 
@@ -39,10 +41,6 @@
   --color-on-tertiary: #ffffff;
   --color-tertiary-container: #b05e3d;
   --color-on-tertiary-container: #fffbff;
-  --color-tertiary-fixed: #ffdbce;
-  --color-tertiary-fixed-dim: #ffb59a;
-  --color-on-tertiary-fixed: #370e00;
-  --color-on-tertiary-fixed-variant: #773215;
 
   --color-error: #ba1a1a;
   --color-on-error: #ffffff;
@@ -54,42 +52,49 @@
   --color-surface: #f7f9fb;
   --color-on-surface: #191c1e;
   --color-surface-variant: #e0e3e5;
-  --color-on-surface-variant: #3d4947;
+  --color-on-surface-variant: #475569;
   --color-surface-bright: #f7f9fb;
-  --color-surface-dim: #d8dadc;
+  --color-surface-dim: #eef0f2;
   --color-surface-container-lowest: #ffffff;
   --color-surface-container-low: #f2f4f6;
   --color-surface-container: #eceef0;
   --color-surface-container-high: #e6e8ea;
   --color-surface-container-highest: #e0e3e5;
-  --color-surface-tint: #006a61;
-  --color-inverse-surface: #2d3133;
-  --color-inverse-on-surface: #eff1f3;
+  --color-surface-tint: #5e6ad2;
+  --color-inverse-surface: #161618;
+  --color-inverse-on-surface: #f3f4f6;
 
-  --color-outline: #6d7a77;
-  --color-outline-variant: #bcc9c6;
+  --color-outline: #cbd2da;
+  --color-outline-variant: #e2e6ea;
 
   /* Semantic / status */
-  --color-status-success: #10B981;
-  --color-status-warning: #F59E0B;
-  --color-status-alert: #E11D48;
-  --color-status-info: #4F46E5;
+  --color-status-success: #10b981;
+  --color-status-warning: #f59e0b;
+  --color-status-alert: #e11d48;
+  --color-status-info: #6366f1;
 
-  /* Extended brand */
-  --color-brand-teal-deep: #115E59;
-  --color-border-subtle: #E2E8F0;
-  --color-text-muted: #64748B;
+  --color-border-subtle: #e2e8f0;
+  --color-text-muted: #64748b;
 
-  /* Border radius */
-  --radius-DEFAULT: 0.125rem;
-  --radius-lg: 0.25rem;
-  --radius-xl: 0.5rem;
-  --radius-full: 0.75rem;
+  /* Border radius (premium) */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 9999px;
 
-  /* Fonts */
+  /* Shadows (premium, from Linear/Stripe) */
+  --shadow-xs: 0 1px 2px 0 rgba(16,24,40,0.05);
+  --shadow-sm: 0 1px 3px 0 rgba(16,24,40,0.08), 0 1px 2px -1px rgba(16,24,40,0.08);
+  --shadow-md: 0 3px 12px rgba(16,24,40,0.10);
+  --shadow-lg: 0 7px 24px rgba(16,24,40,0.10);
+  --shadow-xl: 0 12px 32px rgba(16,24,40,0.14);
+
+  /* Fonts (keep existing) */
   --font-sans: "Plus Jakarta Sans", sans-serif;
-  --font-outfit: "Outfit", sans-serif;
   --font-display: "Outfit", sans-serif;
+  --font-outfit: "Outfit", sans-serif;
   --font-body-md: "Plus Jakarta Sans", sans-serif;
   --font-body-lg: "Plus Jakarta Sans", sans-serif;
   --font-body-sm: "Plus Jakarta Sans", sans-serif;
@@ -127,3 +132,50 @@
 
 /* Dark mode via .dark class */
 @variant dark (&:where(.dark, .dark *));
+
+:root.dark {
+  --color-primary: #7070ff;
+  --color-on-primary: #0b0b0f;
+  --color-primary-container: #23233a;
+  --color-on-primary-container: #c7d2fe;
+  --color-primary-fixed: #a5b4fc;
+  --color-primary-fixed-dim: #818cf8;
+  --color-on-primary-fixed: #0b0b0f;
+  --color-on-primary-fixed-variant: #c7d2fe;
+  --color-inverse-primary: #818cf8;
+  --color-accent: #7c78ff;
+  --color-on-accent: #0b0b0f;
+
+  --color-secondary: #aeb4c2;
+  --color-on-secondary: #161618;
+  --color-secondary-container: #2a2d3a;
+  --color-on-secondary-container: #c7d2fe;
+
+  --color-background: #08090a;
+  --color-on-background: #f7f8f8;
+  --color-surface: #0e0e12;
+  --color-on-surface: #f7f8f8;
+  --color-surface-variant: #2a2a31;
+  --color-on-surface-variant: #a0a6b2;
+  --color-surface-bright: #1a1a20;
+  --color-surface-dim: #161618;
+  --color-surface-container-lowest: #161618;
+  --color-surface-container-low: #1c1c1f;
+  --color-surface-container: #202024;
+  --color-surface-container-high: #26262b;
+  --color-surface-container-highest: #2c2c32;
+  --color-surface-tint: #7070ff;
+  --color-inverse-surface: #e6e8ea;
+  --color-inverse-on-surface: #161618;
+
+  --color-outline: #2a2d34;
+  --color-outline-variant: #23252a;
+
+  --color-status-success: #34d399;
+  --color-status-warning: #fbbf24;
+  --color-status-alert: #fb7185;
+  --color-status-info: #818cf8;
+
+  --color-border-subtle: #23252a;
+  --color-text-muted: #8a8f98;
+}

@@ -2,10 +2,56 @@
 
 **Owner:** fuel audit + driver scorecard (this spec)
 **Project:** Avandab fleet system — `/home/abhishek/Desktop/temux/basic`
-**Stack (verified):** Go 1.26 (`go.mod:3`), chi v5.3.1 (`go.mod:7`), SQLite modernc v1.56.0 (`go.mod:17`), goose v3.27.3 (`go.mod:12`), casbin v2.135.0 (`go.mod:22`), Datastar v1.0.2 + HTMX templates (`internal/templates/layout.html:15`), outbox-relay event bus (`cmd/server/main.go:608-616`), typed IDs, UoW pattern (`internal/shared/uow/uow.go:65`).
-**Latest committed migration:** `00038` (verified — `00039`–`00041` are claimed by other specs; this spec owns **00042**).
+**Stack (verified):** Go 1.26 (`go.mod:3`), chi v5.3.1 (`go.mod:7`), SQLite modernc v1.56.0 (`go.mod:17`), goose v3.27.3 (`go.mod:12`), casbin v2.135.0 (`go.mod:22`), Datastar v1.0.2 + HTMX templates (`internal/templates/layout.html:15`), outbox-relay event bus (`cmd/server/main.go:819-826`), typed IDs, UoW pattern (`internal/shared/uow/uow.go:65`).
+**Latest committed migration:** `00038` (verified — `00039`–`00042` are claimed by other specs; this spec owns **00043**).
 
 ---
+
+## 0. Verification Log (QA pass — 2026-08-19)
+
+Migration renumber: fuel `00042` → **`00043`**; geofence dependency `00041` → **`00042`**;
+head is `00039_experiments.sql`. **Collision fixed:** `company_config` is now created once
+by spec 02 @00042; this spec seeds only (was double-CREATE). Outbox cite `608-616` → `819-826`.
+
+### Verification Log table
+
+| Claim | Verdict | Correction / Evidence (file:line) |
+|---|---|---|
+| `DriverExpense` has no Status/Category | VERIFIED | `internal/domain/expense/entity.go:27-37` |
+| `KharchaService` methods exist (Approve/Create/List/Stats) | VERIFIED | `internal/service/kharcha_service.go:45,166,251,301` |
+| `driver_settlements` has no INSERT today | VERIFIED | grep `INSERT INTO driver_settlements` → none |
+| Two separate buses (service vs outbox-relay) | VERIFIED | `internal/service/service.go:75` `events.NewInMemoryBus()`; `main.go:819` outbox relay |
+| `telemetry_alerts` dead schema (zero writers) | VERIFIED | no repo refs in `internal/repository/` |
+| `company_config` does not exist | VERIFIED (now) | no `company_config` in `db/migrations/`; will be created by spec 02 @00042 |
+| `vehicles.odometer` not in sqlc queries | VERIFIED | `db/query/vehicles.sql` |
+| Fuel spec `00042` (geofence `00041`) | WRONG | fuel **00043**; geofence **00042** |
+| `company_config` CREATE in this spec | WRONG | removed — owned by spec 02 @00042 (collision fix) |
+| `ProviderIngestor` / geofence code exist | CANT-VERIFY | design-only (no `providers/`, no `geofence*`) |
+| `driver_settlement_service.go` persistence gap | VERIFIED | only returns structs; no INSERT confirmed |
+
+### Severity & Effort (major changes)
+
+| Change | Severity | Effort |
+|---|---|---|
+| Migration renumber 00042→00043 | Low | S |
+| Remove `company_config` CREATE (collision) | Med | S |
+| Fuel anomaly engine (stateful) | High | L |
+| Claim audit (A/B/C cross-check) | High | M |
+| Driver scorecard + settlement bonus | High | L |
+| `AlertEvent` via outbox (not legacy bus) | High | M |
+
+### Architectural Decisions (Decision / Tradeoff / Cost)
+
+- **Fuel-theft detection method: median-smoothing + threshold windows, not raw drop.**
+  Decision: rolling median window (default 7) + noise floor + sustained-drop detection.
+  Tradeoff: robust to sensor noise/GPS blips; lag of one window before flag. Cost: per-vehicle
+  in-memory state, replay from `telemetry_snapshots` on restart (single-instance assumption).
+- **Audit annotate-first vs enforce.** Decision: `needs_review` does NOT block approve by
+  default; `fuel.audit_enforce=true` gates. Tradeoff: flexibility vs leak risk. Cost: 1 gate branch.
+- **Two-bus emission.** Decision: engine emits `AlertEvent` via `outbox.NewOutboxWriter` (not
+  `baseService.events`). Tradeoff: ~5s relay latency for alerts; durability. Cost: extra write.
+- **Settlement bonus persistence.** Decision: add INSERT to `driver_settlements` (fixes pre-existing
+  gap) + `performance_bonus` column. Tradeoff: closes known bug; must guard `store != nil`.
 
 ## 1. Architecture
 
@@ -26,9 +72,9 @@
 | Telemetry snapshots | `telemetry_snapshots(id, trip_id, vehicle_id, timestamp, lat, lng, speed, fuel_level, odometer)`; written via `POST /api/v1/telemetry/snapshots` (`INSERT OR REPLACE`) | `db/migrations/00031:4-17`, `internal/telemetry/sync.go:52-80` |
 | Naive fuel rule | `ProcessTelemetryStream`: fuel drop > 10L while ignition OFF → `FuelTheftAlert` (in-memory bus only) — **superseded by the engine** | `internal/service/telemetry_service.go:49-116` |
 | kmpl source | `vehicles.current_mileage` (kmpl), used by PnL: `fuel_litres = odometer_delta / current_mileage`; routes table has **no kmpl column** | `internal/pnl/service.go:47-67`, `db/query/routes.sql` |
-| `company_config` | **Does not exist.** `company_settings` singleton (id=1) exists for reference | `db/migrations/00001_initial.sql:34-45` |
+| `company_config` | **Does not exist yet.** `company_settings` singleton (id=1) exists. Will be CREATED by spec 02 (geofence) @00042; this spec (00043) only seeds rows. | `db/migrations/00001_initial.sql:34-45` |
 | Settlement compute | `CreateSettlementForTrip` / `ProcessFinancialSettlement` — **neither persists rows**; **no Go code INSERTs into `driver_settlements` today** | `internal/service/driver_settlement_service.go:46-148` |
-| Outbox-relay bus | `eventBus := events.NewInMemoryBus()` → `outbox.NewRelay(database, eventBus, logger)` → `go outboxRelay.Run(ctx)`; relay polls every 5s, dispatches `outbox_events` rows to `eventBus` | `cmd/server/main.go:608-616`, `internal/shared/outbox/relay.go:15,70-126` |
+| Outbox-relay bus | `eventBus := events.NewInMemoryBus()` → `outbox.NewRelay(database, eventBus, logger)` → `go outboxRelay.Run(ctx)`; relay polls every 5s, dispatches `outbox_events` rows to `eventBus` | `cmd/server/main.go:819-826`, `internal/shared/outbox/relay.go:15,70-126` |
 | **Two separate buses** | Services hold their own in-memory bus (`baseService.events`, `service.go:75`); `TripDelivered` etc. flow on it. Outbox relay bus is **separate** — cross-process events must be written to `outbox_events` | `internal/service/service.go:75,111-164`, `internal/service/trip_service.go:417-425` |
 | Outbox write pattern | `outbox.NewOutboxWriter(dbConn)` + `SaveEvents(ctx, aggregateID, aggregateType, events)`; respects `repository.TxFromContext` | `internal/booking/infrastructure/persistence/sql/booking_repository.go:19-27`, `internal/shared/outbox/outbox.go:34-65` |
 | RBAC | Casbin model `(sub, obj, act)`, policies loaded from `permissions` (`resource:action`) + `role_permissions` + `user_roles`; roles: 1=admin, 2=dispatcher, 3=accountant, 4=viewer | `internal/auth/casbin.go:12-87`, `db/migrations/00012_rbac.sql`, `00001_initial.sql` |
@@ -69,7 +115,7 @@
 
 1. **Raw SQL everywhere for new tables** — no sqlc regen (matches `KharchaService` pattern via `repository.DBGetter`, `internal/repository/repository.go:22-24`).
 2. **Engine runs as a background goroutine** started in `cmd/server/main.go` next to the outbox relay (line ~616), tick interval from config (default 30s). Single-instance assumption (matches existing deployment model — `deploy.sh`/`deploy_avandab.sh` run one binary).
-3. **Event emission**: engine writes `outbox_events` rows via `outbox.NewOutboxWriter(database).SaveEvents(ctx, vehicleID, "vehicle", []any{alertEvent})` — event type string resolves to `AlertEvent` via `getEventTypeName` (`internal/shared/outbox/outbox.go:67-73`). Relay publishes to the main.go bus where the alerting spec subscribes. Founders digest/Telegram handlers already subscribe to that bus (`cmd/server/main.go:610-611`).
+3. **Event emission**: engine writes `outbox_events` rows via `outbox.NewOutboxWriter(database).SaveEvents(ctx, vehicleID, "vehicle", []any{alertEvent})` — event type string resolves to `AlertEvent` via `getEventTypeName` (`internal/shared/outbox/outbox.go:67-73`). Relay publishes to the main.go bus where the alerting spec subscribes. Founders digest/Telegram handlers already subscribe to that bus (`cmd/server/main.go:820-821`).
 4. **Alert payload type**: relay JSON-decodes payloads to `any` (`relay.go:104-112`); consumers must type-assert `map[string]any`. Reuse `founder/alerts.AlertEvent` shape as payload content (`internal/founder/alerts/event.go:28-37`) — add `CategoryFuel Category = "FUEL"` constant (one-line addition to that file) for routing.
 5. **UoW for multi-write ops**: engine's claim-audit pass uses `uow.NewSQLUnitOfWork(db).Execute` + `OutboxWriter.SaveEvents` inside the tx (TxFromContext picks up the tx, `outbox.go:40-42`).
 
@@ -84,8 +130,8 @@ Input: `telemetry_snapshots` rows (the current persistence of the ingestion spec
 ```go
 type vehicleFuelState struct {
   vehicleID      string
-  sensorFitted   bool        // fuel_sensor_fitted (00041, geofence spec)
-  tankCapacity   float64     // tank_capacity_litres (00041); 0 = unknown
+  sensorFitted   bool        // fuel_sensor_fitted (00042, geofence spec)
+  tankCapacity   float64     // tank_capacity_litres (00042); 0 = unknown
   medianWindow   []float64   // rolling fuel_level readings (median_window size)
   lastLevel      float64     // last smoothed level (percent or litres, per level_unit)
   lastOdometer   float64     // monotonic guard
@@ -118,7 +164,7 @@ type vehicleFuelState struct {
 
 ### 2.3 Thresholds as config rows
 
-All thresholds live in `company_config` (00042) — seeded defaults, no code constants. See §9 for the full table.
+All thresholds live in `company_config` (**created by spec 02 @00042**; seeded here in 00043) — seeded defaults, no code constants. See §9 for the full table.
 
 ### 2.4 Trip-end reset
 
@@ -130,13 +176,13 @@ On trip status → `delivered`/`completed`/`cancelled` (detected by polling `tri
 
 ### 3.1 States
 
-`driver_expenses.audit_status` (new column, 00042): `pending` (default) → `needs_review` (engine-flagged) | `passed` (clean) → `failed` (admin review verdict). `fuel_claim_audits.result` mirrors this per-claim.
+`driver_expenses.audit_status` (new column, 00043): `pending` (default) → `needs_review` (engine-flagged) | `passed` (clean) → `failed` (admin review verdict). `fuel_claim_audits.result` mirrors this per-claim.
 
 ### 3.2 Flow
 
 1. **Claim created** — `CreateExpense` (`internal/service/kharcha_service.go:251-298`) with `category='fuel'`; `fuel_litres` (new column) captured from claim form/description. `audit_status='pending'`.
 2. **Audit job** (engine pass, runs every tick for `status='pending'` claims with `category='fuel'`):
-   - Load claim's trip → vehicle (`trips.vehicle_id`) → `tank_capacity_litres`, `fuel_sensor_fitted` (00041 columns) + `current_mileage` (kmpl) via **plain SQL** (sqlc doesn't select odometer/capacity — verified `db/query/vehicles.sql`).
+   - Load claim's trip → vehicle (`trips.vehicle_id`) → `tank_capacity_litres`, `fuel_sensor_fitted` (00042 columns) + `current_mileage` (kmpl) via **plain SQL** (sqlc doesn't select odometer/capacity — verified `db/query/vehicles.sql`).
    - **Check A (level-based)**: `litres_expected_level = Σ refill Δlevel% × tank_capacity_litres` over the claim window (trip start → claim `created_at`, or since previous fuel claim on same trip). Skipped when capacity unknown or sensor absent.
    - **Check B (odometer-based)**: `litres_expected_odo = odometer_delta_km / kmpl` where `kmpl = vehicles.current_mileage` if > 0 else `company_config fuel.kmpl_default` (default 4.0).
    - **Check C (cross-check)**: A vs B must agree within `fuel.claim_crosscheck_margin_pct` (default 25%); if only one check available, it stands.
@@ -163,6 +209,10 @@ Existing rows-affected guard (`n == 0 → "expense already processed"`) stays.
 ### 3.3 UI surfacing
 
 `KharchaExpense` view gains `AuditStatus`, `VarianceLitres`, `FuelLitres` (service query adds columns to the three SELECTs in `kharcha_service.go:52-71, 87-104, 128-146`); `kharcha_queue.html` shows badge + variance; audit queue lives under `/fuel/audit` (§6).
+
+### Company_config sequencing guard
+
+`company_config` is created by Spec 02 @00042. THIS migration (00043) seeds/uses it (§5 item 10 seeds, §3.2 enforce gate reads `fuel.audit_enforce`). Two mitigations, choose one at implementation time: (a) build Spec 02 first (recommended), or (b) prepend `CREATE TABLE IF NOT EXISTS company_config (...)` guard with the canonical schema from Spec 02 @00042 so this migration never crashes `goose up` if run before 00042. Do not invent the schema here — reference Spec 02's canonical DDL.
 
 ---
 
@@ -206,11 +256,11 @@ score      = clamp(100 − Σ penalty, 0, 100)
 
 ---
 
-## 5. DDL — `db/migrations/00042_fuel_audit_scorecard.sql`
+## 5. DDL — `db/migrations/00043_fuel_audit_scorecard.sql`
 
 ```sql
 -- +goose Up
--- FUEL AUDIT + DRIVER SCORECARD (owned by fuel spec; depends on 00041 geofence columns
+-- FUEL AUDIT + DRIVER SCORECARD (owned by fuel spec; depends on 00042 geofence columns
 -- tank_capacity_litres / fuel_sensor_fitted on vehicles — reference only, no changes here)
 
 -- 1. fuel_events — durable per-vehicle fuel anomaly/refill record
@@ -302,13 +352,10 @@ CREATE TABLE IF NOT EXISTS driver_scores (
 );
 CREATE INDEX IF NOT EXISTS idx_driver_scores_driver ON driver_scores(driver_id, period_end DESC);
 
--- 5. company_config — fuel + scorecard knobs (plain SQL read, no sqlc regen)
-CREATE TABLE IF NOT EXISTS company_config (
-    key         TEXT PRIMARY KEY,
-    value       TEXT NOT NULL,
-    description TEXT,
-    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
+-- 5. company_config — fuel + scorecard knobs (plain SQL read, no sqlc regen).
+-- OWNERSHIP: the table is CREATED ONCE by spec 02 (geofence) at migration 00042.
+-- Per 00-migration-ownership-index.md, do NOT CREATE it here. This spec only
+-- seeds rows (item 10 below) and adds no columns to it.
 
 -- 6. drivers — current score/tier (denormalized)
 ALTER TABLE drivers ADD COLUMN score REAL;
@@ -347,7 +394,7 @@ INSERT OR IGNORE INTO company_config (key, value, description) VALUES
 ('fuel.abnormal_drain_l_per_km', '0.6', 'expected consumption per km for abnormal-drain check'),
 ('fuel.abnormal_drain_margin_pct', '30', 'margin over expected consumption'),
 ('fuel.level_unit', 'percent', 'percent|litres'),
-('fuel.tank_capacity_default', '0', 'fallback capacity when 00041 column NULL (0 = unknown)'),
+('fuel.tank_capacity_default', '0', 'fallback capacity when 00042 column NULL (0 = unknown)'),
 ('fuel.kmpl_default', '4.0', 'fallback km/l when vehicles.current_mileage is NULL/0'),
 ('fuel.claim_tolerance_pct', '20', '|variance| within this % = passed'),
 ('fuel.claim_crosscheck_margin_pct', '25', 'level-based vs odometer-based expected litres'),
@@ -380,7 +427,7 @@ DROP TABLE IF EXISTS driver_scores;
 DROP TABLE IF EXISTS driver_behaviour_events;
 DROP TABLE IF EXISTS fuel_claim_audits;
 DROP TABLE IF EXISTS fuel_events;
-DROP TABLE IF EXISTS company_config;
+-- (company_config DROP intentionally omitted: owned/created by spec 02 @00042)
 ALTER TABLE drivers DROP COLUMN score;
 ALTER TABLE drivers DROP COLUMN tier;
 ALTER TABLE driver_settlements DROP COLUMN performance_bonus;
@@ -491,7 +538,7 @@ And persist (new — fixes pre-existing gap):
 
 | File | Change |
 |---|---|
-| `db/migrations/00042_fuel_audit_scorecard.sql` | §5 |
+| `db/migrations/00043_fuel_audit_scorecard.sql` | §5 |
 | `cmd/server/main.go` | start `FuelEngine` goroutine (after line 616); mount `/fuel` + `/scorecard` (~line 573); nightly scorecard sweep ticker |
 | `internal/service/service.go` | add `FuelAudit *FuelAuditService`, `Scorecard *ScorecardService` to `Services` (line 38-62) + `NewServices` (line 65-108) |
 | `internal/service/kharcha_service.go` | `ApproveExpense` enforce gate (§3.4); SELECTs add `audit_status`, `fuel_litres` to `KharchaExpense` view (lines 52-71, 87-104, 128-146); `CreateExpense` accepts litres (line 251) |
@@ -514,11 +561,31 @@ Pattern: `SELECT value FROM company_config WHERE key = ?` via `repository.DBGett
 
 ## 10. Migration plan
 
-1. **Current state**: `00038` is the latest committed migration (verified). `00039`–`00041` are owned by other specs (ingestion / alerting / geofence). **Geofence spec owns 00041** (`vehicles.tank_capacity_litres`, `vehicles.fuel_sensor_fitted`) — this spec references those columns only.
-2. **00042 ordering**: goose runs in filename order; 00042 is after 00041 by construction. Engine code must handle NULL capacity (`fuel.tank_capacity_default` fallback, or skip level checks) so 00041 landing late degrades gracefully — but the column must exist before the engine runs, so **00042 and 00041 are deploy-order coupled**; ship both before enabling the engine loop.
+1. **Current state**: `00039_experiments.sql` is the HEAD (TAKEN by experiments). `00040/00041` = ingestion (spec 01); `00042` = geofence (spec 02, owns `vehicles.tank_capacity_litres`/`fuel_sensor_fitted`); **this spec owns 00043** (references those columns only).
+2. **00043 ordering**: goose runs in filename order; 00043 is after 00042 by construction. Engine code must handle NULL capacity (`fuel.tank_capacity_default` fallback, or skip level checks) so 00042 landing late degrades gracefully — but the column must exist before the engine runs, so **00043 and 00042 are deploy-order coupled**; ship both before enabling the engine loop.
 3. **Embedding**: `db/migrations.go` embeds `migrations/*.sql` via `go:embed` — adding the file is sufficient; no provider changes (`cmd/server/main.go:138-153`).
 4. **RBAC**: seeds are `INSERT OR IGNORE` — idempotent on re-run; admin gets `fuel:*`/`scorecard:*` via the role_permissions insert (§5 item 9). Note: 00012's blanket admin grant runs only at migration time, so explicit seeding here is required.
 5. **Rollback**: `-- +goose Down` included (§5); SQLite `DROP COLUMN` supported (modernc, per 00013 precedent).
+
+### 10.1 Implementation decisions (2A — fuel engine core, 2026-08-19)
+
+1. **`fuel.spike_deviation_pct` seed added** to the §5 seed list (value `25`) — the pipeline
+   (§2.2 step 2) names the key but the §5 DDL seed list omitted it. Shipped with 00043.
+2. **`idx_telemetry_snapshots_vehicle_time(vehicle_id, timestamp)` added** to 00043 — the
+   engine's warm-up (`ORDER BY timestamp DESC LIMIT n`) and incremental poll
+   (`WHERE vehicle_id = ? AND timestamp > ?`) both scan by vehicle; §13.12's open item
+   resolved in favour of the index.
+3. **`company_config` seeds use the canonical 00042 schema** `(tenant_id, key, value)`
+   — the §5 seed SQL lists a `description` column that does not exist in the canonical
+   DDL (00042). §13 item 4 ("reference Spec 02's canonical DDL") wins.
+4. **Engine warm-up replays the pipeline with emission enabled** (§2/§13.13) — replaying
+   the last N snapshots through the full detector means anomalies inside the warm-up
+   window are detected on restart; the `lastTs` watermark then prevents re-processing.
+   Duplicate alerts within the warm-up window after a restart are accepted and
+   documented in `internal/fuel/engine.go` godoc.
+5. **`abnormal_drain` writes no behaviour row** — the `driver_behaviour_events` CHECK
+   constraint (§5 item 3) admits only the 7 catalog types; `abnormal_drain` is not among
+   them. It is persisted to `fuel_events` + AlertEvent only.
 
 ---
 
@@ -526,7 +593,7 @@ Pattern: `SELECT value FROM company_config WHERE key = ?` via `repository.DBGett
 
 1. **Split refills across claims** — audit window = trip start → claim `created_at`, or since the previous approved/pending fuel claim on the same trip; `litres_expected_level` sums all `refill_detected` events in window. Multiple claims per trip supported (each audits its own window slice).
 2. **Sensor drift / noise** — median window (`fuel.median_window`=7) + spike hold (one-reading confirmation) + `fuel.noise_floor_pct` (1.5%).
-3. **Tank capacity unknown** — 00041 NULL or `fuel_sensor_fitted=false`: skip check A, run check B (odometer/kmpl) alone; `fuel.tank_capacity_default` can be set per fleet. `level_unit=litres` vs `percent` handled via config.
+3. **Tank capacity unknown** — 00042 NULL or `fuel_sensor_fitted=false`: skip check A, run check B (odometer/kmpl) alone; `fuel.tank_capacity_default` can be set per fleet. `level_unit=litres` vs `percent` handled via config.
 4. **Telemetry gaps** — `INSERT OR REPLACE` dedupes by snapshot id (`internal/telemetry/sync.go:72`); gaps > `fuel.gap_tolerance_minutes` (30) reset the smoothing window and stop-start tracking; odometer monotonic guard compares against *last known* value, not consecutive readings.
 5. **Level-unit ambiguity** — the legacy naive rule (`telemetry_service.go:84-113`) treats raw `fuel_level` drop as litres; the engine treats it as percent×capacity by default. Engine supersedes the legacy rule; keep legacy code until Phase 1 ships, then delete or redirect it to `FuelEngine`.
 6. **Legit odometer rollback** (tracker reinstall, instrument swap) — `odometer_rollback` event + behaviour event; admin resolves via scorecard driver detail (clears fraud-cap, excluded from score after resolution; `scorecard.fraud_cap` then un-applies).
@@ -544,7 +611,7 @@ Pattern: `SELECT value FROM company_config WHERE key = ?` via `repository.DBGett
 
 | Phase | Scope | Exit criteria |
 |---|---|---|
-| 0 | Migration 00042 + config seeds + RBAC + `FuelAudit`/`Scorecard` services stubs | migrate clean on dev DB; `SELECT * FROM company_config` seeded; `fuel:read` usable by admin |
+| 0 | Migration 00043 + config seeds + RBAC + `FuelAudit`/`Scorecard` services stubs | migrate clean on dev DB; `SELECT * FROM company_config` seeded; `fuel:read` usable by admin |
 | 1 | Engine (annotate mode): fuel_events, claim audits (`needs_review` only, no blocking), AlertEvent emission on outbox bus, `/fuel/audit` UI, kharcha badges | refill/theft detected on synthetic snapshots; audit rows created; queue shows badges; approve flow unchanged |
 | 2 | Enforce mode (`fuel.audit_enforce=true`) + review endpoint + kmpl reports + engine backfill job | flagged claims blocked in enforce mode; review verdicts flip audit_status; kmpl report accurate vs PnL numbers (`internal/pnl/service.go:60-67`) |
 | 3 | Scorecard: behaviour-event ingestion (engine events + alerting-spec events), score recompute, leaderboard, preferred-load ordering, settlement `performance_bonus` | scores/tiers computed; `CreateSettlementForTrip` persists bonus; leaderboard live |
@@ -554,15 +621,15 @@ Pattern: `SELECT value FROM company_config WHERE key = ?` via `repository.DBGett
 
 ## 13. VERIFY items (at implementation time)
 
-1. **`vehicles.odometer` not in sqlc queries** — confirmed (`db/query/vehicles.sql`); engine reads odometer via plain SQL. Do **not** regen sqlc for 00042 tables.
+1. **`vehicles.odometer` not in sqlc queries** — confirmed (`db/query/vehicles.sql`); engine reads odometer via plain SQL. Do **not** regen sqlc for 00043 tables.
 2. **`telemetry_alerts` is dead** — confirmed zero Go writers; engine must NOT write it; `fuel_events` is the durable store. (If ingestion spec later claims `telemetry_alerts`, reconcile then.)
 3. **`driver_settlements` INSERT gap** — confirmed no Go INSERT exists; settlement bonus change must add persistence, not just the column.
-4. **Two event buses** — services bus (`service.go:75`) vs outbox-relay bus (`main.go:609`); AlertEvent for the alerting spec must go through `outbox_events` (OutboxWriter), not `baseService.events.Publish`.
-5. **`00041` dependency** — `tank_capacity_litres`/`fuel_sensor_fitted` arrive via geofence spec; confirm 00041 exists in `db/migrations/` before 00042 ships; engine code must tolerate NULL.
+4. **Two event buses** — services bus (`service.go:75`) vs outbox-relay bus (`main.go:819`); AlertEvent for the alerting spec must go through `outbox_events` (OutboxWriter), not `baseService.events.Publish`.
+5. **`00042` dependency** — `tank_capacity_litres`/`fuel_sensor_fitted` arrive via geofence spec; confirm 00042 exists in `db/migrations/` before 00043 ships; engine code must tolerate NULL.
 6. **`parseTemplates` glob** — new templates land automatically if placed in `internal/templates/` (verify glob in `internal/handlers/app.go:95` covers them; it parses the embedded set used by `renderPage`/`renderFragment`).
 7. **RBAC role ids** — verify `roles` seed ids (1 admin / 2 dispatcher / 3 accountant / 4 viewer) before seeding `role_permissions` (see `db/migrations/00001_initial.sql` roles table + 00010 seed).
 8. **`KharchaExpense` view query columns** — three SELECT column lists in `kharcha_service.go` must stay in sync when adding `audit_status`/`fuel_litres`.
 9. **Enforce-gate placement** — insert the gate in `ApproveExpense` *before* the `UPDATE ... WHERE status='pending'` guard (`kharcha_service.go:182-192`) so flagged claims never flip status.
 10. **Relay payload type** — AlertEvent consumers receive JSON maps (`relay.go:104-112`); alerting spec must assert `map[string]any`, not `alerts.AlertEvent` struct (founder handlers assert their own types — verify when wiring).
 11. **`fuel_prices` availability** — litres-vs-rupee sanity display (not a gate) may use `fuel_prices` (00033); skip when no row for tenant.
-12. **Engine warm-up query** — confirm `telemetry_snapshots` index `(trip_id, timestamp)` (00031) is sufficient for per-vehicle replay; add `(vehicle_id, timestamp)` index in 00042 if profiling demands (not included by default to keep DDL minimal — decide at implementation).
+12. **Engine warm-up query** — confirm `telemetry_snapshots` index `(trip_id, timestamp)` (00031) is sufficient for per-vehicle replay; add `(vehicle_id, timestamp)` index in 00043 if profiling demands (not included by default to keep DDL minimal — decide at implementation).

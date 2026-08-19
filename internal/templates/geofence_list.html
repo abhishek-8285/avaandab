@@ -1,0 +1,69 @@
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-xl font-bold text-on-surface font-display">Geofences</h1>
+            <p class="text-sm text-secondary mt-1">Zones watched by the dwell engine — detention billing, auto status transitions (Spec 02 §5–§8).</p>
+        </div>
+        {{if can .User "geofences" "create"}}
+        <a href="/geofences/new" class="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90 transition-all">
+            <span class="material-symbols-outlined text-base">add_location</span>
+            New Geofence
+        </a>
+        {{end}}
+    </div>
+
+    {{if .FlashSuccess}}
+    <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-md px-4 py-3 text-sm">{{.FlashSuccess}}</div>
+    {{end}}
+    {{if .FlashError}}
+    <div class="bg-red-50 border border-red-200 text-red-800 rounded-md px-4 py-3 text-sm">{{.FlashError}}</div>
+    {{end}}
+
+    <div class="bg-surface-container-lowest border border-border-subtle rounded shadow-sm overflow-x-auto">
+        <table class="min-w-full divide-y divide-border-subtle">
+            <thead class="bg-surface-container-low">
+                <tr>
+                    <th class="th-cell">Name</th>
+                    <th class="th-cell">Kind</th>
+                    <th class="th-cell">Shape</th>
+                    <th class="th-cell">Route</th>
+                    <th class="th-cell">Priority</th>
+                    <th class="th-cell">Status</th>
+                    <th class="th-cell-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="geofence-rows" class="divide-y divide-border-subtle">
+                {{range .Zones}}
+                <tr class="hover:bg-surface-container-low transition-colors group">
+                    <td class="py-3 px-6 font-medium text-on-surface">{{.Name}}</td>
+                    <td class="py-3 px-6 text-secondary text-xs uppercase tracking-wide">{{.Kind}}</td>
+                    <td class="py-3 px-6 text-secondary text-xs">{{.Shape}}</td>
+                    <td class="py-3 px-6 text-secondary font-mono text-xs">{{nullString .RouteName}}</td>
+                    <td class="py-3 px-6 text-secondary" data-numeric>{{.Priority}}</td>
+                    <td class="py-3 px-6">
+                        {{if .IsActive}}
+                        {{template "status_dot.html" (dict "Tone" "success" "Label" "Active")}}
+                        {{else}}
+                        {{template "status_dot.html" (dict "Tone" "neutral" "Label" "Disabled")}}
+                        {{end}}
+                    </td>
+                    <td class="py-3 px-6 text-right whitespace-nowrap">
+                        {{if can $.User "geofences" "update"}}
+                        <a href="/geofences/{{.ID}}/edit" class="action-edit">Edit</a>
+                        {{end}}
+                        {{if can $.User "geofences" "delete"}}
+                        <form method="POST" action="/geofences/{{.ID}}/delete" class="inline-flex" hx-target="#geofence-rows" hx-swap="outerHTML" onsubmit="return confirm('Delete geofence {{.Name}}?')">
+                            <button type="submit" class="action-delete text-red-600 hover:text-red-800">Delete</button>
+                        </form>
+                        {{end}}
+                    </td>
+                </tr>
+                {{else}}
+                <tr>
+                    <td colspan="7" class="py-10 text-center text-secondary text-sm">No geofences yet — {{if can $.User "geofences" "create"}}<a href="/geofences/new" class="text-primary hover:underline">create your first zone</a>{{else}}contact an admin{{end}}.</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>

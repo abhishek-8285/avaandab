@@ -1,0 +1,41 @@
+{{range .Entries}}
+<tr class="hover:bg-surface-container-low transition-colors group">
+    <td class="py-4 px-6 font-mono font-medium text-primary">{{.IMEI}}</td>
+    <td class="py-4 px-6">
+        {{if eq .Reason "retired_device"}}
+        {{template "status_dot.html" (dict "Tone" "alert" "Label" "Retired device")}}
+        {{else if eq .Reason "quarantined_device"}}
+        {{template "status_dot.html" (dict "Tone" "warning" "Label" "Quarantined device")}}
+        {{else}}
+        {{template "status_dot.html" (dict "Tone" "warning" "Label" "Unknown device")}}
+        {{end}}
+    </td>
+    <td class="py-4 px-6 text-secondary font-mono text-xs">{{.Source}}</td>
+    <td class="py-4 px-6 text-secondary font-mono text-xs max-w-[280px] truncate" title="{{.RawPayload}}">{{.RawPayload}}</td>
+    <td class="py-4 px-6 text-secondary font-mono text-xs">{{datetime .CreatedAt}}</td>
+    <td class="py-4 px-6 text-right">
+        {{if can $.User "telemetry" "update"}}
+        <form method="POST" action="/telemetry/quarantine/{{.ID}}/resolve" class="inline-flex items-center gap-2" hx-target="#quarantine-rows" hx-swap="outerHTML">
+            <label class="inline-flex items-center gap-1 text-xs text-secondary">
+                <input type="radio" name="action" value="register_new" class="text-primary" checked> Register new
+            </label>
+            <label class="inline-flex items-center gap-1 text-xs text-secondary">
+                <input type="radio" name="action" value="assign_existing" class="text-primary"> Assign existing
+            </label>
+            <label class="inline-flex items-center gap-1 text-xs text-secondary">
+                <input type="radio" name="action" value="reject" class="text-primary"> Reject
+            </label>
+            <input type="text" name="vehicle_id" placeholder="vehicle id" class="w-28 bg-surface-container-low border border-border-subtle rounded px-2 py-1 text-xs font-mono">
+            <button type="submit" class="text-primary hover:underline font-medium text-xs">Resolve</button>
+        </form>
+        {{end}}
+    </td>
+</tr>
+{{else}}
+<tr>
+    <td colspan="6" class="py-16 text-center text-secondary">
+        <span class="material-symbols-outlined text-4xl text-text-muted mb-2 block">check_circle</span>
+        <p class="font-medium text-base">Quarantine queue is empty.</p>
+    </td>
+</tr>
+{{end}}

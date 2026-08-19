@@ -65,6 +65,46 @@ jobs:
       - name: Lint
         run: golangci-lint run --timeout=5m
 
+  security-gates:
+    name: Security Regression Gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: RAG routes must be registered inside the auth-protected group
+        run: |
+          # Vulnerable pattern: a TOP-LEVEL (column-0) ragHandler.RegisterRoutes call.
+          # Inside the protected group it is indented. Fail if any column-0 call exists.
+          if grep -n '^ragHandler.RegisterRoutes' cmd/server/main.go; then
+            echo "::error::RAG routes registered at top level (unauthenticated) — must be inside the RequireAPIAuth-protected group"
+            exit 1
+          fi
+          if ! grep -q '^[[:space:]].*ragHandler.RegisterRoutes' cmd/server/main.go; then
+            echo "::error::No RAG route registration found inside the protected group"
+            exit 1
+          fi
+          echo "RAG routes are registered inside the RequireAPIAuth-protected group."
+
+      - name: RAG index endpoint enforces an allow-list
+        run: |
+          if ! grep -q 'allowedDirectory' internal/rag/handler.go; then
+            echo "::error::handleIndex must enforce a directory allow-list (allowedDirectory)"
+            exit 1
+          fi
+          echo "RAG directory indexing enforces an allow-list."
+
+      - name: No hardcoded tenant literals
+        run: |
+          # Multi-tenancy (Spec 09 §2.4): handlers/middleware must derive the
+          # tenant from context, never hardcode the literal "1". The single
+          # controlled exception is shared.DefaultTenant (marked for removal
+          # after migration 00056).
+          if grep -rn 'TenantID:[[:space:]]*"1"' internal/ cmd/ --include='*.go'; then
+            echo "::error::Hardcoded tenant literal found — use shared.TenantIDFromContext(ctx) or shared.DefaultTenant"
+            exit 1
+          fi
+          echo "No hardcoded tenant literals. Tenant is always context-derived."
+
   build:
     name: Build Docker
     runs-on: ubuntu-latest

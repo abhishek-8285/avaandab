@@ -146,6 +146,22 @@ FROM trips
 WHERE date(departure_time) = ? AND tenant_id = ?
 GROUP BY status;
 
+-- name: GetOverdueTrips :many
+SELECT t.id, t.trip_number, t.booking_id, t.driver_id, t.vehicle_id, t.route_id,
+    t.departure_time, t.arrival_time, t.status, t.remarks, t.tenant_id, t.created_at, t.updated_at,
+    d.driver_id AS driver_display_id, d.first_name AS driver_first_name, d.last_name AS driver_last_name,
+    v.registration_number AS vehicle_registration_number, v.vehicle_number AS vehicle_number,
+    r.source AS route_source, r.destination AS route_destination
+FROM trips t
+LEFT JOIN drivers d ON t.driver_id = d.id
+LEFT JOIN vehicles v ON t.vehicle_id = v.id
+LEFT JOIN routes r ON t.route_id = r.id
+WHERE t.tenant_id = ?
+  AND t.status IN ('scheduled', 'assigned', 'started', 'reached_pickup', 'in_transit', 'delivered')
+  AND t.departure_time < datetime('now')
+ORDER BY t.departure_time ASC
+LIMIT 10;
+
 -- name: UpdateTripTimeline :one
 UPDATE trips
 SET started_at = ?, reached_pickup_at = ?, in_transit_at = ?, delivered_at = ?, completed_at = ?,

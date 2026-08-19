@@ -1,0 +1,67 @@
+{{define "fuel_audit_queue.html"}}
+{{if .AuditClaims}}
+<div class="overflow-x-auto">
+<table class="w-full text-sm">
+    <thead>
+        <tr class="bg-surface-container-low text-left">
+            <th class="px-4 py-2 text-xs font-medium uppercase text-text-muted">Driver</th>
+            <th class="px-4 py-2 text-xs font-medium uppercase text-text-muted">Trip</th>
+            <th class="px-4 py-2 text-xs font-medium uppercase text-text-muted">Vehicle</th>
+            <th class="px-4 py-2 text-xs font-medium uppercase text-text-muted text-right">Claimed</th>
+            <th class="px-4 py-2 text-xs font-medium uppercase text-text-muted text-right">Expected</th>
+            <th class="px-4 py-2 text-xs font-medium uppercase text-text-muted">Variance</th>
+            <th class="px-4 py-2 text-xs font-medium uppercase text-text-muted">Audit</th>
+            <th class="px-4 py-2 text-xs font-medium uppercase text-text-muted">Date</th>
+            <th class="px-4 py-2 text-xs font-medium uppercase text-text-muted text-right">Review</th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-border-subtle">
+        {{range .AuditClaims}}
+        <tr class="hover:bg-surface-container-low transition-colors">
+            <td class="px-4 py-2 font-medium text-on-surface">
+                {{.DriverName}}
+                {{if .ReviewNote}}<span class="block text-xs text-text-muted truncate max-w-[160px]" title="{{.ReviewNote}}">note: {{.ReviewNote}}</span>{{end}}
+            </td>
+            <td class="px-4 py-2 text-text-muted font-mono text-xs">{{.TripNumber}}</td>
+            <td class="px-4 py-2 text-text-muted text-xs">{{.VehicleReg}}</td>
+            <td class="px-4 py-2 text-right font-semibold text-on-surface tabular-nums">
+                {{if .FuelLitres}}{{printf "%.1f" .FuelLitres}} L{{else}}—{{end}}
+            </td>
+            <td class="px-4 py-2 text-right text-secondary tabular-nums">
+                {{if gt .ExpectedBest 0.0}}{{printf "%.1f" .ExpectedBest}} L{{else}}—{{end}}
+            </td>
+            <td class="px-4 py-2">
+                {{if gt .ExpectedBest 0.0}}
+                <span class="px-2 py-1 rounded-full text-xs font-semibold {{auditBadge .Result}}"
+                      title="Claimed {{printf "%.1f" .FuelLitres}}L, Expected {{printf "%.1f" .ExpectedBest}}L ±{{printf "%.1f" .VariancePct}}%">
+                    {{if .VarianceLitres}}{{if gt .VarianceLitres 0.0}}+{{end}}{{printf "%.1f" .VarianceLitres}}{{else}}0.0{{end}} L
+                </span>
+                {{else}}
+                <span class="text-xs text-text-muted">no evidence</span>
+                {{end}}
+            </td>
+            <td class="px-4 py-2">
+                <span class="px-2 py-1 rounded-full text-xs font-medium {{auditBadge .Result}}">{{.Result}}</span>
+            </td>
+            <td class="px-4 py-2 text-text-muted text-xs">{{datetime .CreatedAt}}</td>
+            <td class="px-4 py-2 text-right">
+                <a href="/fuel/audit/{{.ExpenseID}}"
+                   class="inline-flex items-center gap-1 px-3 py-1.5 bg-surface-container-low hover:bg-primary/10 text-secondary hover:text-primary text-xs font-semibold rounded-lg transition border border-border-subtle">
+                    REVIEW
+                </a>
+            </td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+</div>
+{{else}}
+<div class="flex flex-col items-center justify-center py-16 text-center">
+    <div class="w-16 h-16 rounded-full bg-status-success/10 flex items-center justify-center mb-4">
+        <span class="material-symbols-outlined text-3xl text-status-success">verified</span>
+    </div>
+    <p class="text-text-muted font-medium text-sm">No fuel claims yet.</p>
+    <p class="text-text-muted text-xs mt-1">Fuel claims submitted via Kharcha will appear here for telemetry reconciliation.</p>
+</div>
+{{end}}
+{{end}}

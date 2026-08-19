@@ -53,6 +53,13 @@ WHERE tenant_id = ?
 GROUP BY strftime('%Y-%m', payment_date)
 ORDER BY month ASC;
 
+-- name: GetRevenueByDay :many
+SELECT CAST(date(payment_date) AS TEXT) AS day, CAST(COALESCE(SUM(amount), 0) AS REAL) AS total
+FROM payments
+WHERE tenant_id = ? AND date(payment_date) >= date('now', '-29 days')
+GROUP BY date(payment_date)
+ORDER BY day ASC;
+
 -- name: GetPaymentsByCustomer :many
 SELECT p.id, p.invoice_id, p.payment_date, p.amount, p.method, p.reference, p.remarks, p.tenant_id, p.created_at, p.updated_at,
        i.invoice_number, c.name AS customer_name

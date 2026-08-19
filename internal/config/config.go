@@ -29,6 +29,46 @@ type Config struct {
 	BootstrapAdmin    BootstrapAdminConfig
 	RAG               RAGConfig
 	Agent             AgentConfig
+	Experiment        ExperimentConfig
+	Telemetry         TelemetryConfig
+	LiveMap           LiveMapConfig
+	Alerts            AlertConfig
+	EWayBill          EWayBillConfig
+	GSTN              GSTNConfig
+}
+
+// GSTNConfig holds configuration for GSTN / GSP / E-Invoicing (Spec 07).
+type GSTNConfig struct {
+	UseMock      bool
+	Username     string
+	Password     string
+	ClientID     string
+	ClientSecret string
+}
+
+// EWayBillConfig holds configuration for the E-Way Bill lifecycle worker (Spec 05 §7, Spec 07).
+type EWayBillConfig struct {
+	WorkerEnabled        bool
+	WorkerInterval       time.Duration
+	ExtensionKM          float64
+	ExtensionLeadSeconds int
+	MinInvoiceValue      float64
+}
+
+// AlertConfig holds configuration for operational alerts (Spec 05 §14).
+type AlertConfig struct {
+	TelegramBotToken string
+	TelegramChatID   string
+}
+
+// ExperimentConfig configures the server-side A/B experiment framework.
+type ExperimentConfig struct {
+	// Rollout is the percentage (0-100) of users assigned the treatment
+	// variant of an experiment. 0 = control only, 100 = treatment only.
+	Rollout int
+	// ForceVariant overrides assignment for every request (QA/testing).
+	// Empty means no override.
+	ForceVariant string
 }
 
 // AgentConfig holds configuration for the AI operations assistant.
@@ -54,6 +94,47 @@ type RAGConfig struct {
 	ChunkOverlap     int
 	IndexDirs        []string
 	VectorDBPath     string
+}
+
+// TelemetryConfig holds configuration for the telemetry ingestion pipeline
+// (Phase 1: Specs 01 §8, 17 §3).
+type TelemetryConfig struct {
+	Enabled                 bool
+	WebhookSecretLocoNav    string
+	WebhookSecretWheelsEye  string
+	WheelsEyeAccessToken    string
+	WheelsEyePollInterval   time.Duration
+	DeviceSecretPepper      string
+	WebhookRateLimit        int
+	RawRetentionDays        int
+	BatchSize               int
+	FlushInterval           time.Duration
+	OdometerMaxRegressionKM float64
+	FuelClampDeltaPct       float64
+}
+
+// LiveMapConfig holds configuration for the live map + share links + ETA +
+// preventive-maintenance stack (Spec 04 §9).
+type LiveMapConfig struct {
+	MapTileProvider       string // google | osm | auto (google → OSM on tileerror)
+	MapGoogleStyle        string // m=roadmap, s=satellite, y=hybrid, p=terrain
+	MapGL                 string // Google tile country bias
+	MapOSMURL             string // OSM fallback tile template
+	NominatimURL          string // Geocoding base
+	MapPollSec            int    // Tracking page REST poll interval
+	CSPEnabled            bool
+	ShareLinkTTLHours     int
+	ShareLinkMaxTTLHours  int
+	ShareLinkMaxActive    int
+	EtaStaleMin           int
+	EtaWindowMin          int
+	EtaGuardMaxRegressMin int
+	TelemetryStaleMin     int
+	SSEEnabled            bool
+	SSEKeepaliveSec       int
+	PMEnabled             bool
+	PMCheckIntervalMin    int
+	PMCriticalDTCs        string
 }
 
 // BootstrapAdminConfig configures the initial admin account created at
@@ -143,6 +224,73 @@ func Load() *Config {
 		RequireApproval: getEnv("AGENT_REQUIRE_APPROVAL", "true") == "true",
 	}
 
+	cfg.Experiment = ExperimentConfig{
+		Rollout:      getEnvInt("EXPERIMENT_ROLLOUT", 0),
+		ForceVariant: getEnv("EXPERIMENT_FORCE_VARIANT", ""),
+	}
+
+	cfg.Telemetry = TelemetryConfig{
+		Enabled:                 getEnv("TELEMETRY_ENABLED", "true") == "true",
+		WebhookSecretLocoNav:    os.Getenv("TELEMETRY_WEBHOOK_SECRET_LOCONAV"),
+		WebhookSecretWheelsEye:  os.Getenv("TELEMETRY_WEBHOOK_SECRET_WHEELSEYE"),
+		WheelsEyeAccessToken:    os.Getenv("TELEMETRY_WHEELSEYE_ACCESS_TOKEN"),
+		WheelsEyePollInterval:   getEnvDuration("TELEMETRY_WHEELSEYE_POLL_INTERVAL", 5*time.Minute),
+		DeviceSecretPepper:      os.Getenv("TELEMETRY_DEVICE_SECRET_PEPPER"),
+		WebhookRateLimit:        getEnvInt("TELEMETRY_WEBHOOK_RATE_LIMIT", 30),
+		RawRetentionDays:        getEnvInt("TELEMETRY_RAW_RETENTION_DAYS", 30),
+		BatchSize:               getEnvInt("TELEMETRY_BATCH_SIZE", 500),
+		FlushInterval:           getEnvDuration("TELEMETRY_FLUSH_INTERVAL", 2*time.Second),
+		OdometerMaxRegressionKM: getEnvFloat("TELEMETRY_ODOMETER_MAX_REGRESSION_KM", 1.0),
+		FuelClampDeltaPct:       getEnvFloat("TELEMETRY_FUEL_CLAMP_DELTA_PCT", 5.0),
+	}
+
+	// Spec 04 §9 — live map + share links + ETA + preventive maintenance.
+	cfg.LiveMap = LiveMapConfig{
+		MapTileProvider:       getEnv("MAP_TILE_PROVIDER", "auto"),
+		MapGoogleStyle:        getEnv("MAP_GOOGLE_STYLE", "m"),
+		MapGL:                 getEnv("MAP_GL", "IN"),
+		MapOSMURL:             getEnv("MAP_OSM_URL", "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"),
+		NominatimURL:          getEnv("NOMINATIM_URL", "https://nominatim.openstreetmap.org"),
+		MapPollSec:            getEnvInt("MAP_POLL_SEC", 10),
+		CSPEnabled:            getEnv("CSP_ENABLED", "false") == "true",
+		ShareLinkTTLHours:     getEnvInt("SHARE_LINK_TTL_HOURS", 24),
+		ShareLinkMaxTTLHours:  getEnvInt("SHARE_LINK_MAX_TTL_HOURS", 168),
+		ShareLinkMaxActive:    getEnvInt("SHARE_LINK_MAX_ACTIVE", 20),
+		EtaStaleMin:           getEnvInt("ETA_STALE_MIN", 15),
+		EtaWindowMin:          getEnvInt("ETA_WINDOW_MIN", 30),
+		EtaGuardMaxRegressMin: getEnvInt("ETA_GUARD_MAX_REGRESS_MIN", 5),
+		TelemetryStaleMin:     getEnvInt("TELEMETRY_STALE_MIN", 15),
+		SSEEnabled:            getEnv("SSE_ENABLED", "true") == "true",
+		SSEKeepaliveSec:       getEnvInt("SSE_KEEPALIVE_SEC", 15),
+		PMEnabled:             getEnv("PM_ENABLED", "true") == "true",
+		PMCheckIntervalMin:    getEnvInt("PM_CHECK_INTERVAL_MIN", 15),
+		PMCriticalDTCs:        getEnv("PM_CRITICAL_DTCS", "P0A0F,P1602"),
+	}
+
+	// Spec 05 §14 — Operational alerts Telegram configuration.
+	cfg.Alerts = AlertConfig{
+		TelegramBotToken: getEnv("ALERT_TELEGRAM_BOT_TOKEN", os.Getenv("FOUNDER_TELEGRAM_BOT_TOKEN")),
+		TelegramChatID:   getEnv("ALERT_TELEGRAM_CHAT_ID", os.Getenv("FOUNDER_TELEGRAM_CHAT_ID")),
+	}
+
+	// Spec 05 §7, Spec 07 — E-Way Bill lifecycle worker configuration.
+	cfg.EWayBill = EWayBillConfig{
+		WorkerEnabled:        getEnvBool("EWAYBILL_WORKER_ENABLED", true),
+		WorkerInterval:       getEnvDuration("EWAYBILL_WORKER_INTERVAL", 60*time.Second),
+		ExtensionKM:          getEnvFloat("EWAYBILL_EXTENSION_KM", 5.0),
+		ExtensionLeadSeconds: getEnvInt("EWAYBILL_EXTENSION_LEAD_SECONDS", 14400),
+		MinInvoiceValue:      getEnvFloat("EWAYBILL_MIN_INVOICE_VALUE", 50000.0),
+	}
+
+	// Spec 07 — GST E-Invoicing / GSTN configuration.
+	cfg.GSTN = GSTNConfig{
+		UseMock:      getEnvBool("INTEGRATION_GSTN_USE_MOCK", true),
+		Username:     os.Getenv("INTEGRATION_GSTN_USERNAME"),
+		Password:     os.Getenv("INTEGRATION_GSTN_PASSWORD"),
+		ClientID:     os.Getenv("INTEGRATION_GSTN_CLIENT_ID"),
+		ClientSecret: os.Getenv("INTEGRATION_GSTN_CLIENT_SECRET"),
+	}
+
 	if err := cfg.Validate(); err != nil {
 		slog.Error("invalid configuration", "error", err)
 	}
@@ -181,9 +329,36 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
+func getEnvBool(key string, fallback bool) bool {
+	if v := os.Getenv(key); v != "" {
+		if parsed, err := strconv.ParseBool(v); err == nil {
+			return parsed
+		}
+	}
+	return fallback
+}
+
 func getEnvInt(key string, fallback int) int {
 	if v := os.Getenv(key); v != "" {
 		if parsed, err := strconv.Atoi(v); err == nil {
+			return parsed
+		}
+	}
+	return fallback
+}
+
+func getEnvFloat(key string, fallback float64) float64 {
+	if v := os.Getenv(key); v != "" {
+		if parsed, err := strconv.ParseFloat(v, 64); err == nil {
+			return parsed
+		}
+	}
+	return fallback
+}
+
+func getEnvDuration(key string, fallback time.Duration) time.Duration {
+	if v := os.Getenv(key); v != "" {
+		if parsed, err := time.ParseDuration(v); err == nil {
 			return parsed
 		}
 	}

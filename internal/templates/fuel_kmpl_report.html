@@ -1,0 +1,65 @@
+{{template "base" .}}
+{{define "content"}}
+<div class="px-6 py-8 max-w-7xl mx-auto space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-primary">Fuel Efficiency Report</h1>
+      <p class="text-secondary text-sm mt-1">Per-vehicle kmpl (refill events vs telemetry odometer)</p>
+    </div>
+    <form method="get" class="flex items-center gap-2">
+      <label class="text-sm text-secondary">From</label>
+      <input type="date" name="from" value="{{.Extra.From}}" class="input input-sm">
+      <label class="text-sm text-secondary">To</label>
+      <input type="date" name="to"   value="{{.Extra.To}}"   class="input input-sm">
+      <button type="submit" class="btn btn-sm btn-primary">Filter</button>
+    </form>
+  </div>
+
+  {{if .Extra.KmplRows}}
+  <div class="card">
+    <table class="table w-full text-sm">
+      <thead>
+        <tr>
+          <th>Vehicle</th>
+          <th class="text-right">Odometer &Delta; (km)</th>
+          <th class="text-right">Refill (L)</th>
+          <th class="text-right">Computed Kmpl</th>
+          <th class="text-right">Configured Kmpl</th>
+          <th class="text-right">Variance</th>
+          <th class="text-right">Trips</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Extra.KmplRows}}
+        <tr class="hover:bg-surface-container-low">
+          <td class="font-medium">{{.RegistrationNo}}</td>
+          <td class="text-right tabular-nums">{{printf "%.1f" .OdometerDeltaKm}}</td>
+          <td class="text-right tabular-nums">{{printf "%.1f" .RefillLitres}}</td>
+          <td class="text-right tabular-nums font-semibold">
+            {{if gt .ComputedKmpl 0.0}}{{printf "%.2f" .ComputedKmpl}}{{else}}&mdash;{{end}}
+          </td>
+          <td class="text-right tabular-nums text-secondary">{{printf "%.2f" .ConfiguredKmpl}}</td>
+          <td class="text-right">
+            {{if gt .ComputedKmpl 0.0}}
+              {{if gt .VariancePct 20.0}}
+                <span class="badge badge-sm bg-status-alert/10 text-status-alert">{{printf "%+.1f%%" .VariancePct}}</span>
+              {{else if lt .VariancePct -20.0}}
+                <span class="badge badge-sm bg-status-warning/10 text-status-warning">{{printf "%+.1f%%" .VariancePct}}</span>
+              {{else}}
+                <span class="badge badge-sm bg-status-success/10 text-status-success">{{printf "%+.1f%%" .VariancePct}}</span>
+              {{end}}
+            {{else}}&mdash;{{end}}
+          </td>
+          <td class="text-right">{{.TripCount}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+  <div class="card p-12 text-center text-secondary">
+    No refill events in the selected window.
+  </div>
+  {{end}}
+</div>
+{{end}}

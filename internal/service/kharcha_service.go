@@ -2,10 +2,14 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
+
 	"transport-app/internal/repository"
+	"transport-app/internal/shared"
 )
 
 // KharchaExpense is the service-layer view of a driver expense with joined trip/driver data.
@@ -24,6 +28,21 @@ type KharchaExpense struct {
 	ApprovedBy     *string
 	ApprovedAt     *time.Time
 	CreatedAt      time.Time
+	// Fuel audit columns (Spec 03 §3.3): audit_status + litres on the
+	// expense, variance from the latest fuel_claim_audits row.
+	AuditStatus    string
+	FuelLitres     *float64
+	VarianceLitres *float64
+	VariancePct    *float64
+}
+
+// ExpectedLitres reconstructs the expected value used for the variance
+// tooltip: claimed − variance (Spec 03 §3.3). Zero when no audit row exists.
+func (e KharchaExpense) ExpectedLitres() float64 {
+	if e.FuelLitres != nil && e.VarianceLitres != nil {
+		return *e.FuelLitres - *e.VarianceLitres
+	}
+	return 0
 }
 
 // KharchaStats holds dashboard summary counts/totals.
@@ -63,10 +82,15 @@ func (s *KharchaService) ListPendingExpenses(ctx context.Context) ([]KharchaExpe
 		       de.rejected_reason,
 		       de.approved_by,
 		       de.approved_at,
-		       de.created_at
+		       de.created_at,
+		       COALESCE(de.audit_status, 'pending') AS audit_status,
+		       de.fuel_litres,
+		       fca.variance_litres,
+		       fca.variance_pct
 		FROM driver_expenses de
 		LEFT JOIN trips t ON t.id = de.trip_id
 		LEFT JOIN drivers d ON d.id = de.driver_id
+		LEFT JOIN fuel_claim_audits fca ON fca.expense_id = de.id
 		WHERE COALESCE(de.status, 'pending') = 'pending'
 		ORDER BY de.created_at ASC`)
 	if err != nil {
@@ -98,10 +122,15 @@ func (s *KharchaService) ListLedger(ctx context.Context, tripID string) ([]Kharc
 		       de.rejected_reason,
 		       de.approved_by,
 		       de.approved_at,
-		       de.created_at
+		       de.created_at,
+		       COALESCE(de.audit_status, 'pending') AS audit_status,
+		       de.fuel_litres,
+		       fca.variance_litres,
+		       fca.variance_pct
 		FROM driver_expenses de
 		LEFT JOIN trips t ON t.id = de.trip_id
-		LEFT JOIN drivers d ON d.id = de.driver_id`
+		LEFT JOIN drivers d ON d.id = de.driver_id
+		LEFT JOIN fuel_claim_audits fca ON fca.expense_id = de.id`
 	args := []interface{}{}
 	if tripID != "" {
 		query += " WHERE de.trip_id = ?"
@@ -139,10 +168,15 @@ func (s *KharchaService) GetExpenseByID(ctx context.Context, id string) (Kharcha
 		       de.rejected_reason,
 		       de.approved_by,
 		       de.approved_at,
-		       de.created_at
+		       de.created_at,
+		       COALESCE(de.audit_status, 'pending') AS audit_status,
+		       de.fuel_litres,
+		       fca.variance_litres,
+		       fca.variance_pct
 		FROM driver_expenses de
 		LEFT JOIN trips t ON t.id = de.trip_id
 		LEFT JOIN drivers d ON d.id = de.driver_id
+		LEFT JOIN fuel_claim_audits fca ON fca.expense_id = de.id
 		WHERE de.id = ?`, id)
 
 	var e KharchaExpense
@@ -152,6 +186,7 @@ func (s *KharchaService) GetExpenseByID(ctx context.Context, id string) (Kharcha
 		&e.ID, &e.TripID, &e.TripNumber, &e.DriverID, &e.DriverName,
 		&e.Category, &e.Amount, &e.Description, &receiptURL,
 		&e.Status, &rejectedReason, &approvedBy, &approvedAt, &e.CreatedAt,
+		&e.AuditStatus, &e.FuelLitres, &e.VarianceLitres, &e.VariancePct,
 	); err != nil {
 		return KharchaExpense{}, fmt.Errorf("expense not found: %w", err)
 	}
@@ -178,6 +213,21 @@ func (s *KharchaService) ApproveExpense(ctx context.Context, expenseID, approved
 
 	now := time.Now()
 
+	// Fuel audit enforce gate (Spec 03 §3.2 step 4). MUST run BEFORE the
+	// status UPDATE: in enforce mode a claim flagged needs_review must never
+	// flip to approved, so the gate is a pre-flight check, not a post-check.
+	if s.fuelAuditEnforce(ctx, db) {
+		var as string
+		if err := db.QueryRowContext(ctx,
+			`SELECT COALESCE(audit_status, 'pending') FROM driver_expenses WHERE id = ?`,
+			expenseID).Scan(&as); err != nil {
+			return fmt.Errorf("expense not found")
+		}
+		if as == "needs_review" {
+			return fmt.Errorf("claim flagged by fuel audit (needs review); review at /fuel/audit")
+		}
+	}
+
 	// 1. Mark approved (only if currently pending)
 	res, err := tx.ExecContext(ctx,
 		`UPDATE driver_expenses
@@ -200,14 +250,28 @@ func (s *KharchaService) ApproveExpense(ctx context.Context, expenseID, approved
 		return err
 	}
 
-	// 3. Deduct from settlement net_payout if a settlement row exists for this trip
+	// 3. Deduct from settlement net_payout and add settlement line if a settlement row exists for this trip
 	if tripID != "" && driverID != "" {
-		_, _ = tx.ExecContext(ctx,
-			`UPDATE driver_settlements
-			 SET advances_kharcha = advances_kharcha + ?,
-			     net_payout = MAX(0.0, net_payout - ?)
-			 WHERE trip_id = ? AND driver_id = ?`,
-			amount, amount, tripID, driverID)
+		var settlementID string
+		var category string
+		_ = tx.QueryRowContext(ctx, `SELECT COALESCE(category, 'kharcha') FROM driver_expenses WHERE id = ?`, expenseID).Scan(&category)
+
+		err := tx.QueryRowContext(ctx, `SELECT id FROM driver_settlements WHERE trip_id = ? AND driver_id = ?`, tripID, driverID).Scan(&settlementID)
+		if err == nil && settlementID != "" {
+			_, _ = tx.ExecContext(ctx,
+				`UPDATE driver_settlements
+				 SET advances_kharcha = advances_kharcha + ?,
+				     net_payout = MAX(0.0, net_payout - ?)
+				 WHERE id = ?`,
+				amount, amount, settlementID)
+
+			lineID := "stl-ln-" + uuid.New().String()
+			label := fmt.Sprintf("Approved expense (%s) #%s", category, expenseID)
+			_, _ = tx.ExecContext(ctx,
+				`INSERT INTO settlement_lines (id, settlement_id, trip_id, line_type, label, amount, ref_id, created_at)
+				 VALUES (?, ?, ?, 'deduction', ?, ?, ?, datetime('now'))`,
+				lineID, settlementID, tripID, label, -amount, expenseID)
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -247,8 +311,22 @@ func (s *KharchaService) RejectExpense(ctx context.Context, expenseID, rejectedB
 	return nil
 }
 
-// CreateExpense logs a new driver kharcha claim.
-func (s *KharchaService) CreateExpense(ctx context.Context, tripID, driverID, category string, amount float64, description, receiptURL string) (string, error) {
+// fuelAuditEnforce reports whether company_config fuel.audit_enforce is
+// 'true' (enforce mode gates approval of needs_review claims; annotate mode
+// leaves them approvable, Spec 03 §3.2 step 4).
+func (s *KharchaService) fuelAuditEnforce(ctx context.Context, db interface {
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+}) bool {
+	var v string
+	err := db.QueryRowContext(ctx,
+		`SELECT value FROM company_config WHERE tenant_id = ? AND key = 'fuel.audit_enforce'`,
+		string(shared.DefaultTenant)).Scan(&v)
+	return err == nil && v == "true"
+}
+
+// CreateExpense logs a new driver kharcha claim. fuelLitres is persisted
+// only for fuel claims (Spec 03 §3.2 step 1; NULL elsewhere).
+func (s *KharchaService) CreateExpense(ctx context.Context, tripID, driverID, category string, amount float64, description, receiptURL string, fuelLitres float64) (string, error) {
 	if amount <= 0 {
 		return "", fmt.Errorf("amount must be greater than zero")
 	}
@@ -282,12 +360,16 @@ func (s *KharchaService) CreateExpense(ctx context.Context, tripID, driverID, ca
 	if driverID != "" {
 		dID = driverID
 	}
+	var litres interface{} = nil
+	if category == "fuel" && fuelLitres > 0 {
+		litres = fuelLitres
+	}
 
 	_, err := db.ExecContext(ctx,
 		`INSERT INTO driver_expenses
-		 (id, trip_id, driver_id, expense_type, category, amount, description, receipt_url, status, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
-		expID, tID, dID, category, category, amount, desc, recURL, time.Now())
+		 (id, trip_id, driver_id, expense_type, category, amount, description, receipt_url, fuel_litres, status, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
+		expID, tID, dID, category, category, amount, desc, recURL, litres, time.Now())
 	if err != nil {
 		return "", err
 	}
@@ -347,6 +429,7 @@ func scanKharchaRows(rows kharchaScanner) ([]KharchaExpense, error) {
 			&e.ID, &e.TripID, &e.TripNumber, &e.DriverID, &e.DriverName,
 			&e.Category, &e.Amount, &e.Description, &receiptURL,
 			&e.Status, &rejectedReason, &approvedBy, &approvedAt, &e.CreatedAt,
+			&e.AuditStatus, &e.FuelLitres, &e.VarianceLitres, &e.VariancePct,
 		); err != nil {
 			return nil, err
 		}

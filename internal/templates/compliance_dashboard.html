@@ -1,0 +1,90 @@
+{{define "compliance_dashboard.html"}}
+<div class="space-y-6">
+
+    <!-- Page Header -->
+    <div class="flex items-center justify-between flex-wrap gap-3">
+        <div>
+            <h1 class="text-2xl font-bold text-on-surface tracking-tight">Compliance & Document Vault</h1>
+            <p class="text-sm text-secondary mt-1">Regulatory compliance tracking, document verification & dispatch safety gates</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="px-3 py-1.5 rounded-full text-xs font-bold bg-status-success/10 text-status-success border border-status-success/30">
+                GATE ACTIVE
+            </span>
+        </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4 mb-6">
+        <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center border border-border-subtle">
+            <div class="text-stat text-primary tabular-nums text-xl sm:text-2xl font-bold">{{.Data.Drivers.Total}}</div>
+            <div class="text-xs sm:text-sm text-secondary">Total Drivers</div>
+            <div class="text-xs text-text-muted mt-0.5">{{.Data.Drivers.ExpiringSoon}} expiring soon</div>
+        </div>
+        <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center border border-border-subtle">
+            <div class="text-stat text-status-alert tabular-nums text-xl sm:text-2xl font-bold">{{.Data.Drivers.Blocked}}</div>
+            <div class="text-xs sm:text-sm text-secondary">Blocked Drivers</div>
+            <div class="text-xs text-text-muted mt-0.5">dispatch prevented</div>
+        </div>
+        <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center border border-border-subtle">
+            <div class="text-stat text-primary tabular-nums text-xl sm:text-2xl font-bold">{{.Data.Vehicles.Total}}</div>
+            <div class="text-xs sm:text-sm text-secondary">Total Vehicles</div>
+            <div class="text-xs text-text-muted mt-0.5">{{.Data.Vehicles.ExpiringSoon}} expiring soon</div>
+        </div>
+        <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center border border-border-subtle">
+            <div class="text-stat text-status-alert tabular-nums text-xl sm:text-2xl font-bold">{{.Data.Vehicles.Blocked}}</div>
+            <div class="text-xs sm:text-sm text-secondary">Blocked Vehicles</div>
+            <div class="text-xs text-text-muted mt-0.5">expired docs / maintenance</div>
+        </div>
+        <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center border border-border-subtle">
+            <div class="text-stat text-status-warning tabular-nums text-xl sm:text-2xl font-bold">{{.Data.DocumentsPending}}</div>
+            <div class="text-xs sm:text-sm text-secondary">Pending Reviews</div>
+            <div class="text-xs text-text-muted mt-0.5">awaiting verification</div>
+        </div>
+    </div>
+
+    <!-- Blocked Lists -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Blocked Drivers -->
+        <div class="bg-surface-container-lowest rounded-xl p-5 border border-border-subtle shadow-sm">
+            <h2 class="text-base font-semibold text-on-surface mb-3 flex items-center gap-2">
+                <span class="material-symbols-outlined text-status-alert">person_off</span>
+                Blocked Drivers ({{len .Data.BlockedDrivers}})
+            </h2>
+            {{if .Data.BlockedDrivers}}
+            <div class="divide-y divide-border-subtle">
+                {{range .Data.BlockedDrivers}}
+                <div class="py-2.5 flex items-center justify-between text-sm">
+                    <span class="font-medium text-on-surface">{{.ID}}</span>
+                    <span class="text-xs text-status-alert bg-status-alert/10 px-2 py-0.5 rounded">{{.Reason}}</span>
+                </div>
+                {{end}}
+            </div>
+            {{else}}
+            <p class="text-xs text-secondary py-4 text-center">No drivers currently blocked</p>
+            {{end}}
+        </div>
+
+        <!-- Blocked Vehicles -->
+        <div class="bg-surface-container-lowest rounded-xl p-5 border border-border-subtle shadow-sm">
+            <h2 class="text-base font-semibold text-on-surface mb-3 flex items-center gap-2">
+                <span class="material-symbols-outlined text-status-alert">no_crash</span>
+                Blocked Vehicles ({{len .Data.BlockedVehicles}})
+            </h2>
+            {{if .Data.BlockedVehicles}}
+            <div class="divide-y divide-border-subtle">
+                {{range .Data.BlockedVehicles}}
+                <div class="py-2.5 flex items-center justify-between text-sm">
+                    <span class="font-medium text-on-surface">{{.ID}}</span>
+                    <span class="text-xs text-status-alert bg-status-alert/10 px-2 py-0.5 rounded">{{.Reason}}</span>
+                </div>
+                {{end}}
+            </div>
+            {{else}}
+            <p class="text-xs text-secondary py-4 text-center">No vehicles currently blocked</p>
+            {{end}}
+        </div>
+    </div>
+
+</div>
+{{end}}

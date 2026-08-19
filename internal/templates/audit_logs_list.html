@@ -1,20 +1,18 @@
-<div class="bg-white border border-[#EAE8E4] rounded shadow-sm flex flex-col h-full overflow-hidden">
+<div class="bg-surface-container-lowest border border-border-subtle rounded shadow-sm flex flex-col h-full overflow-hidden">
     <!-- Sticky Search & Filter Bar (Stitch Design) -->
-    <form method="GET" action="/audit-logs" class="px-6 py-4 border-b border-[#EAE8E4] flex flex-wrap items-center gap-3 bg-white sticky top-0 z-10">
+    <form method="GET" action="/audit-logs" class="px-4 py-2 border-b border-border-subtle flex flex-wrap items-center gap-2 bg-surface-container-lowest sticky top-0 z-10">
         <div class="relative flex-1 min-w-[240px] max-w-md">
-            <span class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">search</span>
+            <span class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-sm">search</span>
             <input type="text" name="q" value="{{.Query}}" placeholder="Filter audit logs by action or table..."
-                class="bg-white border border-[#EAE8E4] rounded py-1.5 pl-9 pr-4 text-sm w-full focus:outline-none focus:border-[#00685f] transition-colors">
+                class="bg-surface-container-lowest border border-border-subtle rounded py-1.5 pl-9 pr-4 text-sm w-full focus:outline-none focus:border-primary transition-colors">
         </div>
-        <button type="submit" class="px-4 py-1.5 rounded bg-[#00685f] text-white text-sm font-medium hover:bg-[#005049] transition-colors">
-            Filter
-        </button>
+        {{template "btn.html" (dict "Variant" "primary" "Size" "sm" "Label" "Filter" "Type" "submit")}}
     </form>
 
     <!-- Data Table (Stitch Design) -->
     <div class="flex-1 overflow-x-auto">
         <table class="w-full text-left border-collapse min-w-full">
-            <thead class="sticky top-0 bg-white z-10 border-b border-[#EAE8E4]">
+            <thead class="sticky top-0 bg-surface-container-lowest z-10 border-b border-border-subtle">
                 <tr>
                     <th class="th-cell">Timestamp</th>
                     <th class="th-cell">User Account</th>
@@ -24,11 +22,11 @@
                     <th class="th-cell">IP Address</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-[#EAE8E4] font-body-sm text-sm text-[#191c1e]">
+            <tbody class="divide-y divide-border-subtle font-body-sm text-sm text-on-surface">
                 {{range .AuditLogs}}
-                <tr class="hover:bg-[#f2f4f6] transition-colors group">
+                <tr class="hover:bg-surface-container-low transition-colors group">
                     <td class="td-cell font-mono text-xs">{{datetime .CreatedAt}}</td>
-                    <td class="td-cell">{{if .UserName}}{{.UserName}}{{else}}<span class="text-gray-400">System</span>{{end}}</td>
+                    <td class="td-cell">{{if .UserName}}{{.UserName}}{{else}}<span class="text-text-muted">System</span>{{end}}</td>
                     <td class="td-cell-strong uppercase">{{.Action}}</td>
                     <td class="td-cell font-mono text-xs">{{.TableName}}</td>
                     <td class="td-cell font-mono text-xs">{{if .RecordID}}{{.RecordID}}{{else}}-{{end}}</td>
@@ -36,8 +34,8 @@
                 </tr>
                 {{else}}
                 <tr>
-                    <td colspan="6" class="py-16 text-center text-gray-500">
-                        <span class="material-icons text-4xl text-gray-300 mb-2 block">history</span>
+                    <td colspan="6" class="py-16 text-center text-text-muted">
+                        <span class="material-icons text-4xl text-text-muted mb-2 block">history</span>
                         <p class="font-medium text-base">No audit log records found.</p>
                     </td>
                 </tr>

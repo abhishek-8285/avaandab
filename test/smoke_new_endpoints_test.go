@@ -49,6 +49,8 @@ func setupSmokeTest(t *testing.T) (http.Handler, *service.Services, ports.UnitOf
 		paymentApp.NewReversePaymentUseCase(sqlUoW, idGen, realClock),
 		paymentApp.NewListPaymentsByInvoiceUseCase(sqlUoW),
 		paymentApp.NewRazorpayWebhookUseCase(paymentApp.NewRecordPaymentUseCase(sqlUoW, idGen, realClock), sqlUoW, "test-webhook-secret", realClock),
+		nil, // orderUC (Razorpay disabled in smoke tests)
+		nil, // verifyUC (Razorpay disabled in smoke tests)
 		authSvc,
 	)
 	listTripsUC := tripApp.NewListTripsUseCase(sqlUoW)
@@ -260,4 +262,25 @@ func TestSmoke_GraphQLRealData(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &gqlResp))
 	assert.NotEmpty(t, gqlResp.Data.ServerTime, "serverTime should be present")
+}
+
+// TestSmoke_RazorpayOrderVerify_FailClosedWithoutCreds proves the protected
+// Razorpay order/verify endpoints return 503 (not 500) when no Razorpay
+// credentials are wired — the rest of the payment API keeps working
+// (Spec 11 §5.1).
+func TestSmoke_RazorpayOrderVerify_FailClosedWithoutCreds(t *testing.T) {
+	router, _, _ := setupSmokeTest(t)
+
+	rr := doSmoke(t, router, http.MethodPost, "/api/v1/payments/razorpay-order", map[string]interface{}{
+		"invoice_id": "inv_does_not_matter",
+	})
+	require.Equal(t, http.StatusServiceUnavailable, rr.Code, "body: %s", rr.Body.String())
+
+	rr = doSmoke(t, router, http.MethodPost, "/api/v1/payments/razorpay/verify", map[string]interface{}{
+		"invoice_id": "inv_does_not_matter",
+		"order_id":   "order_x",
+		"payment_id": "pay_x",
+		"signature":  "sig_x",
+	})
+	require.Equal(t, http.StatusServiceUnavailable, rr.Code, "body: %s", rr.Body.String())
 }

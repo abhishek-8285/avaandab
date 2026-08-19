@@ -1,8 +1,8 @@
 <div class="flex-1 flex items-center justify-center p-4 min-h-[calc(100vh-2rem)]">
-    <div class="w-full max-w-md bg-white border border-slate-200 rounded-xl p-8 shadow-sm relative">
+    <div class="w-full max-w-md bg-surface-container-lowest border border-border-subtle rounded-xl p-8 shadow-sm relative">
         <!-- Back to Home Link -->
-        <div class="mb-6 flex items-center justify-between border-b border-slate-100 pb-3">
-            <a href="/" class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#00685f] transition-colors">
+        <div class="mb-6 flex items-center justify-between border-b border-border-subtle pb-3">
+            <a href="/" class="inline-flex items-center gap-1.5 text-xs font-bold text-text-muted hover:text-primary transition-colors">
                 <span class="material-symbols-outlined text-base">arrow_back</span>
                 <span>Back to Home</span>
             </a>
@@ -11,52 +11,47 @@
         <!-- Header -->
         <header class="mb-6 text-center space-y-2">
             <a href="/" class="inline-flex items-center justify-center gap-2.5 no-underline">
-                <div class="w-10 h-10 rounded-lg bg-[#00685f] text-white flex items-center justify-center shadow-sm shrink-0">
+                <div class="w-10 h-10 rounded-lg bg-primary text-on-primary flex items-center justify-center shadow-sm shrink-0">
                     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="w-6 h-6"><path d="M3 5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h1v2a1 1 0 0 0 2 0v-2h9v2a1 1 0 0 0 2 0v-2h2a1 1 0 0 0 1-1v-7l-4-4H3Zm11 4h3l2 2v2h-5V9Z"/></svg>
                 </div>
-                <span class="text-2xl font-black text-[#00685f] font-display tracking-tight">Avandab</span>
+                <span class="text-2xl font-black text-primary font-display tracking-tight">Avandab</span>
             </a>
-            <p class="text-xs text-slate-500 font-medium">Logistics Management Operator Portal</p>
+            <p class="text-xs text-text-muted font-medium">Logistics Management Operator Portal</p>
         </header>
 
         {{if .Error}}
-        <div class="mb-6 p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-md text-xs flex items-center gap-2">
-            <span class="material-symbols-outlined text-base shrink-0">error</span>
-            <span>{{.Error}}</span>
-        </div>
+        {{template "alert.html" (dict "Tone" "error" "Message" .Error)}}
         {{end}}
 
         <!-- Form -->
         <form class="space-y-4" method="POST" action="/login">
+            <input type="hidden" name="redirect" value="{{.Redirect}}"/>
             <div>
-                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1" for="email">Email Address</label>
+                <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1" for="email">Email Address</label>
                 <div class="relative">
-                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">mail</span>
-                    <input class="w-full bg-slate-50 border border-slate-300 rounded-md pl-10 pr-3 py-2.5 text-sm text-slate-900 focus:bg-white focus:border-[#00685f] focus:ring-2 focus:ring-[#00685f]/20 transition-all outline-none" id="email" name="email" value="{{.Email}}" placeholder="dispatcher@fleet.com" required type="email"/>
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-lg">mail</span>
+                    <input class="w-full bg-surface-container-low border border-border-subtle rounded-md pl-10 pr-3 py-2.5 text-sm text-on-surface focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none" id="email" name="email" value="{{.Email}}" placeholder="dispatcher@fleet.com" required type="email"/>
                 </div>
             </div>
 
             <div>
                 <div class="flex items-center justify-between mb-1">
-                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider" for="password">Password</label>
-                    <a class="text-xs text-[#00685f] font-bold hover:underline" href="/forgot-password">Forgot Password?</a>
+                    <label class="block text-xs font-bold text-secondary uppercase tracking-wider" for="password">Password</label>
+                    <a class="text-xs text-primary font-bold hover:underline" href="/forgot-password">Forgot Password?</a>
                 </div>
                 <div class="relative">
-                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">lock</span>
-                    <input class="w-full bg-slate-50 border border-slate-300 rounded-md pl-10 pr-3 py-2.5 text-sm text-slate-900 focus:bg-white focus:border-[#00685f] focus:ring-2 focus:ring-[#00685f]/20 transition-all outline-none" id="password" name="password" placeholder="••••••••" required type="password"/>
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-lg">lock</span>
+                    <input class="w-full bg-surface-container-low border border-border-subtle rounded-md pl-10 pr-3 py-2.5 text-sm text-on-surface focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none" id="password" name="password" placeholder="••••••••" required type="password"/>
                 </div>
             </div>
 
-            <button class="w-full bg-[#00685f] hover:bg-[#005049] text-white font-bold text-sm py-3 px-4 rounded-md transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs mt-2" type="submit">
-                <span>Sign In</span>
-                <span class="material-symbols-outlined text-base">arrow_forward</span>
-            </button>
+            {{template "btn.html" (dict "Label" "Sign In" "Type" "submit" "Icon" "arrow_forward" "Class" "w-full mt-2")}}
         </form>
 
-        <div class="mt-6 pt-5 border-t border-slate-100 text-center">
-            <p class="text-xs text-slate-500">
+        <div class="mt-6 pt-5 border-t border-border-subtle text-center">
+            <p class="text-xs text-text-muted">
                 Don't have an operator account?
-                <a href="/register" class="text-[#00685f] font-bold hover:underline ml-1">Create Account</a>
+                <a href="/register" class="text-primary font-bold hover:underline ml-1">Create Account</a>
             </p>
         </div>
     </div>

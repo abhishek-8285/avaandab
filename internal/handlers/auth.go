@@ -1,12 +1,15 @@
 package handlers
 
 import (
+	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 
 	"transport-app/internal/domain"
 	"transport-app/internal/service"
+	"transport-app/internal/shared"
 )
 
 // AuthHandlers handles authentication-related HTTP requests.
@@ -37,6 +40,10 @@ func (h *AuthHandlers) LoginPage(w http.ResponseWriter, r *http.Request) {
 
 	if cookie, err := r.Cookie("auth_email"); err == nil {
 		pd.Extra["Email"] = cookie.Value
+	}
+
+	if red := shared.SafeRedirect(r.URL.Query().Get("redirect")); red != "" {
+		pd.Extra["Redirect"] = red
 	}
 
 	h.renderAuthPage(w, "login_form.html", pd)
@@ -208,6 +215,14 @@ func (h *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Return the user to the page they originally requested, unless onboarding
+	// takes precedence (new users must complete setup first).
+	if targetURL == "/dashboard" {
+		if red := shared.SafeRedirect(r.PostFormValue("redirect")); red != "" {
+			targetURL = red
+		}
+	}
+
 	if isDatastarRequest(r) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		_, _ = w.Write([]byte("<script>window.location.href='" + targetURL + "'</script>"))
@@ -306,21 +321,108 @@ func (h *AuthHandlers) ForgotPasswordPage(w http.ResponseWriter, r *http.Request
 	})
 }
 
-// SubmitForgotPassword processes password reset requests.
+// SubmitForgotPassword processes password reset requests. It issues a
+// single-use reset token for the account (when it exists and is active) and
+// surfaces the reset link. In production the link would be emailed; with no
+// SMTP mailer configured we render it directly in development so the flow is
+// actually usable. The generic success message is always shown to avoid
+// leaking whether an account exists.
 func (h *AuthHandlers) SubmitForgotPassword(w http.ResponseWriter, r *http.Request) {
 	email := r.PostFormValue("email")
 	pd := PageData{
 		Title: "Forgot Password",
-	}
-	if pd.Extra == nil {
-		pd.Extra = map[string]interface{}{}
+		Extra: map[string]interface{}{},
 	}
 	if email == "" {
 		pd.Extra["Error"] = "Please enter your email address"
-	} else {
-		pd.Extra["SuccessMsg"] = "If an account exists for " + email + ", password reset instructions have been sent."
+		h.renderAuthPage(w, "forgot_password.html", pd)
+		return
 	}
+
+	if user, err := h.Services.Users.GetUserByEmail(r.Context(), email); err == nil && user.Status == domain.UserStatusActive {
+		token, err := h.App.ResetTokens.Create(email)
+		if err == nil {
+			link := fmt.Sprintf("%s://%s/reset-password?token=%s", requestScheme(r), r.Host, token)
+			slog.Info("password reset link generated", "email", email, "link", link)
+			// Development convenience: show the link on-page since no mailer
+			// is wired up. Production should email this instead.
+			if h.Config.IsDevelopment() {
+				pd.Extra["ResetLink"] = link
+			}
+		}
+	}
+
+	pd.Extra["SuccessMsg"] = "If an account exists for " + email + ", password reset instructions have been sent."
 	h.renderAuthPage(w, "forgot_password.html", pd)
+}
+
+// requestScheme returns http or https based on the request context.
+func requestScheme(r *http.Request) string {
+	if r.TLS != nil {
+		return "https"
+	}
+	if proto := r.Header.Get("X-Forwarded-Proto"); proto != "" {
+		return proto
+	}
+	return "http"
+}
+
+// ResetPasswordPage renders the password reset form for a valid token.
+func (h *AuthHandlers) ResetPasswordPage(w http.ResponseWriter, r *http.Request) {
+	token := r.URL.Query().Get("token")
+	pd := PageData{
+		Title: "Reset Password",
+		Extra: map[string]interface{}{"Token": token},
+	}
+	if token == "" {
+		pd.Extra["Error"] = "Missing or invalid reset link."
+	}
+	h.renderAuthPage(w, "reset_password.html", pd)
+}
+
+// SubmitResetPassword redeems a reset token and sets a new password.
+func (h *AuthHandlers) SubmitResetPassword(w http.ResponseWriter, r *http.Request) {
+	token := r.PostFormValue("token")
+	newPassword := r.PostFormValue("password")
+	confirm := r.PostFormValue("confirm_password")
+
+	pd := PageData{
+		Title: "Reset Password",
+		Extra: map[string]interface{}{"Token": token},
+	}
+
+	if token == "" {
+		pd.Extra["Error"] = "Missing reset token."
+		h.renderAuthPage(w, "reset_password.html", pd)
+		return
+	}
+	if newPassword != confirm {
+		pd.Extra["Error"] = "Passwords do not match."
+		h.renderAuthPage(w, "reset_password.html", pd)
+		return
+	}
+
+	email, ok := h.App.ResetTokens.Consume(token)
+	if !ok {
+		pd.Extra["Error"] = "This reset link is invalid or has expired. Please request a new one."
+		h.renderAuthPage(w, "reset_password.html", pd)
+		return
+	}
+
+	if err := h.Services.Users.SetPasswordByEmail(r.Context(), email, newPassword); err != nil {
+		pd.Extra["Error"] = err.Error()
+		h.renderAuthPage(w, "reset_password.html", pd)
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "flash_success",
+		Value:    "Password reset successful. Please log in with your new password.",
+		Path:     "/",
+		HttpOnly: true,
+		MaxAge:   10,
+	})
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
 // UserOnboardingPage renders the post-login setup page when user has not completed details.
@@ -350,6 +452,8 @@ func (h *AuthHandlers) RegisterRoutes(r chi.Router) {
 	r.Post("/register", h.Register)
 	r.Get("/forgot-password", h.ForgotPasswordPage)
 	r.Post("/forgot-password", h.SubmitForgotPassword)
+	r.Get("/reset-password", h.ResetPasswordPage)
+	r.Post("/reset-password", h.SubmitResetPassword)
 	r.Post("/logout", h.Logout)
 	r.Get("/profile", h.ProfilePage)
 	r.Post("/profile", h.UpdateProfile)

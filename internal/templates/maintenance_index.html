@@ -1,0 +1,188 @@
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-on-surface">Preventive Maintenance</h1>
+            <p class="text-secondary text-sm">Schedule tracking, DTC diagnostics, and vehicle service management.</p>
+        </div>
+        <div class="flex gap-2">
+            {{if can .User "maintenance" "create"}}
+            <a href="/maintenance/schedules/new" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-primary text-on-primary rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm">
+                <span class="material-symbols-outlined text-lg">add</span>
+                <span>New Schedule</span>
+            </a>
+            <a href="/maintenance/records/new" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-surface-container-high text-on-surface rounded-lg text-sm font-medium hover:bg-surface-container-highest transition-colors border border-border-subtle">
+                <span class="material-symbols-outlined text-lg">history_edu</span>
+                <span>Record Work</span>
+            </a>
+            {{end}}
+        </div>
+    </div>
+
+    <!-- Due Vehicles Panel (Spec 04 §6, §12) -->
+    <div class="bg-surface-container-lowest rounded-xl border border-border-subtle overflow-hidden shadow-sm">
+        <div class="p-4 border-b border-border-subtle bg-surface-container-low/30 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-amber-500 text-xl">warning</span>
+                <h2 class="font-semibold text-on-surface">Vehicles Requiring Maintenance</h2>
+                <span class="px-2 py-0.5 text-xs font-bold rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">{{len .DueVehicles}}</span>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-surface-container-low/50 text-secondary border-b border-border-subtle">
+                    <tr>
+                        <th class="px-4 py-3 font-medium">Vehicle</th>
+                        <th class="px-4 py-3 font-medium">Registration</th>
+                        <th class="px-4 py-3 font-medium">Type</th>
+                        <th class="px-4 py-3 font-medium">Due Since</th>
+                        <th class="px-4 py-3 font-medium">Dispatch Status</th>
+                        <th class="px-4 py-3 font-medium text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border-subtle">
+                    {{range .DueVehicles}}
+                    <tr class="hover:bg-surface-container-low/20 transition-colors">
+                        <td class="px-4 py-3 font-semibold text-on-surface">
+                            <a href="/vehicles/{{.ID}}" class="text-primary hover:underline">{{.VehicleNumber}}</a>
+                        </td>
+                        <td class="px-4 py-3 text-secondary">{{.Registration}}</td>
+                        <td class="px-4 py-3 capitalize text-secondary">{{.VehicleType}}</td>
+                        <td class="px-4 py-3 text-amber-600 dark:text-amber-400 font-medium">{{.DueDate}}</td>
+                        <td class="px-4 py-3">
+                            {{if .IsOverridden}}
+                            <span class="px-2 py-0.5 text-xs rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium" title="Reason: {{.OverrideReason}}">Overridden by {{.OverrideBy}}</span>
+                            {{else}}
+                            <span class="px-2 py-0.5 text-xs rounded-full bg-red-500/10 text-red-600 dark:text-red-400 font-medium">Blocked</span>
+                            {{end}}
+                        </td>
+                        <td class="px-4 py-3 text-right space-x-2">
+                            {{if can $.User "maintenance" "create"}}
+                            <a href="/maintenance/records/new?vehicle_id={{.ID}}" class="text-xs text-primary hover:underline">Log Work</a>
+                            {{end}}
+                            <a href="/vehicles/{{.ID}}" class="text-xs text-secondary hover:underline">View</a>
+                        </td>
+                    </tr>
+                    {{else}}
+                    <tr>
+                        <td colspan="6" class="px-4 py-6 text-center text-secondary">
+                            <span class="material-symbols-outlined text-emerald-500 text-3xl mb-1">check_circle</span>
+                            <p>All fleet vehicles are compliant and up-to-date.</p>
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Active Schedules Table -->
+    <div class="bg-surface-container-lowest rounded-xl border border-border-subtle overflow-hidden shadow-sm">
+        <div class="p-4 border-b border-border-subtle bg-surface-container-low/30 flex justify-between items-center">
+            <h2 class="font-semibold text-on-surface">Active Schedules</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-surface-container-low/50 text-secondary border-b border-border-subtle">
+                    <tr>
+                        <th class="px-4 py-3 font-medium">Vehicle ID</th>
+                        <th class="px-4 py-3 font-medium">Service Type</th>
+                        <th class="px-4 py-3 font-medium">Interval (km)</th>
+                        <th class="px-4 py-3 font-medium">Interval (Days)</th>
+                        <th class="px-4 py-3 font-medium">Last Done (km / date)</th>
+                        <th class="px-4 py-3 font-medium">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border-subtle">
+                    {{range .Schedules}}
+                    <tr class="hover:bg-surface-container-low/20 transition-colors">
+                        <td class="px-4 py-3 font-mono text-xs text-primary">
+                            <a href="/vehicles/{{.VehicleID}}">{{.VehicleID}}</a>
+                        </td>
+                        <td class="px-4 py-3 capitalize font-medium text-on-surface">{{.ServiceType}}</td>
+                        <td class="px-4 py-3 text-secondary">{{if .IntervalKM}}{{.IntervalKM}} km{{else}}—{{end}}</td>
+                        <td class="px-4 py-3 text-secondary">{{if .IntervalDays}}{{.IntervalDays}} days{{else}}—{{end}}</td>
+                        <td class="px-4 py-3 text-secondary">
+                            {{if .LastDoneKM}}{{.LastDoneKM}} km{{end}}
+                            {{if .LastDoneAt}}({{date_only .LastDoneAt}}){{end}}
+                            {{if and (not .LastDoneKM) (not .LastDoneAt)}}—{{end}}
+                        </td>
+                        <td class="px-4 py-3">
+                            {{if .Active}}
+                            <span class="px-2 py-0.5 text-xs rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium">Active</span>
+                            {{else}}
+                            <span class="px-2 py-0.5 text-xs rounded-full bg-surface-container-high text-secondary">Paused</span>
+                            {{end}}
+                        </td>
+                    </tr>
+                    {{else}}
+                    <tr>
+                        <td colspan="6" class="px-4 py-6 text-center text-secondary">No maintenance schedules configured.</td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Diagnostic Trouble Codes (DTCs) -->
+    <div class="bg-surface-container-lowest rounded-xl border border-border-subtle overflow-hidden shadow-sm">
+        <div class="p-4 border-b border-border-subtle bg-surface-container-low/30 flex justify-between items-center">
+            <h2 class="font-semibold text-on-surface">Recent Diagnostic Trouble Codes (DTCs)</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-surface-container-low/50 text-secondary border-b border-border-subtle">
+                    <tr>
+                        <th class="px-4 py-3 font-medium">Occurred At</th>
+                        <th class="px-4 py-3 font-medium">Vehicle</th>
+                        <th class="px-4 py-3 font-medium">DTC Code</th>
+                        <th class="px-4 py-3 font-medium">Severity</th>
+                        <th class="px-4 py-3 font-medium">Description</th>
+                        <th class="px-4 py-3 font-medium">Status</th>
+                        <th class="px-4 py-3 font-medium text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border-subtle">
+                    {{range .DTCs}}
+                    <tr class="hover:bg-surface-container-low/20 transition-colors">
+                        <td class="px-4 py-3 text-secondary">{{datetime .OccurredAt}}</td>
+                        <td class="px-4 py-3 font-mono text-xs text-primary">
+                            <a href="/vehicles/{{.VehicleID}}">{{.VehicleID}}</a>
+                        </td>
+                        <td class="px-4 py-3 font-mono font-bold text-on-surface">{{.DtcCode}}</td>
+                        <td class="px-4 py-3">
+                            {{if eq .Severity "critical"}}
+                            <span class="px-2 py-0.5 text-xs rounded-full bg-red-500/10 text-red-600 dark:text-red-400 font-bold uppercase">Critical</span>
+                            {{else if eq .Severity "warning"}}
+                            <span class="px-2 py-0.5 text-xs rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-medium uppercase">Warning</span>
+                            {{else}}
+                            <span class="px-2 py-0.5 text-xs rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium uppercase">Info</span>
+                            {{end}}
+                        </td>
+                        <td class="px-4 py-3 text-secondary">{{if .Description}}{{.Description}}{{else}}—{{end}}</td>
+                        <td class="px-4 py-3">
+                            {{if .ResolvedAt}}
+                            <span class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Resolved ({{datetime .ResolvedAt}})</span>
+                            {{else}}
+                            <span class="text-xs text-red-600 dark:text-red-400 font-medium">Active</span>
+                            {{end}}
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            {{if and (not .ResolvedAt) (can $.User "maintenance" "update")}}
+                            <form method="POST" action="/maintenance/dtc/{{.ID}}/resolve" class="inline">
+                                <input type="hidden" name="vehicle_id" value="{{.VehicleID}}">
+                                <button type="submit" class="px-2 py-1 text-xs bg-surface-container-high text-on-surface hover:bg-surface-container-highest rounded border border-border-subtle transition-colors">Resolve</button>
+                            </form>
+                            {{end}}
+                        </td>
+                    </tr>
+                    {{else}}
+                    <tr>
+                        <td colspan="7" class="px-4 py-6 text-center text-secondary">No recent DTC fault codes reported.</td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

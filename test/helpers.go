@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"io"
@@ -13,9 +14,19 @@ import (
 	_ "modernc.org/sqlite"
 
 	"transport-app/internal/config"
+	"transport-app/internal/events"
 	"transport-app/internal/repository/sqlite"
 	"transport-app/internal/service"
+	"transport-app/internal/shared"
 )
+
+// ContextWithTestTenant wraps a parent context with the single-tenant bootstrap
+// tenant. Tests that exercise tenant-scoped repositories (drivers, vehicles,
+// trips, bookings, invoices, payments) must use this instead of a bare
+// context.Background(), because TenantIDFromContext is fail-closed.
+func ContextWithTestTenant(parent context.Context) context.Context {
+	return shared.ContextWithTenantID(parent, shared.DefaultTenant)
+}
 
 // NewTestDB creates an in-memory SQLite database with migrations applied.
 func NewTestDB(t *testing.T) *sql.DB {
@@ -46,10 +57,18 @@ func NewTestDB(t *testing.T) *sql.DB {
 // NewTestServices creates service instances backed by a real SQLite test database.
 func NewTestServices(t *testing.T, db *sql.DB) *service.Services {
 	t.Helper()
+	return NewTestServicesWithBus(t, db, events.NewInMemoryBus())
+}
+
+// NewTestServicesWithBus creates service instances backed by a real SQLite test
+// database and injects the given event bus, so tests can prove events published
+// by services reach subscribers on the SAME bus instance (Spec 09 §5.1).
+func NewTestServicesWithBus(t *testing.T, db *sql.DB, bus events.EventBus) *service.Services {
+	t.Helper()
 
 	repo := sqlite.NewRepository(db)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	return service.NewServices(repo, loadTestConfig(), logger)
+	return service.NewServices(repo, loadTestConfig(), logger, bus)
 }
 
 func loadTestConfig() *config.Config {

@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"transport-app/internal/domain"
 	"transport-app/internal/repository"
@@ -72,4 +73,8 @@ func (r *SQLRepository) ListAuditLogs(ctx context.Context, limit, offset int) ([
 
 func (r *SQLRepository) CountAuditLogs(ctx context.Context) (int64, error) {
 	return r.Q(ctx).CountAuditLogs(ctx)
+}
+
+func (r *SQLRepository) CountAuditLogsSince(ctx context.Context, since time.Time) (int64, error) {
+	return r.Q(ctx).CountAuditLogsSince(ctx, since)
 }

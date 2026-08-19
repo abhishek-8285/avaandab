@@ -5,6 +5,8 @@ package events
 
 import (
 	"context"
+	"log/slog"
+	"runtime/debug"
 	"sync"
 )
 
@@ -26,15 +28,26 @@ type EventBus interface {
 }
 
 // InMemoryBus is a synchronous event bus safe for concurrent use.
+// Errors returned by handlers are logged (never silently swallowed) and a
+// panicking subscriber is recovered so it cannot crash the publisher.
 type InMemoryBus struct {
 	mu   sync.RWMutex
-	subs map[string][]Handler
+	subs map[string][]*registeredHandler
+	log  *slog.Logger
+}
+
+// registeredHandler carries the handler plus a stable identity so unsubscribe
+// removes the exact handler even when registrations change order (the old
+// index-based removal could delete the wrong handler).
+type registeredHandler struct {
+	handler Handler
 }
 
 // NewInMemoryBus creates a new empty InMemoryBus.
 func NewInMemoryBus() *InMemoryBus {
 	return &InMemoryBus{
-		subs: make(map[string][]Handler),
+		subs: make(map[string][]*registeredHandler),
+		log:  slog.Default(),
 	}
 }
 
@@ -42,31 +55,52 @@ func NewInMemoryBus() *InMemoryBus {
 // for the event type. Handlers run in the caller's goroutine.
 func (b *InMemoryBus) Publish(ctx context.Context, e Event) {
 	b.mu.RLock()
-	handlers := make([]Handler, len(b.subs[e.Type]))
+	handlers := make([]*registeredHandler, len(b.subs[e.Type]))
 	copy(handlers, b.subs[e.Type])
 	b.mu.RUnlock()
 
-	for _, h := range handlers {
-		_ = h(ctx, e)
+	for _, rh := range handlers {
+		b.dispatch(ctx, e, rh.handler)
+	}
+}
+
+func (b *InMemoryBus) dispatch(ctx context.Context, e Event, h Handler) {
+	defer func() {
+		if r := recover(); r != nil {
+			b.log.Error("event handler panicked",
+				"event_type", e.Type,
+				"panic", r,
+				"stack", string(debug.Stack()))
+		}
+	}()
+
+	if err := h(ctx, e); err != nil {
+		// Never swallow handler errors: log them so a failing subscriber
+		// (e.g. auto-trip-creation) is observable instead of silently dead.
+		b.log.Error("event handler failed",
+			"event_type", e.Type,
+			"error", err)
 	}
 }
 
 // Subscribe registers a handler for a given event type and returns an
-// unsubscribe function.
+// unsubscribe function. The unsubscribe removes this exact handler by
+// identity, safe under concurrent modification.
 func (b *InMemoryBus) Subscribe(eventType string, h Handler) (unsubscribe func()) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	b.subs[eventType] = append(b.subs[eventType], h)
+	rh := &registeredHandler{handler: h}
+	b.subs[eventType] = append(b.subs[eventType], rh)
 
-	// Return a closure that removes this handler
-	idx := len(b.subs[eventType]) - 1
 	return func() {
 		b.mu.Lock()
 		defer b.mu.Unlock()
-		if subs, ok := b.subs[eventType]; ok {
-			if idx < len(subs) {
-				b.subs[eventType] = append(subs[:idx], subs[idx+1:]...)
+		subs := b.subs[eventType]
+		for i, s := range subs {
+			if s == rh {
+				b.subs[eventType] = append(subs[:i], subs[i+1:]...)
+				return
 			}
 		}
 	}

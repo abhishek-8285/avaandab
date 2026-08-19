@@ -2,10 +2,13 @@ package application
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"time"
 
+	maintsql "transport-app/internal/maintenance/infrastructure/sql"
+	"transport-app/internal/repository"
 	"transport-app/internal/shared"
 	"transport-app/internal/shared/ports"
 	"transport-app/internal/trip/domain"
@@ -15,9 +18,11 @@ import (
 )
 
 type AssignVehicleCommand struct {
-	TripID    aggregate.TripID
-	VehicleID string
-	TenantID  shared.TenantID
+	TripID              aggregate.TripID
+	VehicleID           string
+	TenantID            shared.TenantID
+	OverrideMaintenance bool
+	OverrideReason      string
 }
 
 type AssignVehicleUseCase struct {
@@ -42,7 +47,7 @@ func (uc *AssignVehicleUseCase) Execute(ctx context.Context, cmd AssignVehicleCo
 		if err != nil {
 			return err
 		}
-		if err := uc.checkVehicleCompliance(txCtx, cmd.VehicleID, cmd.TenantID); err != nil {
+		if err := uc.checkVehicleCompliance(txCtx, cmd); err != nil {
 			return err
 		}
 		conflicts, err := repo.CheckVehicleConflict(txCtx, cmd.VehicleID, cmd.TenantID, string(cmd.TripID))
@@ -63,17 +68,17 @@ func (uc *AssignVehicleUseCase) Execute(ctx context.Context, cmd AssignVehicleCo
 	})
 }
 
-func (uc *AssignVehicleUseCase) checkVehicleCompliance(ctx ports.TxContext, vehicleID string, tenantID shared.TenantID) error {
+func (uc *AssignVehicleUseCase) checkVehicleCompliance(ctx ports.TxContext, cmd AssignVehicleCommand) error {
 	vehicleRepo, ok := ctx.Repositories().Vehicles().(vehicleDomain.VehicleRepository)
 	if !ok {
 		return errors.New("failed to retrieve vehicle repository")
 	}
-	v, err := vehicleRepo.Find(ctx, vehicleAgg.VehicleID(vehicleID), tenantID)
+	v, err := vehicleRepo.Find(ctx, vehicleAgg.VehicleID(cmd.VehicleID), cmd.TenantID)
 	if err != nil {
-		return fmt.Errorf("vehicle %s not found: %w", vehicleID, err)
+		return fmt.Errorf("vehicle %s not found: %w", cmd.VehicleID, err)
 	}
 	if v.Status == vehicleAgg.VehicleInactive || v.Status == vehicleAgg.VehicleMaintenance {
-		return fmt.Errorf("vehicle %s is not assignable (status: %s)", vehicleID, v.Status)
+		return fmt.Errorf("vehicle %s is not assignable (status: %s)", cmd.VehicleID, v.Status)
 	}
 	now := uc.clock.Now().Truncate(24 * time.Hour)
 	for _, expiry := range []struct {
@@ -81,8 +86,54 @@ func (uc *AssignVehicleUseCase) checkVehicleCompliance(ctx ports.TxContext, vehi
 		when time.Time
 	}{{"insurance", v.InsuranceExpiry}, {"fitness", v.FitnessExpiry}, {"permit", v.PermitExpiry}} {
 		if !expiry.when.IsZero() && expiry.when.Before(now) {
-			return fmt.Errorf("vehicle %s %s expired on %s", vehicleID, expiry.name, expiry.when.Format("2006-01-02"))
+			if isExempt(ctx, "vehicle", cmd.VehicleID, expiry.name) {
+				recordComplianceCheck(ctx, "vehicle", cmd.VehicleID, expiry.name, "warning", "bypassed by exemption")
+				continue
+			}
+			recordComplianceCheck(ctx, "vehicle", cmd.VehicleID, expiry.name, "expired", fmt.Sprintf("vehicle %s expired", expiry.name))
+			return fmt.Errorf("Dispatch blocked: vehicle %s expired (compliance)", expiry.name)
+		} else if !expiry.when.IsZero() && expiry.when.Before(now.Add(7*24*time.Hour)) {
+			recordComplianceCheck(ctx, "vehicle", cmd.VehicleID, expiry.name, "warning", fmt.Sprintf("vehicle %s expires in <7 days", expiry.name))
 		}
+	}
+
+	// PUC expiry check (Spec 05 §5)
+	if puc := getPUCExpiry(ctx, cmd.VehicleID); puc != nil && !puc.IsZero() {
+		if puc.Before(now) {
+			if !isExempt(ctx, "vehicle", cmd.VehicleID, "puc") {
+				recordComplianceCheck(ctx, "vehicle", cmd.VehicleID, "puc", "expired", "vehicle PUC expired")
+				return fmt.Errorf("Dispatch blocked: vehicle PUC expired (compliance)")
+			}
+			recordComplianceCheck(ctx, "vehicle", cmd.VehicleID, "puc", "warning", "bypassed by exemption")
+		} else if puc.Before(now.Add(7 * 24 * time.Hour)) {
+			recordComplianceCheck(ctx, "vehicle", cmd.VehicleID, "puc", "warning", "vehicle PUC expires in <7 days")
+		}
+	}
+
+	// Maintenance block check (Spec 04 §6, §12)
+	if maintRepo, ok := ctx.Repositories().Maintenance().(*maintsql.MaintenanceRepository); ok {
+		blocked, reason, err := maintRepo.IsMaintenanceBlocked(ctx, cmd.VehicleID)
+		if err == nil && blocked {
+			if !cmd.OverrideMaintenance {
+				return errors.New(reason)
+			}
+			reasonJSON := fmt.Sprintf(`{"vehicle_id":%q,"reason":%q}`, cmd.VehicleID, cmd.OverrideReason)
+			logAudit(ctx, "assign_vehicle_override", string(cmd.TripID), nil, &reasonJSON)
+		}
+	}
+
+	return nil
+}
+
+func getPUCExpiry(ctx ports.TxContext, vehicleID string) *time.Time {
+	dbGetter, ok := ctx.Repositories().AuditLogs().(repository.DBGetter)
+	if !ok || dbGetter == nil || dbGetter.DB() == nil {
+		return nil
+	}
+	var t sql.NullTime
+	_ = dbGetter.DB().QueryRowContext(ctx, `SELECT puc_expiry FROM vehicles WHERE id = ?`, vehicleID).Scan(&t)
+	if t.Valid && !t.Time.IsZero() {
+		return &t.Time
 	}
 	return nil
 }

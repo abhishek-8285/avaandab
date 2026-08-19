@@ -14,6 +14,7 @@ import (
 // TripService handles trip management with business rule enforcement.
 type TripService struct {
 	baseService
+	compliance *ComplianceService
 }
 
 // CreateTripRequest contains fields needed to create a trip.
@@ -95,7 +96,7 @@ func (s *TripService) CreateTrip(ctx context.Context, req CreateTripRequest) (do
 
 	s.logAudit(ctx, nil, "create", "trips", string(created.ID), nil, nil)
 	s.events.Publish(ctx, events.Event{
-		Type: "TripCreated",
+		Type: events.TripCreated,
 		Payload: tripevents.TripCreatedEvent{
 			TripID:        created.ID,
 			TripNumber:    created.TripNumber,
@@ -180,8 +181,15 @@ func (s *TripService) AssignDriver(ctx context.Context, tripID domain.TripID, dr
 		return domain.Trip{}, domain.ErrDriverNotFound
 	}
 
-	if err := driver.CanAcceptTrip(); err != nil {
-		return domain.Trip{}, err
+	// Enforce 5-doc dispatch compliance gate (Spec 05 §5)
+	if s.compliance != nil {
+		if _, err := s.compliance.CheckDispatchCompliance(ctx, string(driverID), ""); err != nil {
+			return domain.Trip{}, err
+		}
+	} else {
+		if err := driver.CanAcceptTrip(); err != nil {
+			return domain.Trip{}, err
+		}
 	}
 
 	// Check for scheduling conflicts
@@ -191,6 +199,13 @@ func (s *TripService) AssignDriver(ctx context.Context, tripID domain.TripID, dr
 	}
 	if len(conflicts) > 0 {
 		return domain.Trip{}, domain.ErrDriverOnTrip
+	}
+
+	// If trip already has a vehicle, check if it is blocked for maintenance
+	if trip.VehicleID != nil && *trip.VehicleID != "" {
+		if blocked, reason, err := s.store.IsMaintenanceBlocked(ctx, string(*trip.VehicleID)); err == nil && blocked {
+			return domain.Trip{}, fmt.Errorf("%w: %s", domain.ErrVehicleMaintenanceBlocked, reason)
+		}
 	}
 
 	var updated domain.Trip
@@ -223,6 +238,16 @@ func (s *TripService) AssignDriver(ctx context.Context, tripID domain.TripID, dr
 	}
 
 	s.log.Info("driver assigned to trip", "driver_id", driverID, "trip_id", tripID)
+	if s.events != nil {
+		s.events.Publish(ctx, events.Event{
+			Type: "TripAssignedEvent",
+			Payload: map[string]interface{}{
+				"trip_id":     string(tripID),
+				"driver_id":   string(driverID),
+				"occurred_at": time.Now().UTC(),
+			},
+		})
+	}
 	return updated, nil
 }
 
@@ -246,8 +271,15 @@ func (s *TripService) AssignVehicle(ctx context.Context, tripID domain.TripID, v
 		return domain.Trip{}, domain.ErrVehicleNotFound
 	}
 
-	if err := vehicle.CanAssign(); err != nil {
-		return domain.Trip{}, err
+	// Enforce 5-doc dispatch compliance gate (Spec 05 §5)
+	if s.compliance != nil {
+		if _, err := s.compliance.CheckDispatchCompliance(ctx, "", string(vehicleID)); err != nil {
+			return domain.Trip{}, err
+		}
+	} else {
+		if err := vehicle.CanAssign(); err != nil {
+			return domain.Trip{}, err
+		}
 	}
 
 	// Check for scheduling conflicts
@@ -257,6 +289,11 @@ func (s *TripService) AssignVehicle(ctx context.Context, tripID domain.TripID, v
 	}
 	if len(conflicts) > 0 {
 		return domain.Trip{}, domain.ErrVehicleAssigned
+	}
+
+	// Check maintenance block (Spec 04 §6, §12)
+	if blocked, reason, err := s.store.IsMaintenanceBlocked(ctx, string(vehicleID)); err == nil && blocked {
+		return domain.Trip{}, fmt.Errorf("%w: %s", domain.ErrVehicleMaintenanceBlocked, reason)
 	}
 
 	var updated domain.Trip
@@ -288,6 +325,16 @@ func (s *TripService) AssignVehicle(ctx context.Context, tripID domain.TripID, v
 	}
 
 	s.log.Info("vehicle assigned to trip", "vehicle_id", vehicleID, "trip_id", tripID)
+	if s.events != nil {
+		s.events.Publish(ctx, events.Event{
+			Type: "TripAssignedEvent",
+			Payload: map[string]interface{}{
+				"trip_id":     string(tripID),
+				"vehicle_id":  string(vehicleID),
+				"occurred_at": time.Now().UTC(),
+			},
+		})
+	}
 	return updated, nil
 }
 
@@ -300,6 +347,21 @@ func (s *TripService) StartTrip(ctx context.Context, id domain.TripID) (domain.T
 
 	if err := trip.CanStart(); err != nil {
 		return domain.Trip{}, err
+	}
+
+	// Re-validate full compliance gate before allowing trip to start (Spec 05 §5)
+	if s.compliance != nil {
+		dID := ""
+		if trip.DriverID != nil {
+			dID = string(*trip.DriverID)
+		}
+		vID := ""
+		if trip.VehicleID != nil {
+			vID = string(*trip.VehicleID)
+		}
+		if _, err := s.compliance.CheckDispatchCompliance(ctx, dID, vID); err != nil {
+			return domain.Trip{}, err
+		}
 	}
 
 	var updated domain.Trip
@@ -318,7 +380,7 @@ func (s *TripService) StartTrip(ctx context.Context, id domain.TripID) (domain.T
 
 	s.log.Info("trip started", "trip_id", id)
 	s.events.Publish(ctx, events.Event{
-		Type: "TripStarted",
+		Type: events.TripStarted,
 		Payload: tripevents.TripStartedEvent{
 			TripID:     id,
 			StartedAt:  time.Now(),
@@ -372,7 +434,7 @@ func (s *TripService) CompleteTrip(ctx context.Context, id domain.TripID) (domai
 
 	s.log.Info("trip completed", "trip_id", id)
 	s.events.Publish(ctx, events.Event{
-		Type: "TripCompleted",
+		Type: events.TripCompleted,
 		Payload: tripevents.TripCompletedEvent{
 			TripID:      id,
 			CompletedAt: time.Now(),
@@ -416,7 +478,7 @@ func (s *TripService) DeliverTripWithPOD(ctx context.Context, id domain.TripID, 
 
 	s.log.Info("trip delivered with e-POD", "trip_id", id, "pod_url", podURL)
 	s.events.Publish(ctx, events.Event{
-		Type: "TripDelivered",
+		Type: events.TripDelivered,
 		Payload: map[string]interface{}{
 			"trip_id":      id,
 			"booking_id":   delivered.BookingID,

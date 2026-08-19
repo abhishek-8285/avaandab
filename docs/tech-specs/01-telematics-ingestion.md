@@ -2,12 +2,77 @@
 
 **Owner:** telematics ingestion (this spec)
 **Project:** Avandab fleet system — `/home/abhishek/Desktop/temux/basic`
-**Stack:** Go 1.26, chi v5.3.1, SQLite (modernc), goose v3.27.3, casbin v2.135.0, Datastar v1.0.2 + Tailwind web templates, outbox-relay event bus (`cmd/server/main.go:609-616`), typed IDs, UoW pattern.
+**Stack:** Go 1.26, chi v5.3.1, SQLite (modernc), goose v3.27.3, casbin v2.135.0, Datastar v1.0.2 + Tailwind web templates, outbox-relay event bus (`cmd/server/main.go:819-826`), typed IDs, UoW pattern.
 **Module path:** `internal/telemetry`
 **Consumers (4 other specs):** live-tracking UI spec, alerting spec, fuel spec, driver-payout/reporting spec
 **Status:** updated for the GPS-resale decision (own-device first-class), third-party providers demoted to later adapters.
 
 ---
+
+## 0. Verification Log (QA pass — 2026-08-19)
+
+Migration renumber: head is now `00039_experiments.sql` (TAKEN). This spec's reserved
+00039/00040 shift to **00040/00041**; the alerting spec's `telemetry_alerts` rebuild
+shifts to **00059** (was 00049). All `main.go:609-616` outbox cites corrected to
+`819-826`.
+
+### Verification Log table
+
+| Claim | Verdict | Correction / Evidence (file:line) |
+|---|---|---|
+| Outbox relay at `cmd/server/main.go:609-616` | WRONG | Actual relay at `main.go:825-826`; `eventBus` at `:819` (grep `outbox.NewRelay`) |
+| Latest migration = 00038 | WRONG | Head = `00039_experiments.sql` (index 00-migration-ownership-index.md:18) |
+| Migration 00039 (devices) / 00040 (positions) | WRONG | Corrected **00040 / 00041** (index:20-21) |
+| `telemetry_alerts` widening owned by alerting @00048 | WRONG | Corrected **00059** (index:41) |
+| MQTT stub subscribes `avandab/telemetry/drivers/+/gps`, logs only | VERIFIED | `internal/mqttservice/mqtt.go:44-52` |
+| `telemetry_service` publishes `GPSDeviationAlert`/`FuelTheftAlert` directly to bus (not outbox) | VERIFIED | `internal/service/telemetry_service.go:24,57` |
+| No WebSocket hub exists | VERIFIED | no `gorilla/websocket` usage in Go source; paho only |
+| `ProviderIngestor` exists in `internal/telemetry/providers` | CANT-VERIFY | no `providers/` dir — design-only stub (per spec intent) |
+| `HandleTelemetrySync` echoes IDs without persisting | VERIFIED | `internal/telemetry/sync.go:86-111` |
+| Outbox table never written today | VERIFIED | no `SaveEvents` caller apart from booking (grep) |
+
+### Severity & Effort (major changes)
+
+| Change | Severity | Effort |
+|---|---|---|
+| Migration renumber 00039/00040 → 00040/00041 | Low | S |
+| Outbox wiring to 819-826 + relay poll 5s | Low | S |
+| Real MQTT subscriber + HTTP fallback | High | L |
+| Device registry + quarantine (new lifecycle) | High | L |
+| `ProviderIngestor` adapter stubs (LocoNav/WheelsEye) | Med | M |
+| Outbox first write + Position/Alert/SOS events | High | M |
+
+### Architectural Decisions (Decision / Tradeoff / Cost)
+
+- **Own-device-first vs third-party providers (spec 17 cross-ref).** Decision: Avandab GPS
+  is first-class; LocoNav/WheelsEye demoted to late adapters behind `ProviderIngestor`.
+  Tradeoff: loses instant third-party coverage but avoids per-vendor lock-in and keeps one
+  canonical `RawFrame`. Cost: own-device fleet must be sold/installed before telemetry value.
+  Cross-ref: GPS provider strategy is owned by **spec 17 (`17-gps-telematics-provider-strategy.md`)**;
+  this spec's adapter interface is the implementation contract for that strategy.
+- **Outbox-first emission.** Decision: emit via `outbox_events` for durability; realtime
+  consumers are served by the Dual-Write Fast-Path below. The prior "not the legacy
+  in-memory bus" wording targeted the legacy disconnected bus (services holding private
+  `events.NewInMemoryBus()` instances, `service.go:75`) — in-memory delivery per se was
+  never the problem; the unified Spec 09 bus is the intended realtime target.
+  Tradeoff: at-least-once delivery + relay poll latency (~5s) vs guarantees cross-restart
+  durability. Cost: one extra table write per frame (batched).
+- **Dedup via partial-unique `(imei, provider_msg_id)`.** Decision: `INSERT OR IGNORE`.
+  Tradeoff: idempotent replays (QoS1/MQTT) at cost of a unique index per raw row.
+
+### Dual-Write Fast-Path (SSE/Realtime)
+
+- **Dual-write.** Every accepted frame is written to `outbox_events` (same tx, pipeline step 8 —
+  durability for fuel/alerting/downstream specs) **and** the pipeline additionally publishes
+  a lightweight `PositionEvent` directly to the in-memory event bus for realtime consumers
+  (Spec 04 SSE hub). The direct publish is the fast path: sub-second latency, no ~5 s relay wait.
+- **Tradeoff: durability vs latency.** Outbox path is at-least-once + crash-safe but lags by
+  the relay poll (~5 s); in-memory path is immediate but lost on crash. Both paths are
+  idempotent — consumers dedup on `PositionEvent.EventID`. Loss on crash is covered by the
+  outbox replay; SSE clients re-sync from REST `/live` on reconnect.
+- **Target bus.** The in-memory publish targets the SINGLE unified bus from Spec 09 (post
+  unification), NOT the legacy disconnected bus — the legacy problem was separate/disconnected
+  buses, not in-memory delivery itself.
 
 ## 1. Architecture Overview
 
@@ -40,14 +105,15 @@
         │  4. telemetry_positions   (insert, out-of-order-guarded)                  │
         │  5. vehicle_latest_position (upsert, only newer device_time wins)         │
         │  6. telemetry_snapshots   (enriched: heading, ignition, engine_hours,     │
-        │                            accuracy, driver_id — migration 00040)         │
+        │                            accuracy, driver_id — migration 00041)         │
         │  7. Guards: odometer rollback (audit-logged), fuel_level clamp            │
         │  8. outbox_events INSERT (same tx) → relay publishes to bus               │
+        │  9. PositionEvent → in-memory bus (Dual-Write fast-path → Spec 04 SSE)     │
         └───────────────┬───────────────────────────────────────────────────────────┘
                         │ PositionEvent / AlertEvent / SOSEvent
                         ▼
         ┌───────────────────────────────────────────────────────────────────────────┐
-        │  OUTBOX-RELAY BUS  (verified: cmd/server/main.go:609-616,                 │
+        │  OUTBOX-RELAY BUS  (verified: cmd/server/main.go:819-826,                 │
         │  internal/shared/outbox/relay.go — polls outbox_events every 5s,          │
         │  event_type = Go struct name via getEventTypeName,                        │
         │  dispatches to events.InMemoryBus)                                        │
@@ -55,8 +121,8 @@
                 ▼                   ▼                   ▼
         live-tracking spec    alerting spec        fuel spec
         (consumes Position)   (consumes Alert,     (consumes Position
-                              SOS; owns telemetry_  fuel_level/odometer;
-                              alerts rebuild 00048) co-owns odometer guard)
+                               SOS; owns telemetry_  fuel_level/odometer;
+                               alerts rebuild 00059) co-owns odometer guard)
 
         Third-party providers (LocoNav, WheelsEye): demoted — later adapters behind
         ProviderIngestor (HandleWebhook + Poll + VerifySignature). No build priority.
@@ -66,14 +132,14 @@ Verified wiring facts reused by this spec:
 
 - MQTT stub: `internal/mqttservice/mqtt.go` lines 31–52 — subscribes `avandab/telemetry/drivers/+/gps`, logs only. `NewMQTTBroker` called at `cmd/server/main.go:327` with `MQTT_URL` (default `tcp://localhost:1883`). Paho MQTT client `github.com/eclipse/paho.mqtt.golang v1.5.1` already in `go.mod`.
 - `internal/telemetry/sync.go` — `HandleTelemetrySync` echoes IDs without persisting (no-op); `snapshotHandler` writes `telemetry_snapshots` via raw SQL `INSERT OR REPLACE` (`db/migrations/00031_avandab_critical_fixes.sql` created that table).
-- `internal/service/telemetry_service.go` — rule engine only logs (lines 69, 101 `s.log.Warn`) and publishes `GPSDeviationAlert`/`FuelTheftAlert` directly to the bus (not outbox). `telemetry_alerts` CHECK currently `alert_type IN ('gps_deviation','fuel_theft','temp_breach','speeding')` (migration 00030). Widening rebuild = migration 00048, owned by alerting spec — referenced only.
+- `internal/service/telemetry_service.go` — rule engine only logs (lines 69, 101 `s.log.Warn`) and publishes `GPSDeviationAlert`/`FuelTheftAlert` directly to the bus (not outbox). `telemetry_alerts` CHECK currently `alert_type IN ('gps_deviation','fuel_theft','temp_breach','speeding')` (migration 00030). Widening rebuild = migration 00059, owned by alerting spec — referenced only.
 - Outbox: `internal/shared/outbox/outbox.go` `OutboxWriter.SaveEvents(ctx, aggregateID, aggregateType, events)` honors `repository.TxFromContext`; relay `internal/shared/outbox/relay.go`; table `outbox_events` (00020). Event type = struct name minus package (e.g. `PositionEvent`). **The outbox table is never written by any use case today — first write is a milestone.**
 - Mobile driver app GPS: `mobile/src/services/telemetry.ts` (expo-location `watchPositionAsync`, 10 s / 20 m, offline SQLite via `mobile/src/services/storage.ts`), `mobile/src/services/mqtt.ts` (`publishLocation` → `avandab/telemetry/drivers/{driverId}/gps` with `{driver_id, latitude, longitude, timestamp}`; **no callers found in mobile/src — VERIFY AT IMPLEMENTATION**), `mobile/src/services/syncEngine.ts` (15 s POST `/api/v1/telemetry/sync`, expects `synced_ids`).
 - No WebSocket hub exists anywhere (no `websocket`/`gorilla/websocket`/`Hub` usage in Go source; `gorilla/websocket v1.5.3` present only as an indirect go.mod dependency). Live-tracking UI spec builds its own push layer; this spec emits events on the bus only.
 - RBAC: Casbin loaded from `role_permissions`/`user_roles` via `internal/auth/casbin.go` DBAdapter; permission names `resource:action`. Web pages use `middleware.ResourcePermission` (`internal/middleware/middleware.go:189`), API uses `middleware.RequirePermission` (`api_auth.go:50`) after `RequireAPIAuth`.
 - Razorpay webhook pattern: `internal/payment/application/razorpay_webhook.go` — HMAC-SHA256 over raw body, hex-encoded signature, secret from env; mounted at `cmd/server/main.go:347` with `middleware.RateLimit(30)`, public (no session auth).
 - UoW: `internal/repository/tx.go` (`WithTransaction`, `WithTxInContext`, `TxFromContext`); `internal/shared/ports/uow.go`; typed IDs in `internal/domain/types/ids.go`.
-- Migrations: goose, embedded via `db/migrations.go` (`//go:embed migrations/*.sql` — new files auto-included). Latest = 00038. `sqlc.yaml` regenerates `db/generated/sqlite` from `db/query` — **this spec uses raw SQL only; no sqlc regen**.
+- Migrations: goose, embedded via `db/migrations.go` (`//go:embed migrations/*.sql` — new files auto-included). Latest = 00039 (head is now `00039_experiments.sql`; 00038 is the last real feature migration but no longer HEAD). `sqlc.yaml` regenerates `db/generated/sqlite` from `db/query` — **this spec uses raw SQL only; no sqlc regen**.
 
 ---
 
@@ -135,7 +201,7 @@ type PositionEvent struct {
 
 // AlertEvent — ingestion layer only relays device/provider-reported alerts
 // (e.g. LocoNav DTC, fuel-theft kinds; own-device tamper). Rule evaluation
-// (speeding, deviation, fuel-drop) belongs to the alerting spec (00048).
+// (speeding, deviation, fuel-drop) belongs to the alerting spec (00059).
 type AlertEvent struct {
     EventID    string    `json:"event_id"`
     TenantID   string    `json:"tenant_id"`
@@ -253,7 +319,7 @@ Demoted scope: adapters are stubs behind the interface; no build priority. Inter
 ```go
 // ProviderIngestor abstracts third-party telemetry providers.
 // Implementations must be stateless w.r.t. the pipeline; polling state is
-// persisted in provider_poll_state (migration 00039).
+// persisted in provider_poll_state (migration 00040).
 type ProviderIngestor interface {
     // Name is the canonical provider id used in routes and DB ("loconav", "wheelseye").
     Name() string
@@ -289,11 +355,11 @@ type ProviderIngestor interface {
 
 ---
 
-## 6. Full SQL DDL — Migrations 00039 and 00040
+## 6. Full SQL DDL — Migrations 00040 and 00041
 
 Conventions followed: `id TEXT PRIMARY KEY` (UUID), `tenant_id TEXT NOT NULL DEFAULT '1'` (00038 pattern), `DATETIME DEFAULT CURRENT_TIMESTAMP` (00030/00031 pattern), FK to existing tables (`vehicles`, `drivers`, `trips`, `customers`, `users`).
 
-### `db/migrations/00039_telemetry_devices_and_ingestion.sql`
+### `db/migrations/00040_telemetry_devices_and_ingestion.sql`
 
 ```sql
 -- +goose Up
@@ -390,7 +456,7 @@ DROP TABLE IF EXISTS telemetry_devices;
 DELETE FROM permissions WHERE name LIKE 'telemetry:%';
 ```
 
-### `db/migrations/00040_telemetry_positions_and_snapshots.sql`
+### `db/migrations/00041_telemetry_positions_and_snapshots.sql`
 
 ```sql
 -- +goose Up
@@ -463,7 +529,7 @@ ALTER TABLE telemetry_snapshots DROP COLUMN accuracy;
 ALTER TABLE telemetry_snapshots DROP COLUMN driver_id;
 ```
 
-Note: `telemetry_alerts` CHECK-widening rebuild is migration **00048**, owned by the alerting spec — this spec only references it (current CHECK: `alert_type IN ('gps_deviation','fuel_theft','temp_breach','speeding')`, migration 00030; 00048 will widen to include `dtc`, `tamper`, `sos` etc.).
+Note: `telemetry_alerts` CHECK-widening rebuild is migration **00059**, owned by the alerting spec — this spec only references it (current CHECK: `alert_type IN ('gps_deviation','fuel_theft','temp_breach','speeding')`, migration 00030; 00059 will widen to include `dtc`, `tamper`, `sos` etc.).
 
 ---
 
@@ -490,8 +556,8 @@ Note: `telemetry_alerts` CHECK-widening rebuild is migration **00048**, owned by
 | `internal/templates/devices_register.html` | Bulk registration page |
 | `internal/templates/quarantine_queue.html` | Unknown-IMEI resolution UI |
 | `internal/templates/partials/device_row.html` | Row partial (Datastar `data-on-click`/`data-signals` style per `internal/templates/partials/`) |
-| `db/migrations/00039_telemetry_devices_and_ingestion.sql` | DDL above (auto-embedded by `db/migrations.go`) |
-| `db/migrations/00040_telemetry_positions_and_snapshots.sql` | DDL above |
+| `db/migrations/00040_telemetry_devices_and_ingestion.sql` | DDL above (auto-embedded by `db/migrations.go`) |
+| `db/migrations/00041_telemetry_positions_and_snapshots.sql` | DDL above |
 
 ### Modify
 
@@ -534,11 +600,11 @@ All via env vars in `internal/config/config.go` (`TelemetryConfig`). No sqlc reg
 
 ## 9. Migration Plan
 
-1. **00039** — `telemetry_devices`, `telemetry_raw_events`, `device_quarantine`, `provider_poll_state`, RBAC seeds `telemetry:*`. (this spec)
-2. **00040** — `telemetry_positions`, `vehicle_latest_position`, `telemetry_snapshots` enrichment columns. (this spec)
-3. **00048** — `telemetry_alerts` CHECK widening rebuild. (alerting spec — referenced only)
+1. **00040** — `telemetry_devices`, `telemetry_raw_events`, `device_quarantine`, `provider_poll_state`, RBAC seeds `telemetry:*`. (this spec)
+2. **00041** — `telemetry_positions`, `vehicle_latest_position`, `telemetry_snapshots` enrichment columns. (this spec)
+3. **00059** — `telemetry_alerts` CHECK widening rebuild. (alerting spec — referenced only)
 4. No sqlc regen: pipeline uses raw SQL via `database/sql`; new tables are NOT added to `db/query` (decision 6). VERIFY AT IMPLEMENTATION: `sqlc diff`/CI check stays green with schema ahead of queries.
-5. Goose embed picks up new files automatically (`db/migrations.go` embeds `migrations/*.sql`); standard `goose up` ordering applies (00039 → 00040 → … → 00048).
+5. Goose embed picks up new files automatically (`db/migrations.go` embeds `migrations/*.sql`); standard `goose up` ordering applies (00040 → 00041 → … → 00059).
 
 ---
 
@@ -572,7 +638,7 @@ All via env vars in `internal/config/config.go` (`TelemetryConfig`). No sqlc reg
 
 ## 12. Phased Rollout
 
-- **Phase 1 — Core pipeline + own-device MQTT/HTTP (this spec, priority):** migrations 00039/00040, `contracts.go`, `ingest.go`, real MQTT subscriber, REST fallback, outbox events (`PositionEvent`/`AlertEvent`/`SOSEvent`), raw-SQL stores. Replaces the stub + no-op sync with no API break (`/sync`, `/snapshots` URLs unchanged).
+- **Phase 1 — Core pipeline + own-device MQTT/HTTP (this spec, priority):** migrations 00040/00041, `contracts.go`, `ingest.go`, real MQTT subscriber, REST fallback, outbox events (`PositionEvent`/`AlertEvent`/`SOSEvent`), raw-SQL stores. Replaces the stub + no-op sync with no API break (`/sync`, `/snapshots` URLs unchanged).
 - **Phase 2 — Device registry & admin UI:** provisioning endpoints, bulk registration, quarantine queue pages (Datastar), RBAC `telemetry:*`, audit integration.
 - **Phase 3 — Mobile driver-app retrofit:** `mqtt.ts`/`syncEngine.ts`/`telemetry.ts` → canonical frames; topic migration bridge for old `avandab/telemetry/drivers/{driverId}/gps` (VERIFY AT IMPLEMENTATION: dual-subscribe window length).
 - **Phase 4 — Third-party adapters (no build priority):** `ProviderIngestor` + LocoNav/WheelsEye stubs, webhook route, poll loop + backoff.

@@ -1,0 +1,146 @@
+<div class="max-w-7xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-on-surface">E-Way Bills</h1>
+            <p class="text-sm text-text-muted mt-1">Fleet-wide GST statutory transport permits & lifecycle compliance</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="document.getElementById('new-ewb-modal').classList.remove('hidden')"
+                    class="px-4 py-2 bg-primary text-on-primary font-semibold text-sm rounded-md hover:bg-primary/90 shadow flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Generate Part-A
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
+        <div class="bg-surface-container-lowest p-4 rounded-lg border border-border-subtle shadow-sm">
+            <div class="text-xs font-semibold uppercase text-text-muted">Total EWBs</div>
+            <div class="text-2xl font-bold text-on-surface mt-1">{{.Stats.Total}}</div>
+        </div>
+        <div class="bg-surface-container-lowest p-4 rounded-lg border border-border-subtle shadow-sm">
+            <div class="text-xs font-semibold uppercase text-emerald-600 dark:text-emerald-400">Active</div>
+            <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{{.Stats.Active}}</div>
+        </div>
+        <div class="bg-surface-container-lowest p-4 rounded-lg border border-border-subtle shadow-sm">
+            <div class="text-xs font-semibold uppercase text-amber-600 dark:text-amber-400">Part-A Only</div>
+            <div class="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">{{.Stats.PartAOnly}}</div>
+        </div>
+        <div class="bg-surface-container-lowest p-4 rounded-lg border border-border-subtle shadow-sm">
+            <div class="text-xs font-semibold uppercase text-blue-600 dark:text-blue-400">Extended</div>
+            <div class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{{.Stats.Extended}}</div>
+        </div>
+        <div class="bg-surface-container-lowest p-4 rounded-lg border border-border-subtle shadow-sm">
+            <div class="text-xs font-semibold uppercase text-rose-600 dark:text-rose-400">Cancelled</div>
+            <div class="text-2xl font-bold text-rose-600 dark:text-rose-400 mt-1">{{.Stats.Cancelled}}</div>
+        </div>
+        <div class="bg-surface-container-lowest p-4 rounded-lg border border-border-subtle shadow-sm">
+            <div class="text-xs font-semibold uppercase text-gray-500">Expired</div>
+            <div class="text-2xl font-bold text-gray-500 mt-1">{{.Stats.Expired}}</div>
+        </div>
+    </div>
+
+    <!-- EWB List Table -->
+    <div class="bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-border-subtle flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-container-low/50">
+            <h2 class="text-base font-semibold text-on-surface">Registered E-Way Bills</h2>
+            <div class="flex items-center gap-2">
+                <input type="text" placeholder="Filter by EWB or Trip..." id="filter-input"
+                       onkeyup="filterTable()"
+                       class="px-3 py-1.5 text-xs bg-surface-container-low border border-border-subtle rounded-md focus:ring-1 focus:ring-primary focus:outline-none w-48" />
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-border-subtle text-sm" id="ewb-table">
+                <thead class="bg-surface-container-low text-text-muted text-xs uppercase font-semibold">
+                    <tr>
+                        <th class="px-4 py-3 text-left">EWB Number</th>
+                        <th class="px-4 py-3 text-left">Trip</th>
+                        <th class="px-4 py-3 text-left">Vehicle (Part-B)</th>
+                        <th class="px-4 py-3 text-left">Route (From → To)</th>
+                        <th class="px-4 py-3 text-right">Goods Value</th>
+                        <th class="px-4 py-3 text-center">Status</th>
+                        <th class="px-4 py-3 text-left">Valid Until</th>
+                        <th class="px-4 py-3 text-center">Ext.</th>
+                        <th class="px-4 py-3 text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border-subtle" id="ewb-rows">
+                    {{if .EWayBills}}
+                        {{range .EWayBills}}
+                            {{template "ewaybill_row.html" .}}
+                        {{end}}
+                    {{else}}
+                        <tr>
+                            <td colspan="9" class="px-4 py-8 text-center text-text-muted">
+                                No E-Way Bills registered yet. Click "Generate Part-A" or confirm trips above ₹50,000 to auto-generate.
+                            </td>
+                        </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Generate Part-A Modal -->
+    <div id="new-ewb-modal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+        <div class="bg-surface-container-lowest rounded-lg max-w-lg w-full p-6 shadow-xl border border-border-subtle space-y-4">
+            <div class="flex justify-between items-center pb-2 border-b border-border-subtle">
+                <h3 class="text-base font-bold text-on-surface">Generate E-Way Bill (Part-A)</h3>
+                <button onclick="document.getElementById('new-ewb-modal').classList.add('hidden')" class="text-text-muted hover:text-on-surface">
+                    ✕
+                </button>
+            </div>
+            <form method="POST" action="/ewaybill/new" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-text-muted uppercase mb-1">Select Active Trip</label>
+                    <select name="trip_id" required class="w-full px-3 py-2 text-sm bg-surface-container-low border border-border-subtle rounded-md focus:ring-1 focus:ring-primary focus:outline-none">
+                        <option value="">-- Choose a trip --</option>
+                        {{range .Trips}}
+                        <option value="{{.ID}}">{{.TripNumber}} (Route: {{.Source}} → {{.Destination}})</option>
+                        {{end}}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-text-muted uppercase mb-1">Goods Value (₹) [Optional override]</label>
+                    <input type="number" step="0.01" name="goods_value" placeholder="Leave empty to use booking fare"
+                           class="w-full px-3 py-2 text-sm bg-surface-container-low border border-border-subtle rounded-md focus:ring-1 focus:ring-primary focus:outline-none" />
+                </div>
+                <div class="flex items-center gap-2 pt-2">
+                    <input type="checkbox" name="force" id="force-check" value="true" class="rounded text-primary focus:ring-primary" />
+                    <label for="force-check" class="text-xs text-text-muted">Force generate even if goods value ≤ ₹50,000</label>
+                </div>
+                <div class="flex justify-end gap-2 pt-4 border-t border-border-subtle">
+                    <button type="button" onclick="document.getElementById('new-ewb-modal').classList.add('hidden')"
+                            class="px-4 py-2 text-sm bg-surface-container text-on-surface rounded-md hover:bg-surface-container-high">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 text-sm bg-primary text-on-primary font-semibold rounded-md hover:bg-primary/90 shadow">
+                        Generate Part-A
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function filterTable() {
+    var input = document.getElementById("filter-input");
+    var filter = input.value.toUpperCase();
+    var table = document.getElementById("ewb-table");
+    var tr = table.getElementsByTagName("tr");
+    for (var i = 1; i < tr.length; i++) {
+        var txtValue = tr[i].textContent || tr[i].innerText;
+        if (txtValue.toUpperCase().indexOf(filter) > -1) {
+            tr[i].style.display = "";
+        } else {
+            tr[i].style.display = "none";
+        }
+    }
+}
+</script>

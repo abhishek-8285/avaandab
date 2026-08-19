@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"html"
 	"html/template"
@@ -15,10 +16,15 @@ import (
 	"sync"
 	"time"
 
+	"transport-app/internal/alerts/repository"
+	alertsqlite "transport-app/internal/alerts/repository/sqlite"
 	"transport-app/internal/auth"
 	"transport-app/internal/config"
 	"transport-app/internal/domain"
+	"transport-app/internal/experiments"
 	"transport-app/internal/service"
+
+	"github.com/go-chi/chi/v5"
 )
 
 const datastarRequestHeader = "Datastar-Request"
@@ -31,6 +37,12 @@ type App struct {
 	DB        *sql.DB
 	Templates *template.Template
 	AuthSrv   auth.AuthorizationService
+
+	// ResetTokens issues and verifies single-use password-reset tokens.
+	ResetTokens *auth.ResetTokenStore
+
+	// Experiments records A/B experiment events (best-effort).
+	Experiments *experiments.Recorder
 
 	// Handler groups
 	Auth       *AuthHandlers
@@ -51,10 +63,40 @@ type App struct {
 	Kharcha    *KharchaHandlers
 	Assistant  *AssistantHandlers
 	AgentAdmin *AgentAdminHandlers
+	// TelemetryDevices powers the device registry / provisioning / quarantine UI.
+	TelemetryDevices *TelemetryDeviceHandlers
+	// Geofences powers the geofence CRUD + drawing UI (Spec 02 §8).
+	Geofences *GeofenceHandlers
+	// FuelAudit powers the fuel claim audit queue + review (Spec 03 §6.1).
+	FuelAudit *FuelAuditHandlers
+	// Scorecard powers the driver scorecard leaderboard + settlement bonus
+	// (Spec 03 §6.1, §7).
+	Scorecard *ScorecardHandlers
+	// Tracking powers the live fleet map page (Spec 04 §1.3).
+	Tracking *TrackingHandlers
+	// Share powers trip share link generation, public viewing & admin management (Spec 04 §4).
+	Share *ShareHandlers
+	// Maintenance powers preventive maintenance schedules, DTCs, and records (Spec 04 §6).
+	Maintenance *MaintenanceHandlers
+	// Alerts repository and operational alerts handler (Spec 05 §3).
+	AlertsRepo repository.AlertRepository
+	Alerts     *AlertHandlers
+	// Compliance handler (Spec 05 §5).
+	Compliance *ComplianceHandlers
+	// E-Way Bill handler (Spec 07 §2).
+	EWayBill *EWayBillHandlers
+	// FASTag handler (Spec 07 §5).
+	FASTag *FASTagHandlers
+	// Accounting sync & reconcile handler (Spec 08 §2.2).
+	Accounting *AccountingHandlers
+	// Settlements handler (Spec 08 §2.1).
+	Settlements *SettlementHandlers
+	// Document vault handler (Spec 08 §2.3).
+	Documents *DocumentHandlers
 }
 
 // NewApp creates a new handler app with all handler groups initialized.
-func NewApp(svc *service.Services, cfg *config.Config, authStore *auth.SessionStore, db *sql.DB, authSrv auth.AuthorizationService) *App {
+func NewApp(svc *service.Services, cfg *config.Config, authStore *auth.SessionStore, db *sql.DB, authSrv auth.AuthorizationService, resetTokens *auth.ResetTokenStore) *App {
 	templates, err := parseTemplates(authSrv)
 	if err != nil {
 		slog.Error("failed to parse templates; serving with minimal template set", "error", err)
@@ -62,13 +104,16 @@ func NewApp(svc *service.Services, cfg *config.Config, authStore *auth.SessionSt
 	}
 
 	app := &App{
-		Services:  svc,
-		Config:    cfg,
-		AuthStore: authStore,
-		DB:        db,
-		Templates: templates,
-		AuthSrv:   authSrv,
+		Services:    svc,
+		Config:      cfg,
+		AuthStore:   authStore,
+		DB:          db,
+		Templates:   templates,
+		AuthSrv:     authSrv,
+		ResetTokens: resetTokens,
 	}
+
+	app.Experiments = experiments.NewRecorder(db)
 
 	app.Auth = &AuthHandlers{App: app}
 	app.Dashboard = &DashboardHandlers{App: app}
@@ -87,6 +132,27 @@ func NewApp(svc *service.Services, cfg *config.Config, authStore *auth.SessionSt
 	app.Contact = &ContactHandlers{App: app}
 	app.Kharcha = &KharchaHandlers{App: app}
 	app.Assistant = &AssistantHandlers{App: app}
+	// Device registry / provisioning / quarantine admin UI.
+	app.TelemetryDevices = NewTelemetryDeviceHandlers(app, db, cfg.Telemetry.DeviceSecretPepper)
+	// Geofence CRUD + drawing UI.
+	app.Geofences = NewGeofenceHandlers(app, db)
+	// Fuel claim audit queue + review (Spec 03 §6.1).
+	app.FuelAudit = &FuelAuditHandlers{App: app}
+	// Driver scorecard leaderboard + fraud resolve (Spec 03 §6.1).
+	app.Scorecard = &ScorecardHandlers{App: app}
+	// Live fleet tracking map (Spec 04 §1.3).
+	app.Tracking = &TrackingHandlers{App: app}
+	// Trip share links (Spec 04 §4).
+	app.Share = NewShareHandlers(app, db)
+	// Preventive maintenance (Spec 04 §6).
+	app.Maintenance = NewMaintenanceHandlers(app, db)
+	// Operational alerts (Spec 05 §3).
+	app.AlertsRepo = alertsqlite.NewAlertRepository(db)
+	app.Alerts = NewAlertHandlers(app, app.AlertsRepo)
+	// Compliance (Spec 05 §5).
+	if svc != nil {
+		app.Compliance = NewComplianceHandlers(app, svc.Compliance)
+	}
 
 	return app
 }
@@ -124,8 +190,16 @@ func parseTemplates(authSrv auth.AuthorizationService) (*template.Template, erro
 		},
 		"lower":    strings.ToLower,
 		"upper":    strings.ToUpper,
+		"replace":  func(s, old, new string, n int) string { return strings.Replace(s, old, new, n) },
 		"join":     strings.Join,
 		"safeHTML": func(s string) template.HTML { return template.HTML(s) },
+		"json": func(v interface{}) template.JS {
+			b, err := json.Marshal(v)
+			if err != nil {
+				return template.JS("null")
+			}
+			return template.JS(strings.ReplaceAll(string(b), "</", "<\\/"))
+		},
 		"abbr": func(s string, max int) string {
 			if len(s) <= max {
 				return s
@@ -141,6 +215,8 @@ func parseTemplates(authSrv auth.AuthorizationService) (*template.Template, erro
 		"mul":         func(a, b int) int { return a * b },
 		"div":         func(a, b int) int { return a / b },
 		"statusBadge": statusBadgeClass,
+		"auditBadge":  auditResultBadge,
+		"tierBadge":   tierBadgeClass,
 		"priceFormat": func(f float64) string { return fmt.Sprintf("%.2f", f) },
 		"yesNo": func(b bool) string {
 			if b {
@@ -172,6 +248,20 @@ func parseTemplates(authSrv auth.AuthorizationService) (*template.Template, erro
 				return ""
 			}
 			return t.Format("2006-01-02 15:04")
+		},
+		"dict": func(values ...interface{}) (map[string]interface{}, error) {
+			if len(values)%2 != 0 {
+				return nil, fmt.Errorf("dict needs even args")
+			}
+			m := make(map[string]interface{}, len(values)/2)
+			for i := 0; i < len(values); i += 2 {
+				k, ok := values[i].(string)
+				if !ok {
+					return nil, fmt.Errorf("dict key must be string")
+				}
+				m[k] = values[i+1]
+			}
+			return m, nil
 		},
 	})
 
@@ -378,17 +468,21 @@ func (a *App) renderPage(w http.ResponseWriter, r *http.Request, name string, da
 
 	var notifications interface{}
 	var unreadCount int
-	if notifs, total, err := a.Services.Audit.ListAuditLogs(context.Background(), 5, 0); err == nil {
-		notifications = notifs
-		unreadCount = int(total)
-	}
-
-	// Apply per-user "mark all read" — if cookie is set, count only logs newer than that time
-	if r != nil {
-		if cookie, err := r.Cookie("notif_read_at"); err == nil && cookie.Value != "" {
-			// Use timestamp to reduce unread count — simplified: treat as 0 unread
-			_ = cookie.Value
-			unreadCount = 0
+	if a.AlertsRepo != nil && r != nil {
+		userID := ""
+		if user, ok := a.getUserFromContext(r); ok && user != nil {
+			userID = user.UserID
+		}
+		if count, err := a.AlertsRepo.UnreadCount(r.Context(), userID); err == nil {
+			unreadCount = count
+		}
+		if recent, err := a.AlertsRepo.Recent(r.Context(), userID, 5); err == nil {
+			notifications = recent
+		}
+	} else if a.Services != nil && a.Services.Audit != nil {
+		if notifs, total, err := a.Services.Audit.ListAuditLogs(context.Background(), 5, 0); err == nil {
+			notifications = notifs
+			unreadCount = int(total)
 		}
 	}
 	if unreadCount > 99 {
@@ -406,6 +500,7 @@ func (a *App) renderPage(w http.ResponseWriter, r *http.Request, name string, da
 		FlashError    string
 		FlashSuccess  string
 		Version       string
+		Extra         map[string]interface{}
 	}{
 		Title:         data.Title,
 		Content:       template.HTML(buf.String()),
@@ -417,6 +512,7 @@ func (a *App) renderPage(w http.ResponseWriter, r *http.Request, name string, da
 		FlashError:    data.FlashError,
 		FlashSuccess:  data.FlashSuccess,
 		Version:       AppVersion,
+		Extra:         data.Extra,
 	}
 
 	if err := layout.Execute(w, pd); err != nil {
@@ -576,6 +672,34 @@ func (a *App) Terms(w http.ResponseWriter, r *http.Request) {
 // Refunds serves the refund policy page.
 func (a *App) Refunds(w http.ResponseWriter, r *http.Request) {
 	a.PolicyPage(w, r, "refunds.html")
+}
+
+// FeaturePage serves a public, login-free explainer for a single product
+// feature. Unknown slugs return a native 404 (never a redirect to /login).
+func (a *App) FeaturePage(w http.ResponseWriter, r *http.Request) {
+	slug := chi.URLParam(r, "slug")
+	fc, ok := GetFeature(slug)
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800")
+	related := make([]FeatureContent, 0, len(fc.Related))
+	for _, slug := range fc.Related {
+		if rf, ok := GetFeature(slug); ok {
+			related = append(related, rf)
+		}
+	}
+	data := map[string]interface{}{"Version": AppVersion, "Feature": fc, "RelatedFeatures": related}
+	tmpl := a.Templates.Lookup("feature.html")
+	if tmpl == nil {
+		http.Error(w, "feature.html template not found", http.StatusInternalServerError)
+		return
+	}
+	if err := tmpl.Execute(w, data); err != nil {
+		http.Error(w, fmt.Sprintf("template error: %v", err), http.StatusInternalServerError)
+	}
 }
 
 // DownloadFile serves an uploaded file by ID with authentication and ownership authorization.

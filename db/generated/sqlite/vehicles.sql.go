@@ -196,6 +196,71 @@ func (q *Queries) GetAvailableVehicles(ctx context.Context, tenantID string) ([]
 	return items, nil
 }
 
+const getIdleVehicles = `-- name: GetIdleVehicles :many
+SELECT id, registration_number, vehicle_number, vehicle_type, capacity,
+    fuel_type, insurance_expiry, fitness_expiry, permit_expiry, status, current_mileage,
+    tenant_id, created_at, updated_at
+FROM vehicles
+WHERE status = 'available' AND tenant_id = ? AND updated_at < datetime('now', '-2 hours')
+ORDER BY created_at ASC
+LIMIT 10
+`
+
+type GetIdleVehiclesRow struct {
+	ID                 string          `json:"id"`
+	RegistrationNumber string          `json:"registration_number"`
+	VehicleNumber      string          `json:"vehicle_number"`
+	VehicleType        string          `json:"vehicle_type"`
+	Capacity           int64           `json:"capacity"`
+	FuelType           string          `json:"fuel_type"`
+	InsuranceExpiry    time.Time       `json:"insurance_expiry"`
+	FitnessExpiry      time.Time       `json:"fitness_expiry"`
+	PermitExpiry       time.Time       `json:"permit_expiry"`
+	Status             string          `json:"status"`
+	CurrentMileage     sql.NullFloat64 `json:"current_mileage"`
+	TenantID           string          `json:"tenant_id"`
+	CreatedAt          time.Time       `json:"created_at"`
+	UpdatedAt          time.Time       `json:"updated_at"`
+}
+
+func (q *Queries) GetIdleVehicles(ctx context.Context, tenantID string) ([]GetIdleVehiclesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getIdleVehicles, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetIdleVehiclesRow
+	for rows.Next() {
+		var i GetIdleVehiclesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.RegistrationNumber,
+			&i.VehicleNumber,
+			&i.VehicleType,
+			&i.Capacity,
+			&i.FuelType,
+			&i.InsuranceExpiry,
+			&i.FitnessExpiry,
+			&i.PermitExpiry,
+			&i.Status,
+			&i.CurrentMileage,
+			&i.TenantID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getVehicleByID = `-- name: GetVehicleByID :one
 SELECT id, registration_number, vehicle_number, vehicle_type, capacity,
     fuel_type, insurance_expiry, fitness_expiry, permit_expiry, status, current_mileage,

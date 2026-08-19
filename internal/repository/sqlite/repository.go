@@ -36,3 +36,17 @@ func (r *SQLRepository) Q(ctx context.Context) *db.Queries {
 	}
 	return r.q
 }
+
+func (r *SQLRepository) exec(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	if tx := repository.TxFromContext(ctx); tx != nil {
+		return tx.ExecContext(ctx, query, args...)
+	}
+	return r.db.ExecContext(ctx, query, args...)
+}
+
+func (r *SQLRepository) queryRow(ctx context.Context, query string, args ...interface{}) *sql.Row {
+	if tx := repository.TxFromContext(ctx); tx != nil {
+		return tx.QueryRowContext(ctx, query, args...)
+	}
+	return r.db.QueryRowContext(ctx, query, args...)
+}

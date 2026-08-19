@@ -19,6 +19,7 @@ type Vehicle struct {
 	FitnessExpiry      time.Time
 	PermitExpiry       time.Time
 	RCExpiry           time.Time
+	PUCExpiry          *time.Time
 	Status             VehicleStatus
 	Blocked            bool
 	BlockedReason      *string
@@ -63,24 +64,27 @@ const (
 )
 
 // CanAssign validates that a vehicle can be assigned to a trip (must be available).
-// Rule 1: Compliance Hard-Block - If RC/Fitness/Insurance is expired or vehicle is blocked, prevent dispatch.
+// Rule 1: Compliance Hard-Block - If RC/Fitness/Insurance/PUC is expired or vehicle is blocked, prevent dispatch.
 func (v Vehicle) CanAssign() error {
 	if v.Blocked || v.Status == VehicleBlocked {
 		reason := "vehicle is compliance blocked"
 		if v.BlockedReason != nil && *v.BlockedReason != "" {
 			reason = *v.BlockedReason
 		}
-		return fmt.Errorf("compliance hard-block: %s", reason)
+		return fmt.Errorf("Dispatch blocked: %s (compliance)", reason)
 	}
 	now := time.Now()
 	if !v.RCExpiry.IsZero() && v.RCExpiry.Before(now) {
-		return fmt.Errorf("compliance hard-block: vehicle RC expired on %s", v.RCExpiry.Format("2006-01-02"))
+		return fmt.Errorf("Dispatch blocked: vehicle permit expired (compliance)")
 	}
 	if !v.FitnessExpiry.IsZero() && v.FitnessExpiry.Before(now) {
-		return fmt.Errorf("compliance hard-block: vehicle fitness cert expired on %s", v.FitnessExpiry.Format("2006-01-02"))
+		return fmt.Errorf("Dispatch blocked: vehicle fitness expired (compliance)")
 	}
 	if !v.InsuranceExpiry.IsZero() && v.InsuranceExpiry.Before(now) {
-		return fmt.Errorf("compliance hard-block: vehicle insurance expired on %s", v.InsuranceExpiry.Format("2006-01-02"))
+		return fmt.Errorf("Dispatch blocked: vehicle insurance expired (compliance)")
+	}
+	if v.PUCExpiry != nil && !v.PUCExpiry.IsZero() && v.PUCExpiry.Before(now) {
+		return fmt.Errorf("Dispatch blocked: vehicle PUC expired (compliance)")
 	}
 	if v.Status != VehicleAvailable {
 		return fmt.Errorf("vehicle must be available to be assigned; current status: %s", v.Status)

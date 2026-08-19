@@ -1,8 +1,8 @@
 <div class="max-w-3xl mx-auto">
-    <h2 class="text-2xl font-bold mb-4 text-gray-900">{{if .Vehicle}}Edit Vehicle{{else}}New Vehicle{{end}}</h2>
+    <h2 class="text-2xl font-bold mb-4 text-on-surface">{{if .Vehicle}}Edit Vehicle{{else}}New Vehicle{{end}}</h2>
 
     {{if .FlashError}}
-    <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">{{.FlashError}}</div>
+    {{template "alert.html" (dict "Tone" "error" "Message" .FlashError)}}
     {{end}}
 
     {{ $vehicle := .Vehicle }}
@@ -10,21 +10,21 @@
     <form method="POST" action="/vehicles{{if $vehicle}}/{{$vehicle.ID}}/edit{{else}}/new{{end}}" class="space-y-4">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-                <label class="block text-sm font-medium text-gray-700">Registration Number *</label>
+                <label class="block text-sm font-medium text-on-surface-variant">Registration Number *</label>
                 <input type="text" name="registration_number" value="{{if $vehicle}}{{$vehicle.RegistrationNumber}}{{end}}" required
-                    class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700">Vehicle Number *</label>
+                <label class="block text-sm font-medium text-on-surface-variant">Vehicle Number *</label>
                 <input type="text" name="vehicle_number" value="{{if $vehicle}}{{$vehicle.VehicleNumber}}{{end}}" required
-                    class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
             </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-                <label class="block text-sm font-medium text-gray-700">Vehicle Type</label>
-                <select name="vehicle_type" class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                <label class="block text-sm font-medium text-on-surface-variant">Vehicle Type</label>
+                <select name="vehicle_type" class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
                     <option value="truck" {{if eq $vehicle.VehicleType "truck"}}selected{{end}}>Truck</option>
                     <option value="mini_truck" {{if eq $vehicle.VehicleType "mini_truck"}}selected{{end}}>Mini Truck</option>
                     <option value="bus" {{if eq $vehicle.VehicleType "bus"}}selected{{end}}>Bus</option>
@@ -34,16 +34,16 @@
                 </select>
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700">Capacity (seats/kg)</label>
+                <label class="block text-sm font-medium text-on-surface-variant">Capacity (seats/kg)</label>
                 <input type="number" name="capacity" value="{{if $vehicle}}{{$vehicle.Capacity}}{{end}}"
-                    class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
             </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols">
             <div>
-                <label class="block text-sm font-medium text-gray-700">Fuel Type</label>
-                <select name="fuel_type" class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                <label class="block text-sm font-medium text-on-surface-variant">Fuel Type</label>
+                <select name="fuel_type" class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
                     <option value="diesel" {{if eq $vehicle.FuelType "diesel"}}selected{{end}}>Diesel</option>
                     <option value="petrol" {{if eq $vehicle.FuelType "petrol"}}selected{{end}}>Petrol</option>
                     <option value="gas" {{if eq $vehicle.FuelType "gas"}}selected{{end}}>Gas</option>
@@ -53,33 +53,38 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-                <label class="block text-sm font-medium text-gray-700">Insurance Expiry *</label>
+                <label class="block text-sm font-medium text-on-surface-variant">Insurance Expiry *</label>
                 <input type="date" name="insurance_expiry" value="{{if $vehicle}}{{date_only $vehicle.InsuranceExpiry}}{{end}}" required
-                    class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700">Fitness Expiry *</label>
+                <label class="block text-sm font-medium text-on-surface-variant">Fitness Expiry *</label>
                 <input type="date" name="fitness_expiry" value="{{if $vehicle}}{{date_only $vehicle.FitnessExpiry}}{{end}}" required
-                    class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700">Permit Expiry *</label>
+                <label class="block text-sm font-medium text-on-surface-variant">Permit Expiry *</label>
                 <input type="date" name="permit_expiry" value="{{if $vehicle}}{{date_only $vehicle.PermitExpiry}}{{end}}" required
-                    class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-on-surface-variant">PUC Expiry</label>
+                <input type="date" name="puc_expiry" value="{{if and $vehicle $vehicle.PUCExpiry}}{{date_only $vehicle.PUCExpiry}}{{end}}"
+                    class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
             </div>
         </div>
 
         <div>
-            <label class="block text-sm font-medium text-gray-700">Current Mileage (km)</label>
+            <label class="block text-sm font-medium text-on-surface-variant">Current Mileage (km)</label>
                 <input type="number" step="0.1" name="current_mileage" value="{{if $vehicle}}{{if $vehicle.CurrentMileage}}{{$vehicle.CurrentMileage}}{{end}}{{end}}"
-                class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
         </div>
 
         <div>
-            <label class="block text-sm font-medium text-gray-700">Status</label>
-            <select name="status" class="mt-1 block w-full text-base border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            <label class="block text-sm font-medium text-on-surface-variant">Status</label>
+            <select name="status" class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
                 <option value="available" {{if eq $vehicle.Status "available"}}selected{{end}}>Available</option>
                 <option value="running" {{if eq $vehicle.Status "running"}}selected{{end}}>Running</option>
                 <option value="maintenance" {{if eq $vehicle.Status "maintenance"}}selected{{end}}>Maintenance</option>
@@ -87,9 +92,23 @@
             </select>
         </div>
 
+        {{if and $vehicle .IsMaintenanceDue}}
+        <div class="p-4 bg-surface-container-low border border-border-subtle rounded-lg space-y-2">
+            <h4 class="text-sm font-bold text-on-surface flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-amber-500 text-base">warning</span>
+                Preventive Maintenance Due Since {{.MaintenanceDue}}
+            </h4>
+            {{if .IsMaintenanceOverridden}}
+            <p class="text-xs text-blue-600 dark:text-blue-400">Override active by {{.MaintenanceOverrideBy}} ({{.MaintenanceOverrideReason}})</p>
+            {{else}}
+            <p class="text-xs text-red-600 dark:text-red-400">Dispatch currently blocked.</p>
+            {{end}}
+        </div>
+        {{end}}
+
         <div class="flex justify-end space-x-3 pt-4">
-            <a href="/vehicles" class="px-4 py-2 min-h-[44px] flex items-center justify-center border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 active:bg-gray-100">Cancel</a>
-            <button type="submit" class="px-4 py-2 min-h-[44px] bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:bg-blue-800">Save Vehicle</button>
+            {{template "btn.html" (dict "Label" "Cancel" "Href" "/vehicles" "Variant" "secondary")}}
+            {{template "btn.html" (dict "Label" "Save Vehicle" "Type" "submit")}}
         </div>
     </form>
 </div>

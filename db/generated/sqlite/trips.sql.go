@@ -416,6 +416,90 @@ func (q *Queries) DeleteTrip(ctx context.Context, arg DeleteTripParams) error {
 	return err
 }
 
+const getOverdueTrips = `-- name: GetOverdueTrips :many
+SELECT t.id, t.trip_number, t.booking_id, t.driver_id, t.vehicle_id, t.route_id,
+    t.departure_time, t.arrival_time, t.status, t.remarks, t.tenant_id, t.created_at, t.updated_at,
+    d.driver_id AS driver_display_id, d.first_name AS driver_first_name, d.last_name AS driver_last_name,
+    v.registration_number AS vehicle_registration_number, v.vehicle_number AS vehicle_number,
+    r.source AS route_source, r.destination AS route_destination
+FROM trips t
+LEFT JOIN drivers d ON t.driver_id = d.id
+LEFT JOIN vehicles v ON t.vehicle_id = v.id
+LEFT JOIN routes r ON t.route_id = r.id
+WHERE t.tenant_id = ?
+  AND t.status IN ('scheduled', 'assigned', 'started', 'reached_pickup', 'in_transit', 'delivered')
+  AND t.departure_time < datetime('now')
+ORDER BY t.departure_time ASC
+LIMIT 10
+`
+
+type GetOverdueTripsRow struct {
+	ID                        string         `json:"id"`
+	TripNumber                string         `json:"trip_number"`
+	BookingID                 sql.NullString `json:"booking_id"`
+	DriverID                  sql.NullString `json:"driver_id"`
+	VehicleID                 sql.NullString `json:"vehicle_id"`
+	RouteID                   string         `json:"route_id"`
+	DepartureTime             time.Time      `json:"departure_time"`
+	ArrivalTime               sql.NullTime   `json:"arrival_time"`
+	Status                    string         `json:"status"`
+	Remarks                   sql.NullString `json:"remarks"`
+	TenantID                  string         `json:"tenant_id"`
+	CreatedAt                 time.Time      `json:"created_at"`
+	UpdatedAt                 time.Time      `json:"updated_at"`
+	DriverDisplayID           sql.NullString `json:"driver_display_id"`
+	DriverFirstName           sql.NullString `json:"driver_first_name"`
+	DriverLastName            sql.NullString `json:"driver_last_name"`
+	VehicleRegistrationNumber sql.NullString `json:"vehicle_registration_number"`
+	VehicleNumber             sql.NullString `json:"vehicle_number"`
+	RouteSource               sql.NullString `json:"route_source"`
+	RouteDestination          sql.NullString `json:"route_destination"`
+}
+
+func (q *Queries) GetOverdueTrips(ctx context.Context, tenantID string) ([]GetOverdueTripsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getOverdueTrips, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetOverdueTripsRow
+	for rows.Next() {
+		var i GetOverdueTripsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.TripNumber,
+			&i.BookingID,
+			&i.DriverID,
+			&i.VehicleID,
+			&i.RouteID,
+			&i.DepartureTime,
+			&i.ArrivalTime,
+			&i.Status,
+			&i.Remarks,
+			&i.TenantID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DriverDisplayID,
+			&i.DriverFirstName,
+			&i.DriverLastName,
+			&i.VehicleRegistrationNumber,
+			&i.VehicleNumber,
+			&i.RouteSource,
+			&i.RouteDestination,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTripByBookingID = `-- name: GetTripByBookingID :one
 SELECT t.id, t.trip_number, t.booking_id, t.driver_id, t.vehicle_id, t.route_id,
     t.departure_time, t.arrival_time, t.status, t.remarks, t.tenant_id, t.version, t.created_at, t.updated_at,

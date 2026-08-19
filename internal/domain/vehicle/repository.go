@@ -16,4 +16,6 @@ type VehicleRepository interface {
 	SearchVehicles(ctx context.Context, query string, status string, limit, offset int) ([]Vehicle, error)
 	CountVehicles(ctx context.Context, query string, status string) (int64, error)
 	GetAvailableVehicles(ctx context.Context) ([]Vehicle, error)
+	GetIdleVehicles(ctx context.Context) ([]Vehicle, error)
+	IsMaintenanceBlocked(ctx context.Context, vehicleID string) (bool, string, error)
 }

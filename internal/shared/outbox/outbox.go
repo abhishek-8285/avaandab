@@ -5,9 +5,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 
 	db "transport-app/db/generated/sqlite"
+	"transport-app/internal/events"
 	"transport-app/internal/repository"
 	clockpkg "transport-app/internal/shared/clock"
 	idpkg "transport-app/internal/shared/id"
@@ -65,6 +67,16 @@ func (w *OutboxWriter) SaveEvents(ctx context.Context, aggregateID string, aggre
 }
 
 func getEventTypeName(ev any) string {
+	// Canonical catalog first: persisted event_type must match what
+	// subscribers listen on (Spec 09 §5.1). Keys are matched by dynamic
+	// TYPE, not map equality — interface keys compare by VALUE, so a
+	// non-zero event (e.g. one carrying a real timestamp) would never
+	// equal its zero-value registration key.
+	for key, name := range events.EventTypeOf {
+		if reflect.TypeOf(key) == reflect.TypeOf(ev) {
+			return name
+		}
+	}
 	t := fmt.Sprintf("%T", ev)
 	if idx := strings.LastIndex(t, "."); idx != -1 {
 		return t[idx+1:]

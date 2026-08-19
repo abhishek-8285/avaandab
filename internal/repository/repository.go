@@ -72,6 +72,12 @@ type PaymentWithInvoice = payment.PaymentWithInvoice
 // MonthlyRevenue is a month's revenue total.
 type MonthlyRevenue = payment.MonthlyRevenue
 
+// RevenueByDay is a single day's revenue total.
+type RevenueByDay = payment.RevenueByDay
+
+// BookingsByDay is a single day's booking count.
+type BookingsByDay = booking.BookingsByDay
+
 // CompanySettingsRepository
 type CompanySettingsRepository = company.CompanySettingsRepository
 

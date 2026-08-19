@@ -1,0 +1,75 @@
+{{define "shares_list.html"}}
+<div class="max-w-full">
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
+            <h1 class="text-xl font-bold text-on-surface m-0">Trip Share Links</h1>
+            <p class="text-sm text-text-muted m-0">Live customer tracking links generated for active and completed trips.</p>
+        </div>
+    </div>
+
+    <div class="bg-surface rounded-xl border border-border-subtle overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="border-b border-border-subtle bg-surface-container text-text-muted font-medium">
+                        <th class="py-3 px-4">Trip Number</th>
+                        <th class="py-3 px-4">Created By</th>
+                        <th class="py-3 px-4">Created At</th>
+                        <th class="py-3 px-4">Expires At</th>
+                        <th class="py-3 px-4 text-center">Views</th>
+                        <th class="py-3 px-4 text-center">PIN</th>
+                        <th class="py-3 px-4 text-center">Status</th>
+                        <th class="py-3 px-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border-subtle">
+                    {{range .Shares}}
+                    <tr class="hover:bg-surface-container transition">
+                        <td class="py-3 px-4 font-semibold text-on-surface">
+                            <a href="/trips/{{.TripID}}" class="text-primary hover:underline">{{.TripNumber}}</a>
+                        </td>
+                        <td class="py-3 px-4 text-text-muted">{{.CreatorName}}</td>
+                        <td class="py-3 px-4 text-text-muted">{{datetime .CreatedAt}}</td>
+                        <td class="py-3 px-4 text-text-muted">{{datetime .ExpiresAt}}</td>
+                        <td class="py-3 px-4 text-center font-medium text-on-surface">{{.ViewCount}}</td>
+                        <td class="py-3 px-4 text-center">
+                            {{if .HasPIN}}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800">Protected</span>
+                            {{else}}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-600">Open</span>
+                            {{end}}
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            {{if eq .Status "active"}}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800">Active</span>
+                            {{else if eq .Status "revoked"}}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-800">Revoked</span>
+                            {{else}}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-600">Expired</span>
+                            {{end}}
+                        </td>
+                        <td class="py-3 px-4 text-right">
+                            {{if eq .Status "active"}}
+                            <form action="/shares/{{.ID}}/revoke" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to revoke this share link?');">
+                                <button type="submit" class="px-2.5 py-1 rounded bg-rose-50 text-rose-600 hover:bg-rose-100 font-medium transition text-[11px]">
+                                    Revoke
+                                </button>
+                            </form>
+                            {{else}}
+                            <span class="text-gray-400 text-[11px]">—</span>
+                            {{end}}
+                        </td>
+                    </tr>
+                    {{else}}
+                    <tr>
+                        <td colspan="8" class="py-8 text-center text-text-muted">
+                            No share links found. You can generate share links from any trip detail page.
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{{end}}

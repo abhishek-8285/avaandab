@@ -8,7 +8,23 @@ services:
     volumes:
       - ./data:/data
       - ./uploads:/uploads
+    depends_on:
+      - mosquitto
+    restart: unless-stopped
+
+  # MQTT broker for GPS telemetry ingestion
+  mosquitto:
+    image: eclipse-mosquitto:2
+    ports:
+      - "1883:1883"   # TCP for server-side own devices
+      - "9001:9001"   # WebSocket for mobile app (Spec 13)
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
     restart: unless-stopped
 
   # Optional: SQLite file-based database (default in-memory)
   # If using SQLite file, uncomment the volume and set DATABASE_URL in .env
+
+volumes:
+  mosquitto_data:

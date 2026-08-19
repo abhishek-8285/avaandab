@@ -318,3 +318,58 @@ func (r *paymentRepository) SearchReadModels(ctx context.Context, tenantID share
 
 	return readModels, total, nil
 }
+
+const setRazorpayFieldsSQL = `
+UPDATE payments
+SET razorpay_order_id = ?, razorpay_payment_id = ?, razorpay_signature = ?, updated_at = datetime('now')
+WHERE id = ? AND tenant_id = ?
+`
+
+// SetRazorpayFields stores the Razorpay order/payment/signature identifiers on
+// the payment row (Spec 11 §5.1).
+func (r *paymentRepository) SetRazorpayFields(ctx context.Context, id aggregate.PaymentID, tenantID shared.TenantID, orderID, paymentID, signature string) error {
+	_, err := r.exec(ctx).ExecContext(ctx, setRazorpayFieldsSQL, orderID, paymentID, signature, string(id), string(tenantID))
+	return err
+}
+
+const findRazorpayPaymentSQL = `
+SELECT id FROM payments WHERE tenant_id = ? AND razorpay_payment_id = ? LIMIT 1
+`
+
+// ExistsRazorpayPayment returns the payment ID recorded against a Razorpay
+// payment ID, or sql.ErrNoRows when none exists.
+func (r *paymentRepository) ExistsRazorpayPayment(ctx context.Context, tenantID shared.TenantID, paymentID string) (aggregate.PaymentID, error) {
+	var id string
+	err := r.exec(ctx).QueryRowContext(ctx, findRazorpayPaymentSQL, string(tenantID), paymentID).Scan(&id)
+	if err != nil {
+		return "", err
+	}
+	return aggregate.PaymentID(id), nil
+}
+
+const findWebhookEventSQL = `
+SELECT id FROM payments WHERE tenant_id = ? AND webhook_event_id = ? LIMIT 1
+`
+
+// ExistsWebhookEvent returns the payment ID processed for a Razorpay webhook
+// event ID, or sql.ErrNoRows when none exists.
+func (r *paymentRepository) ExistsWebhookEvent(ctx context.Context, tenantID shared.TenantID, eventID string) (aggregate.PaymentID, error) {
+	var id string
+	err := r.exec(ctx).QueryRowContext(ctx, findWebhookEventSQL, string(tenantID), eventID).Scan(&id)
+	if err != nil {
+		return "", err
+	}
+	return aggregate.PaymentID(id), nil
+}
+
+const setWebhookEventIDSQL = `
+UPDATE payments SET webhook_event_id = ?, updated_at = datetime('now')
+WHERE id = ? AND tenant_id = ?
+`
+
+// SetWebhookEventID persists the Razorpay webhook event ID on the payment row
+// for restart-safe deduplication (Spec 11 §5.1).
+func (r *paymentRepository) SetWebhookEventID(ctx context.Context, id aggregate.PaymentID, tenantID shared.TenantID, eventID string) error {
+	_, err := r.exec(ctx).ExecContext(ctx, setWebhookEventIDSQL, eventID, string(id), string(tenantID))
+	return err
+}

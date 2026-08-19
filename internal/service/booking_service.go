@@ -80,7 +80,7 @@ func (s *BookingService) CreateBooking(ctx context.Context, req CreateBookingReq
 	s.log.Info("booking created", "booking_id", created.ID, "booking_number", created.BookingNumber)
 	s.logAudit(ctx, nil, "create", "bookings", string(created.ID), nil, nil)
 	s.events.Publish(ctx, events.Event{
-		Type: "BookingCreated",
+		Type: events.BookingCreated,
 		Payload: bookingevents.BookingCreatedEvent{
 			BookingID:     created.ID,
 			BookingNumber: created.BookingNumber,
@@ -174,7 +174,7 @@ func (s *BookingService) ConfirmBooking(ctx context.Context, id domain.BookingID
 	s.log.Info("booking confirmed", "booking_id", id)
 	s.logAudit(ctx, nil, "approve", "bookings", string(id), nil, nil)
 	s.events.Publish(ctx, events.Event{
-		Type: "BookingConfirmed",
+		Type: events.BookingConfirmed,
 		Payload: bookingevents.BookingConfirmedEvent{
 			BookingID:   id,
 			ConfirmedAt: time.Now(),

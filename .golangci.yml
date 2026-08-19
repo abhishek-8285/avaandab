@@ -1,0 +1,28 @@
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - errcheck
+
+linters-settings:
+  errcheck:
+    check-blank: false
+    exclude-functions:
+      - (*database/sql.Tx).Rollback
+      - (*database/sql.Rows).Scan
+      - (*database/sql.Row).Scan
+      - (*encoding/json.Encoder).Encode
+      - (*encoding/json.Decoder).Decode
+      - (net/http.ResponseWriter).Write
+      - (io.Closer).Close
+      - fmt.Sscanf
+      - fmt.Fprintf
+      - fmt.Printf
+      - os.MkdirAll
+      - os.WriteFile
+      - encoding/json.Unmarshal

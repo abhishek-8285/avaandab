@@ -1,0 +1,153 @@
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-on-surface tracking-tight">Operational Alerts</h1>
+            <p class="text-sm text-text-muted mt-1">Real-time exception alerts, deduplicated event streams, and automated escalations.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <form method="POST" action="/alerts/mark-all-read">
+                <button type="submit" class="px-4 py-2 text-xs font-semibold rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors cursor-pointer border border-border-subtle flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">done_all</span>
+                    Mark All Acknowledged
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Status Tabs Filter -->
+    <div class="flex border-b border-border-subtle gap-2 text-sm font-medium">
+        <a href="/alerts?status=open" class="px-4 py-2.5 border-b-2 transition-colors {{if eq .CurrentStatus "open"}}border-primary text-primary font-semibold{{else}}border-transparent text-secondary hover:text-on-surface{{end}} flex items-center gap-2">
+            <span class="material-symbols-outlined text-base">error</span>
+            Open
+        </a>
+        <a href="/alerts?status=acknowledged" class="px-4 py-2.5 border-b-2 transition-colors {{if eq .CurrentStatus "acknowledged"}}border-primary text-primary font-semibold{{else}}border-transparent text-secondary hover:text-on-surface{{end}} flex items-center gap-2">
+            <span class="material-symbols-outlined text-base">visibility</span>
+            Acknowledged
+        </a>
+        <a href="/alerts?status=resolved" class="px-4 py-2.5 border-b-2 transition-colors {{if eq .CurrentStatus "resolved"}}border-primary text-primary font-semibold{{else}}border-transparent text-secondary hover:text-on-surface{{end}} flex items-center gap-2">
+            <span class="material-symbols-outlined text-base">check_circle</span>
+            Resolved
+        </a>
+        <a href="/alerts?status=all" class="px-4 py-2.5 border-b-2 transition-colors {{if eq .CurrentStatus ""}}border-primary text-primary font-semibold{{else}}border-transparent text-secondary hover:text-on-surface{{end}} flex items-center gap-2">
+            <span class="material-symbols-outlined text-base">list</span>
+            All Alerts
+        </a>
+    </div>
+
+    <!-- Alerts Table -->
+    <div class="bg-surface-container-lowest border border-border-subtle rounded-xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-on-surface">
+                <thead class="bg-surface-container-low text-xs uppercase font-semibold text-text-muted border-b border-border-subtle">
+                    <tr>
+                        <th class="px-5 py-3.5">Severity</th>
+                        <th class="px-5 py-3.5">Alert Details</th>
+                        <th class="px-5 py-3.5">Source & Type</th>
+                        <th class="px-5 py-3.5">Entity</th>
+                        <th class="px-5 py-3.5">Occurrences</th>
+                        <th class="px-5 py-3.5">Last Seen</th>
+                        <th class="px-5 py-3.5">Status</th>
+                        <th class="px-5 py-3.5 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border-subtle">
+                    {{if .Alerts}}
+                        {{range .Alerts}}
+                        <tr class="hover:bg-surface-container-lowest/80 transition-colors" id="alert-row-{{.ID}}">
+                            <td class="px-5 py-4 whitespace-nowrap">
+                                {{if eq .Severity "blocker"}}
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-purple-600 animate-pulse"></span>
+                                        BLOCKER
+                                    </span>
+                                {{else if eq .Severity "critical"}}
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-full bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse"></span>
+                                        CRITICAL
+                                    </span>
+                                {{else if eq .Severity "warning"}}
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                        WARNING
+                                    </span>
+                                {{else}}
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                        INFO
+                                    </span>
+                                {{end}}
+                            </td>
+                            <td class="px-5 py-4">
+                                <div class="font-semibold text-on-surface">{{.Title}}</div>
+                                <div class="text-xs text-text-muted mt-0.5 max-w-md">{{.Message}}</div>
+                            </td>
+                            <td class="px-5 py-4 whitespace-nowrap">
+                                <span class="font-medium text-xs text-on-surface">{{.Source}}</span>
+                                <div class="text-xs text-text-muted font-mono mt-0.5">{{.AlertType}}</div>
+                            </td>
+                            <td class="px-5 py-4 whitespace-nowrap text-xs">
+                                {{if .EntityID}}
+                                    <span class="font-medium text-on-surface capitalize">{{if .EntityType}}{{.EntityType}}{{else}}Entity{{end}}:</span>
+                                    <span class="font-mono text-primary font-semibold">{{.EntityID}}</span>
+                                {{else}}
+                                    <span class="text-text-muted">Global</span>
+                                {{end}}
+                            </td>
+                            <td class="px-5 py-4 whitespace-nowrap text-xs">
+                                {{if gt .Occurrences 1}}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                                        {{.Occurrences}} events
+                                    </span>
+                                {{else}}
+                                    <span class="text-text-muted">1 event</span>
+                                {{end}}
+                            </td>
+                            <td class="px-5 py-4 whitespace-nowrap text-xs text-text-muted">
+                                {{datetime .LastSeenAt}}
+                            </td>
+                            <td class="px-5 py-4 whitespace-nowrap text-xs">
+                                <span id="alert-status-{{.ID}}" class="px-2.5 py-1 rounded-full text-xs font-semibold
+                                    {{if eq .Status "open"}}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300
+                                    {{else if eq .Status "acknowledged"}}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300
+                                    {{else if eq .Status "resolved"}}bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300
+                                    {{else if eq .Status "escalated"}}bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300
+                                    {{else}}bg-surface-container text-text-muted{{end}}">
+                                    {{.Status}}
+                                </span>
+                            </td>
+                            <td class="px-5 py-4 whitespace-nowrap text-right text-xs">
+                                <div class="flex items-center justify-end gap-2">
+                                    {{if eq .Status "open"}}
+                                        <form method="POST" action="/alerts/{{.ID}}/ack">
+                                            <button type="submit" class="px-2.5 py-1 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 dark:text-blue-300 font-medium transition-colors cursor-pointer border border-blue-200 dark:border-blue-800">
+                                                Ack
+                                            </button>
+                                        </form>
+                                    {{end}}
+                                    {{if or (eq .Status "open") (eq .Status "acknowledged") (eq .Status "escalated")}}
+                                        <form method="POST" action="/alerts/{{.ID}}/resolve">
+                                            <button type="submit" class="px-2.5 py-1 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 dark:text-emerald-300 font-medium transition-colors cursor-pointer border border-emerald-200 dark:border-emerald-800">
+                                                Resolve
+                                            </button>
+                                        </form>
+                                    {{end}}
+                                </div>
+                            </td>
+                        </tr>
+                        {{end}}
+                    {{else}}
+                        <tr>
+                            <td colspan="8" class="px-5 py-12 text-center text-text-muted text-sm">
+                                <div class="flex flex-col items-center justify-center gap-2">
+                                    <span class="material-symbols-outlined text-4xl text-text-muted/60">check_circle</span>
+                                    <span class="font-medium">No alerts found for this filter.</span>
+                                </div>
+                            </td>
+                        </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

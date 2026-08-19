@@ -1,0 +1,25 @@
+<div id="tax-split" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="bg-surface-container-low p-4 rounded-lg border border-border-subtle">
+        <div class="text-xs font-semibold uppercase text-text-muted">Taxable Value</div>
+        <div class="text-lg font-bold text-on-surface">₹{{printf "%.2f" .TaxableTotal}}</div>
+    </div>
+    {{if .IsIntraState}}
+    <div class="bg-surface-container-low p-4 rounded-lg border border-border-subtle">
+        <div class="text-xs font-semibold uppercase text-text-muted">CGST</div>
+        <div class="text-lg font-bold text-on-surface">₹{{printf "%.2f" .Cgst}}</div>
+    </div>
+    <div class="bg-surface-container-low p-4 rounded-lg border border-border-subtle">
+        <div class="text-xs font-semibold uppercase text-text-muted">SGST</div>
+        <div class="text-lg font-bold text-on-surface">₹{{printf "%.2f" .Sgst}}</div>
+    </div>
+    {{else}}
+    <div class="bg-surface-container-low p-4 rounded-lg border border-border-subtle">
+        <div class="text-xs font-semibold uppercase text-text-muted">IGST (Inter-State)</div>
+        <div class="text-lg font-bold text-on-surface">₹{{printf "%.2f" .Igst}}</div>
+    </div>
+    {{end}}
+    <div class="bg-primary/10 p-4 rounded-lg border border-primary/20">
+        <div class="text-xs font-semibold uppercase text-primary">Total Amount</div>
+        <div class="text-xl font-extrabold text-primary">₹{{printf "%.2f" .Total}}</div>
+    </div>
+</div>

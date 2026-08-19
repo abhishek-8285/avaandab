@@ -153,6 +153,21 @@ func (r *SQLRepository) GetMonthlyRevenue(ctx context.Context) ([]repository.Mon
 	return result, nil
 }
 
+func (r *SQLRepository) GetRevenueByDay(ctx context.Context) ([]repository.RevenueByDay, error) {
+	rows, err := r.Q(ctx).GetRevenueByDay(ctx, string(shared.TenantIDFromContext(ctx)))
+	if err != nil {
+		return nil, err
+	}
+	result := make([]repository.RevenueByDay, len(rows))
+	for i, row := range rows {
+		result[i] = repository.RevenueByDay{
+			Day:   row.Day,
+			Total: row.Total,
+		}
+	}
+	return result, nil
+}
+
 func (r *SQLRepository) GetPaymentsByCustomer(ctx context.Context, customerID domain.CustomerID, limit, offset int) ([]repository.PaymentWithInvoice, error) {
 	rows, err := r.Q(ctx).GetPaymentsByCustomer(ctx, db.GetPaymentsByCustomerParams{
 		ID:       string(customerID),

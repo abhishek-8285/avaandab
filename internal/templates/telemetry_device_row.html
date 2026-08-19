@@ -1,0 +1,51 @@
+{{range .Devices}}
+<tr class="hover:bg-surface-container-low transition-colors group">
+    <td class="py-4 px-6 font-mono font-medium text-primary">{{.IMEI}}</td>
+    <td class="py-4 px-6">
+        {{if eq .Status "active"}}
+        {{template "status_dot.html" (dict "Tone" "success" "Label" "Active")}}
+        {{else if eq .Status "assigned"}}
+        {{template "status_dot.html" (dict "Tone" "info" "Label" "Assigned")}}
+        {{else if eq .Status "inventory"}}
+        {{template "status_dot.html" (dict "Tone" "neutral" "Label" "Inventory")}}
+        {{else if eq .Status "retired"}}
+        {{template "status_dot.html" (dict "Tone" "alert" "Label" "Retired")}}
+        {{else if eq .Status "quarantined"}}
+        {{template "status_dot.html" (dict "Tone" "warning" "Label" "Quarantined")}}
+        {{else}}
+        {{template "status_dot.html" (dict "Tone" "neutral" "Label" .Status)}}
+        {{end}}
+    </td>
+    <td class="py-4 px-6 text-secondary font-mono text-xs">{{nullString .VehicleID}}</td>
+    <td class="py-4 px-6 text-secondary font-mono text-xs">{{.DeviceType}}</td>
+    <td class="py-4 px-6 text-secondary font-mono text-xs">{{derefTime .LastSeenAt}}</td>
+    <td class="py-4 px-6 text-right whitespace-nowrap">
+        {{if can $.User "telemetry" "update"}}
+        {{if eq .Status "inventory"}}
+        <form method="POST" action="/telemetry/devices/{{.IMEI}}/assign" class="inline-flex items-center gap-1" hx-target="#telemetry-device-rows" hx-swap="outerHTML">
+            <input type="hidden" name="vehicle_id" value="{{nullString .VehicleID}}" class="w-28 bg-surface-container-low border border-border-subtle rounded px-2 py-1 text-xs font-mono" placeholder="vehicle id">
+            <button type="submit" class="text-primary hover:underline font-medium text-xs">Assign</button>
+        </form>
+        {{else if eq .Status "assigned"}}
+        <form method="POST" action="/telemetry/devices/{{.IMEI}}/activate" class="inline" hx-target="#telemetry-device-rows" hx-swap="outerHTML">
+            <button type="submit" class="text-primary hover:underline font-medium text-xs">Activate</button>
+        </form>
+        <form method="POST" action="/telemetry/devices/{{.IMEI}}/retire" class="inline" hx-target="#telemetry-device-rows" hx-swap="outerHTML">
+            <button type="submit" class="text-status-alert hover:underline font-medium text-xs">Retire</button>
+        </form>
+        {{else if eq .Status "active"}}
+        <form method="POST" action="/telemetry/devices/{{.IMEI}}/retire" class="inline" hx-target="#telemetry-device-rows" hx-swap="outerHTML">
+            <button type="submit" class="text-status-alert hover:underline font-medium text-xs">Retire</button>
+        </form>
+        {{end}}
+        {{end}}
+    </td>
+</tr>
+{{else}}
+<tr>
+    <td colspan="6" class="py-16 text-center text-secondary">
+        <span class="material-symbols-outlined text-4xl text-text-muted mb-2 block">gps_fixed</span>
+        <p class="font-medium text-base">No devices found matching the current filters.</p>
+    </td>
+</tr>
+{{end}}

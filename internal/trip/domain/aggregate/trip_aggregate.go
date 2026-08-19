@@ -126,6 +126,17 @@ func (t *TripAggregate) AssignVehicle(vehicleID string, now time.Time) error {
 	}
 	t.VehicleID = &vehicleID
 	t.UpdatedAt = now
+	driverID := ""
+	if t.DriverID != nil {
+		driverID = *t.DriverID
+	}
+	t.RecordEvent(TripAssignedEvent{
+		TripID:     t.ID,
+		TenantID:   t.TenantID,
+		DriverID:   driverID,
+		VehicleID:  vehicleID,
+		OccurredAt: now,
+	})
 	return nil
 }
 
@@ -261,6 +272,7 @@ type TripAssignedEvent struct {
 	TripID     TripID
 	TenantID   shared.TenantID
 	DriverID   string
+	VehicleID  string
 	OccurredAt time.Time
 }
 

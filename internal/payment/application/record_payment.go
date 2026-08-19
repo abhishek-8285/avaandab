@@ -26,6 +26,12 @@ type RecordPaymentCommand struct {
 	Method      paymentagg.PaymentMethod
 	Reference   *string
 	Remarks     *string
+
+	// RazorpayOrderID, RazorpayPaymentID, RazorpaySignature are persisted to
+	// the payment row when present (Spec 11 §5.1 /verify flow).
+	RazorpayOrderID   string
+	RazorpayPaymentID string
+	RazorpaySignature string
 }
 
 // RecordPaymentUseCase records a payment.
@@ -95,6 +101,11 @@ func (uc *RecordPaymentUseCase) Execute(ctx context.Context, cmd RecordPaymentCo
 
 		if err := payRepo.Save(txCtx, payment); err != nil {
 			return err
+		}
+		if cmd.RazorpayPaymentID != "" {
+			if err := payRepo.SetRazorpayFields(txCtx, payment.ID, cmd.TenantID, cmd.RazorpayOrderID, cmd.RazorpayPaymentID, cmd.RazorpaySignature); err != nil {
+				return err
+			}
 		}
 		id = payment.ID
 		return nil

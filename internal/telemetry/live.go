@@ -1,0 +1,259 @@
+package telemetry
+
+import (
+	"context"
+	"database/sql"
+	"encoding/json"
+	"net/http"
+	"sync"
+	"time"
+
+	"transport-app/internal/eta"
+	"transport-app/internal/shared"
+)
+
+// LiveVehicle is one marker on the tracking map — the latest snapshot per
+// vehicle within the visibility window (Spec 04 §7).
+type LiveVehicle struct {
+	TripID    string     `json:"trip_id,omitempty"`
+	VehicleID string     `json:"vehicle_id"`
+	Lat       float64    `json:"lat"`
+	Lng       float64    `json:"lng"`
+	Speed     float64    `json:"speed"`
+	FuelLevel *float64   `json:"fuel_level,omitempty"`
+	Odometer  *float64   `json:"odometer,omitempty"`
+	Status    string     `json:"status"`
+	EtaMin    *time.Time `json:"eta_min,omitempty"` // wired in Spec 04 3D
+	EtaMax    *time.Time `json:"eta_max,omitempty"` // wired in Spec 04 3D
+	EtaMethod string     `json:"eta_method,omitempty"`
+	Ts        time.Time  `json:"ts"`
+}
+
+// Marker states (priority order, Spec 04 §7): maintenance_due overrides
+// everything; no_signal when the latest snapshot is older than
+// TELEMETRY_STALE_MIN; running when speed > 0; else stopped.
+const (
+	MarkerStateMaintenanceDue = "maintenance_due"
+	MarkerStateNoSignal       = "no_signal"
+	MarkerStateRunning        = "running"
+	MarkerStateStopped        = "stopped"
+)
+
+// LiveStore reads the live-fleet snapshot from telemetry_snapshots.
+type LiveStore struct {
+	db *sql.DB
+
+	// staleMin is TELEMETRY_STALE_MIN: snapshots older than this flip the
+	// marker to no_signal.
+	staleMin time.Duration
+
+	// visibilityWindow bounds the query (fleet-scale: keep the result set
+	// small). It is 2 × staleMin so stale-but-recently-seen vehicles stay
+	// visible as no_signal markers instead of vanishing silently — a strict
+	// 15-minute WHERE would make the no_signal state unobservable.
+	visibilityWindow time.Duration
+
+	// hasMaintenanceDue caches whether vehicles.maintenance_due exists
+	// (column comes from migration 00042, which precedes 00044). If the
+	// column is missing (stale DB in tests), status falls back to the
+	// telemetry-only states.
+	hasMaintenanceDue     bool
+	maintenanceDueChecked sync.Once
+
+	// etaService calculates hybrid ETA for active trips (Spec 04 §5, 3D).
+	etaService *eta.EtaService
+}
+
+// WithEtaService attaches an EtaService to compute live ETAs.
+func (s *LiveStore) WithEtaService(svc *eta.EtaService) *LiveStore {
+	s.etaService = svc
+	return s
+}
+
+// NewLiveStore builds the live-fleet reader. staleMin must be > 0.
+func NewLiveStore(db *sql.DB, staleMin time.Duration) *LiveStore {
+	if staleMin <= 0 {
+		staleMin = 15 * time.Minute
+	}
+	return &LiveStore{
+		db:               db,
+		staleMin:         staleMin,
+		visibilityWindow: 2 * staleMin,
+	}
+}
+
+// Live queries the latest snapshot per vehicle visible in the window.
+// tripID filters to a single trip when non-empty. Rows are scoped to the
+// tenant via the vehicles join (telemetry_snapshots has no tenant column).
+func (s *LiveStore) Live(ctx context.Context, tenantID string, tripID string, now time.Time) ([]LiveVehicle, error) {
+	s.maintenanceDueChecked.Do(func() {
+		s.hasMaintenanceDue = columnExists(s.db, "vehicles", "maintenance_due")
+	})
+
+	windowStart := now.Add(-s.visibilityWindow).UTC().Format("2006-01-02 15:04:05")
+
+	// Latest row per vehicle via a MAX(timestamp) join. The inner query can
+	// use idx_telemetry_snapshots_trip when trip_id is filtered; the outer
+	// read uses the windowed join for bounded results.
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT s.trip_id, s.vehicle_id, s.latitude, s.longitude, s.speed,
+		       s.fuel_level, s.odometer, s.timestamp
+		FROM telemetry_snapshots s
+		JOIN (
+		    SELECT vehicle_id, MAX(timestamp) AS ts
+		    FROM telemetry_snapshots
+		    WHERE timestamp >= ?
+		      AND latitude IS NOT NULL AND longitude IS NOT NULL
+		      AND (? = '' OR trip_id = ?)
+		    GROUP BY vehicle_id
+		) latest ON latest.vehicle_id = s.vehicle_id AND latest.ts = s.timestamp
+		JOIN vehicles v ON v.id = s.vehicle_id AND v.tenant_id = ?
+		WHERE s.latitude IS NOT NULL AND s.longitude IS NOT NULL
+		ORDER BY s.vehicle_id`,
+		windowStart, tripID, tripID, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []LiveVehicle
+	for rows.Next() {
+		var lv LiveVehicle
+		var tripID, vehicleID sql.NullString
+		var lat, lng, speed sql.NullFloat64
+		var fuel, odo sql.NullFloat64
+		var ts time.Time
+		if err := rows.Scan(&tripID, &vehicleID, &lat, &lng, &speed, &fuel, &odo, &ts); err != nil {
+			return nil, err
+		}
+		if !vehicleID.Valid {
+			continue
+		}
+		lv.VehicleID = vehicleID.String
+		if tripID.Valid {
+			lv.TripID = tripID.String
+		}
+		if lat.Valid {
+			lv.Lat = lat.Float64
+		}
+		if lng.Valid {
+			lv.Lng = lng.Float64
+		}
+		if speed.Valid {
+			lv.Speed = speed.Float64
+		}
+		if fuel.Valid {
+			lv.FuelLevel = &fuel.Float64
+		}
+		if odo.Valid {
+			lv.Odometer = &odo.Float64
+		}
+		lv.Ts = ts.UTC()
+		out = append(out, lv)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Maintenance-due vehicles (one batch query, avoids N+1). Priority
+	// state: maintenance_due overrides running/stopped/no_signal.
+	due := s.maintenanceDueSet(ctx, tenantID)
+	for i := range out {
+		out[i].Status = markerState(out[i], due, s.staleMin, now)
+		if out[i].TripID != "" && s.etaService != nil {
+			if etaRes, err := s.etaService.Calculate(ctx, out[i].TripID); err == nil {
+				out[i].EtaMin = &etaRes.EtaMin
+				out[i].EtaMax = &etaRes.EtaMax
+				out[i].EtaMethod = etaRes.Method
+			}
+		}
+	}
+	return out, nil
+}
+
+// maintenanceDueSet returns the set of vehicle ids flagged maintenance_due
+// (column from 00042). Empty map when the column is absent.
+func (s *LiveStore) maintenanceDueSet(ctx context.Context, tenantID string) map[string]bool {
+	if !s.hasMaintenanceDue {
+		return nil
+	}
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id FROM vehicles WHERE (tenant_id = ? OR tenant_id = '1') AND maintenance_due IS NOT NULL`, tenantID)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+	due := make(map[string]bool)
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err == nil {
+			due[id] = true
+		}
+	}
+	return due
+}
+
+// markerState applies the priority chain: maintenance_due > no_signal >
+// running > stopped (Spec 04 §7).
+func markerState(lv LiveVehicle, due map[string]bool, staleMin time.Duration, now time.Time) string {
+	if due[lv.VehicleID] {
+		return MarkerStateMaintenanceDue
+	}
+	if now.Sub(lv.Ts) > staleMin {
+		return MarkerStateNoSignal
+	}
+	if lv.Speed > 0 {
+		return MarkerStateRunning
+	}
+	return MarkerStateStopped
+}
+
+// columnExists reports whether a table has a column (SQLite PRAGMA probe).
+func columnExists(db *sql.DB, table, column string) bool {
+	rows, err := db.Query(`PRAGMA table_info(` + table + `)`)
+	if err != nil {
+		return false
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var cid int
+		var name, ctype string
+		var notnull, pk int
+		var dflt sql.NullString
+		if err := rows.Scan(&cid, &name, &ctype, &notnull, &dflt, &pk); err != nil {
+			return false
+		}
+		if name == column {
+			return true
+		}
+	}
+	return false
+}
+
+// LiveHandler serves GET /api/v1/telemetry/live — JSON array of live markers
+// (Spec 04 §7). Optional ?trip_id= filter. Mounted inside RequireAPIAuth
+// (tenant is read from the request context set by that middleware).
+func LiveHandler(db *sql.DB, staleMin time.Duration, etaSvc ...*eta.EtaService) http.HandlerFunc {
+	store := NewLiveStore(db, staleMin)
+	if len(etaSvc) > 0 && etaSvc[0] != nil {
+		store.WithEtaService(etaSvc[0])
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		tenantID := string(shared.TenantIDFromContext(r.Context()))
+		if tenantID == "" {
+			tenantID = string(shared.DefaultTenant)
+		}
+		tripID := r.URL.Query().Get("trip_id")
+		vehicles, err := store.Live(r.Context(), tenantID, tripID, time.Now())
+		if err != nil {
+			http.Error(w, `{"error":"live query failed"}`, http.StatusInternalServerError)
+			return
+		}
+		if vehicles == nil {
+			vehicles = []LiveVehicle{}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-store")
+		_ = json.NewEncoder(w).Encode(vehicles)
+	}
+}

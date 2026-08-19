@@ -1,0 +1,73 @@
+{{if can .User "ewaybill" "read"}}
+<div class="border border-border-subtle rounded-lg p-4 mt-6 bg-surface-container-low shadow-sm">
+    <div class="flex justify-between items-center mb-3">
+        <h3 class="text-base font-semibold text-on-surface flex items-center gap-2">
+            <span>E-Way Bill</span>
+            {{if .EWayBill}}
+                <span class="px-2 py-0.5 text-xs font-medium rounded-full {{if eq .EWayBill.Status "active"}}bg-status-success/20 text-status-success{{else if eq .EWayBill.Status "part_a"}}bg-status-info/20 text-status-info{{else if eq .EWayBill.Status "cancelled"}}bg-status-alert/20 text-status-alert{{else}}bg-status-warn/20 text-status-warn{{end}}">
+                    {{.EWayBill.Status}}
+                </span>
+            {{end}}
+        </h3>
+    </div>
+
+    {{if .EWayBill}}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+        <div>
+            <span class="text-text-muted block text-xs">EWB Number</span>
+            <span class="font-mono font-medium text-on-surface">{{.EWayBill.EwbNumber}}</span>
+        </div>
+        <div>
+            <span class="text-text-muted block text-xs">Valid Until</span>
+            <span class="font-medium text-on-surface">{{.EWayBill.ValidUpto}}</span>
+        </div>
+        <div>
+            <span class="text-text-muted block text-xs">Vehicle Assigned</span>
+            <span class="font-medium text-on-surface">{{if .EWayBill.VehicleNumber}}{{.EWayBill.VehicleNumber}}{{else}}<span class="text-status-warn">Part-B Pending</span>{{end}}</span>
+        </div>
+        <div>
+            <span class="text-text-muted block text-xs">Extensions</span>
+            <span class="font-medium text-on-surface">{{.EWayBill.ExtensionCount}} / 1</span>
+        </div>
+        {{if .EWayBill.QRCode}}
+        <div class="col-span-1 md:col-span-2 flex items-center gap-4 pt-2">
+            <img src="{{.EWayBill.QRCode}}" alt="EWB QR Code" class="w-20 h-20 border rounded bg-white p-1" />
+            <div class="text-xs text-text-muted">
+                <p>Digital QR code verified against NIC E-Way Bill registry.</p>
+                <p class="mt-1">From: {{.EWayBill.FromPlace}} ({{.EWayBill.FromStateCode}}) → To: {{.EWayBill.ToPlace}} ({{.EWayBill.ToStateCode}})</p>
+            </div>
+        </div>
+        {{end}}
+    </div>
+
+    {{if can .User "ewaybill" "update"}}
+    <div class="flex flex-wrap gap-2 mt-4 pt-3 border-t border-border-subtle">
+        {{if not .EWayBill.VehicleNumber}}
+        <form method="POST" action="/ewaybill/{{.EWayBill.EwbNumber}}/part-b" class="inline flex items-center gap-2">
+            <input type="text" name="vehicle_number" placeholder="Vehicle Reg No." required class="text-xs border border-border-subtle rounded px-2 py-1 bg-surface-container text-on-surface" />
+            <button type="submit" class="text-xs px-3 py-1.5 rounded bg-primary text-on-primary font-medium hover:opacity-90">Attach Part-B</button>
+        </form>
+        {{end}}
+        {{if or (eq .EWayBill.Status "active") (eq .EWayBill.Status "part_a")}}
+        <form method="POST" action="/ewaybill/{{.EWayBill.EwbNumber}}/extend" class="inline">
+            <button type="submit" class="text-xs px-3 py-1.5 rounded bg-surface-container-high border border-border-subtle text-on-surface font-medium hover:bg-surface-container-highest">Extend (24h)</button>
+        </form>
+        <form method="POST" action="/ewaybill/{{.EWayBill.EwbNumber}}/cancel" class="inline" onsubmit="return confirm('Are you sure you want to cancel this E-Way Bill?');">
+            <button type="submit" class="text-xs px-3 py-1.5 rounded bg-status-alert/10 text-status-alert border border-status-alert/30 font-medium hover:bg-status-alert/20">Cancel EWB</button>
+        </form>
+        {{end}}
+    </div>
+    {{end}}
+
+    {{else}}
+    <div class="text-sm text-text-muted py-2 flex justify-between items-center">
+        <span>No E-Way Bill generated for this trip yet.</span>
+        {{if can .User "ewaybill" "create"}}
+        <form method="POST" action="/trips/{{.Trip.ID}}/ewaybill?force=true" class="inline">
+            <button type="submit" class="text-xs px-3 py-1.5 rounded bg-primary text-on-primary font-medium hover:opacity-90">Generate E-Way Bill</button>
+        </form>
+        {{end}}
+    </div>
+    {{end}}
+</div>
+{{end}}

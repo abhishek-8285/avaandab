@@ -1,10 +1,16 @@
 package rag
 
 import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func TestChunker_ChunkFile(t *testing.T) {
@@ -545,5 +551,83 @@ func TestService_TeachFromDir_NoFiles(t *testing.T) {
 	_, err = svc.TeachFromDir("empty", tmpDir)
 	if err == nil {
 		t.Error("expected error for directory with no supported files")
+	}
+}
+
+func newTestHandler() *Handler {
+	tmpDir, _ := os.MkdirTemp("", "rag-test-*")
+	dbPath := filepath.Join(tmpDir, "test.db")
+	store, _ := NewVectorStore(dbPath)
+	embedder := NewHashEmbedder(64)
+	svc := NewService(embedder, store, 512, 50, filepath.Join(tmpDir, "uploads"))
+	return NewHandler(svc)
+}
+
+func postJSON(t *testing.T, h *Handler, path string, body map[string]string) *httptest.ResponseRecorder {
+	t.Helper()
+	r := chi.NewRouter()
+	h.RegisterRoutes(r)
+	payload, _ := json.Marshal(body)
+	req := httptest.NewRequest(http.MethodPost, path, bytes.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+	return rec
+}
+
+func TestHandler_DirectoryIndexRequiresAllowList(t *testing.T) {
+	h := newTestHandler()
+	allowed := t.TempDir()
+	os.WriteFile(filepath.Join(allowed, "doc.txt"), []byte("hello"), 0644)
+	h.WithAllowedDirs([]string{allowed})
+
+	// Allowed directory → 200
+	rec := postJSON(t, h, "/api/rag/index", map[string]string{"directory": allowed})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("allowed dir: expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	// Disallowed directory (system path) → 403
+	rec = postJSON(t, h, "/api/rag/index", map[string]string{"directory": "/etc"})
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("disallowed dir /etc: expected 403, got %d", rec.Code)
+	}
+
+	// Parent traversal escape attempt → 403
+	escaped := filepath.Join(allowed, "..", "..", "..")
+	rec = postJSON(t, h, "/api/rag/index", map[string]string{"directory": escaped})
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("path traversal: expected 403, got %d", rec.Code)
+	}
+}
+
+func TestHandler_IndexFailsClosedWithoutAllowList(t *testing.T) {
+	h := newTestHandler() // no WithAllowedDirs → empty allow-list → fail closed
+	rec := postJSON(t, h, "/api/rag/index", map[string]string{"directory": "/tmp"})
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 (fail-closed) without allow-list, got %d", rec.Code)
+	}
+}
+
+func TestHandler_SearchRemainsFunctional(t *testing.T) {
+	h := newTestHandler()
+	allowed := t.TempDir()
+	os.WriteFile(filepath.Join(allowed, "doc.txt"), []byte("cancellation policy requires 24 hours"), 0644)
+	h.WithAllowedDirs([]string{allowed})
+
+	if rec := postJSON(t, h, "/api/rag/index", map[string]string{"directory": allowed}); rec.Code != http.StatusOK {
+		t.Fatalf("index failed: %d", rec.Code)
+	}
+
+	rec := postJSON(t, h, "/api/rag/search", map[string]string{"query": "cancellation"})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("search: expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var res map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &res); err != nil {
+		t.Fatal(err)
+	}
+	if total, _ := res["total"].(float64); total == 0 {
+		t.Error("expected search results after indexing allowed dir")
 	}
 }

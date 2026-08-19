@@ -27,4 +27,5 @@ const (
 	PaymentMethodUPI          PaymentMethod = "upi"
 	PaymentMethodBankTransfer PaymentMethod = "bank_transfer"
 	PaymentMethodCheque       PaymentMethod = "cheque"
+	PaymentMethodRazorpay     PaymentMethod = "razorpay"
 )

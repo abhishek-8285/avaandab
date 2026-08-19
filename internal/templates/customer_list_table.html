@@ -1,0 +1,41 @@
+<div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-border-subtle">
+        <thead class="bg-surface-container-low font-label-caps text-[11px] text-secondary uppercase tracking-wider">
+            <tr>
+                <th class="th-cell">Customer Name</th>
+                <th class="th-cell">Company</th>
+                <th class="th-cell">Phone</th>
+                <th class="th-cell">Email</th>
+                <th class="th-cell">GST Number</th>
+                <th class="th-cell-right">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-border-subtle text-sm text-on-surface">
+            {{if .Customers}}
+            {{range .Customers}}
+            <tr class="hover:bg-surface-container-low transition-colors group">
+                <td class="td-cell-strong">{{.Name}}</td>
+                <td class="td-cell">{{nullString .Company}}</td>
+                <td class="td-cell font-mono text-xs" data-numeric>{{.Phone}}</td>
+                <td class="td-cell">{{nullString .Email}}</td>
+                <td class="td-cell font-mono text-xs">{{nullString .GST}}</td>
+                <td class="td-cell-actions">
+                    <a href="/customers/{{.ID}}" class="action-view mr-2">View</a>
+                    <a href="/customers/{{.ID}}/edit" class="action-edit">Edit</a>
+                </td>
+            </tr>
+            {{end}}
+            {{else}}
+            <tr>
+                <td colspan="6" class="py-12 text-center text-secondary">
+                    {{template "empty_state.html" (dict "Icon" "group" "Title" "No customers found" "Message" "No customers match the search criteria." "ActionHref" "/customers/new" "ActionIcon" "add" "ActionLabel" "New Customer")}}
+                </td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+
+<div class="p-4 border-t border-border-subtle bg-surface-container-lowest">
+    {{template "pagination.html" .}}
+</div>

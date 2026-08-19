@@ -125,6 +125,11 @@ func (s *UserService) GetUser(ctx context.Context, id domain.UserID) (domain.Use
 	return s.store.GetUserByID(ctx, id)
 }
 
+// GetUserByEmail retrieves a user by email.
+func (s *UserService) GetUserByEmail(ctx context.Context, email string) (domain.User, error) {
+	return s.store.GetUserByEmail(ctx, email)
+}
+
 // ListUsers retrieves users with search and pagination.
 func (s *UserService) ListUsers(ctx context.Context, query, status string, limit, offset int) ([]repository.UserWithRole, int64, error) {
 	users, err := s.store.SearchUsers(ctx, query, status, limit, offset)
@@ -181,6 +186,28 @@ func (s *UserService) DeleteUser(ctx context.Context, id domain.UserID) error {
 // ListRoles returns all roles.
 func (s *UserService) ListRoles(ctx context.Context) ([]domain.Role, error) {
 	return s.store.ListRoles(ctx)
+}
+
+// SetPasswordByEmail sets a new password for the account matching the given
+// email. Used by the password-reset (forgot password) flow after a valid reset
+// token is redeemed. The new password is validated against the policy.
+func (s *UserService) SetPasswordByEmail(ctx context.Context, email, newPassword string) error {
+	user, err := s.store.GetUserByEmail(ctx, email)
+	if err != nil {
+		return domain.ErrUserNotFound
+	}
+	if err := auth.ValidatePassword(newPassword); err != nil {
+		return err
+	}
+	hashed, err := auth.HashPassword(newPassword)
+	if err != nil {
+		return err
+	}
+	if _, err := s.store.UpdateUserPassword(ctx, user.ID, hashed); err != nil {
+		return err
+	}
+	s.log.Info("password reset via token", "user_id", user.ID, "email", user.Email)
+	return nil
 }
 
 // ResetPassword resets a user's password to a randomly generated temporary value.

@@ -1,0 +1,49 @@
+<tr class="hover:bg-surface-container-low/50 transition">
+    <td class="px-4 py-3 font-mono font-semibold text-primary">
+        <a href="/ewaybill/{{.EwbNumber}}" class="hover:underline">{{.EwbNumber}}</a>
+    </td>
+    <td class="px-4 py-3">
+        {{if .TripNumber}}
+        <a href="/trips/{{.TripID}}" class="text-on-surface hover:text-primary font-medium">{{.TripNumber}}</a>
+        {{else}}
+        <span class="font-mono text-xs">{{.TripID}}</span>
+        {{end}}
+    </td>
+    <td class="px-4 py-3 font-mono text-xs">
+        {{if .VehicleNumber}}
+        <span class="px-2 py-0.5 rounded bg-surface-container border border-border-subtle">{{.VehicleNumber}}</span>
+        {{else}}
+        <span class="text-amber-600 dark:text-amber-400 font-sans italic text-xs">No Vehicle (Part-A)</span>
+        {{end}}
+    </td>
+    <td class="px-4 py-3 text-xs text-text-muted">
+        <span class="font-medium text-on-surface">{{.FromPlace}}</span> → <span class="font-medium text-on-surface">{{.ToPlace}}</span>
+    </td>
+    <td class="px-4 py-3 font-mono text-right text-xs">₹{{printf "%.2f" .GoodsValue}}</td>
+    <td class="px-4 py-3 text-center">
+        {{if eq .Status "active"}}
+            {{if and (not .VehicleNumber) (eq .ExtensionCount 0)}}
+            <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">Part-A</span>
+            {{else if gt .ExtensionCount 0}}
+            <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300">Extended</span>
+            {{else}}
+            <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">Active</span>
+            {{end}}
+        {{else if eq .Status "cancelled"}}
+        <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-300">Cancelled</span>
+        {{else if eq .Status "expired"}}
+        <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300">Expired</span>
+        {{else}}
+        <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-surface-container text-text-muted">{{.Status}}</span>
+        {{end}}
+    </td>
+    <td class="px-4 py-3 font-mono text-xs text-text-muted">{{.ValidUntil.Format "02 Jan 15:04"}}</td>
+    <td class="px-4 py-3 text-center text-xs font-mono">{{.ExtensionCount}}</td>
+    <td class="px-4 py-3 text-center">
+        <div class="flex items-center justify-center gap-1">
+            <a href="/ewaybill/{{.EwbNumber}}" class="px-2 py-1 text-xs bg-surface-container text-on-surface rounded hover:bg-surface-container-high">
+                View
+            </a>
+        </div>
+    </td>
+</tr>

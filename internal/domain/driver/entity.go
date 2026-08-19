@@ -56,10 +56,10 @@ func (d Driver) CanAcceptTrip() error {
 		if d.BlockedReason != nil && *d.BlockedReason != "" {
 			reason = *d.BlockedReason
 		}
-		return fmt.Errorf("compliance hard-block: %s", reason)
+		return fmt.Errorf("Dispatch blocked: %s (compliance)", reason)
 	}
 	if !d.LicenseExpiry.IsZero() && d.LicenseExpiry.Before(time.Now()) {
-		return fmt.Errorf("compliance hard-block: driver license %s expired on %s", d.LicenseNumber, d.LicenseExpiry.Format("2006-01-02"))
+		return fmt.Errorf("Dispatch blocked: driver license expired (compliance)")
 	}
 	if d.Status != DriverAvailable {
 		return fmt.Errorf("driver must be available to accept a trip; current status: %s", d.Status)

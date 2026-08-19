@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="/static/css/fonts.css?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}">
     <link rel="stylesheet" href="/static/css/material-symbols.css?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}">
     <link href="https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&display=swap" rel="stylesheet">
+    <script src="/static/js/loader.js?v=20260818"></script>
     <script type="module" src="/static/js/datastar.js?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}" defer></script>
     <link rel="stylesheet" href="/static/css/tailwind.css?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}">
     <link rel="stylesheet" href="/static/css/app.css?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}">
@@ -19,16 +20,16 @@
         body {
             font-size: 1rem;
             line-height: 1.5;
-            background-color: #f7f9fb;
-            color: #191c1e;
+            background-color: var(--color-background);
+            color: var(--color-on-surface);
             font-family: 'Plus Jakarta Sans', sans-serif;
         }
         .font-display { font-family: 'Outfit', 'Satoshi', 'Plus Jakarta Sans', sans-serif; }
 
         /* Full Width Edge-to-Edge Navigation Bar */
         .header {
-            background-color: #ffffff;
-            border-bottom: 1px solid #e5e7eb;
+            background-color: var(--color-surface-container-lowest);
+            border-bottom: 1px solid var(--color-border-subtle);
             position: sticky;
             top: 0;
             z-index: 100;
@@ -76,8 +77,8 @@
             width: 40px;
             height: 40px;
             border-radius: 8px;
-            background-color: #00685f;
-            color: #ffffff;
+            background-color: var(--color-primary);
+            color: var(--color-surface-container-lowest);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -115,7 +116,7 @@
         .navigation-top-menu-link {
             font-size: 15px;
             font-weight: 600;
-            color: #2c3e50;
+            color: var(--color-on-surface-variant);
             text-decoration: none;
             cursor: pointer;
             padding: 10px 14px;
@@ -126,22 +127,22 @@
         }
         .navigation-top-menu-item:hover > .navigation-top-menu-label,
         .navigation-top-menu-item:hover > .navigation-top-menu-link {
-            color: #00685f;
+            color: var(--color-primary);
         }
         .navigation-top-menu-label-arrow::after {
             content: '';
             display: inline-block;
             width: 5px;
             height: 5px;
-            border-right: 2px solid #7f8c8d;
-            border-bottom: 2px solid #7f8c8d;
+            border-right: 2px solid var(--color-text-muted);
+            border-bottom: 2px solid var(--color-text-muted);
             transform: rotate(45deg);
             margin-top: -2px;
             transition: transform 0.2s ease;
         }
         .navigation-top-menu-item:hover > .navigation-top-menu-label-arrow::after {
             transform: rotate(225deg);
-            border-color: #00685f;
+            border-color: var(--color-primary);
         }
         /* Dropdown Sublists */
         .navigation-top-menu-sublist {
@@ -149,8 +150,8 @@
             top: 100%;
             left: 0;
             min-width: 220px;
-            background-color: #ffffff;
-            border: 1px solid #e5e7eb;
+            background-color: var(--color-surface-container-lowest);
+            border: 1px solid var(--color-border-subtle);
             box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
             border-radius: 6px;
             padding: 8px 0;
@@ -165,13 +166,13 @@
             padding: 8px 20px;
             font-size: 14px;
             font-weight: 500;
-            color: #4b5563;
+            color: var(--color-on-surface-variant);
             width: 100%;
             display: block;
         }
         .navigation-top-menu-sublist .navigation-top-menu-link:hover {
-            background-color: #f3f4f6;
-            color: #00685f;
+            background-color: var(--color-surface-container-low);
+            color: var(--color-primary);
         }
 
         /* Far Right Action Buttons */
@@ -185,8 +186,8 @@
             flex-shrink: 0;
         }
         .btn.black-border-button {
-            border: 2px solid #111827;
-            color: #111827;
+            border: 2px solid var(--color-on-surface);
+            color: var(--color-on-surface);
             background-color: transparent;
             padding: 8px 20px;
             border-radius: 6px;
@@ -196,8 +197,8 @@
             transition: all 0.2s ease;
         }
         .btn.black-border-button:hover {
-            background-color: #111827;
-            color: #ffffff;
+            background-color: var(--color-on-surface);
+            color: var(--color-surface-container-lowest);
         }
         .login-link-button {
             display: inline-flex;
@@ -206,33 +207,15 @@
             padding: 8px 16px;
             font-size: 14px;
             font-weight: 600;
-            color: #00685f;
+            color: var(--color-primary);
             text-decoration: none;
             border-radius: 6px;
             transition: background-color 0.15s ease;
         }
         .login-link-button:hover {
-            background-color: #e6f4f1;
+            background-color: color-mix(in srgb, var(--color-primary) 10%, transparent);
         }
 
-        .footer-ecasb {
-            background-color: #ffffff;
-            border-top: 1px solid #E2E8F0;
-            color: #565e74;
-            font-size: 0.875rem;
-        }
-        .footer-ecasb .footer-top { padding: 3.5rem 0; border-bottom: 1px solid #E2E8F0; }
-        .footer-ecasb .container { max-width: 72rem; margin: 0 auto; padding: 0 1.5rem; }
-        .footer-ecasb .footer-grid { display: grid; grid-template-columns: repeat(1, minmax(0, 1fr)); gap: 2.5rem; }
-        @media (min-width: 640px) { .footer-ecasb .footer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-        @media (min-width: 1024px) { .footer-ecasb .footer-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-        .footer-ecasb .footer-col h4 { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 1rem; color: #0F172A; margin-bottom: 1.25rem; }
-        .footer-ecasb .footer-col ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.75rem; }
-        .footer-ecasb .footer-col ul li a { color: #565e74; text-decoration: none; }
-        .footer-ecasb .footer-col ul li a:hover { color: #00685f; }
-        .footer-ecasb .footer-bottom { padding: 1.5rem 0; background-color: #f7f9fb; }
-        .footer-ecasb .footer-bottom-row { display: flex; flex-direction: column; gap: 1rem; align-items: center; justify-content: space-between; }
-        @media (min-width: 640px) { .footer-ecasb .footer-bottom-row { flex-direction: row; } }
     </style>
     <script>
         document.documentElement.style.opacity = "1";
@@ -240,19 +223,61 @@
             document.documentElement.style.opacity = "1";
         });
     </script>
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem('theme');
+                if (t !== 'light' && t !== 'dark') {
+                    t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                }
+                if (t === 'dark') document.documentElement.classList.add('dark');
+            } catch (e) {}
+        })();
+    </script>
 </head>
-<body class="bg-[#f7f9fb] font-sans antialiased min-h-screen flex flex-col">
+<body class="bg-background font-sans antialiased min-h-screen flex flex-col">
     <div class="flex-1 w-full flex flex-col">
         {{.Content}}
     </div>
 
     {{if .FlashError}}
-    <div class="fixed bottom-4 right-4 safe-bottom safe-right max-w-md w-full bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-lg flex items-start justify-between">
+    <div class="fixed bottom-4 right-4 safe-bottom safe-right max-w-md w-full bg-status-alert/10 border-l-4 border-status-alert text-status-alert p-4 rounded shadow-lg flex items-start justify-between">
         <span class="flex-1">{{.FlashError}}</span>
-        <button type="button" class="flash-dismiss ml-2 text-red-600 hover:text-red-800 focus:outline-none flex items-center justify-center" aria-label="Dismiss error">
+        <button type="button" class="flash-dismiss ml-2 text-status-alert hover:text-status-alert focus:outline-none flex items-center justify-center" aria-label="Dismiss error">
             <span class="material-symbols-outlined text-sm">close</span>
         </button>
     </div>
     {{end}}
+
+    <script>
+        (function () {
+            var btn = document.getElementById('theme-toggle');
+            if (!btn) return;
+            var icon = btn.querySelector('[data-theme-icon]');
+            function sync() {
+                var dark = document.documentElement.classList.contains('dark');
+                if (icon) icon.textContent = dark ? 'light_mode' : 'dark_mode';
+                btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
+            }
+            btn.addEventListener('click', function () {
+                var dark = document.documentElement.classList.toggle('dark');
+                try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
+                sync();
+            });
+            sync();
+            try {
+                var mq = window.matchMedia('(prefers-color-scheme: dark)');
+                var onChange = function (e) {
+                    if (!localStorage.getItem('theme')) {
+                        document.documentElement.classList.toggle('dark', e.matches);
+                        sync();
+                    }
+                };
+                if (mq.addEventListener) mq.addEventListener('change', onChange);
+                else if (mq.addListener) mq.addListener(onChange);
+            } catch (e) {}
+        })();
+    </script>
+
 </body>
 </html>

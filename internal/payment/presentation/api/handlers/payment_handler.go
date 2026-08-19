@@ -25,6 +25,8 @@ type APIPaymentHandler struct {
 	reverseUC       *application.ReversePaymentUseCase
 	listByInvoiceUC *application.ListPaymentsByInvoiceUseCase
 	webhookUC       *application.RazorpayWebhookUseCase
+	orderUC         *application.CreateRazorpayOrderUseCase
+	verifyUC        *application.VerifyRazorpayPaymentUseCase
 	authSrv         auth.AuthorizationService
 }
 
@@ -36,6 +38,8 @@ func NewAPIPaymentHandler(
 	reverseUC *application.ReversePaymentUseCase,
 	listByInvoiceUC *application.ListPaymentsByInvoiceUseCase,
 	webhookUC *application.RazorpayWebhookUseCase,
+	orderUC *application.CreateRazorpayOrderUseCase,
+	verifyUC *application.VerifyRazorpayPaymentUseCase,
 	authSrv auth.AuthorizationService,
 ) *APIPaymentHandler {
 	h := &APIPaymentHandler{
@@ -45,6 +49,8 @@ func NewAPIPaymentHandler(
 		reverseUC:       reverseUC,
 		listByInvoiceUC: listByInvoiceUC,
 		webhookUC:       webhookUC,
+		orderUC:         orderUC,
+		verifyUC:        verifyUC,
 		authSrv:         authSrv,
 	}
 	if h.webhookUC != nil {
@@ -57,6 +63,8 @@ func NewAPIPaymentHandler(
 func (h *APIPaymentHandler) Register(r chi.Router) {
 	r.Route("/api/v1/payments", func(r chi.Router) {
 		r.With(middleware.RequirePermission(h.authSrv, "payments", "create")).Post("/", h.Record)
+		r.With(middleware.RequirePermission(h.authSrv, "payments", "create")).Post("/razorpay-order", h.RazorpayOrder)
+		r.With(middleware.RequirePermission(h.authSrv, "payments", "create")).Post("/razorpay/verify", h.RazorpayVerify)
 		r.With(middleware.RequirePermission(h.authSrv, "payments", "read")).Get("/", h.List)
 		r.With(middleware.RequirePermission(h.authSrv, "payments", "read")).Get("/{id}", h.Get)
 		r.With(middleware.RequirePermission(h.authSrv, "payments", "read")).Get("/by-invoice/{invoiceID}", h.ListByInvoice)
@@ -98,6 +106,92 @@ func (h *APIPaymentHandler) RazorpayWebhook(w http.ResponseWriter, r *http.Reque
 	}
 
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{"received": true, "payment_id": string(id)})
+}
+
+// RazorpayOrder creates a server-side Razorpay order for the invoice balance.
+// The amount is always derived server-side — the client can never set it
+// (Spec 11 §5.1).
+func (h *APIPaymentHandler) RazorpayOrder(w http.ResponseWriter, r *http.Request) {
+	if h.orderUC == nil {
+		http.Error(w, "razorpay not configured", http.StatusServiceUnavailable)
+		return
+	}
+	var req struct {
+		InvoiceID string `json:"invoice_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.InvoiceID == "" {
+		http.Error(w, "invoice_id is required", http.StatusBadRequest)
+		return
+	}
+
+	res, err := h.orderUC.Execute(r.Context(), application.CreateRazorpayOrderCommand{
+		TenantID:  shared.TenantIDFromContext(r.Context()),
+		InvoiceID: req.InvoiceID,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, application.ErrRazorpayNotConfigured):
+			http.Error(w, "razorpay not configured", http.StatusServiceUnavailable)
+		case errors.Is(err, application.ErrInvoiceNotFound):
+			http.Error(w, "invoice not found", http.StatusNotFound)
+		case errors.Is(err, application.ErrInvoiceAlreadySettled):
+			http.Error(w, "invoice has no outstanding balance", http.StatusPaymentRequired)
+		default:
+			http.Error(w, "failed to create razorpay order", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	_ = json.NewEncoder(w).Encode(res)
+}
+
+// RazorpayVerify validates the checkout signature and records the payment
+// against the invoice balance. All four fields are required.
+func (h *APIPaymentHandler) RazorpayVerify(w http.ResponseWriter, r *http.Request) {
+	if h.verifyUC == nil {
+		http.Error(w, "razorpay not configured", http.StatusServiceUnavailable)
+		return
+	}
+	var req struct {
+		InvoiceID string `json:"invoice_id"`
+		OrderID   string `json:"order_id"`
+		PaymentID string `json:"payment_id"`
+		Signature string `json:"signature"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+	if req.InvoiceID == "" || req.OrderID == "" || req.PaymentID == "" || req.Signature == "" {
+		http.Error(w, "invoice_id, order_id, payment_id and signature are required", http.StatusBadRequest)
+		return
+	}
+
+	id, err := h.verifyUC.Execute(r.Context(), application.VerifyRazorpayPaymentCommand{
+		TenantID:  shared.TenantIDFromContext(r.Context()),
+		InvoiceID: req.InvoiceID,
+		OrderID:   req.OrderID,
+		PaymentID: req.PaymentID,
+		Signature: req.Signature,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, application.ErrRazorpayNotConfigured):
+			http.Error(w, "razorpay not configured", http.StatusServiceUnavailable)
+		case errors.Is(err, application.ErrRazorpayInvalidSignature):
+			http.Error(w, "invalid_signature", http.StatusUnauthorized)
+		case errors.Is(err, application.ErrInvoiceNotFound):
+			http.Error(w, "invoice not found", http.StatusNotFound)
+		case errors.Is(err, application.ErrInvoiceAlreadySettled):
+			http.Error(w, "invoice has no outstanding balance", http.StatusPaymentRequired)
+		default:
+			http.Error(w, "failed to verify razorpay payment", http.StatusBadRequest)
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(map[string]string{"id": string(id), "method": "razorpay"})
 }
 
 func (h *APIPaymentHandler) Record(w http.ResponseWriter, r *http.Request) {

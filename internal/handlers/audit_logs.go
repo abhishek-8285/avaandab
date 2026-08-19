@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -17,7 +18,9 @@ type AuditLogHandlers struct {
 
 func (h *AuditLogHandlers) Routes(r chi.Router) {
 	r.With(middleware.ResourcePermission(h.AuthSrv, "audit_logs", "read")).Get("/", h.List)
-	r.With(middleware.ResourcePermission(h.AuthSrv, "audit_logs", "read")).Post("/read-all", h.MarkAllRead)
+	// Mark-all-read is a personal read-state action — any authenticated
+	// user can record when they last read their notification feed.
+	r.Post("/read-all", h.MarkAllRead)
 }
 
 func (h *AuditLogHandlers) MarkAllRead(w http.ResponseWriter, r *http.Request) {
@@ -26,10 +29,11 @@ func (h *AuditLogHandlers) MarkAllRead(w http.ResponseWriter, r *http.Request) {
 		uid := domain.UserID(session.UserID)
 		_ = h.Services.Audit.LogAction(r.Context(), &uid, "mark_notifications_read", "notifications", string(uid), nil, nil)
 	}
-	// Set a cookie so the next page render knows all notifications are read
+	// Set a cookie with the read timestamp so the next page render can
+	// count only entries created after this moment as unread.
 	http.SetCookie(w, &http.Cookie{
 		Name:     "notif_read_at",
-		Value:    "1",
+		Value:    time.Now().UTC().Format(time.RFC3339),
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   h.Config.CookieSecure,

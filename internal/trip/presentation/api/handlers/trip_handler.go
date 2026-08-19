@@ -157,16 +157,28 @@ func (h *APITripHandler) Get(w http.ResponseWriter, r *http.Request) {
 func (h *APITripHandler) AssignDriver(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	var req struct {
-		DriverID string `json:"driver_id"`
+		DriverID            string `json:"driver_id"`
+		OverrideMaintenance bool   `json:"override_maintenance"`
+		OverrideReason      string `json:"override_reason"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	if req.OverrideMaintenance && h.authSrv != nil {
+		if s, ok := r.Context().Value(auth.ContextUser).(*auth.SessionData); ok && s != nil {
+			if !h.authSrv.Can(s.UserID, "maintenance", "update") {
+				http.Error(w, "maintenance override requires maintenance:update permission", http.StatusForbidden)
+				return
+			}
+		}
+	}
 	if err := h.assignDriverUC.Execute(r.Context(), application.AssignDriverCommand{
-		TripID:   aggregate.TripID(id),
-		DriverID: req.DriverID,
-		TenantID: shared.TenantIDFromContext(r.Context()),
+		TripID:              aggregate.TripID(id),
+		DriverID:            req.DriverID,
+		TenantID:            shared.TenantIDFromContext(r.Context()),
+		OverrideMaintenance: req.OverrideMaintenance,
+		OverrideReason:      req.OverrideReason,
 	}); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -178,16 +190,28 @@ func (h *APITripHandler) AssignDriver(w http.ResponseWriter, r *http.Request) {
 func (h *APITripHandler) AssignVehicle(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	var req struct {
-		VehicleID string `json:"vehicle_id"`
+		VehicleID           string `json:"vehicle_id"`
+		OverrideMaintenance bool   `json:"override_maintenance"`
+		OverrideReason      string `json:"override_reason"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	if req.OverrideMaintenance && h.authSrv != nil {
+		if s, ok := r.Context().Value(auth.ContextUser).(*auth.SessionData); ok && s != nil {
+			if !h.authSrv.Can(s.UserID, "maintenance", "update") {
+				http.Error(w, "maintenance override requires maintenance:update permission", http.StatusForbidden)
+				return
+			}
+		}
+	}
 	if err := h.assignVehicleUC.Execute(r.Context(), application.AssignVehicleCommand{
-		TripID:    aggregate.TripID(id),
-		VehicleID: req.VehicleID,
-		TenantID:  shared.TenantIDFromContext(r.Context()),
+		TripID:              aggregate.TripID(id),
+		VehicleID:           req.VehicleID,
+		TenantID:            shared.TenantIDFromContext(r.Context()),
+		OverrideMaintenance: req.OverrideMaintenance,
+		OverrideReason:      req.OverrideReason,
 	}); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

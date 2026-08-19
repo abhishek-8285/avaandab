@@ -14,6 +14,10 @@ import (
 type CompleteTripCommand struct {
 	TripID   aggregate.TripID
 	TenantID shared.TenantID
+	// OnCompleted runs inside the same UnitOfWork transaction after the trip
+	// is saved, letting callers attach detentions/invoices atomically with
+	// the completion (Spec 02 §6 — no torn states).
+	OnCompleted func(txCtx ports.TxContext, trip *aggregate.TripAggregate) error
 }
 
 // CompleteTripUseCase orchestrates completing a trip.
@@ -45,6 +49,9 @@ func (uc *CompleteTripUseCase) Execute(ctx context.Context, cmd CompleteTripComm
 			return err
 		}
 		logAudit(txCtx, ActionComplete, string(t.ID), nil, nil)
+		if cmd.OnCompleted != nil {
+			return cmd.OnCompleted(txCtx, t)
+		}
 		return nil
 	})
 }
