@@ -12,30 +12,32 @@ import (
 
 // Config holds all application configuration.
 type Config struct {
-	AppEnv            string
-	Port              string
-	DatabaseURL       string
-	CookieSecret      string
-	APITokenSecret    string
-	SessionMaxAge     time.Duration
-	CookieSecure      bool
-	LogLevel          string
-	UploadDir         string
-	StaticDir         string
-	MaxUploadSize     int64
-	ExportMaxRows     int
-	RazorpayKeyID     string
-	RazorpayKeySecret string
-	RazorpayWebhook   string
-	BootstrapAdmin    BootstrapAdminConfig
-	RAG               RAGConfig
-	Agent             AgentConfig
-	Experiment        ExperimentConfig
-	Telemetry         TelemetryConfig
-	LiveMap           LiveMapConfig
-	Alerts            AlertConfig
-	EWayBill          EWayBillConfig
-	GSTN              GSTNConfig
+	AppEnv               string
+	Port                 string
+	DatabaseURL          string
+	CookieSecret         string
+	APITokenSecret       string
+	SessionMaxAge        time.Duration
+	CookieSecure         bool
+	LogLevel             string
+	UploadDir            string
+	StaticDir            string
+	MaxUploadSize        int64
+	ExportMaxRows        int
+	DashboardSSEEnabled  bool
+	DashboardSSEInterval time.Duration
+	RazorpayKeyID        string
+	RazorpayKeySecret    string
+	RazorpayWebhook      string
+	BootstrapAdmin       BootstrapAdminConfig
+	RAG                  RAGConfig
+	Agent                AgentConfig
+	Experiment           ExperimentConfig
+	Telemetry            TelemetryConfig
+	LiveMap              LiveMapConfig
+	Alerts               AlertConfig
+	EWayBill             EWayBillConfig
+	GSTN                 GSTNConfig
 }
 
 // GSTNConfig holds configuration for GSTN / GSP / E-Invoicing (Spec 07).
@@ -176,21 +178,23 @@ func Load() *Config {
 	}
 
 	cfg := &Config{
-		AppEnv:            env,
-		Port:              getEnv("PORT", "8080"),
-		DatabaseURL:       getEnv("DATABASE_URL", "file:transport.db?mode=rwc&cache=shared&_foreign_keys=on&_journal_mode=WAL"),
-		CookieSecret:      getEnv("COOKIE_SECRET", "dev-secret-key-change-in-production-32b!"),
-		APITokenSecret:    getEnv("API_SECRET", ""),
-		SessionMaxAge:     sessionMaxAge,
-		CookieSecure:      cookieSecure,
-		LogLevel:          getEnv("LOG_LEVEL", "info"),
-		UploadDir:         getEnv("UPLOAD_DIR", "./uploads"),
-		StaticDir:         getEnv("STATIC_DIR", "internal/static"),
-		MaxUploadSize:     maxUpload,
-		ExportMaxRows:     getEnvInt("EXPORT_MAX_ROWS", 50000),
-		RazorpayKeyID:     getEnv("RAZORPAY_KEY_ID", ""),
-		RazorpayKeySecret: getEnv("RAZORPAY_KEY_SECRET", ""),
-		RazorpayWebhook:   os.Getenv("RAZORPAY_WEBHOOK_SECRET"),
+		AppEnv:               env,
+		Port:                 getEnv("PORT", "8080"),
+		DatabaseURL:          getEnv("DATABASE_URL", "file:transport.db?mode=rwc&cache=shared&_foreign_keys=on&_journal_mode=WAL"),
+		CookieSecret:         getEnv("COOKIE_SECRET", "dev-secret-key-change-in-production-32b!"),
+		APITokenSecret:       getEnv("API_SECRET", ""),
+		SessionMaxAge:        sessionMaxAge,
+		CookieSecure:         cookieSecure,
+		LogLevel:             getEnv("LOG_LEVEL", "info"),
+		UploadDir:            getEnv("UPLOAD_DIR", "./uploads"),
+		StaticDir:            getEnv("STATIC_DIR", "internal/static"),
+		MaxUploadSize:        maxUpload,
+		ExportMaxRows:        getEnvInt("EXPORT_MAX_ROWS", 50000),
+		DashboardSSEEnabled:  getEnvBool("DASHBOARD_SSE_ENABLED", true),
+		DashboardSSEInterval: time.Duration(getEnvInt("DASHBOARD_SSE_INTERVAL_SEC", 5)) * time.Second,
+		RazorpayKeyID:        getEnv("RAZORPAY_KEY_ID", ""),
+		RazorpayKeySecret:    getEnv("RAZORPAY_KEY_SECRET", ""),
+		RazorpayWebhook:      os.Getenv("RAZORPAY_WEBHOOK_SECRET"),
 		BootstrapAdmin: BootstrapAdminConfig{
 			Email:    os.Getenv("BOOTSTRAP_ADMIN_EMAIL"),
 			Name:     getEnv("BOOTSTRAP_ADMIN_NAME", "Admin"),

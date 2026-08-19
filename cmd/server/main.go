@@ -370,12 +370,15 @@ func main() {
 	r.Use(middleware.SecurityHeaders)
 	r.Use(apiversion.Middleware)
 	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer(reporter))
-	r.Use(chiMiddleware.Compress(5))
-	// Exempt the SSE stream from the global 60s request timeout (Spec 04 §1.2):
+	// Exempt the SSE streams from the global 60s request timeout (Spec 04 §1.2, Spec 12 §5.1):
 	// long-lived EventSource connections must outlive the deadline. REST polling
 	// (/live) is unaffected and remains the source of truth in multi-instance.
-	r.Use(middleware.SkipForPaths(chiMiddleware.Timeout(60*time.Second), "/api/v1/telemetry/stream"))
+	r.Use(middleware.SkipForPaths(
+		chiMiddleware.Timeout(60*time.Second),
+		"/dashboard/stream",
+		"/map/stream",
+		"/api/v1/telemetry/stream",
+	))
 	r.Use(middleware.SPAMiddleware)
 
 	// Global HTTP middleware: Limit request body to 32MB in RAM (prevents disk spooling)
@@ -916,8 +919,13 @@ func main() {
 
 			// Dashboard
 			r.Get("/dashboard", app.Dashboard.Index)
+			r.Get("/dashboard/stream", app.Dashboard.Stream)
 			r.Post("/dashboard/event", app.Dashboard.Event)
 			r.Get("/files/{id}", app.DownloadFile)
+
+			// Live Fleet Map (Spec 12 §2.2, §4.3)
+			r.Get("/map", app.Map.Page)
+			r.Get("/map/stream", app.Map.Stream)
 
 			// Ops dashboard (errors & incidents, login audit) - Admin only
 			r.With(middleware.RoleRequired(domain.DefaultRoleID(domain.RoleAdmin))).Get("/ops/dashboard", dashboardHandler.ServeHTTP)

@@ -1,9 +1,12 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"transport-app/internal/experiments"
 	"transport-app/internal/shared"
@@ -96,4 +99,59 @@ func (h *DashboardHandlers) Event(w http.ResponseWriter, r *http.Request) {
 	}
 	h.Experiments.RecordAsync(r.Context(), tenantID, userID, payload.Experiment, payload.Variant, payload.Event, payload.Meta)
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// Stream emits real-time SSE updates for the dashboard (Spec 12 §2.1).
+func (h *DashboardHandlers) Stream(w http.ResponseWriter, r *http.Request) {
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "streaming unsupported", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no")
+
+	if !h.Config.DashboardSSEEnabled {
+		// Graceful no-op: emit one snapshot then close
+		h.writeDashFrame(w, flusher, r.Context())
+		return
+	}
+
+	interval := h.Config.DashboardSSEInterval
+	if interval <= 0 {
+		interval = 5 * time.Second
+	}
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	// Prime immediately
+	h.writeDashFrame(w, flusher, r.Context())
+
+	for {
+		select {
+		case <-r.Context().Done():
+			return // Client disconnected
+		case <-ticker.C:
+			h.writeDashFrame(w, flusher, r.Context())
+		}
+	}
+}
+
+func (h *DashboardHandlers) writeDashFrame(w http.ResponseWriter, f http.Flusher, ctx context.Context) {
+	data, err := h.Services.Dashboard.GetDashboardData(ctx)
+	if err != nil {
+		return // Silently skip failed ticks
+	}
+
+	jsonBytes, err := json.Marshal(data)
+	if err != nil {
+		return
+	}
+
+	// Datastar v1.0.2 SSE integration format
+	fmt.Fprintf(w, "event: datastar-merge-signals\ndata: {\"dashboard\":%s}\n\n", jsonBytes)
+	f.Flush()
 }

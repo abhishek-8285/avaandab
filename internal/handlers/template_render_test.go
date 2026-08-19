@@ -396,6 +396,12 @@ func TestAllTemplatesRenderCleanly(t *testing.T) {
 				}},
 			},
 		})},
+		{"map.html", buildTemplateData(PageData{
+			Title: "Live Fleet Map",
+			Extra: map[string]interface{}{
+				"MapAssets": true,
+			},
+		})},
 	}
 
 	for _, tc := range testCases {
