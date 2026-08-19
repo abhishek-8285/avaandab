@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"html/template"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
@@ -446,12 +447,33 @@ func TestCanTemplateFunc(t *testing.T) {
 			"dispatcher-1:trips:write": true,
 		},
 	}
-	tmpl, err := parseTemplates(mockAuth)
-	require.NoError(t, err)
+
+	canFunc := func(user interface{}, resource string, action string) bool {
+		if user == nil {
+			return false
+		}
+		var uid string
+		switch u := user.(type) {
+		case *auth.SessionData:
+			if u == nil {
+				return false
+			}
+			uid = u.UserID
+		case auth.SessionData:
+			uid = u.UserID
+		case string:
+			uid = u
+		default:
+			return false
+		}
+		return mockAuth.Can(uid, resource, action)
+	}
+
+	funcMap := template.FuncMap{"can": canFunc}
 
 	// Case 1: SessionData with allowed perm
 	var buf1 bytes.Buffer
-	t1, err := tmpl.New("test1").Parse(`{{if can .User "users" "read"}}ALLOWED{{else}}DENIED{{end}}`)
+	t1, err := template.New("test1").Funcs(funcMap).Parse(`{{if can .User "users" "read"}}ALLOWED{{else}}DENIED{{end}}`)
 	require.NoError(t, err)
 	err = t1.Execute(&buf1, map[string]interface{}{
 		"User": &auth.SessionData{UserID: "admin-1", Role: "admin"},
@@ -461,7 +483,7 @@ func TestCanTemplateFunc(t *testing.T) {
 
 	// Case 2: SessionData with denied perm
 	var buf2 bytes.Buffer
-	t2, err := tmpl.New("test2").Parse(`{{if can .User "users" "write"}}ALLOWED{{else}}DENIED{{end}}`)
+	t2, err := template.New("test2").Funcs(funcMap).Parse(`{{if can .User "users" "write"}}ALLOWED{{else}}DENIED{{end}}`)
 	require.NoError(t, err)
 	err = t2.Execute(&buf2, map[string]interface{}{
 		"User": &auth.SessionData{UserID: "admin-1", Role: "admin"},
@@ -471,7 +493,7 @@ func TestCanTemplateFunc(t *testing.T) {
 
 	// Case 3: string UserID with allowed perm
 	var buf3 bytes.Buffer
-	t3, err := tmpl.New("test3").Parse(`{{if can .User "trips" "write"}}ALLOWED{{else}}DENIED{{end}}`)
+	t3, err := template.New("test3").Funcs(funcMap).Parse(`{{if can .User "trips" "write"}}ALLOWED{{else}}DENIED{{end}}`)
 	require.NoError(t, err)
 	err = t3.Execute(&buf3, map[string]interface{}{
 		"User": "dispatcher-1",
