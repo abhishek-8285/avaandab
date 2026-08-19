@@ -265,38 +265,14 @@
 <div class="space-y-6">
     <!-- Summary Cards -->
     <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
-        <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center">
-            <div class="text-stat text-primary tabular-nums text-xl sm:text-2xl font-bold">{{.Stats.TodaysTripsCount}}</div>
-            <div class="text-xs sm:text-sm text-secondary">Today's Trips</div>
-        </div>
-        <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center">
-            <div class="text-stat text-status-warning tabular-nums text-xl sm:text-2xl font-bold">{{.Stats.ActiveTripsCount}}</div>
-            <div class="text-xs sm:text-sm text-secondary">Active Trips</div>
-        </div>
-        <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center">
-            <div class="text-stat text-status-success tabular-nums text-xl sm:text-2xl font-bold">{{.Stats.CompletedTripsCount}}</div>
-            <div class="text-xs sm:text-sm text-secondary">Completed Trips</div>
-        </div>
-        <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center">
-            <div class="text-stat text-status-alert tabular-nums text-xl sm:text-2xl font-bold">{{.Stats.CancelledTripsCount}}</div>
-            <div class="text-xs sm:text-sm text-secondary">Cancelled Trips</div>
-        </div>
-        <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center">
-            <div class="text-stat text-primary tabular-nums text-xl sm:text-2xl font-bold">{{.Stats.AvailableVehiclesCount}}</div>
-            <div class="text-xs sm:text-sm text-secondary">Available Vehicles</div>
-        </div>
-        <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center">
-            <div class="text-stat text-primary tabular-nums text-xl sm:text-2xl font-bold">{{.Stats.AvailableDriversCount}}</div>
-            <div class="text-xs sm:text-sm text-secondary">Available Drivers</div>
-        </div>
-        <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center">
-            <div class="text-stat text-status-warning tabular-nums text-xl sm:text-2xl font-bold">{{.Stats.PendingPaymentsCount}}</div>
-            <div class="text-xs sm:text-sm text-secondary">Pending Payments</div>
-        </div>
-        <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center">
-            <div class="text-stat text-primary tabular-nums text-xl sm:text-2xl font-bold">{{printf "%.2f" .Stats.MonthlyRevenue}}</div>
-            <div class="text-xs sm:text-sm text-secondary">Monthly Revenue</div>
-        </div>
+        {{template "stat_card.html" (dict "Value" .Stats.TodaysTripsCount "Label" "Today's Trips" "Accent" "primary")}}
+        {{template "stat_card.html" (dict "Value" .Stats.ActiveTripsCount "Label" "Active Trips" "Accent" "warning")}}
+        {{template "stat_card.html" (dict "Value" .Stats.CompletedTripsCount "Label" "Completed Trips" "Accent" "success")}}
+        {{template "stat_card.html" (dict "Value" .Stats.CancelledTripsCount "Label" "Cancelled Trips" "Accent" "alert")}}
+        {{template "stat_card.html" (dict "Value" .Stats.AvailableVehiclesCount "Label" "Available Vehicles" "Accent" "primary")}}
+        {{template "stat_card.html" (dict "Value" .Stats.AvailableDriversCount "Label" "Available Drivers" "Accent" "primary")}}
+        {{template "stat_card.html" (dict "Value" .Stats.PendingPaymentsCount "Label" "Pending Payments" "Accent" "warning")}}
+        {{template "stat_card.html" (dict "Value" (printf "₹%.2f" .Stats.MonthlyRevenue) "Label" "Monthly Revenue" "Accent" "primary")}}
     </div>
 
     <!-- Upcoming Trips -->

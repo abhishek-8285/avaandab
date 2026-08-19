@@ -2,12 +2,18 @@ package handlers
 
 import (
 	"bytes"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"transport-app/internal/auth"
 	"transport-app/internal/booking/application"
+	"transport-app/internal/domain"
 	driverapp "transport-app/internal/driver/application"
 	"transport-app/internal/ewaybill"
 	invoiceapp "transport-app/internal/invoice/application"
@@ -16,9 +22,17 @@ import (
 )
 
 // mockAuthSvc provides a mock AuthorizationService for template testing.
-type mockAuthSvc struct{}
+type mockAuthSvc struct {
+	allowed map[string]bool
+}
 
-func (m *mockAuthSvc) Can(userID, resource, action string) bool { return true }
+func (m *mockAuthSvc) Can(userID, resource, action string) bool {
+	if m.allowed == nil {
+		return true
+	}
+	key := userID + ":" + resource + ":" + action
+	return m.allowed[key]
+}
 func (m *mockAuthSvc) Reload() error                            { return nil }
 func (m *mockAuthSvc) AddRoleForUser(userID, role string) error { return nil }
 func (m *mockAuthSvc) DeleteRolesForUser(userID string) error   { return nil }
@@ -117,11 +131,38 @@ func TestAllTemplatesRenderCleanly(t *testing.T) {
 			"Query":        "",
 			"StatusFilter": "",
 		}},
+		{"trip_list_table.html", map[string]interface{}{
+			"Trips":      []tripapp.TripResponseDTO{sampleTripDTO},
+			"Pagination": dummyPagination,
+		}},
 		{"booking_list.html", map[string]interface{}{
 			"Bookings":     []application.BookingResponseDTO{sampleBookingDTO},
 			"Pagination":   dummyPagination,
 			"Query":        "",
 			"StatusFilter": "",
+		}},
+		{"booking_list_table.html", map[string]interface{}{
+			"Bookings":   []application.BookingResponseDTO{sampleBookingDTO},
+			"Pagination": dummyPagination,
+		}},
+		{"vehicle_list.html", map[string]interface{}{
+			"Vehicles":     []domain.Vehicle{{ID: "veh-1", RegistrationNumber: "KA-01-1234", VehicleNumber: "V1", VehicleType: domain.VehicleTypeTruck, Capacity: 5000, FuelType: domain.FuelTypeDiesel, Status: domain.VehicleAvailable}},
+			"Pagination":   dummyPagination,
+			"Query":        "",
+			"StatusFilter": "",
+		}},
+		{"vehicle_list_table.html", map[string]interface{}{
+			"Vehicles":   []domain.Vehicle{{ID: "veh-1", RegistrationNumber: "KA-01-1234", VehicleNumber: "V1", VehicleType: domain.VehicleTypeTruck, Capacity: 5000, FuelType: domain.FuelTypeDiesel, Status: domain.VehicleAvailable}},
+			"Pagination": dummyPagination,
+		}},
+		{"customer_list.html", map[string]interface{}{
+			"Customers":  []domain.Customer{{ID: "c-1", Name: "Customer 1", Phone: "9999999999"}},
+			"Pagination": dummyPagination,
+			"Query":      "",
+		}},
+		{"customer_list_table.html", map[string]interface{}{
+			"Customers":  []domain.Customer{{ID: "c-1", Name: "Customer 1", Phone: "9999999999"}},
+			"Pagination": dummyPagination,
 		}},
 		{"invoice_list.html", map[string]interface{}{
 			"Invoices":     []invoiceapp.InvoiceResponseDTO{sampleInvoiceDTO},
@@ -129,7 +170,16 @@ func TestAllTemplatesRenderCleanly(t *testing.T) {
 			"Query":        "",
 			"StatusFilter": "",
 		}},
+		{"invoice_list_table.html", map[string]interface{}{
+			"Invoices":   []invoiceapp.InvoiceResponseDTO{sampleInvoiceDTO},
+			"Pagination": dummyPagination,
+		}},
 		{"payment_list.html", map[string]interface{}{
+			"Payments":   []paymentapp.PaymentResponseDTO{samplePaymentDTO},
+			"Pagination": dummyPagination,
+			"Method":     "",
+		}},
+		{"payment_list_table.html", map[string]interface{}{
 			"Payments":   []paymentapp.PaymentResponseDTO{samplePaymentDTO},
 			"Pagination": dummyPagination,
 		}},
@@ -138,6 +188,38 @@ func TestAllTemplatesRenderCleanly(t *testing.T) {
 			"Pagination":   dummyPagination,
 			"Query":        "",
 			"StatusFilter": "",
+		}},
+		{"driver_list_table.html", map[string]interface{}{
+			"Drivers":    []driverapp.DriverResponseDTO{sampleDriverDTO},
+			"Pagination": dummyPagination,
+		}},
+		{"user_list.html", map[string]interface{}{
+			"Users":        []domain.User{{ID: "u-1", Name: "User 1", Email: "u1@example.com", Role: domain.Role{Name: domain.RoleAdmin}, Status: domain.UserStatusActive}},
+			"Pagination":   dummyPagination,
+			"Query":        "",
+			"StatusFilter": "",
+		}},
+		{"user_list_table.html", map[string]interface{}{
+			"Users":      []domain.User{{ID: "u-1", Name: "User 1", Email: "u1@example.com", Role: domain.Role{Name: domain.RoleAdmin}, Status: domain.UserStatusActive}},
+			"Pagination": dummyPagination,
+		}},
+		{"route_list.html", map[string]interface{}{
+			"Routes":     []domain.Route{{ID: "r-1", Source: "Mumbai", Destination: "Pune", Distance: 150, EstimatedHours: 3.5, StandardFare: 4500}},
+			"Pagination": dummyPagination,
+			"Query":      "",
+		}},
+		{"route_list_table.html", map[string]interface{}{
+			"Routes":     []domain.Route{{ID: "r-1", Source: "Mumbai", Destination: "Pune", Distance: 150, EstimatedHours: 3.5, StandardFare: 4500}},
+			"Pagination": dummyPagination,
+		}},
+		{"audit_logs_list.html", map[string]interface{}{
+			"AuditLogs":  []map[string]interface{}{{"CreatedAt": time.Now(), "UserName": "Admin", "Action": "create", "TableName": "vehicles", "RecordID": "veh-1"}},
+			"Pagination": dummyPagination,
+			"Query":      "",
+		}},
+		{"audit_logs_list_table.html", map[string]interface{}{
+			"AuditLogs":  []map[string]interface{}{{"CreatedAt": time.Now(), "UserName": "Admin", "Action": "create", "TableName": "vehicles", "RecordID": "veh-1"}},
+			"Pagination": dummyPagination,
 		}},
 		{"driver_view.html", buildTemplateData(PageData{
 			Title: "View Driver",
@@ -327,4 +409,80 @@ func TestAllTemplatesRenderCleanly(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRenderFragment_ListTables(t *testing.T) {
+	tmpl, err := parseTemplates(&mockAuthSvc{})
+	require.NoError(t, err)
+
+	app := &App{Templates: tmpl}
+	tables := []string{
+		"vehicle_list_table.html",
+		"customer_list_table.html",
+		"invoice_list_table.html",
+		"driver_list_table.html",
+		"user_list_table.html",
+		"route_list_table.html",
+		"payment_list_table.html",
+		"trip_list_table.html",
+		"audit_logs_list_table.html",
+		"booking_list_table.html",
+	}
+
+	for _, tbl := range tables {
+		t.Run(tbl, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			app.renderFragment(w, tbl, map[string]interface{}{})
+			assert.Equal(t, 200, w.Code)
+			assert.NotEmpty(t, w.Body.String())
+		})
+	}
+}
+
+func TestCanTemplateFunc(t *testing.T) {
+	mockAuth := &mockAuthSvc{
+		allowed: map[string]bool{
+			"admin-1:users:read":       true,
+			"dispatcher-1:trips:write": true,
+		},
+	}
+	tmpl, err := parseTemplates(mockAuth)
+	require.NoError(t, err)
+
+	// Case 1: SessionData with allowed perm
+	var buf1 bytes.Buffer
+	t1, err := tmpl.New("test1").Parse(`{{if can .User "users" "read"}}ALLOWED{{else}}DENIED{{end}}`)
+	require.NoError(t, err)
+	err = t1.Execute(&buf1, map[string]interface{}{
+		"User": &auth.SessionData{UserID: "admin-1", Role: "admin"},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "ALLOWED", buf1.String())
+
+	// Case 2: SessionData with denied perm
+	var buf2 bytes.Buffer
+	t2, err := tmpl.New("test2").Parse(`{{if can .User "users" "write"}}ALLOWED{{else}}DENIED{{end}}`)
+	require.NoError(t, err)
+	err = t2.Execute(&buf2, map[string]interface{}{
+		"User": &auth.SessionData{UserID: "admin-1", Role: "admin"},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "DENIED", buf2.String())
+
+	// Case 3: string UserID with allowed perm
+	var buf3 bytes.Buffer
+	t3, err := tmpl.New("test3").Parse(`{{if can .User "trips" "write"}}ALLOWED{{else}}DENIED{{end}}`)
+	require.NoError(t, err)
+	err = t3.Execute(&buf3, map[string]interface{}{
+		"User": "dispatcher-1",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "ALLOWED", buf3.String())
+}
+
+func TestLayoutNoHardcodedAdminRole(t *testing.T) {
+	content, err := os.ReadFile("internal/templates/layout.html")
+	require.NoError(t, err)
+
+	assert.NotContains(t, string(content), `eq .User.Role "admin"`, "layout.html should not contain hardcoded role check")
 }

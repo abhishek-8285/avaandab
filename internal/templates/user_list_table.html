@@ -15,7 +15,7 @@
             <tr class="hover:bg-surface-container-low transition-colors group">
                 <td class="td-cell-strong">{{.Name}}</td>
                 <td class="td-cell font-mono text-xs">{{.Email}}</td>
-                <td class="td-cell font-medium">{{.RoleName}}</td>
+                <td class="td-cell font-medium">{{if .Role}}{{.Role.Name}}{{else}}{{.RoleName}}{{end}}</td>
                 <td class="td-cell">
                     <span class="status-badge {{statusBadge .Status}}">{{.Status}}</span>
                 </td>

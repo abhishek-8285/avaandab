@@ -721,15 +721,20 @@ func (a *App) DownloadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Role-based authorization:
-	// - Staff roles (Admin, Dispatcher, Accountant) have broad operational access.
+	// Authorization check:
+	// - Users with "files:read" permission have broad access.
 	// - Public tenant assets ("company_logo", "logo") are accessible to all authenticated users.
 	// - Specific uploads owned by the user (matching UploadableID).
-	isStaff := session.Role == "admin" || session.Role == "dispatcher" || session.Role == "accountant"
+	isAllowed := false
+	if a.AuthSrv != nil {
+		isAllowed = a.AuthSrv.Can(session.UserID, "files", "read")
+	} else {
+		isAllowed = session.Role == "admin" || session.Role == "dispatcher" || session.Role == "accountant"
+	}
 	isPublicAsset := file.UploadableType == "company_logo" || file.UploadableType == "logo"
 	isOwner := file.UploadableID != nil && *file.UploadableID == session.UserID
 
-	if !isStaff && !isPublicAsset && !isOwner {
+	if !isAllowed && !isPublicAsset && !isOwner {
 		a.renderError(w, http.StatusForbidden, "Access Denied", "You do not have permission to access this file.", nil)
 		return
 	}

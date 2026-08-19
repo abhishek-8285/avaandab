@@ -9,86 +9,56 @@
 
     <form method="POST" action="/vehicles{{if $vehicle}}/{{$vehicle.ID}}/edit{{else}}/new{{end}}" class="space-y-4">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                <label class="block text-sm font-medium text-on-surface-variant">Registration Number *</label>
-                <input type="text" name="registration_number" value="{{if $vehicle}}{{$vehicle.RegistrationNumber}}{{end}}" required
-                    class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-on-surface-variant">Vehicle Number *</label>
-                <input type="text" name="vehicle_number" value="{{if $vehicle}}{{$vehicle.VehicleNumber}}{{end}}" required
-                    class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
-            </div>
+            {{template "field.html" (dict "Label" "Registration Number" "Name" "registration_number" "Value" (and $vehicle $vehicle.RegistrationNumber) "Required" "true")}}
+            {{template "field.html" (dict "Label" "Vehicle Number" "Name" "vehicle_number" "Value" (and $vehicle $vehicle.VehicleNumber) "Required" "true")}}
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-                <label class="block text-sm font-medium text-on-surface-variant">Vehicle Type</label>
-                <select name="vehicle_type" class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
-                    <option value="truck" {{if eq $vehicle.VehicleType "truck"}}selected{{end}}>Truck</option>
-                    <option value="mini_truck" {{if eq $vehicle.VehicleType "mini_truck"}}selected{{end}}>Mini Truck</option>
-                    <option value="bus" {{if eq $vehicle.VehicleType "bus"}}selected{{end}}>Bus</option>
-                    <option value="van" {{if eq $vehicle.VehicleType "van"}}selected{{end}}>Van</option>
-                    <option value="pickup" {{if eq $vehicle.VehicleType "pickup"}}selected{{end}}>Pickup</option>
-                    <option value="tempo" {{if eq $vehicle.VehicleType "tempo"}}selected{{end}}>Tempo</option>
+                <label class="block text-sm font-medium text-on-surface-variant mb-1.5">Vehicle Type</label>
+                <select name="vehicle_type" class="w-full rounded-md border border-border-subtle bg-surface-container-lowest px-3 py-2 text-on-surface text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition">
+                    <option value="truck" {{if and $vehicle (eq $vehicle.VehicleType "truck")}}selected{{end}}>Truck</option>
+                    <option value="mini_truck" {{if and $vehicle (eq $vehicle.VehicleType "mini_truck")}}selected{{end}}>Mini Truck</option>
+                    <option value="bus" {{if and $vehicle (eq $vehicle.VehicleType "bus")}}selected{{end}}>Bus</option>
+                    <option value="van" {{if and $vehicle (eq $vehicle.VehicleType "van")}}selected{{end}}>Van</option>
+                    <option value="pickup" {{if and $vehicle (eq $vehicle.VehicleType "pickup")}}selected{{end}}>Pickup</option>
+                    <option value="tempo" {{if and $vehicle (eq $vehicle.VehicleType "tempo")}}selected{{end}}>Tempo</option>
                 </select>
             </div>
-            <div>
-                <label class="block text-sm font-medium text-on-surface-variant">Capacity (seats/kg)</label>
-                <input type="number" name="capacity" value="{{if $vehicle}}{{$vehicle.Capacity}}{{end}}"
-                    class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
-            </div>
+            {{template "field.html" (dict "Label" "Capacity (seats/kg)" "Name" "capacity" "Type" "number" "Value" (and $vehicle $vehicle.Capacity))}}
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols">
+        <div class="grid grid-cols-1">
             <div>
-                <label class="block text-sm font-medium text-on-surface-variant">Fuel Type</label>
-                <select name="fuel_type" class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
-                    <option value="diesel" {{if eq $vehicle.FuelType "diesel"}}selected{{end}}>Diesel</option>
-                    <option value="petrol" {{if eq $vehicle.FuelType "petrol"}}selected{{end}}>Petrol</option>
-                    <option value="gas" {{if eq $vehicle.FuelType "gas"}}selected{{end}}>Gas</option>
-                    <option value="electric" {{if eq $vehicle.FuelType "electric"}}selected{{end}}>Electric</option>
-                    <option value="cng" {{if eq $vehicle.FuelType "cng"}}selected{{end}}>CNG</option>
+                <label class="block text-sm font-medium text-on-surface-variant mb-1.5">Fuel Type</label>
+                <select name="fuel_type" class="w-full rounded-md border border-border-subtle bg-surface-container-lowest px-3 py-2 text-on-surface text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition">
+                    <option value="diesel" {{if and $vehicle (eq $vehicle.FuelType "diesel")}}selected{{end}}>Diesel</option>
+                    <option value="petrol" {{if and $vehicle (eq $vehicle.FuelType "petrol")}}selected{{end}}>Petrol</option>
+                    <option value="gas" {{if and $vehicle (eq $vehicle.FuelType "gas")}}selected{{end}}>Gas</option>
+                    <option value="electric" {{if and $vehicle (eq $vehicle.FuelType "electric")}}selected{{end}}>Electric</option>
+                    <option value="cng" {{if and $vehicle (eq $vehicle.FuelType "cng")}}selected{{end}}>CNG</option>
                 </select>
             </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-                <label class="block text-sm font-medium text-on-surface-variant">Insurance Expiry *</label>
-                <input type="date" name="insurance_expiry" value="{{if $vehicle}}{{date_only $vehicle.InsuranceExpiry}}{{end}}" required
-                    class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-on-surface-variant">Fitness Expiry *</label>
-                <input type="date" name="fitness_expiry" value="{{if $vehicle}}{{date_only $vehicle.FitnessExpiry}}{{end}}" required
-                    class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-on-surface-variant">Permit Expiry *</label>
-                <input type="date" name="permit_expiry" value="{{if $vehicle}}{{date_only $vehicle.PermitExpiry}}{{end}}" required
-                    class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-on-surface-variant">PUC Expiry</label>
-                <input type="date" name="puc_expiry" value="{{if and $vehicle $vehicle.PUCExpiry}}{{date_only $vehicle.PUCExpiry}}{{end}}"
-                    class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
-            </div>
+            {{template "field.html" (dict "Label" "Insurance Expiry" "Name" "insurance_expiry" "Type" "date" "Value" (and $vehicle (date_only $vehicle.InsuranceExpiry)) "Required" "true")}}
+            {{template "field.html" (dict "Label" "Fitness Expiry" "Name" "fitness_expiry" "Type" "date" "Value" (and $vehicle (date_only $vehicle.FitnessExpiry)) "Required" "true")}}
+            {{template "field.html" (dict "Label" "Permit Expiry" "Name" "permit_expiry" "Type" "date" "Value" (and $vehicle (date_only $vehicle.PermitExpiry)) "Required" "true")}}
+            {{template "field.html" (dict "Label" "PUC Expiry" "Name" "puc_expiry" "Type" "date" "Value" (and $vehicle $vehicle.PUCExpiry (date_only $vehicle.PUCExpiry)))}}
         </div>
 
         <div>
-            <label class="block text-sm font-medium text-on-surface-variant">Current Mileage (km)</label>
-                <input type="number" step="0.1" name="current_mileage" value="{{if $vehicle}}{{if $vehicle.CurrentMileage}}{{$vehicle.CurrentMileage}}{{end}}{{end}}"
-                class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+            {{template "field.html" (dict "Label" "Current Mileage (km)" "Name" "current_mileage" "Type" "number" "Value" (and $vehicle $vehicle.CurrentMileage))}}
         </div>
 
         <div>
-            <label class="block text-sm font-medium text-on-surface-variant">Status</label>
-            <select name="status" class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
-                <option value="available" {{if eq $vehicle.Status "available"}}selected{{end}}>Available</option>
-                <option value="running" {{if eq $vehicle.Status "running"}}selected{{end}}>Running</option>
-                <option value="maintenance" {{if eq $vehicle.Status "maintenance"}}selected{{end}}>Maintenance</option>
-                <option value="inactive" {{if eq $vehicle.Status "inactive"}}selected{{end}}>Inactive</option>
+            <label class="block text-sm font-medium text-on-surface-variant mb-1.5">Status</label>
+            <select name="status" class="w-full rounded-md border border-border-subtle bg-surface-container-lowest px-3 py-2 text-on-surface text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition">
+                <option value="available" {{if and $vehicle (eq $vehicle.Status "available")}}selected{{end}}>Available</option>
+                <option value="running" {{if and $vehicle (eq $vehicle.Status "running")}}selected{{end}}>Running</option>
+                <option value="maintenance" {{if and $vehicle (eq $vehicle.Status "maintenance")}}selected{{end}}>Maintenance</option>
+                <option value="inactive" {{if and $vehicle (eq $vehicle.Status "inactive")}}selected{{end}}>Inactive</option>
             </select>
         </div>
 
@@ -98,11 +68,17 @@
                 <span class="material-symbols-outlined text-amber-500 text-base">warning</span>
                 Preventive Maintenance Due Since {{.MaintenanceDue}}
             </h4>
-            {{if .IsMaintenanceOverridden}}
-            <p class="text-xs text-blue-600 dark:text-blue-400">Override active by {{.MaintenanceOverrideBy}} ({{.MaintenanceOverrideReason}})</p>
-            {{else}}
-            <p class="text-xs text-red-600 dark:text-red-400">Dispatch currently blocked.</p>
-            {{end}}
+            <p class="text-xs text-secondary">
+                This vehicle is overdue for scheduled maintenance. Dispatch is blocked unless an override is provided below.
+            </p>
+            <div class="pt-2">
+                <label class="block text-xs font-semibold text-secondary uppercase tracking-wider mb-1">
+                    Dispatcher Override Reason
+                </label>
+                <input type="text" name="maintenance_override_reason"
+                    placeholder="Enter reason for maintenance override..."
+                    class="w-full text-sm border border-border-subtle rounded px-3 py-1.5 bg-surface-container-lowest text-on-surface focus:outline-none focus:border-primary">
+            </div>
         </div>
         {{end}}
 

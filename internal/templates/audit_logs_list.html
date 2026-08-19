@@ -1,3 +1,5 @@
+{{template "page_header.html" (dict "Title" "Audit Logs" "Subtitle" "View security audit trails and data mutation history")}}
+
 <div class="bg-surface-container-lowest border border-border-subtle rounded shadow-sm flex flex-col h-full overflow-hidden">
     <!-- Sticky Search & Filter Bar (Stitch Design) -->
     <form method="GET" action="/audit-logs" class="px-4 py-2 border-b border-border-subtle flex flex-wrap items-center gap-2 bg-surface-container-lowest sticky top-0 z-10">
@@ -9,40 +11,8 @@
         {{template "btn.html" (dict "Variant" "primary" "Size" "sm" "Label" "Filter" "Type" "submit")}}
     </form>
 
-    <!-- Data Table (Stitch Design) -->
-    <div class="flex-1 overflow-x-auto">
-        <table class="w-full text-left border-collapse min-w-full">
-            <thead class="sticky top-0 bg-surface-container-lowest z-10 border-b border-border-subtle">
-                <tr>
-                    <th class="th-cell">Timestamp</th>
-                    <th class="th-cell">User Account</th>
-                    <th class="th-cell">Action</th>
-                    <th class="th-cell">Target Table</th>
-                    <th class="th-cell">Record ID</th>
-                    <th class="th-cell">IP Address</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-border-subtle font-body-sm text-sm text-on-surface">
-                {{range .AuditLogs}}
-                <tr class="hover:bg-surface-container-low transition-colors group">
-                    <td class="td-cell font-mono text-xs">{{datetime .CreatedAt}}</td>
-                    <td class="td-cell">{{if .UserName}}{{.UserName}}{{else}}<span class="text-text-muted">System</span>{{end}}</td>
-                    <td class="td-cell-strong uppercase">{{.Action}}</td>
-                    <td class="td-cell font-mono text-xs">{{.TableName}}</td>
-                    <td class="td-cell font-mono text-xs">{{if .RecordID}}{{.RecordID}}{{else}}-{{end}}</td>
-                    <td class="td-cell font-mono text-xs">{{if .IPAddress}}{{.IPAddress}}{{else}}-{{end}}</td>
-                </tr>
-                {{else}}
-                <tr>
-                    <td colspan="6" class="py-16 text-center text-text-muted">
-                        <span class="material-icons text-4xl text-text-muted mb-2 block">history</span>
-                        <p class="font-medium text-base">No audit log records found.</p>
-                    </td>
-                </tr>
-                {{end}}
-            </tbody>
-        </table>
+    <!-- Data Table Fragment (Datastar refresh target) -->
+    <div id="list-table">
+        {{template "audit_logs_list_table.html" .}}
     </div>
-
-    {{template "pagination.html" .}}
 </div>
