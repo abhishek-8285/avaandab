@@ -19,6 +19,7 @@ import (
 	"transport-app/internal/ewaybill"
 	invoiceapp "transport-app/internal/invoice/application"
 	paymentapp "transport-app/internal/payment/application"
+	"transport-app/internal/service"
 	tripapp "transport-app/internal/trip/application"
 )
 
@@ -50,6 +51,7 @@ func TestAllTemplatesRenderCleanly(t *testing.T) {
 		t.Fatalf("Failed to parse templates: %v", err)
 	}
 
+	sampleReg := "MH12AB1234"
 	sampleTripDTO := tripapp.TripResponseDTO{
 		ID:                        "trip-1",
 		TripNumber:                "TRIP-001",
@@ -402,6 +404,76 @@ func TestAllTemplatesRenderCleanly(t *testing.T) {
 				"MapAssets": true,
 			},
 		})},
+		{"settlement_list.html", buildTemplateData(PageData{
+			Title: "Driver Settlements",
+			Extra: map[string]interface{}{
+				"Settlements": []service.DriverSettlementRecord{{
+					ID:               "stl-1",
+					TripID:           "trip-1",
+					DriverID:         "drv-1",
+					GrossFare:        10000,
+					CommissionAmount: 1000,
+					AdvancesKharcha:  500,
+					Deductions:       200,
+					TDSRate:          1.0,
+					TDSAmount:        100,
+					NetPayout:        8200,
+					RateModel:        "FIXED_PER_TRIP",
+					Status:           "pending",
+					CreatedAt:        time.Now(),
+				}},
+				"TotalPending": 8200.0,
+				"TotalPaid":    0.0,
+				"AvgPayout":    8200.0,
+				"TotalCount":   1,
+				"StatusFilter": "",
+			},
+		})},
+		{"settlement_view.html", buildTemplateData(PageData{
+			Title: "Settlement Details",
+			Extra: map[string]interface{}{
+				"Settlement": &service.DriverSettlementRecord{
+					ID:               "stl-1",
+					TripID:           "trip-1",
+					DriverID:         "drv-1",
+					GrossFare:        10000,
+					CommissionAmount: 1000,
+					AdvancesKharcha:  500,
+					Deductions:       200,
+					TDSRate:          1.0,
+					TDSAmount:        100,
+					NetPayout:        8200,
+					RateModel:        "FIXED_PER_TRIP",
+					Status:           "pending",
+					CreatedAt:        time.Now(),
+				},
+				"Lines": []service.SettlementLine{{
+					ID:           "line-1",
+					SettlementID: "stl-1",
+					TripID:       "trip-1",
+					LineType:     "gross_fare",
+					Label:        "Trip Gross Fare",
+					Amount:       10000,
+					CreatedAt:    time.Now(),
+				}},
+			},
+		})},
+		{"ewaybill_card.html", map[string]interface{}{
+			"User":   &auth.SessionData{UserID: "u-1", Role: "admin"},
+			"Trip":   map[string]string{"ID": "trip-1"},
+			"TripID": "trip-1",
+			"EWayBill": &ewaybill.EWayBillRecord{
+				ID:             "ewb-1",
+				TripID:         "trip-1",
+				EwbNumber:      "EWB-12345",
+				FromPlace:      "Mumbai",
+				ToPlace:        "Pune",
+				Status:         "active",
+				ValidUntil:     time.Now().Add(24 * time.Hour),
+				VehicleNumber:  &sampleReg,
+				ExtensionCount: 0,
+			},
+		}},
 	}
 
 	for _, tc := range testCases {

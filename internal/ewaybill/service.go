@@ -133,8 +133,8 @@ func (s *EWayBillService) GeneratePartA(ctx context.Context, req GeneratePartARe
 
 	// 1. Resolve trip, route, customer, booking data
 	var bookingPrice, routeDist, standardFare float64
-	var tripNumber, routeSource, routeDest, custGST string
-	var compGST, compState, vehicleNumber sql.NullString
+	var tripNumber, routeSource, routeDest string
+	var custGST, compGST, compState, vehicleNumber sql.NullString
 
 	err := s.db.QueryRowContext(ctx, `
 		SELECT t.trip_number, r.source, r.destination, r.distance, r.standard_fare,
@@ -189,7 +189,7 @@ func (s *EWayBillService) GeneratePartA(ctx context.Context, req GeneratePartARe
 		req.FromGSTIN = compGST.String
 	}
 	if req.ToGSTIN == "" {
-		req.ToGSTIN = custGST
+		req.ToGSTIN = custGST.String
 	}
 	if req.FromStateCode == "" {
 		if compState.Valid && compState.String != "" {

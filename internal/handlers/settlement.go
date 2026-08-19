@@ -3,8 +3,10 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -14,7 +16,7 @@ import (
 	"transport-app/internal/service"
 )
 
-// SettlementHandlers exposes REST APIs for driver settlements, rate calculations, TDS, and dispute workflows.
+// SettlementHandlers exposes REST APIs and Web UI for driver settlements, rate calculations, TDS, and dispute workflows.
 type SettlementHandlers struct {
 	*App
 	settleSvc *service.DriverSettlementService
@@ -44,66 +46,168 @@ func (h *SettlementHandlers) Mount(r chi.Router) {
 
 	r.Route("/api/settlements", setupRoutes)
 	r.Route("/api/v1/settlements", setupRoutes)
+
+	// Web UI routes (Spec 12 §4.5)
+	r.With(middleware.ResourcePermission(h.authSrv, "settlements", "read")).Get("/settlements", h.ListPage)
+	r.With(middleware.ResourcePermission(h.authSrv, "settlements", "read")).Get("/settlements/{id}", h.ViewPage)
+	r.With(middleware.ResourcePermission(h.authSrv, "settlements", "write")).Post("/settlements/generate", h.Generate)
+	r.With(middleware.ResourcePermission(h.authSrv, "settlements", "approve")).Post("/settlements/{id}/mark-paid", h.MarkPaid)
+	r.With(middleware.ResourcePermission(h.authSrv, "settlements", "read")).Post("/settlements/{id}/confirm", h.Confirm)
+	r.With(middleware.ResourcePermission(h.authSrv, "settlements", "read")).Post("/settlements/{id}/dispute", h.Dispute)
+}
+
+// ListPage renders the driver settlements dashboard list page (Spec 12 §4.5).
+func (h *SettlementHandlers) ListPage(w http.ResponseWriter, r *http.Request) {
+	session, _ := h.getUserFromContext(r)
+	status := r.URL.Query().Get("status")
+	driverID := r.URL.Query().Get("driver_id")
+
+	results, err := h.settleSvc.ListSettlements(r.Context(), status, driverID, 1000, 0)
+	if err != nil {
+		results = []service.DriverSettlementRecord{}
+	}
+
+	var totalPending float64
+	var totalPaid float64
+	var totalAmount float64
+
+	for _, s := range results {
+		totalAmount += s.NetPayout
+		if s.Status == "pending" {
+			totalPending += s.NetPayout
+		} else if s.Status == "paid" {
+			totalPaid += s.NetPayout
+		}
+	}
+
+	var avgPayout float64
+	if len(results) > 0 {
+		avgPayout = totalAmount / float64(len(results))
+	}
+
+	h.renderPage(w, r, "settlement_list.html", PageData{
+		Title: "Driver Settlements",
+		User:  session,
+		Extra: map[string]interface{}{
+			"Settlements":  results,
+			"TotalPending": totalPending,
+			"TotalPaid":    totalPaid,
+			"AvgPayout":    avgPayout,
+			"TotalCount":   len(results),
+			"StatusFilter": status,
+		},
+	})
+}
+
+// ViewPage renders the settlement detail financial ledger page (Spec 12 §4.5).
+func (h *SettlementHandlers) ViewPage(w http.ResponseWriter, r *http.Request) {
+	session, _ := h.getUserFromContext(r)
+	id := chi.URLParam(r, "id")
+
+	rec, err := h.settleSvc.GetSettlement(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, service.ErrSettlementNotFound) {
+			h.renderError(w, http.StatusNotFound, "Settlement Not Found", fmt.Sprintf("No settlement found with ID %q.", id), session)
+			return
+		}
+		h.renderError(w, http.StatusInternalServerError, "Server Error", err.Error(), session)
+		return
+	}
+
+	h.renderPage(w, r, "settlement_view.html", PageData{
+		Title: fmt.Sprintf("Settlement #%s", id),
+		User:  session,
+		Extra: map[string]interface{}{
+			"Settlement": rec,
+			"Lines":      rec.Lines,
+		},
+	})
 }
 
 // Generate handles settlement generation (and recalculation if force_recompute=true).
 func (h *SettlementHandlers) Generate(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		TripID         string `json:"trip_id"`
-		ForceRecompute bool   `json:"force_recompute"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.TripID == "" {
-		http.Error(w, `{"error":"invalid_request","message":"trip_id is required"}`, http.StatusBadRequest)
-		return
+	var tripID string
+	var forceRecompute bool
+
+	if wantsJSON(r) || strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+		var req struct {
+			TripID         string `json:"trip_id"`
+			ForceRecompute bool   `json:"force_recompute"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err == nil {
+			tripID = req.TripID
+			forceRecompute = req.ForceRecompute
+		}
+	} else {
+		tripID = r.FormValue("trip_id")
+		forceRecompute = r.FormValue("force_recompute") == "true"
 	}
 
-	rec, err := h.settleSvc.GenerateSettlement(r.Context(), req.TripID, req.ForceRecompute)
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		switch {
-		case errors.Is(err, service.ErrTripNotFound):
-			w.WriteHeader(http.StatusNotFound)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": "trip_not_found", "message": "Trip not found"})
-		case errors.Is(err, service.ErrDriverNotAssigned):
-			w.WriteHeader(http.StatusConflict)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": "driver_not_assigned", "message": "Driver not assigned to trip"})
-		case errors.Is(err, service.ErrBookingPriceMissing):
-			w.WriteHeader(http.StatusUnprocessableEntity)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": "booking_price_missing", "message": "Booking price missing for commission rate calculation"})
-		default:
-			w.WriteHeader(http.StatusInternalServerError)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": "settlement_failed", "message": err.Error()})
+	if tripID == "" {
+		if wantsJSON(r) {
+			http.Error(w, `{"error":"invalid_request","message":"trip_id is required"}`, http.StatusBadRequest)
+		} else {
+			http.Error(w, "trip_id is required", http.StatusBadRequest)
 		}
 		return
 	}
 
-	var rateBasis map[string]interface{}
-	if rec.RateBasisJSON != "" {
-		_ = json.Unmarshal([]byte(rec.RateBasisJSON), &rateBasis)
+	rec, err := h.settleSvc.GenerateSettlement(r.Context(), tripID, forceRecompute)
+	if err != nil {
+		if wantsJSON(r) {
+			w.Header().Set("Content-Type", "application/json")
+			switch {
+			case errors.Is(err, service.ErrTripNotFound):
+				w.WriteHeader(http.StatusNotFound)
+				_ = json.NewEncoder(w).Encode(map[string]string{"error": "trip_not_found", "message": "Trip not found"})
+			case errors.Is(err, service.ErrDriverNotAssigned):
+				w.WriteHeader(http.StatusConflict)
+				_ = json.NewEncoder(w).Encode(map[string]string{"error": "driver_not_assigned", "message": "Driver not assigned to trip"})
+			case errors.Is(err, service.ErrBookingPriceMissing):
+				w.WriteHeader(http.StatusUnprocessableEntity)
+				_ = json.NewEncoder(w).Encode(map[string]string{"error": "booking_price_missing", "message": "Booking price missing for commission rate calculation"})
+			default:
+				w.WriteHeader(http.StatusInternalServerError)
+				_ = json.NewEncoder(w).Encode(map[string]string{"error": "settlement_failed", "message": err.Error()})
+			}
+			return
+		}
+		http.Redirect(w, r, "/settlements?error="+err.Error(), http.StatusSeeOther)
+		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"settlement_id":       rec.ID,
-		"trip_id":             rec.TripID,
-		"driver_id":           rec.DriverID,
-		"gross_fare":          rec.GrossFare,
-		"rate_model":          rec.RateModel,
-		"rate_basis":          rateBasis,
-		"commission_amount":   rec.CommissionAmount,
-		"advances_kharcha":    rec.AdvancesKharcha,
-		"approved_deductions": rec.Deductions,
-		"performance_bonus":   rec.PerformanceBonus,
-		"tds_rate":            rec.TDSRate,
-		"tds_amount":          rec.TDSAmount,
-		"net_payout":          rec.NetPayout,
-		"status":              rec.Status,
-		"lines":               rec.Lines,
-	})
+	if wantsJSON(r) {
+		var rateBasis map[string]interface{}
+		if rec.RateBasisJSON != "" {
+			_ = json.Unmarshal([]byte(rec.RateBasisJSON), &rateBasis)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"settlement_id":       rec.ID,
+			"trip_id":             rec.TripID,
+			"driver_id":           rec.DriverID,
+			"gross_fare":          rec.GrossFare,
+			"rate_model":          rec.RateModel,
+			"rate_basis":          rateBasis,
+			"commission_amount":   rec.CommissionAmount,
+			"advances_kharcha":    rec.AdvancesKharcha,
+			"approved_deductions": rec.Deductions,
+			"performance_bonus":   rec.PerformanceBonus,
+			"tds_rate":            rec.TDSRate,
+			"tds_amount":          rec.TDSAmount,
+			"net_payout":          rec.NetPayout,
+			"status":              rec.Status,
+			"lines":               rec.Lines,
+		})
+		return
+	}
+
+	http.Redirect(w, r, "/settlements/"+rec.ID, http.StatusSeeOther)
 }
 
-// List returns driver settlements matching query filters.
+// List returns driver settlements matching query filters in JSON format.
 func (h *SettlementHandlers) List(w http.ResponseWriter, r *http.Request) {
 	status := r.URL.Query().Get("status")
 	driverID := r.URL.Query().Get("driver_id")
@@ -177,38 +281,61 @@ func (h *SettlementHandlers) GetDeductions(w http.ResponseWriter, r *http.Reques
 // MarkPaid marks a settlement as paid with transaction reference.
 func (h *SettlementHandlers) MarkPaid(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	var req struct {
-		PaymentRef string `json:"payment_ref"`
-		PaidAt     string `json:"paid_at"`
-		Mode       string `json:"mode"`
+	paymentRef := r.FormValue("payment_ref")
+	paidAtStr := r.FormValue("paid_at")
+
+	if wantsJSON(r) || strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+		var req struct {
+			PaymentRef string `json:"payment_ref"`
+			PaidAt     string `json:"paid_at"`
+			Mode       string `json:"mode"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err == nil && req.PaymentRef != "" {
+			paymentRef = req.PaymentRef
+			paidAtStr = req.PaidAt
+		}
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.PaymentRef == "" {
-		http.Error(w, `{"error":"invalid_request","message":"payment_ref is required"}`, http.StatusBadRequest)
+
+	if paymentRef == "" {
+		if wantsJSON(r) {
+			http.Error(w, `{"error":"invalid_request","message":"payment_ref is required"}`, http.StatusBadRequest)
+		} else {
+			http.Error(w, "payment_ref is required", http.StatusBadRequest)
+		}
 		return
 	}
 
 	paidAt := time.Now()
-	if req.PaidAt != "" {
-		if t, err := time.Parse(time.RFC3339, req.PaidAt); err == nil {
+	if paidAtStr != "" {
+		if t, err := time.Parse(time.RFC3339, paidAtStr); err == nil {
 			paidAt = t
 		}
 	}
 
-	rec, err := h.settleSvc.MarkPaid(r.Context(), id, req.PaymentRef, paidAt)
+	rec, err := h.settleSvc.MarkPaid(r.Context(), id, paymentRef, paidAt)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		if errors.Is(err, service.ErrSettlementNotFound) {
-			w.WriteHeader(http.StatusNotFound)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": "settlement_not_found"})
+		if wantsJSON(r) {
+			w.Header().Set("Content-Type", "application/json")
+			if errors.Is(err, service.ErrSettlementNotFound) {
+				w.WriteHeader(http.StatusNotFound)
+				_ = json.NewEncoder(w).Encode(map[string]string{"error": "settlement_not_found"})
+				return
+			}
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 			return
 		}
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		http.Redirect(w, r, "/settlements/"+id+"?error="+err.Error(), http.StatusSeeOther)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(rec)
+	if wantsJSON(r) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(rec)
+		return
+	}
+
+	http.Redirect(w, r, "/settlements/"+id, http.StatusSeeOther)
 }
 
 // Confirm handles driver confirmation of received settlement payout.
@@ -216,52 +343,84 @@ func (h *SettlementHandlers) Confirm(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	rec, err := h.settleSvc.ConfirmSettlement(r.Context(), id)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "settlement_not_found"})
+		if wantsJSON(r) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "settlement_not_found"})
+			return
+		}
+		http.Redirect(w, r, "/settlements/"+id+"?error="+err.Error(), http.StatusSeeOther)
 		return
 	}
 
-	confTime := ""
-	if rec.ConfirmedAt != nil {
-		confTime = rec.ConfirmedAt.Format(time.RFC3339)
+	if wantsJSON(r) {
+		confTime := ""
+		if rec.ConfirmedAt != nil {
+			confTime = rec.ConfirmedAt.Format(time.RFC3339)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":       rec.Status,
+			"confirmed_at": confTime,
+		})
+		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":       rec.Status,
-		"confirmed_at": confTime,
-	})
+	http.Redirect(w, r, "/settlements/"+id, http.StatusSeeOther)
 }
 
 // Dispute handles driver dispute against settlement payout.
 func (h *SettlementHandlers) Dispute(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	var req struct {
-		Reason      string  `json:"reason"`
-		ExpectedNet float64 `json:"expected_net"`
+	reason := r.FormValue("reason")
+	expectedNet, _ := strconv.ParseFloat(r.FormValue("expected_net"), 64)
+
+	if wantsJSON(r) || strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+		var req struct {
+			Reason      string  `json:"reason"`
+			ExpectedNet float64 `json:"expected_net"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err == nil && req.Reason != "" {
+			reason = req.Reason
+			expectedNet = req.ExpectedNet
+		}
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Reason == "" {
-		http.Error(w, `{"error":"invalid_request","message":"reason is required"}`, http.StatusBadRequest)
+
+	if reason == "" {
+		if wantsJSON(r) {
+			http.Error(w, `{"error":"invalid_request","message":"reason is required"}`, http.StatusBadRequest)
+		} else {
+			http.Error(w, "reason is required", http.StatusBadRequest)
+		}
 		return
 	}
 
-	rec, err := h.settleSvc.DisputeSettlement(r.Context(), id, req.Reason, req.ExpectedNet)
+	rec, err := h.settleSvc.DisputeSettlement(r.Context(), id, reason, expectedNet)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "settlement_not_found"})
+		if wantsJSON(r) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "settlement_not_found"})
+			return
+		}
+		http.Redirect(w, r, "/settlements/"+id+"?error="+err.Error(), http.StatusSeeOther)
 		return
 	}
 
-	dispReason := ""
-	if rec.DisputeReason != nil {
-		dispReason = *rec.DisputeReason
+	if wantsJSON(r) {
+		dispReason := ""
+		if rec.DisputeReason != nil {
+			dispReason = *rec.DisputeReason
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":         rec.Status,
+			"dispute_reason": dispReason,
+		})
+		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":         rec.Status,
-		"dispute_reason": dispReason,
-	})
+	http.Redirect(w, r, "/settlements/"+id, http.StatusSeeOther)
 }

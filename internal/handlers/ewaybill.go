@@ -35,6 +35,7 @@ func NewEWayBillHandlers(app *App, svc *ewaybill.EWayBillService, authSrv auth.A
 // Mount mounts ewaybill routes on the router.
 func (h *EWayBillHandlers) Mount(r chi.Router) {
 	r.With(middleware.ResourcePermission(h.authSrv, "ewaybill", "create")).Post("/trips/{id}/ewaybill", h.GenerateForTrip)
+	r.With(middleware.ResourcePermission(h.authSrv, "ewaybill", "create")).Post("/trips/{id}/ewaybill/generate", h.GenerateForTrip)
 	r.With(middleware.ResourcePermission(h.authSrv, "ewaybill", "read")).Get("/trips/{id}/ewaybill", h.GetForTrip)
 
 	// Standalone EWB management endpoints (Spec 07 §4.2)
@@ -89,16 +90,16 @@ func (h *EWayBillHandlers) GetForTrip(w http.ResponseWriter, r *http.Request) {
 	}
 
 	record, err := h.svc.GetByTrip(r.Context(), tripID)
-	if err != nil {
-		if err == ewaybill.ErrEWBNotFound {
-			http.Error(w, "no e-way bill found for trip", http.StatusNotFound)
-			return
-		}
+	if err != nil && err != ewaybill.ErrEWBNotFound {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	if wantsJSON(r) {
+		if err == ewaybill.ErrEWBNotFound {
+			http.Error(w, "no e-way bill found for trip", http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(record)
 		return
@@ -107,6 +108,7 @@ func (h *EWayBillHandlers) GetForTrip(w http.ResponseWriter, r *http.Request) {
 	user, _ := h.getUserFromContext(r)
 	data := map[string]interface{}{
 		"User":     user,
+		"Trip":     map[string]string{"ID": tripID},
 		"TripID":   tripID,
 		"EWayBill": record,
 	}
@@ -232,6 +234,9 @@ func (h *EWayBillHandlers) Cancel(w http.ResponseWriter, r *http.Request) {
 }
 
 func wantsJSON(r *http.Request) bool {
+	if strings.HasPrefix(r.URL.Path, "/api/") {
+		return true
+	}
 	accept := r.Header.Get("Accept")
 	contentType := r.Header.Get("Content-Type")
 	return strings.Contains(accept, "application/json") || strings.Contains(contentType, "application/json")
