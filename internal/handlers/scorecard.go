@@ -25,12 +25,20 @@ func (h *ScorecardHandlers) Routes(r chi.Router) {
 	r.With(middleware.ResourcePermission(h.AuthSrv, "scorecard", "update")).Post("/drivers/{id}/resolve", h.Resolve)
 }
 
+func (h *ScorecardHandlers) tenantID(r *http.Request) string {
+	tenantID := string(shared.TenantIDFromContext(r.Context()))
+	if tenantID == "" {
+		tenantID = string(shared.DefaultTenant)
+	}
+	return tenantID
+}
+
 // GET /scorecard — leaderboard page (Spec 03 §6.3).
 func (h *ScorecardHandlers) Leaderboard(w http.ResponseWriter, r *http.Request) {
 	session, _ := h.getUserFromContext(r)
 	ctx := r.Context()
 
-	rows, stats, err := h.Services.Scorecard.Leaderboard(ctx, string(shared.DefaultTenant), 100)
+	rows, stats, err := h.Services.Scorecard.Leaderboard(ctx, h.tenantID(r), 100)
 	if err != nil {
 		h.renderError(w, http.StatusInternalServerError, "Leaderboard Error", err.Error(), session)
 		return
@@ -48,7 +56,7 @@ func (h *ScorecardHandlers) Leaderboard(w http.ResponseWriter, r *http.Request) 
 
 // GET /scorecard/table — HTMX partial: ranked rows for the 60s auto-refresh.
 func (h *ScorecardHandlers) Table(w http.ResponseWriter, r *http.Request) {
-	rows, stats, err := h.Services.Scorecard.Leaderboard(r.Context(), string(shared.DefaultTenant), 100)
+	rows, stats, err := h.Services.Scorecard.Leaderboard(r.Context(), h.tenantID(r), 100)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

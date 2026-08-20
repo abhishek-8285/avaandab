@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -41,18 +42,25 @@ func (h *APIGeofenceHandler) Register(r chi.Router) {
 	})
 }
 
+func writeJSONError(w http.ResponseWriter, status int, msg string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(map[string]string{"error": msg})
+}
+
 // Attach bills a closed detention onto its trip's invoice.
 func (h *APIGeofenceHandler) Attach(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	tenant := shared.TenantIDFromContext(r.Context())
 	if err := h.attachUC.Execute(r.Context(), application.AttachDetentionCommand{DetentionID: id, TenantID: tenant}); err != nil {
 		if errors.Is(err, application.ErrInvoicePaid) {
-			http.Error(w, err.Error(), http.StatusConflict)
+			writeJSONError(w, http.StatusConflict, err.Error())
 			return
 		}
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte(`{"status":"attached"}`))
 }
@@ -62,9 +70,10 @@ func (h *APIGeofenceHandler) Waive(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	tenant := shared.TenantIDFromContext(r.Context())
 	if err := h.waiveUC.Execute(r.Context(), application.WaiveDetentionCommand{DetentionID: id, TenantID: tenant}); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte(`{"status":"waived"}`))
 }

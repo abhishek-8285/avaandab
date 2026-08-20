@@ -48,12 +48,16 @@ func (h *GeofenceHandlers) Routes(r chi.Router) {
 }
 
 func (h *GeofenceHandlers) tenant(ctx context.Context) shared.TenantID {
-	return shared.TenantIDFromContext(ctx)
+	t := shared.TenantIDFromContext(ctx)
+	if t == "" {
+		return shared.DefaultTenant
+	}
+	return t
 }
 
 // List renders the geofence table (full page or Datastar fragment).
 func (h *GeofenceHandlers) List(w http.ResponseWriter, r *http.Request) {
-	zones, err := h.adminRepo.ListAll(r.Context(), string(shared.DefaultTenant))
+	zones, err := h.adminRepo.ListAll(r.Context(), string(h.tenant(r.Context())))
 	if err != nil {
 		http.Error(w, "Failed to list geofences", http.StatusInternalServerError)
 		return
@@ -118,7 +122,7 @@ func (h *GeofenceHandlers) Create(w http.ResponseWriter, r *http.Request) {
 func (h *GeofenceHandlers) EditForm(w http.ResponseWriter, r *http.Request) {
 	session, _ := h.getUserFromContext(r)
 	id := chi.URLParam(r, "id")
-	zone, err := h.adminRepo.Find(r.Context(), string(shared.DefaultTenant), id)
+	zone, err := h.adminRepo.Find(r.Context(), string(h.tenant(r.Context())), id)
 	if err != nil {
 		h.renderError(w, http.StatusNotFound, "Not Found", "Geofence not found", session)
 		return

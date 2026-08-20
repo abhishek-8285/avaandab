@@ -57,22 +57,35 @@ func (h *TelemetryDeviceHandlers) QuarantineRoutes(r chi.Router) {
 	r.With(middleware.ResourcePermission(h.AuthSrv, "telemetry", "update")).Post("/{id}/resolve", h.Resolve)
 }
 
+func (h *TelemetryDeviceHandlers) tenantID(ctx context.Context) string {
+	t := shared.TenantIDFromContext(ctx)
+	if t == "" {
+		return string(shared.DefaultTenant)
+	}
+	return string(t)
+}
+
 func (h *TelemetryDeviceHandlers) withTenant(ctx context.Context) context.Context {
-	return shared.ContextWithTenantID(ctx, shared.DefaultTenant)
+	t := shared.TenantIDFromContext(ctx)
+	if t == "" {
+		return shared.ContextWithTenantID(ctx, shared.DefaultTenant)
+	}
+	return ctx
 }
 
 // List renders the devices table (full page or Datastar fragment).
 func (h *TelemetryDeviceHandlers) List(w http.ResponseWriter, r *http.Request) {
 	ctx := h.withTenant(r.Context())
 	pp := parsePaginationParams(r)
+	tenant := h.tenantID(ctx)
 
 	store := telemetry.NewDeviceStore(h.DB)
-	devices, err := store.ListByTenant(ctx, string(shared.DefaultTenant), pp.Limit, pp.Offset)
+	devices, err := store.ListByTenant(ctx, tenant, pp.Limit, pp.Offset)
 	if err != nil {
 		http.Error(w, "Failed to list devices", http.StatusInternalServerError)
 		return
 	}
-	total, _ := store.CountByTenant(ctx, string(shared.DefaultTenant))
+	total, _ := store.CountByTenant(ctx, tenant)
 	pd := newPaginationData(pp, total, "/telemetry/devices")
 	session, _ := h.getUserFromContext(r)
 
@@ -207,7 +220,7 @@ func (h *TelemetryDeviceHandlers) QuarantineQueue(w http.ResponseWriter, r *http
 	ctx := h.withTenant(r.Context())
 	session, _ := h.getUserFromContext(r)
 	store := telemetry.NewQuarantineStore(h.DB)
-	entries, err := store.ListOpen(ctx, string(shared.DefaultTenant), 100)
+	entries, err := store.ListOpen(ctx, h.tenantID(ctx), 100)
 	if err != nil {
 		http.Error(w, "Failed to list quarantine", http.StatusInternalServerError)
 		return

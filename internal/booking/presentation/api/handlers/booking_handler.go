@@ -64,6 +64,12 @@ func (h *APIBookingHandler) Register(r chi.Router) {
 	})
 }
 
+func writeJSONError(w http.ResponseWriter, status int, msg string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(map[string]string{"error": msg})
+}
+
 func (h *APIBookingHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		CustomerID  string   `json:"customer_id"`
@@ -77,7 +83,7 @@ func (h *APIBookingHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -95,10 +101,11 @@ func (h *APIBookingHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	id, err := h.createUC.Execute(r.Context(), cmd)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(map[string]string{"id": string(id)})
 }
@@ -123,7 +130,7 @@ func (h *APIBookingHandler) List(w http.ResponseWriter, r *http.Request) {
 		Status:   status,
 	})
 	if err != nil {
-		http.Error(w, "Failed to list bookings", http.StatusInternalServerError)
+		writeJSONError(w, http.StatusInternalServerError, "Failed to list bookings")
 		return
 	}
 
@@ -146,6 +153,7 @@ func (h *APIBookingHandler) List(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"bookings": dtos,
 		"total":    res.Total,
@@ -159,10 +167,11 @@ func (h *APIBookingHandler) Get(w http.ResponseWriter, r *http.Request) {
 		TenantID:  shared.TenantIDFromContext(r.Context()),
 	})
 	if err != nil {
-		http.Error(w, "Booking not found", http.StatusNotFound)
+		writeJSONError(w, http.StatusNotFound, "Booking not found")
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(dto.BookingDTO{
 		ID:            res.ID,
 		BookingNumber: res.BookingNumber,
@@ -187,10 +196,11 @@ func (h *APIBookingHandler) Confirm(w http.ResponseWriter, r *http.Request) {
 		TenantID:  shared.TenantIDFromContext(r.Context()),
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "confirmed"})
 }
@@ -202,10 +212,11 @@ func (h *APIBookingHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 		TenantID:  shared.TenantIDFromContext(r.Context()),
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "cancelled"})
 }
@@ -222,7 +233,7 @@ func (h *APIBookingHandler) Update(w http.ResponseWriter, r *http.Request) {
 		Notes       string   `json:"notes"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -240,10 +251,11 @@ func (h *APIBookingHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.updateUC.Execute(r.Context(), cmd); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "updated"})
 }
@@ -255,10 +267,11 @@ func (h *APIBookingHandler) Complete(w http.ResponseWriter, r *http.Request) {
 		TenantID:  shared.TenantIDFromContext(r.Context()),
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "completed"})
 }
@@ -270,7 +283,7 @@ func (h *APIBookingHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		TenantID:  shared.TenantIDFromContext(r.Context()),
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
