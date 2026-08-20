@@ -42,6 +42,15 @@
 .text-on-surface-variant { color: var(--color-on-surface-variant); }
 .text-on-primary { color: var(--color-on-primary); }
 
+.group:hover .group-hover\:bg-primary {
+  background-color: var(--color-primary) !important;
+}
+.group:hover .group-hover\:text-on-primary,
+.group:hover .group-hover\:text-on-primary .material-symbols-outlined,
+.group:hover .group-hover\:text-on-primary .material-icons {
+  color: var(--color-on-primary) !important;
+}
+
 .border-border-subtle { border-color: var(--color-border-subtle); }
 .border-outline-variant { border-color: var(--color-outline-variant); }
 
