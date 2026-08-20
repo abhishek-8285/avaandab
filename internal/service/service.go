@@ -61,6 +61,7 @@ type Services struct {
 	Scorecard   *ScorecardService
 	Documents   *DocumentService
 	PNL         *PNLService
+	OpsAlerts   *OpsAlertService
 
 	store Store
 	cfg   *config.Config
@@ -137,6 +138,11 @@ func NewServices(store Store, cfg *config.Config, log *slog.Logger, eventBus eve
 
 		// PNL daily snapshot service (Spec 16 §2).
 		s.PNL = NewPNLService(dbGetter.DB())
+
+		// Operational alerts service (Spec 16 §4).
+		s.OpsAlerts = NewOpsAlertService(bs, dbGetter.DB())
+		s.Settlements.opsAlerts = s.OpsAlerts
+		s.Compliance.opsAlerts = s.OpsAlerts
 	}
 
 	// Instantiate Telegram Bot Notifier if token configured, otherwise graceful fallback

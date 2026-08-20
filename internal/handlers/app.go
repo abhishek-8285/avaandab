@@ -98,6 +98,8 @@ type App struct {
 	Documents *DocumentHandlers
 	// PNL daily snapshot handler (Spec 16 §2).
 	PNL *PNLHandlers
+	// Operational alerts handler (Spec 16 §4).
+	OpsAlerts *OpsAlertHandlers
 }
 
 // NewApp creates a new handler app with all handler groups initialized.
@@ -163,6 +165,10 @@ func NewApp(svc *service.Services, cfg *config.Config, authStore *auth.SessionSt
 	// PNL daily snapshot (Spec 16 §2).
 	if svc != nil && svc.PNL != nil {
 		app.PNL = NewPNLHandlers(app, svc.PNL, authSrv)
+	}
+	// Operational alerts (Spec 16 §4).
+	if svc != nil && svc.OpsAlerts != nil {
+		app.OpsAlerts = NewOpsAlertHandlers(app, svc.OpsAlerts, authSrv)
 	}
 
 	return app

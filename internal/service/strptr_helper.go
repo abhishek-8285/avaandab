@@ -7,3 +7,8 @@ func strPtr(s string) *string {
 	}
 	return &s
 }
+
+// StrPtr returns a pointer to the given string, or nil if empty.
+func StrPtr(s string) *string {
+	return strPtr(s)
+}

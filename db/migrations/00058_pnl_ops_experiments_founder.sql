@@ -114,10 +114,31 @@ CREATE TABLE IF NOT EXISTS founder_audit (
 CREATE INDEX IF NOT EXISTS idx_founder_audit_actor    ON founder_audit(tenant_id, actor_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_founder_audit_resource ON founder_audit(tenant_id, resource_type, resource_id);
 
+-- RBAC permissions for Spec 16 (Ops Alerts, PNL)
+INSERT OR IGNORE INTO permissions (name, description) VALUES
+('ops_alerts:read', 'View operational alerts'),
+('ops_alerts:update', 'Acknowledge/resolve/dismiss operational alerts'),
+('pnl:read', 'View PNL snapshots and metrics'),
+('pnl:write', 'Generate PNL snapshots');
+
+-- Assign all to admin role (role id 1 per 00012 pattern)
+INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
+SELECT 1, id FROM permissions
+WHERE name IN ('ops_alerts:read','ops_alerts:update','pnl:read','pnl:write');
+
+-- Assign read/update to dispatcher role (role id 2)
+INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
+SELECT 2, id FROM permissions
+WHERE name IN ('ops_alerts:read','ops_alerts:update','pnl:read');
+
 -- +goose Down
+DELETE FROM role_permissions WHERE permission_id IN
+(SELECT id FROM permissions WHERE name IN ('ops_alerts:read','ops_alerts:update','pnl:read','pnl:write'));
+DELETE FROM permissions WHERE name IN ('ops_alerts:read','ops_alerts:update','pnl:read','pnl:write');
 DROP TABLE IF EXISTS founder_audit;
 DROP TABLE IF EXISTS founder_signals;
 DROP TABLE IF EXISTS experiment_assignments;
 DROP TABLE IF EXISTS experiments_spec16;
 DROP TABLE IF EXISTS ops_alerts;
 DROP TABLE IF EXISTS pnl_daily;
+

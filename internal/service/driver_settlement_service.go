@@ -15,6 +15,7 @@ import (
 	"transport-app/internal/domain"
 	"transport-app/internal/events"
 	"transport-app/internal/repository"
+	"transport-app/internal/shared"
 )
 
 // Common settlement error codes
@@ -79,6 +80,7 @@ type DriverSettlementService struct {
 	defaultAdvances   float64
 	defaultDeductions float64
 	scorecard         *ScorecardService
+	opsAlerts         *OpsAlertService
 }
 
 const (
@@ -689,6 +691,22 @@ func (s *DriverSettlementService) DisputeSettlement(ctx context.Context, settlem
 	`, reason, settlementID)
 	if err != nil {
 		return nil, err
+	}
+
+	if s.opsAlerts != nil {
+		tenantID := string(shared.TenantIDFromContext(ctx))
+		if tenantID == "" {
+			tenantID = string(shared.DefaultTenant)
+		}
+		_, _ = s.opsAlerts.CreateAlert(ctx, OpsAlert{
+			TenantID:    tenantID,
+			AlertType:   OpsAlertSettlementDispute,
+			Severity:    OpsAlertSeverityHigh,
+			Title:       "Settlement disputed by driver",
+			Description: fmt.Sprintf("Trip %s settlement %s disputed: %s", tripID, settlementID, reason),
+			EntityType:  strPtr("trip"),
+			EntityID:    &tripID,
+		})
 	}
 
 	return s.findByTripID(ctx, db, tripID)

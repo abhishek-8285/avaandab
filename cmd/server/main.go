@@ -83,6 +83,7 @@ import (
 	founder "transport-app/internal/founder"
 	founderAlerts "transport-app/internal/founder/alerts"
 	"transport-app/internal/founder/digest"
+	"transport-app/internal/shared"
 	"transport-app/internal/shared/clock"
 	"transport-app/internal/shared/id"
 	"transport-app/internal/shared/outbox"
@@ -639,6 +640,9 @@ func main() {
 		if app.PNL != nil {
 			app.PNL.RegisterRoutes(r)
 		}
+		if app.OpsAlerts != nil {
+			app.OpsAlerts.RegisterRoutes(r)
+		}
 		bookingAPIHandler.Register(r)
 		tripAPIHandler.Register(r)
 		invoiceAPIHandler.Register(r)
@@ -1069,6 +1073,22 @@ func main() {
 			fuelEngine.WithBehaviourHook(func(ctx context.Context, driverID string) {
 				if _, err := services.Scorecard.RecomputeDriverScore(ctx, driverID); err != nil {
 					logger.Error("scorecard incremental recompute failed", "driver_id", driverID, "error", err)
+				}
+			})
+		}
+		if services.OpsAlerts != nil {
+			fuelEngine.WithSiphonHook(func(ctx context.Context, vehicleID, tripID, driverID string, drop float64, stopMinutes int) {
+				_, err := services.OpsAlerts.CreateAlert(ctx, service.OpsAlert{
+					TenantID:    string(shared.DefaultTenant),
+					AlertType:   service.OpsAlertFuelTheftConfirmed,
+					Severity:    service.OpsAlertSeverityCritical,
+					Title:       "Fuel siphoning confirmed",
+					Description: fmt.Sprintf("Vehicle %s lost %.1fL during %d min stop", vehicleID, drop, stopMinutes),
+					EntityType:  service.StrPtr("vehicle"),
+					EntityID:    &vehicleID,
+				})
+				if err != nil {
+					logger.Error("failed to create ops alert for fuel siphon", "vehicle_id", vehicleID, "error", err)
 				}
 			})
 		}

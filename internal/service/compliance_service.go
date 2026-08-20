@@ -12,11 +12,13 @@ import (
 	"transport-app/internal/domain"
 	"transport-app/internal/events"
 	"transport-app/internal/repository"
+	"transport-app/internal/shared"
 )
 
 // ComplianceService enforces legal and operational compliance across drivers and vehicles (Spec 05 §5).
 type ComplianceService struct {
 	baseService
+	opsAlerts *OpsAlertService
 }
 
 // NewComplianceService constructs a new ComplianceService.
@@ -385,4 +387,20 @@ func (s *ComplianceService) publishBlockedEvent(ctx context.Context, entityType,
 			"details":     fmt.Sprintf("Dispatch blocked: %s (compliance)", reason),
 		},
 	})
+
+	if s.opsAlerts != nil {
+		tenantID := string(shared.TenantIDFromContext(ctx))
+		if tenantID == "" {
+			tenantID = string(shared.DefaultTenant)
+		}
+		_, _ = s.opsAlerts.CreateAlert(ctx, OpsAlert{
+			TenantID:    tenantID,
+			AlertType:   OpsAlertComplianceBreach,
+			Severity:    OpsAlertSeverityCritical,
+			Title:       "Dispatch blocked by compliance",
+			Description: fmt.Sprintf("%s %s blocked: %s", entityType, entityID, reason),
+			EntityType:  strPtr(entityType),
+			EntityID:    &entityID,
+		})
+	}
 }
