@@ -895,7 +895,12 @@ func sparklineSVG(scores []float64) string {
 	}
 	pts := make([]string, len(scores))
 	for i, sc := range scores {
-		x := float64(i) / float64(len(scores)-1) * w
+		var x float64
+		if len(scores) > 1 {
+			x = float64(i) / float64(len(scores)-1) * w
+		} else {
+			x = w / 2.0
+		}
 		y := h - 2 - (sc-min)/(max-min)*(h-4)
 		pts[i] = fmt.Sprintf("%.1f,%.1f", x, y)
 	}

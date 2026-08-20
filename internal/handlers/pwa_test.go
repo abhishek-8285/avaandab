@@ -185,3 +185,16 @@ func TestIconsExistAndValid(t *testing.T) {
 	assert.Equal(t, 512, img512.Bounds().Dx())
 	assert.Equal(t, 512, img512.Bounds().Dy())
 }
+
+func TestFaviconSVGServingAndMime(t *testing.T) {
+	r, _, _ := setupPWATestRouter(true)
+
+	req := httptest.NewRequest("GET", "/static/img/favicon.svg", nil)
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Contains(t, rec.Header().Get("Content-Type"), "image/svg+xml")
+	assert.Contains(t, rec.Body.String(), "<svg")
+	assert.Contains(t, rec.Body.String(), "xmlns=\"http://www.w3.org/2000/svg\"")
+}

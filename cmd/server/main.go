@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log/slog"
+	"mime"
 	"net/http"
 	"os"
 	"os/signal"
@@ -94,6 +95,13 @@ import (
 
 // Version is set via ldflags during build
 var Version string
+
+func init() {
+	_ = mime.AddExtensionType(".svg", "image/svg+xml")
+	_ = mime.AddExtensionType(".woff2", "font/woff2")
+	_ = mime.AddExtensionType(".woff", "font/woff")
+	_ = mime.AddExtensionType(".webmanifest", "application/manifest+json")
+}
 
 // agentRequestTimeout lifts the global 60s request deadline for agent chat
 // requests: multi-turn tool conversations need more than one LLM call. The
