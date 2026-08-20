@@ -346,6 +346,7 @@ type PageData struct {
 	FlashError    string
 	FlashSuccess  string
 	RazorpayKeyID string
+	PWAEnabled    bool
 	Extra         map[string]interface{}
 }
 
@@ -434,6 +435,7 @@ func buildTemplateData(data PageData) map[string]interface{} {
 		"Settings":     data.Settings,
 		"FlashError":   data.FlashError,
 		"FlashSuccess": data.FlashSuccess,
+		"PWAEnabled":   data.PWAEnabled,
 	}
 	for k, v := range data.Extra {
 		m[k] = v
@@ -456,6 +458,17 @@ func (a *App) renderPage(w http.ResponseWriter, r *http.Request, name string, da
 		a.renderError(w, http.StatusNotFound, "Page Not Found", fmt.Sprintf("Template %q could not be located.", name), data.User)
 		return
 	}
+
+	pwaEnabled := data.PWAEnabled
+	if a.Config != nil && !pwaEnabled {
+		pwaEnabled = a.Config.PWAEnabled
+	}
+	if data.Extra != nil {
+		if extraPWA, ok := data.Extra["PWAEnabled"].(bool); ok {
+			pwaEnabled = extraPWA
+		}
+	}
+	data.PWAEnabled = pwaEnabled
 
 	templateData := buildTemplateData(data)
 
@@ -505,6 +518,7 @@ func (a *App) renderPage(w http.ResponseWriter, r *http.Request, name string, da
 		FlashError    string
 		FlashSuccess  string
 		Version       string
+		PWAEnabled    bool
 		Extra         map[string]interface{}
 	}{
 		Title:         data.Title,
@@ -517,6 +531,7 @@ func (a *App) renderPage(w http.ResponseWriter, r *http.Request, name string, da
 		FlashError:    data.FlashError,
 		FlashSuccess:  data.FlashSuccess,
 		Version:       AppVersion,
+		PWAEnabled:    pwaEnabled,
 		Extra:         data.Extra,
 	}
 
@@ -802,6 +817,7 @@ func (a *App) renderError(w http.ResponseWriter, statusCode int, title string, m
 		User         *auth.SessionData
 		FlashError   string
 		FlashSuccess string
+		PWAEnabled   bool
 	}{
 		Title:   title,
 		Content: template.HTML(buf.String()),
@@ -810,4 +826,28 @@ func (a *App) renderError(w http.ResponseWriter, statusCode int, title string, m
 		slog.Error("error layout execution failed", "statusCode", statusCode, "title", title, "error", err)
 		_, _ = w.Write([]byte(fallback))
 	}
+}
+
+// MountPWARoutes mounts the web manifest and service worker if PWA is enabled.
+func (a *App) MountPWARoutes(r chi.Router) {
+	if a.Config == nil || !a.Config.PWAEnabled {
+		return
+	}
+	staticDir := "internal/static"
+	if a.Config != nil && a.Config.StaticDir != "" {
+		staticDir = a.Config.StaticDir
+	}
+
+	r.Get("/manifest.webmanifest", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/manifest+json")
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		http.ServeFile(w, r, filepath.Join(staticDir, "manifest.webmanifest"))
+	})
+
+	r.Get("/sw.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Service-Worker-Allowed", "/")
+		http.ServeFile(w, r, filepath.Join(staticDir, "js", "sw.js"))
+	})
 }

@@ -26,6 +26,7 @@ type Config struct {
 	ExportMaxRows        int
 	DashboardSSEEnabled  bool
 	DashboardSSEInterval time.Duration
+	PWAEnabled           bool
 	RazorpayKeyID        string
 	RazorpayKeySecret    string
 	RazorpayWebhook      string
@@ -192,6 +193,7 @@ func Load() *Config {
 		ExportMaxRows:        getEnvInt("EXPORT_MAX_ROWS", 50000),
 		DashboardSSEEnabled:  getEnvBool("DASHBOARD_SSE_ENABLED", true),
 		DashboardSSEInterval: time.Duration(getEnvInt("DASHBOARD_SSE_INTERVAL_SEC", 5)) * time.Second,
+		PWAEnabled:           getEnvBool("PWA_ENABLED", false),
 		RazorpayKeyID:        getEnv("RAZORPAY_KEY_ID", ""),
 		RazorpayKeySecret:    getEnv("RAZORPAY_KEY_SECRET", ""),
 		RazorpayWebhook:      os.Getenv("RAZORPAY_WEBHOOK_SECRET"),

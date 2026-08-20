@@ -752,6 +752,7 @@ func main() {
 
 		// Public routes
 		r.Get("/", app.Marketing)
+		app.MountPWARoutes(r)
 		r.Get("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "text/plain")
 			_, _ = w.Write([]byte("User-agent: *\nAllow: /\nSitemap: https://avandab.com/sitemap.xml\n"))

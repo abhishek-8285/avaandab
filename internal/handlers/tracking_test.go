@@ -90,11 +90,12 @@ func TestTrackingLayout_MapAssetsConditional(t *testing.T) {
 			FlashError    string
 			FlashSuccess  string
 			Version       string
+			PWAEnabled    bool
 			Extra         map[string]interface{}
 		}{
 			Title: "X", Content: template.HTML("<p>x</p>"), User: nil,
 			Notifications: nil, UnreadCount: 0, HasUnread: false,
-			FlashError: "", FlashSuccess: "", Version: "v1", Extra: extra,
+			FlashError: "", FlashSuccess: "", Version: "v1", PWAEnabled: false, Extra: extra,
 		}))
 		return buf.String()
 	}
