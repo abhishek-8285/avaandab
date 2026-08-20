@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SQLite from 'expo-sqlite';
-import { Trip, Driver } from '../types/api';
+import { Trip } from '../types/api';
 
 const KEYS = {
   OFFLINE_TRIPS: '@avandab_offline_trips',
@@ -84,7 +84,7 @@ export const DB = {
     );
   },
 
-  async getUnsyncedGPSLogs(): Promise<Array<{ id: number; latitude: number; longitude: number; timestamp: string }>> {
+  async getUnsyncedGPSLogs(): Promise<{ id: number; latitude: number; longitude: number; timestamp: string }[]> {
     await initDatabase();
     if (!db) return [];
 

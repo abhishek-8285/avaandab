@@ -142,6 +142,7 @@ function DriverNavigator() {
       <DriverStack.Screen name="ActiveNavigation">
         {({ navigation, route }) => (
           <ActiveNavigationScreen
+            tripId={route.params?.tripId || '1'}
             onArriveAtStop={() =>
               navigation.navigate('DeliveryVerification', { tripId: route.params?.tripId || '1' })
             }
@@ -289,7 +290,7 @@ function MainScreen({ onOpenSetup, onStartNav }: MainScreenProps) {
   };
 
   const [showCameraView, setShowCameraView] = useState(false);
-  const [dbLogs, setDbLogs] = useState<Array<{ id: number; latitude: number; longitude: number; timestamp: string }>>([]);
+  const [dbLogs, setDbLogs] = useState<{ id: number; latitude: number; longitude: number; timestamp: string }[]>([]);
 
   const handleFetchDBLogs = async () => {
     try {

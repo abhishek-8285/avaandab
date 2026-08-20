@@ -3,14 +3,34 @@ import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LiveDriverTrackingMap } from './LiveDriverTrackingMap';
+import { Telemetry } from '../services/telemetry';
 import { Colors, Font, Radius, Spacing } from '../constants/theme';
 
 interface ActiveNavigationScreenProps {
+  tripId?: string;
   onArriveAtStop: () => void;
   onMenuToggle?: () => void;
 }
 
-export function ActiveNavigationScreen({ onArriveAtStop, onMenuToggle }: ActiveNavigationScreenProps) {
+export function ActiveNavigationScreen({
+  tripId = '1',
+  onArriveAtStop,
+  onMenuToggle,
+}: ActiveNavigationScreenProps) {
+  const [coords, setCoords] = React.useState<{ latitude: number; longitude: number }>({
+    latitude: 18.5204,
+    longitude: 73.8567,
+  });
+
+  React.useEffect(() => {
+    Telemetry.startLiveLocationTracking((lat, lng) => {
+      setCoords({ latitude: lat, longitude: lng });
+    });
+    return () => {
+      Telemetry.stopLiveLocationTracking();
+    };
+  }, []);
+
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
@@ -18,8 +38,8 @@ export function ActiveNavigationScreen({ onArriveAtStop, onMenuToggle }: ActiveN
       {/* Map background */}
       <View style={styles.mapContainer}>
         <LiveDriverTrackingMap
-          driverLatitude={18.5255}
-          driverLongitude={73.8520}
+          driverLatitude={coords.latitude}
+          driverLongitude={coords.longitude}
         />
       </View>
 
@@ -31,7 +51,7 @@ export function ActiveNavigationScreen({ onArriveAtStop, onMenuToggle }: ActiveN
 
         <View style={styles.brandBlock}>
           <Text style={styles.brandTitle}>NAV</Text>
-          <Text style={styles.brandSub}>TRP-8492 · LIVE</Text>
+          <Text style={styles.brandSub}>TRIP #{tripId} · LIVE</Text>
         </View>
 
         <TouchableOpacity style={styles.iconBtn}>
