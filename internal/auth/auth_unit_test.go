@@ -192,6 +192,10 @@ func TestHasPermissionAndRoleMapping(t *testing.T) {
 		t.Fatalf("admin (role 1) should have permission on users")
 	}
 
+	if !auth.HasPermission(6, "users", "write") {
+		t.Fatalf("org_admin (role 6) should have permission on users")
+	}
+
 	if auth.HasPermission(2, "users", "write") {
 		t.Fatalf("dispatcher (role 2) should NOT have permission on users")
 	}
@@ -204,7 +208,15 @@ func TestHasPermissionAndRoleMapping(t *testing.T) {
 		t.Fatalf("expected role name admin for ID 1")
 	}
 
+	if auth.RoleNameForID(6) != "org_admin" {
+		t.Fatalf("expected role name org_admin for ID 6")
+	}
+
 	if auth.RoleIDForName("admin") != 1 {
 		t.Fatalf("expected role ID 1 for admin")
+	}
+
+	if auth.RoleIDForName("org_admin") != 6 {
+		t.Fatalf("expected role ID 6 for org_admin")
 	}
 }

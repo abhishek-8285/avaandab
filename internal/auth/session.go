@@ -315,16 +315,16 @@ func CompareToken(token, hash string) bool {
 // HasPermission checks if a role can perform a given action on a resource.
 func HasPermission(roleID int64, resource string, action string) bool {
 	permissions := map[string]map[int64]bool{
-		"users":     {1: true, 2: false, 3: false, 4: false},
-		"drivers":   {1: true, 2: true, 3: false, 4: false},
-		"vehicles":  {1: true, 2: true, 3: false, 4: false},
-		"customers": {1: true, 2: true, 3: false, 4: false},
-		"routes":    {1: true, 2: true, 3: false, 4: false},
-		"bookings":  {1: true, 2: true, 3: false, 4: false},
-		"trips":     {1: true, 2: true, 3: false, 4: false},
-		"invoices":  {1: true, 2: false, 3: true, 4: false},
-		"payments":  {1: true, 2: false, 3: true, 4: false},
-		"reports":   {1: true, 2: true, 3: true, 4: false},
+		"users":     {1: true, 6: true, 2: false, 3: false, 4: false, 5: false},
+		"drivers":   {1: true, 6: true, 2: true, 3: false, 4: false, 5: false},
+		"vehicles":  {1: true, 6: true, 2: true, 3: false, 4: false, 5: true},
+		"customers": {1: true, 6: true, 2: true, 3: false, 4: false, 5: false},
+		"routes":    {1: true, 6: true, 2: true, 3: false, 4: false, 5: true},
+		"bookings":  {1: true, 6: true, 2: true, 3: false, 4: false, 5: false},
+		"trips":     {1: true, 6: true, 2: true, 3: false, 4: false, 5: true},
+		"invoices":  {1: true, 6: true, 2: false, 3: true, 4: false, 5: false},
+		"payments":  {1: true, 6: true, 2: false, 3: true, 4: false, 5: false},
+		"reports":   {1: true, 6: true, 2: true, 3: true, 4: false, 5: false},
 	}
 
 	if roleID == 4 {
@@ -357,6 +357,10 @@ func RoleNameForID(roleID int64) domain.RoleName {
 		return domain.RoleAccountant
 	case 4:
 		return domain.RoleViewer
+	case 5:
+		return domain.RoleDriver
+	case 6:
+		return domain.RoleOrgAdmin
 	default:
 		return domain.RoleDispatcher
 	}

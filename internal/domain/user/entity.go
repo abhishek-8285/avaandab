@@ -45,9 +45,11 @@ type RoleName string
 
 const (
 	RoleAdmin      RoleName = "admin"
+	RoleOrgAdmin   RoleName = "org_admin"
 	RoleDispatcher RoleName = "dispatcher"
 	RoleAccountant RoleName = "accountant"
 	RoleViewer     RoleName = "viewer"
+	RoleDriver     RoleName = "driver"
 )
 
 // DefaultRoleID returns the role ID for a given role name.
@@ -61,6 +63,10 @@ func DefaultRoleID(name RoleName) int64 {
 		return 3
 	case RoleViewer:
 		return 4
+	case RoleDriver:
+		return 5
+	case RoleOrgAdmin:
+		return 6
 	default:
 		return 2
 	}

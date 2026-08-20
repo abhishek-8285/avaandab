@@ -90,9 +90,11 @@ const (
 
 	// user
 	RoleAdmin           = user.RoleAdmin
+	RoleOrgAdmin        = user.RoleOrgAdmin
 	RoleDispatcher      = user.RoleDispatcher
 	RoleAccountant      = user.RoleAccountant
 	RoleViewer          = user.RoleViewer
+	RoleDriver          = user.RoleDriver
 	UserStatusActive    = user.UserStatusActive
 	UserStatusInactive  = user.UserStatusInactive
 	UserStatusSuspended = user.UserStatusSuspended

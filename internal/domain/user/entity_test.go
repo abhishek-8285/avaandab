@@ -17,6 +17,8 @@ func TestDefaultRoleID(t *testing.T) {
 		{user.RoleDispatcher, 2},
 		{user.RoleAccountant, 3},
 		{user.RoleViewer, 4},
+		{user.RoleDriver, 5},
+		{user.RoleOrgAdmin, 6},
 		{user.RoleName("unknown"), 2},
 	}
 

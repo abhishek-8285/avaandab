@@ -43,7 +43,8 @@ Single source of truth for `db/migrations/` version numbers. Repo head is
 | 00061 | founder RBAC permissions & role assignments | 16 |
 | 00062 | user theme preferences (users.theme_preference) | 12 |
 | 00063 | RAG multi-tenant vectors + provider registry | 10 |
-| 00064+ | future specs (predictive ETA, AIS-140/VLT, ERP) | reserved |
+| 00064 | org_admin role & RBAC permissions (tenant-scoped organization admin) | 10 |
+| 00065+ | future specs (predictive ETA, AIS-140/VLT, ERP) | reserved |
 
 ## Implementation rule
 Pick the number from this table for your feature and update the spec's §3 to
