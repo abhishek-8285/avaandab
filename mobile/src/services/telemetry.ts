@@ -1,6 +1,5 @@
 import * as Location from 'expo-location';
 import { Camera } from 'expo-camera';
-import { DEFAULT_LATITUDE, DEFAULT_LONGITUDE } from '../constants/network';
 import { DB } from './storage';
 
 export interface LocationState {
@@ -47,8 +46,17 @@ class TelemetryService {
       } catch {}
 
       if (!coords) {
-        // Configurable demo fallback when GPS data is unavailable.
-        coords = { latitude: DEFAULT_LATITUDE || 18.5204, longitude: DEFAULT_LONGITUDE || 73.8567 };
+        // Try getting current position directly
+        try {
+          const current = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          if (current && current.coords) {
+            coords = { latitude: current.coords.latitude, longitude: current.coords.longitude };
+          }
+        } catch {}
+      }
+
+      if (!coords) {
+        return { granted: false, latitude: null, longitude: null, error: 'GPS coordinates unavailable' };
       }
 
       // Log telemetry event to offline SQLite database

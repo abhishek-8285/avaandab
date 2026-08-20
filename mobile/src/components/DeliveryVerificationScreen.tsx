@@ -1,32 +1,131 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Image, Alert } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+  TextInput,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { Colors, Font, Radius, Spacing } from '../constants/theme';
+import { getApiBaseURL } from '../constants/network';
+import { useAuthStore } from '../stores/authStore';
+import { OfflineQueue } from '../services/offlineQueue';
 
 interface DeliveryVerificationScreenProps {
+  tripId?: string;
   onComplete: () => void;
   onBack: () => void;
 }
 
-export function DeliveryVerificationScreen({ onComplete, onBack }: DeliveryVerificationScreenProps) {
+export function DeliveryVerificationScreen({
+  tripId = '1',
+  onComplete,
+  onBack,
+}: DeliveryVerificationScreenProps) {
   const [permission, requestPermission] = useCameraPermissions();
   const [cameraActive, setCameraActive] = useState(false);
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [cameraRef, setCameraRef] = useState<any>(null);
 
+  const [consigneeName, setConsigneeName] = useState('');
+  const [consigneePhone, setConsigneePhone] = useState('');
+  const [notes, setNotes] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const compressPhoto = async (uri: string): Promise<string> => {
+    try {
+      const info = await ImageManipulator.manipulateAsync(uri, [], {
+        compress: 0.7,
+        format: ImageManipulator.SaveFormat.JPEG,
+      });
+      return info.uri;
+    } catch {
+      return uri;
+    }
+  };
+
   const takePhoto = async () => {
     if (cameraRef) {
       try {
         const photo = await cameraRef.takePictureAsync();
-        setCapturedPhoto(photo.uri);
+        const compressedUri = await compressPhoto(photo.uri);
+        setCapturedPhoto(compressedUri);
         setCameraActive(false);
-      } catch (err) {
+      } catch {
         Alert.alert('Camera Error', 'Failed to capture photo proof.');
       }
     }
   };
+
+  const submit = async () => {
+    if (!capturedPhoto && !consigneeName.trim()) {
+      Alert.alert('Missing Fields', 'Please add a consignee name or capture a photo proof.');
+      return;
+    }
+
+    setSubmitting(true);
+    const form = new FormData();
+    form.append('consignee_name', consigneeName.trim());
+    if (consigneePhone.trim()) {
+      form.append('consignee_phone', consigneePhone.trim());
+    }
+    if (notes.trim()) {
+      form.append('notes', notes.trim());
+    }
+    if (capturedPhoto) {
+      form.append('pod_photo', {
+        uri: capturedPhoto,
+        name: 'pod.jpg',
+        type: 'image/jpeg',
+      } as any);
+    }
+
+    try {
+      const token = useAuthStore.getState().token;
+      const targetUrl = `${getApiBaseURL()}/api/v1/trips/${tripId}/deliver-pod`;
+
+      const res = await fetch(targetUrl, {
+        method: 'POST',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: form,
+      });
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || `HTTP ${res.status}`);
+      }
+
+      const json = await res.json();
+      await OfflineQueue.clearPOD(tripId);
+      Alert.alert('Delivered', `Trip ${json.trip_number || tripId} marked as delivered successfully!`, [
+        { text: 'OK', onPress: onComplete },
+      ]);
+    } catch {
+      // Queue for automatic offline sync retry
+      await OfflineQueue.enqueuePOD(tripId, {
+        consignee_name: consigneeName.trim() || 'Consignee',
+        notes: notes.trim(),
+        photo_uri: capturedPhoto,
+      });
+      Alert.alert('Saved Offline', 'Delivery proof queued in offline storage. Will submit when back online.', [
+        { text: 'OK', onPress: onComplete },
+      ]);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const isSubmitDisabled = submitting || (!capturedPhoto && !consigneeName.trim());
 
   return (
     <View style={styles.container}>
@@ -74,47 +173,65 @@ export function DeliveryVerificationScreen({ onComplete, onBack }: DeliveryVerif
           <View style={styles.titleSection}>
             <Text style={styles.title}>COMPLETE DELIVERY</Text>
             <View style={styles.titleUnderline} />
-            <Text style={styles.subtitle}>ORDER REF · #ORD-7492-X</Text>
+            <Text style={styles.subtitle}>TRIP REF · #{tripId}</Text>
           </View>
 
-          {/* Delivery Summary */}
+          {/* Consignee Details Input Form */}
           <View style={styles.card}>
             <View style={styles.cardHeaderRow}>
-              <Text style={styles.cardHeader}>DELIVERY SUMMARY</Text>
-              <Text style={styles.cardMeta}>02 ITEMS</Text>
+              <Text style={styles.cardHeader}>CONSIGNEE DETAILS</Text>
+              <Text style={styles.cardMeta}>REQUIRED</Text>
             </View>
 
-            <View style={styles.summaryItem}>
-              <View style={styles.itemIconBox}>
-                <MaterialCommunityIcons name="package-variant-closed" size={16} color={Colors.primary} />
-              </View>
-              <View style={styles.itemTextContainer}>
-                <Text style={styles.itemTitle}>Medical Equipment Box</Text>
-                <Text style={styles.itemSubtitle}>QTY 2 · FRAGILE</Text>
-              </View>
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>RECEIVER / CONSIGNEE NAME</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g. Rajesh Sharma"
+                placeholderTextColor={Colors.textMuted}
+                value={consigneeName}
+                onChangeText={setConsigneeName}
+              />
             </View>
 
-            <View style={styles.divider} />
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>PHONE NUMBER (OPTIONAL)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="+91 98765 43210"
+                placeholderTextColor={Colors.textMuted}
+                value={consigneePhone}
+                onChangeText={setConsigneePhone}
+                keyboardType="phone-pad"
+              />
+            </View>
 
-            <View style={styles.summaryItem}>
-              <View style={styles.itemIconBox}>
-                <MaterialCommunityIcons name="map-marker-outline" size={16} color={Colors.primary} />
-              </View>
-              <View style={styles.itemTextContainer}>
-                <Text style={styles.itemTitle}>Apollo Medical Center</Text>
-                <Text style={styles.itemSubtitle}>GATE 3 · RECEIVING DOCK · MUMBAI</Text>
-              </View>
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>DELIVERY REMARKS / NOTES</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="e.g. Received at Gate 3 with intact seal"
+                placeholderTextColor={Colors.textMuted}
+                value={notes}
+                onChangeText={setNotes}
+                multiline
+                numberOfLines={3}
+              />
             </View>
           </View>
 
-          {/* Photo POD */}
+          {/* Photo POD Card */}
           <View style={styles.card}>
             <View style={styles.cardHeaderRow}>
               <Text style={styles.cardHeader}>PHOTO PROOF</Text>
-              {capturedPhoto ? <Text style={styles.cardMetaSuccess}>CAPTURED</Text> : <Text style={styles.cardMeta}>REQUIRED</Text>}
+              {capturedPhoto ? (
+                <Text style={styles.cardMetaSuccess}>CAPTURED</Text>
+              ) : (
+                <Text style={styles.cardMeta}>RECOMMENDED</Text>
+              )}
             </View>
             <Text style={styles.cardSubtitle}>
-              Capture clear photo of delivered package at drop-off or barcode label.
+              Capture clear photo of delivered cargo, invoice, or receiver sign-off.
             </Text>
 
             {capturedPhoto ? (
@@ -141,22 +258,26 @@ export function DeliveryVerificationScreen({ onComplete, onBack }: DeliveryVerif
               >
                 <MaterialCommunityIcons name="camera-plus-outline" size={28} color={Colors.primary} />
                 <Text style={styles.placeholderTitle}>TAP TO CAPTURE</Text>
-                <Text style={styles.placeholderSub}>Barcode & cargo proof</Text>
+                <Text style={styles.placeholderSub}>Barcode, cargo or POD stamp</Text>
               </TouchableOpacity>
             )}
           </View>
 
+          {/* Submit Action Button */}
           <TouchableOpacity
-            style={styles.submitBtn}
+            style={[styles.submitBtn, isSubmitDisabled && styles.submitBtnDisabled]}
             activeOpacity={0.88}
-            onPress={() => {
-              Alert.alert('Delivery Verified', 'Delivery verification proof submitted successfully!', [
-                { text: 'OK', onPress: onComplete },
-              ]);
-            }}
+            onPress={submit}
+            disabled={isSubmitDisabled}
           >
-            <Text style={styles.submitBtnText}>CONFIRM DELIVERY</Text>
-            <MaterialCommunityIcons name="check-circle-outline" size={16} color={Colors.textOnPrimary} />
+            {submitting ? (
+              <ActivityIndicator color={Colors.textOnPrimary} size="small" />
+            ) : (
+              <>
+                <Text style={styles.submitBtnText}>CONFIRM & SUBMIT E-POD</Text>
+                <MaterialCommunityIcons name="check-circle-outline" size={16} color={Colors.textOnPrimary} />
+              </>
+            )}
           </TouchableOpacity>
         </ScrollView>
       )}
@@ -264,38 +385,30 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginBottom: Spacing.md,
   },
-  summaryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  formGroup: {
+    marginBottom: Spacing.md,
   },
-  itemIconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: Spacing.md,
-  },
-  itemTextContainer: {
-    flex: 1,
-  },
-  itemTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-  },
-  itemSubtitle: {
+  label: {
     fontSize: 10,
-    color: Colors.textMuted,
-    marginTop: 2,
-    letterSpacing: 0.5,
+    fontWeight: '800',
+    color: Colors.textSecondary,
+    letterSpacing: 1,
+    marginBottom: 6,
     fontFamily: Font.mono,
   },
-  divider: {
-    height: 1,
-    backgroundColor: Colors.borderLight,
-    marginVertical: Spacing.md,
+  input: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 13,
+    color: Colors.textPrimary,
+    backgroundColor: Colors.surfaceSecondary,
+  },
+  textArea: {
+    height: 70,
+    textAlignVertical: 'top',
   },
   photoPlaceholder: {
     height: 140,
@@ -359,6 +472,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     marginTop: 8,
+  },
+  submitBtnDisabled: {
+    opacity: 0.5,
+    backgroundColor: Colors.border,
   },
   submitBtnText: {
     color: Colors.textOnPrimary,

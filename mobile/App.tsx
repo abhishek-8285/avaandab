@@ -26,7 +26,8 @@ import { DB } from './src/services/storage';
 import { Telemetry } from './src/services/telemetry';
 import { Analytics } from './src/services/analytics';
 import { MQTT } from './src/services/mqtt';
-import { SyncEngine } from './src/services/syncEngine';
+import { SyncEngine, startNetworkWatcher, stopNetworkWatcher } from './src/services/syncEngine';
+import { OfflineQueue } from './src/services/offlineQueue';
 import { useAuthStore } from './src/stores/authStore';
 import { Trip } from './src/types/api';
 import { mapTripStatus, RawTrip } from './src/utils/tripMapper';
@@ -48,8 +49,8 @@ type AuthStackParamList = {
 type DriverStackParamList = {
   Main: undefined;
   FirstTimeSetup: undefined;
-  ActiveNavigation: undefined;
-  DeliveryVerification: undefined;
+  ActiveNavigation: { tripId?: string } | undefined;
+  DeliveryVerification: { tripId?: string } | undefined;
 };
 
 const AuthStack = createStackNavigator<AuthStackParamList>();
@@ -126,7 +127,7 @@ function DriverNavigator() {
         {({ navigation }) => (
           <MainScreen
             onOpenSetup={() => navigation.navigate('FirstTimeSetup')}
-            onStartNav={() => navigation.navigate('ActiveNavigation')}
+            onStartNav={(tripId) => navigation.navigate('ActiveNavigation', { tripId })}
           />
         )}
       </DriverStack.Screen>
@@ -139,17 +140,20 @@ function DriverNavigator() {
         )}
       </DriverStack.Screen>
       <DriverStack.Screen name="ActiveNavigation">
-        {({ navigation }) => (
+        {({ navigation, route }) => (
           <ActiveNavigationScreen
-            onArriveAtStop={() => navigation.navigate('DeliveryVerification')}
+            onArriveAtStop={() =>
+              navigation.navigate('DeliveryVerification', { tripId: route.params?.tripId || '1' })
+            }
             onMenuToggle={() => navigation.navigate('Main')}
           />
         )}
       </DriverStack.Screen>
       <DriverStack.Screen name="DeliveryVerification">
-        {({ navigation }) => (
+        {({ navigation, route }) => (
           <DeliveryVerificationScreen
-            onComplete={() => navigation.navigate('ActiveNavigation')}
+            tripId={route.params?.tripId || '1'}
+            onComplete={() => navigation.navigate('Main')}
             onBack={() => navigation.goBack()}
           />
         )}
@@ -163,7 +167,17 @@ export default function App() {
 
   useEffect(() => {
     loadSession();
+    OfflineQueue.init().catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      startNetworkWatcher();
+    }
+    return () => {
+      stopNetworkWatcher();
+    };
+  }, [isAuthenticated]);
 
   if (isLoading) {
     return <SplashScreen onFinish={() => {}} />;
@@ -183,7 +197,7 @@ export default function App() {
 
 interface MainScreenProps {
   onOpenSetup?: () => void;
-  onStartNav?: () => void;
+  onStartNav?: (tripId: string) => void;
 }
 
 function MainScreen({ onOpenSetup, onStartNav }: MainScreenProps) {
@@ -401,7 +415,7 @@ function MainScreen({ onOpenSetup, onStartNav }: MainScreenProps) {
             </View>
           ) : (
             trips.map((trip) => (
-              <TouchableOpacity key={trip.id} activeOpacity={0.9} onPress={() => onStartNav && onStartNav()}>
+              <TouchableOpacity key={trip.id} activeOpacity={0.9} onPress={() => onStartNav && onStartNav(trip.id)}>
                 <TripCard
                   tripNumber={trip.tripNumber}
                   driverName={trip.driverName}

@@ -1,6 +1,46 @@
+import NetInfo from '@react-native-community/netinfo';
 import { getApiBaseURL } from '../constants/network';
 import { DB } from './storage';
+import { OfflineQueue } from './offlineQueue';
 import { useAuthStore } from '../stores/authStore';
+
+let wasConnected = true;
+let unsubscribeNetInfo: (() => void) | null = null;
+
+export function startNetworkWatcher(): void {
+  if (unsubscribeNetInfo) return;
+
+  unsubscribeNetInfo = NetInfo.addEventListener((state) => {
+    const isConnected = state.isConnected ?? false;
+
+    if (isConnected && !wasConnected) {
+      // Just reconnected — flush offline queues
+      OfflineQueue.flush()
+        .then(({ podsFlushed, gpsFlushed }) => {
+          if (podsFlushed > 0 || gpsFlushed > 0) {
+            console.log(`[OfflineQueue] Flushed ${podsFlushed} PODs, ${gpsFlushed} GPS logs on reconnect`);
+          }
+        })
+        .catch((err) => {
+          console.warn('[OfflineQueue] Flush failed:', err);
+        });
+
+      const driverId = useAuthStore.getState().user?.driverId || useAuthStore.getState().user?.id;
+      if (driverId) {
+        SyncEngine.syncPendingLogs(driverId).catch(() => {});
+      }
+    }
+
+    wasConnected = isConnected;
+  });
+}
+
+export function stopNetworkWatcher(): void {
+  if (unsubscribeNetInfo) {
+    unsubscribeNetInfo();
+    unsubscribeNetInfo = null;
+  }
+}
 
 class SyncEngineService {
   private syncTimer: NodeJS.Timeout | null = null;
