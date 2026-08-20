@@ -1,4 +1,4 @@
-// FlyFleet Premium SPA Router with FOUC prevention, Smooth Anchor Scrolling, and Progress Bar
+// FlyFleet Premium SPA Router with FOUC prevention, Smooth Anchor Scrolling, Progress Bar, and Datastar Reactivity Re-bootstrap
 (function() {
     // Create progress bar element
     const progressBar = document.createElement('div');
@@ -34,7 +34,8 @@
         }, 200);
     }
 
-    // Main page loading function
+    // Datastar v1.0.2 re-init strategy: native nav fallback for @signals + reinitialize/load event fallback
+    // Verified against internal/static/js/datastar.js on 2026-08-20
     function loadPage(url, options = {}) {
         const pushState = options.pushState !== false;
         const fetchOpts = {
@@ -54,6 +55,13 @@
             .then(html => {
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
+
+                // NEW: if the target page uses Datastar signals, navigate natively
+                // to preserve signal attachment (body-swap breaks reactivity).
+                if (doc.body && (doc.body.innerHTML.includes('@signals') || doc.body.querySelector('[data-signals]'))) {
+                    window.location.href = url;
+                    return;
+                }
 
                 // 1. Sync Head Elements (Stylesheets & Title)
                 const newStyles = Array.from(doc.head.querySelectorAll('link[rel="stylesheet"], style'));
@@ -111,6 +119,13 @@
                             newScript.appendChild(document.createTextNode(oldScript.innerHTML));
                             oldScript.parentNode.replaceChild(newScript, oldScript);
                         });
+
+                        // Re-bootstrap Datastar after body swap
+                        if (window.Datastar && typeof window.Datastar.reinitialize === 'function') {
+                            window.Datastar.reinitialize(document.body);
+                        } else if (window.Datastar) {
+                            document.dispatchEvent(new Event('datastar:load'));
+                        }
                     }
                     endProgress();
                 });
@@ -150,11 +165,17 @@
         const form = e.target.closest('form');
         if (!form) return;
         if (form.getAttribute('action') === '/logout') return;
-        const url = new URL(form.action || window.location.href, window.location.href);
-        if (url.origin !== window.location.origin) return;
 
         // Skip forms that use Datastar AJAX action submit hooks directly
         if (form.hasAttribute('data-on-submit')) return;
+
+        // Let Datastar / HTMX / explicit SPA-opt-out forms behave natively
+        if (form.hasAttribute('data-spa') && form.getAttribute('data-spa') === 'false') return;
+        if (form.hasAttribute('data-datastar-ignore')) return;
+        if (form.hasAttribute('hx-post') || form.hasAttribute('hx-get') || form.hasAttribute('hx-put') || form.hasAttribute('hx-delete')) return;
+
+        const url = new URL(form.action || window.location.href, window.location.href);
+        if (url.origin !== window.location.origin) return;
 
         e.preventDefault();
         const method = (form.getAttribute('method') || 'GET').toUpperCase();
@@ -168,7 +189,10 @@
         let targetUrl = url.pathname;
         if (method === 'GET') {
             const params = new URLSearchParams(formData);
-            targetUrl += '?' + params.toString();
+            const qs = params.toString();
+            if (qs) {
+                targetUrl += '?' + qs;
+            }
         } else {
             fetchOpts.body = new URLSearchParams(formData);
             fetchOpts.headers['Content-Type'] = 'application/x-www-form-urlencoded';

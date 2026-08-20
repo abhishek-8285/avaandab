@@ -478,6 +478,10 @@ func (a *App) renderPage(w http.ResponseWriter, r *http.Request, name string, da
 		return
 	}
 
+	// NOTE: This branch is reachable when a client sends X-SPA-Request: true
+	// (set by SPAMiddleware). The current SPA router does NOT send this header;
+	// it is a dormant fast-path for future native-SPA clients. Do not delete
+	// unless the team decides to remove SPA support entirely.
 	if s, ok := w.(interface{ IsSPARequest() bool }); ok && s.IsSPARequest() {
 		w.Header().Set("X-Page-Title", data.Title)
 		_, _ = w.Write([]byte(buf.String()))
