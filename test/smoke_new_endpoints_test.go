@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	bookingApp "transport-app/internal/booking/application"
-	"transport-app/internal/graphqlservice"
 	invoiceApp "transport-app/internal/invoice/application"
 	invoiceHandlers "transport-app/internal/invoice/presentation/api/handlers"
 	paymentApp "transport-app/internal/payment/application"
@@ -24,7 +23,6 @@ import (
 	"transport-app/internal/shared/id"
 	"transport-app/internal/shared/ports"
 	"transport-app/internal/shared/uow"
-	tripApp "transport-app/internal/trip/application"
 )
 
 func setupSmokeTest(t *testing.T) (http.Handler, *service.Services, ports.UnitOfWork) {
@@ -53,14 +51,11 @@ func setupSmokeTest(t *testing.T) (http.Handler, *service.Services, ports.UnitOf
 		nil, // verifyUC (Razorpay disabled in smoke tests)
 		authSvc,
 	)
-	listTripsUC := tripApp.NewListTripsUseCase(sqlUoW)
-	graphqlH := graphqlservice.NewGraphQLHandler(listTripsUC)
 
 	r := chi.NewRouter()
 	r.Use(authInjectMiddleware)
 	invoiceH.Register(r)
 	paymentH.Register(r)
-	r.Post("/query", graphqlH.ServeHTTP)
 
 	return r, NewTestServices(t, db), sqlUoW
 }
@@ -223,45 +218,6 @@ func TestSmoke_ReversePaymentEndpoint(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &listResp))
 	assert.Len(t, listResp.Payments, 2, "expected 2 payments (original + reversal)")
-}
-
-func TestSmoke_GraphQLRealData(t *testing.T) {
-	router, svcs, sqlUoW := setupSmokeTest(t)
-	ctx := context.Background()
-
-	route, err := svcs.Routes.CreateRoute(ctx, "Delhi", "Jaipur", 280, 5, 8000, "")
-	require.NoError(t, err)
-
-	idGen := id.NewUUIDGenerator()
-	realClock := clock.NewRealClock()
-	createTripUC := tripApp.NewCreateTripUseCase(sqlUoW, idGen, realClock)
-	tripID, err := createTripUC.Execute(ctx, tripApp.CreateTripCommand{
-		TenantID:      "1",
-		RouteID:       string(route.ID),
-		DepartureTime: time.Now().Add(24 * time.Hour),
-		Remarks:       "smoke test trip",
-	})
-	require.NoError(t, err)
-	assert.NotEmpty(t, tripID)
-
-	rr := doSmoke(t, router, http.MethodPost, "/query", map[string]interface{}{
-		"query": "{ activeTrips { id } }",
-	})
-	require.Equal(t, http.StatusOK, rr.Code, "body: %s", rr.Body.String())
-
-	var gqlResp struct {
-		Data struct {
-			ActiveTrips []struct {
-				ID     string `json:"id"`
-				Status string `json:"status"`
-				Origin string `json:"origin"`
-				Dest   string `json:"destination"`
-			} `json:"activeTrips"`
-			ServerTime string `json:"serverTime"`
-		} `json:"data"`
-	}
-	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &gqlResp))
-	assert.NotEmpty(t, gqlResp.Data.ServerTime, "serverTime should be present")
 }
 
 // TestSmoke_RazorpayOrderVerify_FailClosedWithoutCreds proves the protected

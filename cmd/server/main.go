@@ -39,8 +39,6 @@ import (
 	geofencerepo "transport-app/internal/geofence/infrastructure/persistence/sql"
 	geofenceworker "transport-app/internal/geofence/infrastructure/worker"
 	geofenceHandlers "transport-app/internal/geofence/presentation/api/handlers"
-	"transport-app/internal/graphqlservice"
-	"transport-app/internal/grpcservice"
 	"transport-app/internal/handlers"
 	"transport-app/internal/integration"
 	intAcc "transport-app/internal/integration/accounting"
@@ -571,16 +569,6 @@ func main() {
 		fuelEngine = fuel.NewEngine(database, sqlUoW, fuel.NewConfigReader(database), logger)
 	}
 
-	// 2. gRPC Dispatch Microservice
-	grpcPort := os.Getenv("GRPC_PORT")
-	if grpcPort == "" {
-		grpcPort = "50051"
-	}
-	grpcservice.StartGRPCServer(grpcPort)
-
-	// 3. GraphQL Query Endpoint
-	graphqlH := graphqlservice.NewGraphQLHandler(listTrips)
-
 	// ── RAG (codebase search) ────────────────────────────────────────────
 	// Created before the protected group below so its routes mount behind RequireAPIAuth.
 	var ragHandler *rag.Handler
@@ -642,11 +630,9 @@ func main() {
 		app.Share.EtaService = etaService
 	}
 
-	// Protected: GraphQL, Telemetry, and all /api/v1/* routes require a valid session or Bearer token
+	// Protected: Telemetry, and all /api/v1/* routes require a valid session or Bearer token
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.RequireAPIAuth(authStore, apiSecret, middleware.DefaultTenantResolver))
-		r.Post("/query", graphqlH.ServeHTTP)
-		r.Get("/graphql", graphqlH.ServeHTTP)
 		telemetry.RegisterTelemetryRoutes(r, ingestor, database, time.Duration(cfg.LiveMap.TelemetryStaleMin)*time.Minute, etaService)
 		r.Get("/api/v1/telemetry/stream", realtime.StreamHandler(sseHub, cfg.LiveMap.SSEEnabled))
 		pnl.RegisterRoutes(r, pnl.NewService(database), authSvc)
