@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	db "transport-app/db/generated/sqlite"
@@ -431,6 +433,165 @@ WHERE t.tenant_id = ?
 		query, qPattern, qPattern, qPattern, qPattern, qPattern, qPattern,
 		status, status,
 	).Scan(&count)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return readModels, count, nil
+}
+
+func (r *tripRepository) SearchReadModelsByDriver(ctx context.Context, tenantID shared.TenantID, driverIDs []string, query string, status string, limit int, offset int) ([]domain.TripReadModel, int64, error) {
+	if len(driverIDs) == 0 {
+		return nil, 0, nil
+	}
+
+	allDriverIDs := make(map[string]struct{})
+	for _, id := range driverIDs {
+		if id != "" {
+			allDriverIDs[id] = struct{}{}
+		}
+	}
+
+	for _, id := range driverIDs {
+		if id == "" {
+			continue
+		}
+		var dID, dCode string
+		_ = r.dbConn.QueryRowContext(ctx, `
+			SELECT id, driver_id FROM drivers
+			WHERE tenant_id = ? AND (id = ? OR email = (SELECT email FROM users WHERE id = ?))
+			LIMIT 1
+		`, string(tenantID), id, id).Scan(&dID, &dCode)
+		if dID != "" {
+			allDriverIDs[dID] = struct{}{}
+		}
+		if dCode != "" {
+			allDriverIDs[dCode] = struct{}{}
+		}
+	}
+
+	var resolvedIDs []string
+	for id := range allDriverIDs {
+		resolvedIDs = append(resolvedIDs, id)
+	}
+	if len(resolvedIDs) == 0 {
+		return nil, 0, nil
+	}
+
+	qPattern := "%" + query + "%"
+
+	placeholders := make([]string, len(resolvedIDs))
+	for i := range resolvedIDs {
+		placeholders[i] = "?"
+	}
+	driverClause := fmt.Sprintf("t.driver_id IN (%s)", strings.Join(placeholders, ","))
+
+	querySQL := fmt.Sprintf(`
+SELECT t.id, t.trip_number, t.booking_id, t.driver_id, t.vehicle_id, t.route_id,
+    t.departure_time, t.arrival_time, t.status, t.remarks, t.created_at, t.updated_at,
+    t.started_at, t.reached_pickup_at, t.in_transit_at, t.delivered_at, t.completed_at,
+    COALESCE(d.driver_id, '') AS driver_display_id,
+    COALESCE(d.first_name, '') AS driver_first_name,
+    COALESCE(d.last_name, '') AS driver_last_name,
+    COALESCE(v.registration_number, '') AS vehicle_registration_number,
+    COALESCE(v.vehicle_number, '') AS vehicle_number,
+    COALESCE(r.source, '') AS route_source,
+    COALESCE(r.destination, '') AS route_destination
+FROM trips t
+LEFT JOIN drivers d ON t.driver_id = d.id
+LEFT JOIN vehicles v ON t.vehicle_id = v.id
+LEFT JOIN routes r ON t.route_id = r.id
+WHERE t.tenant_id = ?
+  AND %s
+  AND (? = '' OR t.trip_number LIKE ? OR d.first_name LIKE ? OR d.last_name LIKE ? OR v.registration_number LIKE ? OR r.source LIKE ? OR r.destination LIKE ?)
+  AND (? = '' OR t.status = ?)
+ORDER BY t.departure_time DESC
+LIMIT ? OFFSET ?`, driverClause)
+
+	args := []interface{}{string(tenantID)}
+	for _, id := range resolvedIDs {
+		args = append(args, id)
+	}
+	args = append(args, query, qPattern, qPattern, qPattern, qPattern, qPattern, qPattern, status, status, limit, offset)
+
+	rows, err := r.dbConn.QueryContext(ctx, querySQL, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	var readModels []domain.TripReadModel
+	for rows.Next() {
+		var m domain.TripReadModel
+		var bookingID, driverID, vehicleID sql.NullString
+		var arrivalTime, startedAt, reachedPickupAt, inTransitAt, deliveredAt, completedAt sql.NullTime
+		var remarks sql.NullString
+
+		err := rows.Scan(
+			&m.ID, &m.TripNumber, &bookingID, &driverID, &vehicleID, &m.RouteID,
+			&m.DepartureTime, &arrivalTime, &m.Status, &remarks, &m.CreatedAt, &m.UpdatedAt,
+			&startedAt, &reachedPickupAt, &inTransitAt, &deliveredAt, &completedAt,
+			&m.DriverDisplayID, &m.DriverFirstName, &m.DriverLastName,
+			&m.VehicleRegistrationNumber, &m.VehicleNumber,
+			&m.RouteSource, &m.RouteDestination,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		if bookingID.Valid {
+			m.BookingID = &bookingID.String
+		}
+		if driverID.Valid {
+			m.DriverID = &driverID.String
+		}
+		if vehicleID.Valid {
+			m.VehicleID = &vehicleID.String
+		}
+		if arrivalTime.Valid {
+			m.ArrivalTime = &arrivalTime.Time
+		}
+		if remarks.Valid {
+			m.Remarks = remarks.String
+		}
+		if startedAt.Valid {
+			m.StartedAt = &startedAt.Time
+		}
+		if reachedPickupAt.Valid {
+			m.ReachedPickupAt = &reachedPickupAt.Time
+		}
+		if inTransitAt.Valid {
+			m.InTransitAt = &inTransitAt.Time
+		}
+		if deliveredAt.Valid {
+			m.DeliveredAt = &deliveredAt.Time
+		}
+		if completedAt.Valid {
+			m.CompletedAt = &completedAt.Time
+		}
+
+		readModels = append(readModels, m)
+	}
+
+	countSQL := fmt.Sprintf(`
+SELECT COUNT(*)
+FROM trips t
+LEFT JOIN drivers d ON t.driver_id = d.id
+LEFT JOIN vehicles v ON t.vehicle_id = v.id
+LEFT JOIN routes r ON t.route_id = r.id
+WHERE t.tenant_id = ?
+  AND %s
+  AND (? = '' OR t.trip_number LIKE ? OR d.first_name LIKE ? OR d.last_name LIKE ? OR v.registration_number LIKE ? OR r.source LIKE ? OR r.destination LIKE ?)
+  AND (? = '' OR t.status = ?)`, driverClause)
+
+	countArgs := []interface{}{string(tenantID)}
+	for _, id := range resolvedIDs {
+		countArgs = append(countArgs, id)
+	}
+	countArgs = append(countArgs, query, qPattern, qPattern, qPattern, qPattern, qPattern, qPattern, status, status)
+
+	var count int64
+	err = r.dbConn.QueryRowContext(ctx, countSQL, countArgs...).Scan(&count)
 	if err != nil {
 		return nil, 0, err
 	}

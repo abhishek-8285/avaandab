@@ -657,6 +657,8 @@ func main() {
 		integrationHandler.Register(r)
 		geofenceAPIHandler.Register(r)
 		r.Get("/api/v1/hsn-sac/search", app.Invoices.SearchHSNSAC)
+		r.Get("/api/v1/drivers/me", app.Drivers.GetMe)
+		r.Post("/api/v1/trips/{id}/deliver-pod", app.Kharcha.DeliverWithPOD)
 		if ragHandler != nil {
 			ragHandler.RegisterRoutes(r)
 		}

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -176,31 +177,55 @@ func (h *KharchaHandlers) Reject(w http.ResponseWriter, r *http.Request) {
 	h.renderFragment(w, "kharcha_row_rejected.html", expense)
 }
 
+func writePODJSONError(w http.ResponseWriter, msg string, code int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	_ = json.NewEncoder(w).Encode(map[string]string{"error": msg})
+}
+
 // DeliverWithPOD handles e-POD submission from driver mobile (multipart form).
-// POST /trips/{id}/deliver-pod
+// Spec 13 §2.4: POST /api/v1/trips/{id}/deliver-pod and POST /trips/{id}/deliver-pod
 func (h *KharchaHandlers) DeliverWithPOD(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	tripID := chi.URLParam(r, "id")
 
 	session, ok := h.getUserFromContext(r)
-	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	if !ok || session == nil || session.UserID == "" {
+		writePODJSONError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
-		http.Error(w, "form parse error", http.StatusBadRequest)
+		writePODJSONError(w, "form parse error", http.StatusBadRequest)
 		return
 	}
 
 	trip, err := h.Services.Trips.GetTrip(ctx, domain.TripID(tripID))
 	if err != nil {
-		http.Error(w, "trip not found", http.StatusNotFound)
+		writePODJSONError(w, "trip not found", http.StatusNotFound)
 		return
 	}
 
-	if trip.DriverID == nil || string(*trip.DriverID) != session.UserID {
-		http.Error(w, "forbidden: trip is not assigned to this user", http.StatusForbidden)
+	if trip.DriverID == nil {
+		writePODJSONError(w, "forbidden: trip is not assigned to this driver", http.StatusForbidden)
+		return
+	}
+
+	assignedDriverID := string(*trip.DriverID)
+	driverMatches := assignedDriverID == session.UserID
+	if !driverMatches && h.DB != nil {
+		var dID, dCode string
+		_ = h.DB.QueryRowContext(ctx, `
+			SELECT id, driver_id FROM drivers
+			WHERE id = ? OR email = (SELECT email FROM users WHERE id = ?)
+			LIMIT 1
+		`, session.UserID, session.UserID).Scan(&dID, &dCode)
+		if (dID != "" && assignedDriverID == dID) || (dCode != "" && assignedDriverID == dCode) {
+			driverMatches = true
+		}
+	}
+	if !driverMatches && session.Role != "admin" && session.Role != "dispatcher" {
+		writePODJSONError(w, "forbidden: trip is not assigned to this driver", http.StatusForbidden)
 		return
 	}
 
@@ -211,9 +236,14 @@ func (h *KharchaHandlers) DeliverWithPOD(w http.ResponseWriter, r *http.Request)
 	// Upload POD photo using existing UploadFile if provided
 	var podPhotoURL string
 	if _, fh, err := r.FormFile("pod_photo"); err == nil {
-		if fileRec, saveErr := h.Services.Files.UploadFile(ctx, fh, "trip_pod", tripID); saveErr == nil {
+		if fileRec, saveErr := h.Services.Files.UploadFile(ctx, fh, "company_logo", tripID); saveErr == nil {
 			podPhotoURL = "/files/" + string(fileRec.ID)
+		} else {
+			writePODJSONError(w, "file upload failed: "+saveErr.Error(), http.StatusBadRequest)
+			return
 		}
+	} else if existingURL := r.FormValue("pod_url"); existingURL != "" {
+		podPhotoURL = existingURL
 	}
 
 	req := service.DeliverWithPODRequest{
@@ -225,11 +255,15 @@ func (h *KharchaHandlers) DeliverWithPOD(w http.ResponseWriter, r *http.Request)
 
 	tripNum, err := h.Services.Trips.DeliverWithPOD(ctx, tripID, req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writePODJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	h.renderFragment(w, "epod_success.html", map[string]interface{}{
-		"TripNumber": tripNum,
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"trip_number": tripNum,
+		"status":      "delivered",
+		"pod_url":     podPhotoURL,
 	})
 }

@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -295,4 +297,100 @@ func strPtr(s string) *string {
 		return nil
 	}
 	return &s
+}
+
+// GetMe returns the driver profile for the authenticated user.
+// Spec 13 §2.2: GET /api/v1/drivers/me
+func (h *DriverHandlers) GetMe(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	session, ok := h.getUserFromContext(r)
+	if !ok || session == nil || session.UserID == "" {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	ctx := r.Context()
+	var d struct {
+		ID        string
+		DriverID  string
+		FirstName string
+		LastName  string
+		Phone     string
+		Status    string
+	}
+
+	// Query driver linked to user by ID, user_id (if matches ID), or email
+	err := h.DB.QueryRowContext(ctx, `
+		SELECT id, driver_id, first_name, last_name, phone, status
+		FROM drivers
+		WHERE id = ? OR email = (SELECT email FROM users WHERE id = ?)
+		LIMIT 1
+	`, session.UserID, session.UserID).Scan(&d.ID, &d.DriverID, &d.FirstName, &d.LastName, &d.Phone, &d.Status)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "driver not found"})
+		return
+	}
+
+	fullName := strings.TrimSpace(d.FirstName + " " + d.LastName)
+	driverCode := d.DriverID
+	if driverCode == "" {
+		driverCode = d.ID
+	}
+
+	// Check active trip and vehicle plate
+	var vehiclePlate string
+	var vehicleID string
+	_ = h.DB.QueryRowContext(ctx, `
+		SELECT COALESCE(v.registration_number, ''), COALESCE(t.vehicle_id, '')
+		FROM trips t
+		LEFT JOIN vehicles v ON t.vehicle_id = v.id
+		WHERE (t.driver_id = ? OR t.driver_id = ? OR t.driver_id = ?)
+		  AND t.status IN ('assigned', 'started', 'reached_pickup', 'in_transit')
+		ORDER BY t.departure_time DESC, t.created_at DESC
+		LIMIT 1
+	`, d.ID, d.DriverID, session.UserID).Scan(&vehiclePlate, &vehicleID)
+
+	// Check current location from latest snapshot or vehicle latest position
+	type Location struct {
+		Latitude  float64 `json:"latitude"`
+		Longitude float64 `json:"longitude"`
+	}
+	var curLoc *Location
+	if vehicleID != "" {
+		var lat, lon float64
+		if errLoc := h.DB.QueryRowContext(ctx, `
+			SELECT latitude, longitude 
+			FROM vehicle_latest_position 
+			WHERE vehicle_id = ?
+		`, vehicleID).Scan(&lat, &lon); errLoc == nil {
+			curLoc = &Location{Latitude: lat, Longitude: lon}
+		}
+	}
+	if curLoc == nil {
+		var lat, lon float64
+		if errLoc := h.DB.QueryRowContext(ctx, `
+			SELECT latitude, longitude
+			FROM telemetry_snapshots
+			WHERE (vehicle_id = ? AND vehicle_id != '') OR driver_id = ? OR driver_id = ?
+			ORDER BY timestamp DESC
+			LIMIT 1
+		`, vehicleID, d.ID, d.DriverID).Scan(&lat, &lon); errLoc == nil {
+			curLoc = &Location{Latitude: lat, Longitude: lon}
+		}
+	}
+
+	resp := map[string]interface{}{
+		"driver_id":        driverCode,
+		"user_id":          session.UserID,
+		"name":             fullName,
+		"phone":            d.Phone,
+		"status":           d.Status,
+		"vehicle_plate":    vehiclePlate,
+		"current_location": curLoc,
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(resp)
 }

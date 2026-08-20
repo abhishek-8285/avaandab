@@ -55,6 +55,7 @@ type TripRepository interface {
 	// Read Model Queries
 	GetReadModel(ctx context.Context, id aggregate.TripID, tenantID shared.TenantID) (TripReadModel, error)
 	SearchReadModels(ctx context.Context, tenantID shared.TenantID, query string, status string, limit int, offset int) ([]TripReadModel, int64, error)
+	SearchReadModelsByDriver(ctx context.Context, tenantID shared.TenantID, driverIDs []string, query string, status string, limit int, offset int) ([]TripReadModel, int64, error)
 
 	// Conflict Checks
 	CheckDriverConflict(ctx context.Context, driverID string, tenantID shared.TenantID, excludeTripID string) ([]ConflictInfo, error)

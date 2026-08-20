@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 
+	driverdomain "transport-app/internal/driver/domain"
+	driveragg "transport-app/internal/driver/domain/aggregate"
 	"transport-app/internal/shared"
 	"transport-app/internal/shared/ports"
 	"transport-app/internal/trip/domain"
@@ -11,11 +13,13 @@ import (
 
 // ListTripsQuery parameters.
 type ListTripsQuery struct {
-	TenantID shared.TenantID
-	Page     int
-	Limit    int
-	Search   string
-	Status   string
+	TenantID   shared.TenantID
+	Page       int
+	Limit      int
+	Search     string
+	Status     string
+	DriverID   string
+	AuthUserID string
 }
 
 // ListTripsResponse paginated results.
@@ -52,7 +56,29 @@ func (uc *ListTripsUseCase) Execute(ctx context.Context, q ListTripsQuery) (List
 			return errors.New("failed to retrieve trip repository")
 		}
 
-		rows, total, err := repo.SearchReadModels(txCtx, q.TenantID, q.Search, q.Status, q.Limit, offset)
+		var rows []domain.TripReadModel
+		var total int64
+		var err error
+
+		if q.DriverID == "me" && q.AuthUserID != "" {
+			driverIDs := []string{q.AuthUserID}
+			if driverRepo, ok := txCtx.Repositories().Drivers().(driverdomain.DriverRepository); ok {
+				if rm, dErr := driverRepo.GetReadModel(txCtx, driveragg.DriverID(q.AuthUserID), q.TenantID); dErr == nil {
+					if rm.ID != "" && rm.ID != q.AuthUserID {
+						driverIDs = append(driverIDs, rm.ID)
+					}
+					if rm.DriverDisplayID != "" && rm.DriverDisplayID != q.AuthUserID {
+						driverIDs = append(driverIDs, rm.DriverDisplayID)
+					}
+				}
+			}
+			rows, total, err = repo.SearchReadModelsByDriver(txCtx, q.TenantID, driverIDs, q.Search, q.Status, q.Limit, offset)
+		} else if q.DriverID != "" && q.DriverID != "me" {
+			rows, total, err = repo.SearchReadModelsByDriver(txCtx, q.TenantID, []string{q.DriverID}, q.Search, q.Status, q.Limit, offset)
+		} else {
+			rows, total, err = repo.SearchReadModels(txCtx, q.TenantID, q.Search, q.Status, q.Limit, offset)
+		}
+
 		if err != nil {
 			return err
 		}

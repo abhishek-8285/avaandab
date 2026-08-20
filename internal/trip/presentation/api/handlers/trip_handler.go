@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -118,6 +119,7 @@ func (h *APITripHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *APITripHandler) List(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	if limit <= 0 || limit > 100 {
@@ -127,15 +129,82 @@ func (h *APITripHandler) List(w http.ResponseWriter, r *http.Request) {
 		page = 1
 	}
 
+	driverIDFilter := r.URL.Query().Get("driver_id")
+	if driverIDFilter == "me" {
+		session, ok := r.Context().Value(auth.ContextUser).(*auth.SessionData)
+		if !ok || session == nil || session.UserID == "" {
+			w.WriteHeader(http.StatusUnauthorized)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+			return
+		}
+
+		res, err := h.listUC.Execute(r.Context(), application.ListTripsQuery{
+			TenantID:   shared.TenantIDFromContext(r.Context()),
+			Page:       page,
+			Limit:      limit,
+			Search:     r.URL.Query().Get("search"),
+			Status:     r.URL.Query().Get("status"),
+			DriverID:   "me",
+			AuthUserID: session.UserID,
+		})
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "Failed to list trips"})
+			return
+		}
+
+		type MobileTripDTO struct {
+			ID            string `json:"id"`
+			TripNumber    string `json:"trip_number"`
+			DriverName    string `json:"driver_name"`
+			VehiclePlate  string `json:"vehicle_plate"`
+			Origin        string `json:"origin"`
+			Destination   string `json:"destination"`
+			Status        string `json:"status"`
+			DepartureTime string `json:"departure_time"`
+		}
+
+		trips := make([]MobileTripDTO, len(res.Trips))
+		for i, t := range res.Trips {
+			driverName := strings.TrimSpace(t.DriverFirstName + " " + t.DriverLastName)
+			depTime := ""
+			if !t.DepartureTime.IsZero() {
+				depTime = t.DepartureTime.Format(time.RFC3339)
+			}
+			vehiclePlate := t.VehicleRegistrationNumber
+			if vehiclePlate == "" {
+				vehiclePlate = t.VehicleNumber
+			}
+			trips[i] = MobileTripDTO{
+				ID:            t.ID,
+				TripNumber:    t.TripNumber,
+				DriverName:    driverName,
+				VehiclePlate:  vehiclePlate,
+				Origin:        t.RouteSource,
+				Destination:   t.RouteDestination,
+				Status:        t.Status,
+				DepartureTime: depTime,
+			}
+		}
+
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"trips": trips,
+			"total": res.Total,
+		})
+		return
+	}
+
 	res, err := h.listUC.Execute(r.Context(), application.ListTripsQuery{
 		TenantID: shared.TenantIDFromContext(r.Context()),
 		Page:     page,
 		Limit:    limit,
 		Search:   r.URL.Query().Get("search"),
 		Status:   r.URL.Query().Get("status"),
+		DriverID: driverIDFilter,
 	})
 	if err != nil {
-		http.Error(w, "Failed to list trips", http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "Failed to list trips"})
 		return
 	}
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{"trips": res.Trips, "total": res.Total})
