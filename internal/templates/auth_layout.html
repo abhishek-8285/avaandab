@@ -223,17 +223,7 @@
             document.documentElement.style.opacity = "1";
         });
     </script>
-    <script>
-        (function () {
-            try {
-                var t = localStorage.getItem('theme');
-                if (t !== 'light' && t !== 'dark') {
-                    t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-                }
-                if (t === 'dark') document.documentElement.classList.add('dark');
-            } catch (e) {}
-        })();
-    </script>
+    {{template "theme_head.html" .}}
 </head>
 <body class="bg-background font-sans antialiased min-h-screen flex flex-col">
     <div class="flex-1 w-full flex flex-col">
@@ -249,35 +239,6 @@
     </div>
     {{end}}
 
-    <script>
-        (function () {
-            var btn = document.getElementById('theme-toggle');
-            if (!btn) return;
-            var icon = btn.querySelector('[data-theme-icon]');
-            function sync() {
-                var dark = document.documentElement.classList.contains('dark');
-                if (icon) icon.textContent = dark ? 'light_mode' : 'dark_mode';
-                btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
-            }
-            btn.addEventListener('click', function () {
-                var dark = document.documentElement.classList.toggle('dark');
-                try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
-                sync();
-            });
-            sync();
-            try {
-                var mq = window.matchMedia('(prefers-color-scheme: dark)');
-                var onChange = function (e) {
-                    if (!localStorage.getItem('theme')) {
-                        document.documentElement.classList.toggle('dark', e.matches);
-                        sync();
-                    }
-                };
-                if (mq.addEventListener) mq.addEventListener('change', onChange);
-                else if (mq.addListener) mq.addListener(onChange);
-            } catch (e) {}
-        })();
-    </script>
-
+    <script src="/static/js/theme.js?v={{if .Version}}{{.Version}}{{else}}20260820{{end}}"></script>
 </body>
 </html>

@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="/static/css/tailwind.css?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}">
     <link rel="stylesheet" href="/static/css/app.css?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}">
     <!-- PostHog analytics is loaded only after cookie consent (see cookie-consent partial) -->
+    {{template "theme_head.html" .}}
 
     <style>
         body {
@@ -444,5 +445,6 @@
     {{template "footer.html" .}}
 
     {{template "cookie-consent" .}}
+    <script src="/static/js/theme.js?v={{if .Version}}{{.Version}}{{else}}20260820{{end}}"></script>
 </body>
 </html>

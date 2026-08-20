@@ -1,0 +1,24 @@
+    <script>
+        (function () {
+            try {
+                var getCookie = function(name) {
+                    var match = document.cookie.match(new RegExp('(^|;\\s*)' + name + '=([^;]*)'));
+                    return match ? decodeURIComponent(match[2]) : null;
+                };
+                var mode = getCookie('user_theme') || localStorage.getItem('theme_mode') || localStorage.getItem('theme') || 'system';
+                var isDark = false;
+                if (mode === 'dark') {
+                    isDark = true;
+                } else if (mode === 'light') {
+                    isDark = false;
+                } else {
+                    isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                }
+                if (isDark) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            } catch (e) {}
+        })();
+    </script>

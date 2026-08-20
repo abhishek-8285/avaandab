@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -107,4 +108,39 @@ func TestUserThemePreferences(t *testing.T) {
 	badRec := httptest.NewRecorder()
 	r.ServeHTTP(badRec, badReq)
 	assert.Equal(t, http.StatusBadRequest, badRec.Code)
+
+	// 4. Verify all HTML templates include theme_head and theme.js
+	templatesToCheck := []string{
+		"../internal/templates/layout.html",
+		"../internal/templates/auth_layout.html",
+		"../internal/templates/home.html",
+		"../internal/templates/feature.html",
+		"../internal/templates/privacy.html",
+		"../internal/templates/terms.html",
+		"../internal/templates/refunds.html",
+		"../internal/templates/share_public.html",
+		"../internal/templates/share_pin_form.html",
+	}
+	for _, tplPath := range templatesToCheck {
+		data, err := os.ReadFile(tplPath)
+		require.NoError(t, err, "Failed to read template %s", tplPath)
+		content := string(data)
+		assert.Contains(t, content, `theme_head.html`, "Template %s must include theme_head.html", tplPath)
+		assert.Contains(t, content, `theme.js`, "Template %s must include theme.js", tplPath)
+	}
+
+	// 5. Verify public_header.html and layout.html have 3-way dropdown options
+	headerData, err := os.ReadFile("../internal/templates/partials/public_header.html")
+	require.NoError(t, err)
+	headerStr := string(headerData)
+	assert.Contains(t, headerStr, `data-theme-choice="light"`)
+	assert.Contains(t, headerStr, `data-theme-choice="dark"`)
+	assert.Contains(t, headerStr, `data-theme-choice="system"`)
+
+	layoutData, err := os.ReadFile("../internal/templates/layout.html")
+	require.NoError(t, err)
+	layoutStr := string(layoutData)
+	assert.Contains(t, layoutStr, `data-theme-choice="light"`)
+	assert.Contains(t, layoutStr, `data-theme-choice="dark"`)
+	assert.Contains(t, layoutStr, `data-theme-choice="system"`)
 }

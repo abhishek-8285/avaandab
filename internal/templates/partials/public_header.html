@@ -56,14 +56,40 @@
             </div>
         </div>
 
-        <!-- MOST RIGHT: Login + Dark mode toggle -->
+        <!-- MOST RIGHT: Login + 3-Way Theme Switcher -->
         <ul class="navigation-top-menu navigation-top-menu-user-actions">
-            <li class="navigation-top-menu-item">
-                <button id="theme-toggle" type="button"
-                    class="login-link-button border-0 bg-transparent cursor-pointer flex items-center gap-2"
-                    aria-label="Toggle dark mode" title="Toggle dark mode" aria-pressed="false">
-                    <span class="material-symbols-outlined text-lg" data-theme-icon>dark_mode</span>
+            <li class="navigation-top-menu-item relative" id="theme-menu-wrapper">
+                <button id="theme-menu-btn" type="button"
+                    class="login-link-button border-0 bg-transparent cursor-pointer flex items-center gap-1 text-on-surface hover:text-primary transition-colors"
+                    aria-label="Select color mode" title="Color Mode (Day, Night, System)" aria-expanded="false" aria-haspopup="true">
+                    <span class="material-symbols-outlined text-lg" data-current-theme-icon>brightness_auto</span>
                 </button>
+                <div id="theme-dropdown" class="absolute right-0 top-full mt-2 w-44 bg-surface-container-lowest border border-border-subtle rounded-xl shadow-lg z-50 overflow-hidden hidden p-1 text-on-surface">
+                    <div class="px-2.5 py-1.5 text-[11px] font-semibold text-text-muted uppercase tracking-wider border-b border-border-subtle mb-1">
+                        Color Mode
+                    </div>
+                    <button type="button" data-theme-choice="light" class="w-full text-left px-2.5 py-2 text-xs rounded-lg hover:bg-surface-container-low flex items-center justify-between text-on-surface border-0 bg-transparent cursor-pointer transition-colors">
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-base text-amber-500">light_mode</span>
+                            <span class="font-medium">Day (Light)</span>
+                        </div>
+                        <span class="material-symbols-outlined text-sm text-primary hidden" data-theme-check="light">check</span>
+                    </button>
+                    <button type="button" data-theme-choice="dark" class="w-full text-left px-2.5 py-2 text-xs rounded-lg hover:bg-surface-container-low flex items-center justify-between text-on-surface border-0 bg-transparent cursor-pointer transition-colors">
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-base text-indigo-400">dark_mode</span>
+                            <span class="font-medium">Night (Dark)</span>
+                        </div>
+                        <span class="material-symbols-outlined text-sm text-primary hidden" data-theme-check="dark">check</span>
+                    </button>
+                    <button type="button" data-theme-choice="system" class="w-full text-left px-2.5 py-2 text-xs rounded-lg hover:bg-surface-container-low flex items-center justify-between text-on-surface border-0 bg-transparent cursor-pointer transition-colors">
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-base text-slate-400">desktop_windows</span>
+                            <span class="font-medium">System (Auto)</span>
+                        </div>
+                        <span class="material-symbols-outlined text-sm text-primary hidden" data-theme-check="system">check</span>
+                    </button>
+                </div>
             </li>
             <li class="navigation-top-menu-item">
                 <a href="/login" class="login-link-button">

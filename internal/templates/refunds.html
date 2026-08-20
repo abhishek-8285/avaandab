@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="/static/css/material-symbols.css?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}">
     <link rel="stylesheet" href="/static/css/tailwind.css?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}">
     <link rel="stylesheet" href="/static/css/app.css?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}">
+    {{template "theme_head.html" .}}
     <style>
         body { background-color: var(--color-background); color: var(--color-on-surface); font-family: 'Plus Jakarta Sans', sans-serif; }
         .font-display { font-family: 'Outfit', 'Satoshi', 'Plus Jakarta Sans', sans-serif; }
@@ -56,5 +57,6 @@
 
     {{template "cookie-consent" .}}
     <script src="/static/js/loader.js?v=20260818"></script>
+    <script src="/static/js/theme.js?v={{if .Version}}{{.Version}}{{else}}20260820{{end}}"></script>
 </body>
 </html>

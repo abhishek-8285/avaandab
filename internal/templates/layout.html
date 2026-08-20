@@ -74,30 +74,7 @@
             document.documentElement.style.opacity = "1";
         });
     </script>
-    <script>
-        (function () {
-            try {
-                var getCookie = function(name) {
-                    var match = document.cookie.match(new RegExp('(^|;\\s*)' + name + '=([^;]*)'));
-                    return match ? decodeURIComponent(match[2]) : null;
-                };
-                var mode = getCookie('user_theme') || localStorage.getItem('theme_mode') || localStorage.getItem('theme') || 'system';
-                var isDark = false;
-                if (mode === 'dark') {
-                    isDark = true;
-                } else if (mode === 'light') {
-                    isDark = false;
-                } else {
-                    isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-                }
-                if (isDark) {
-                    document.documentElement.classList.add('dark');
-                } else {
-                    document.documentElement.classList.remove('dark');
-                }
-            } catch (e) {}
-        })();
-    </script>
+    {{template "theme_head.html" .}}
 </head>
 <body class="bg-surface-container-low font-sans">
     <div class="flex h-screen overflow-hidden bg-background">
@@ -603,120 +580,7 @@
         });
     </script>
 
-    <script>
-        (function () {
-            var btn = document.getElementById('theme-menu-btn');
-            var dropdown = document.getElementById('theme-dropdown');
-            var wrapper = document.getElementById('theme-menu-wrapper');
-            var icon = document.querySelector('[data-current-theme-icon]');
-            var choices = document.querySelectorAll('[data-theme-choice]');
-            var checks = document.querySelectorAll('[data-theme-check]');
-
-            function getCookie(name) {
-                var match = document.cookie.match(new RegExp('(^|;\\s*)' + name + '=([^;]*)'));
-                return match ? decodeURIComponent(match[2]) : null;
-            }
-
-            function setCookie(name, val, days) {
-                var d = new Date();
-                d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
-                document.cookie = name + "=" + encodeURIComponent(val) + ";path=/;max-age=" + (days * 86400) + ";SameSite=Lax";
-            }
-
-            function currentMode() {
-                return getCookie('user_theme') || localStorage.getItem('theme_mode') || localStorage.getItem('theme') || 'system';
-            }
-
-            function apply(mode) {
-                var isDark = false;
-                if (mode === 'dark') {
-                    isDark = true;
-                } else if (mode === 'light') {
-                    isDark = false;
-                } else {
-                    isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-                }
-
-                if (isDark) {
-                    document.documentElement.classList.add('dark');
-                } else {
-                    document.documentElement.classList.remove('dark');
-                }
-
-                if (icon) {
-                    if (mode === 'light') icon.textContent = 'light_mode';
-                    else if (mode === 'dark') icon.textContent = 'dark_mode';
-                    else icon.textContent = 'brightness_auto';
-                }
-
-                checks.forEach(function (c) {
-                    if (c.getAttribute('data-theme-check') === mode) {
-                        c.classList.remove('hidden');
-                    } else {
-                        c.classList.add('hidden');
-                    }
-                });
-            }
-
-            function selectMode(mode) {
-                try {
-                    localStorage.setItem('theme_mode', mode);
-                    localStorage.setItem('theme', mode);
-                    setCookie('user_theme', mode, 30);
-                } catch (e) {}
-
-                apply(mode);
-                if (dropdown) dropdown.classList.add('hidden');
-
-                // Backend sync (FlyFleet Rule 1)
-                fetch('/api/v1/users/me/preferences', {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ theme: mode })
-                }).catch(function () {});
-            }
-
-            if (btn && dropdown) {
-                btn.addEventListener('click', function (e) {
-                    e.stopPropagation();
-                    var hidden = dropdown.classList.toggle('hidden');
-                    btn.setAttribute('aria-expanded', hidden ? 'false' : 'true');
-                });
-
-                document.addEventListener('click', function (e) {
-                    if (wrapper && !wrapper.contains(e.target)) {
-                        dropdown.classList.add('hidden');
-                        btn.setAttribute('aria-expanded', 'false');
-                    }
-                });
-            }
-
-            choices.forEach(function (el) {
-                el.addEventListener('click', function (e) {
-                    e.stopPropagation();
-                    var mode = el.getAttribute('data-theme-choice');
-                    selectMode(mode);
-                });
-            });
-
-            // Initial sync
-            var initial = currentMode();
-            apply(initial);
-
-            // Listen for OS live dark mode changes
-            try {
-                var mq = window.matchMedia('(prefers-color-scheme: dark)');
-                var onOSChange = function (e) {
-                    if (currentMode() === 'system') {
-                        apply('system');
-                    }
-                };
-                if (mq.addEventListener) mq.addEventListener('change', onOSChange);
-                else if (mq.addListener) mq.addListener(onOSChange);
-            } catch (e) {}
-        })();
-    </script>
-
+    <script src="/static/js/theme.js?v={{if .Version}}{{.Version}}{{else}}20260820{{end}}"></script>
 </body>
 </html>
 
