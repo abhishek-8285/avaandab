@@ -2,25 +2,34 @@ name: CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, develop]
   pull_request:
-    branches: [main, master]
+    branches: [main, master, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GO_VERSION: '1.26'
+  NODE_VERSION: '20'
 
 jobs:
-  test:
-    name: Test
+  # ──────────────────────────────────────────────────────────
+  # Job 1: Backend Build & Vet (fast gate)
+  # ──────────────────────────────────────────────────────────
+  backend-build:
+    name: Backend Build & Vet
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.26'
-
-      - name: Install dependencies
-        run: |
-          go mod download
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
 
       - name: Format check
         run: |
@@ -35,10 +44,74 @@ jobs:
       - name: Build
         run: CGO_ENABLED=0 go build ./...
 
-      - name: Unit tests
-        run: CGO_ENABLED=1 go test -v -race -count=1 ./...
+      - name: Security Regression Gate — RAG route auth mounting
+        run: |
+          if grep -n '^ragHandler.RegisterRoutes' cmd/server/main.go; then
+            echo "::error::RAG routes registered at top level (unauthenticated) — must be inside the RequireAPIAuth-protected group"
+            exit 1
+          fi
+          if ! grep -q '^[[:space:]].*ragHandler.RegisterRoutes' cmd/server/main.go; then
+            echo "::error::No RAG route registration found inside the protected group"
+            exit 1
+          fi
+          echo "RAG routes are registered inside the RequireAPIAuth-protected group."
 
-      - name: Run tests with shuffle (isolation check)
+      - name: Security Regression Gate — RAG directory allow-list
+        run: |
+          if ! grep -q 'allowedDirectory' internal/rag/handler.go; then
+            echo "::error::handleIndex must enforce a directory allow-list (allowedDirectory)"
+            exit 1
+          fi
+          echo "RAG directory indexing enforces an allow-list."
+
+      - name: Security Regression Gate — No hardcoded tenant literals
+        run: |
+          if grep -rn 'TenantID:[[:space:]]*"1"' internal/ cmd/ --include='*.go'; then
+            echo "::error::Hardcoded tenant literal found — use shared.TenantIDFromContext(ctx) or shared.DefaultTenant"
+            exit 1
+          fi
+          echo "No hardcoded tenant literals. Tenant is always context-derived."
+
+      - name: Check CDN Tailwind references in templates
+        run: |
+          CDN_REFS=$(grep -rn 'cdn.tailwindcss.com' internal/templates/ || true)
+          if [ -n "$CDN_REFS" ]; then
+            echo "::error::CDN Tailwind references found in templates: $CDN_REFS"
+            exit 1
+          fi
+
+  # ──────────────────────────────────────────────────────────
+  # Job 2: Backend Tests & Coverage (depends on build)
+  # ──────────────────────────────────────────────────────────
+  backend-test:
+    name: Backend Tests & Coverage
+    runs-on: ubuntu-latest
+    needs: [backend-build]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install Mobile Dependencies
+        working-directory: ./mobile
+        run: npm ci
+
+      - name: Coverage Gate (80% minimum threshold)
+        run: ./scripts/check-coverage.sh
+
+      - name: Test isolation (shuffle)
         run: go test -shuffle=on -count=3 ./internal/... ./test/...
 
       - name: Audit shared state
@@ -52,20 +125,6 @@ jobs:
           fi
           echo "✅ Shared state audit passed — zero package-level variables in test files."
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-          cache-dependency-path: mobile/package-lock.json
-
-      - name: Install Mobile Dependencies
-        working-directory: ./mobile
-        run: npm ci
-
-      - name: Coverage Gate (80% minimum threshold)
-        run: ./scripts/check-coverage.sh
-
       - name: SQLC generate check
         run: |
           go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
@@ -76,21 +135,27 @@ jobs:
             exit 1
           fi
 
+  # ──────────────────────────────────────────────────────────
+  # Job 3: Security Scanners (parallel with tests)
+  # ──────────────────────────────────────────────────────────
   security:
     name: Security Scanners
     runs-on: ubuntu-latest
+    needs: [backend-build]
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.26'
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: mobile/package-lock.json
 
@@ -101,51 +166,85 @@ jobs:
       - name: Run Security Scanners
         run: ./scripts/security-check.sh
 
-  security-gates:
-    name: Security Regression Gates
+  # ──────────────────────────────────────────────────────────
+  # Job 4: Mobile (fully independent, parallel with backend)
+  # ──────────────────────────────────────────────────────────
+  mobile:
+    name: Mobile Build, Lint & Test
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: mobile
     steps:
       - uses: actions/checkout@v4
 
-      - name: RAG routes must be registered inside the auth-protected group
-        run: |
-          # Vulnerable pattern: a TOP-LEVEL (column-0) ragHandler.RegisterRoutes call.
-          # Inside the protected group it is indented. Fail if any column-0 call exists.
-          if grep -n '^ragHandler.RegisterRoutes' cmd/server/main.go; then
-            echo "::error::RAG routes registered at top level (unauthenticated) — must be inside the RequireAPIAuth-protected group"
-            exit 1
-          fi
-          if ! grep -q '^[[:space:]].*ragHandler.RegisterRoutes' cmd/server/main.go; then
-            echo "::error::No RAG route registration found inside the protected group"
-            exit 1
-          fi
-          echo "RAG routes are registered inside the RequireAPIAuth-protected group."
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
 
-      - name: RAG index endpoint enforces an allow-list
-        run: |
-          if ! grep -q 'allowedDirectory' internal/rag/handler.go; then
-            echo "::error::handleIndex must enforce a directory allow-list (allowedDirectory)"
-            exit 1
-          fi
-          echo "RAG directory indexing enforces an allow-list."
+      - name: Install dependencies
+        run: npm ci
 
-      - name: No hardcoded tenant literals
-        run: |
-          # Multi-tenancy (Spec 09 §2.4): handlers/middleware must derive the
-          # tenant from context, never hardcode the literal "1". The single
-          # controlled exception is shared.DefaultTenant (marked for removal
-          # after migration 00056).
-          if grep -rn 'TenantID:[[:space:]]*"1"' internal/ cmd/ --include='*.go'; then
-            echo "::error::Hardcoded tenant literal found — use shared.TenantIDFromContext(ctx) or shared.DefaultTenant"
-            exit 1
-          fi
-          echo "No hardcoded tenant literals. Tenant is always context-derived."
+      - name: Typecheck
+        run: npm run typecheck
 
-  build:
-    name: Build Docker
+      - name: Lint
+        run: npm run lint
+
+      - name: Test with coverage
+        run: npm run coverage
+
+      - name: Build (export)
+        run: npm run build
+        env:
+          EXPO_PUBLIC_API_SCHEME: https
+          EXPO_PUBLIC_BACKEND_HOST: api.avandab.com
+          EXPO_PUBLIC_API_PORT: '443'
+
+  # ──────────────────────────────────────────────────────────
+  # Job 5: Docker Build
+  # ──────────────────────────────────────────────────────────
+  docker-build:
+    name: Docker Build
     runs-on: ubuntu-latest
+    needs: [backend-build]
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
       - name: Build Docker image
         run: docker build -t mvtms:latest .
+
+  # ──────────────────────────────────────────────────────────
+  # Job 6: Integration Gate (depends on all above)
+  # ──────────────────────────────────────────────────────────
+  integration:
+    name: Integration Gate
+    runs-on: ubuntu-latest
+    needs: [backend-test, security, mobile, docker-build]
+    if: always()
+    timeout-minutes: 5
+    steps:
+      - name: Check all jobs passed
+        run: |
+          if [[ "${{ needs.backend-test.result }}" != "success" ]]; then
+            echo "❌ Backend tests failed"
+            exit 1
+          fi
+          if [[ "${{ needs.security.result }}" != "success" ]]; then
+            echo "❌ Security scanners failed"
+            exit 1
+          fi
+          if [[ "${{ needs.mobile.result }}" != "success" ]]; then
+            echo "❌ Mobile checks failed"
+            exit 1
+          fi
+          if [[ "${{ needs.docker-build.result }}" != "success" ]]; then
+            echo "❌ Docker build failed"
+            exit 1
+          fi
+          echo "✅ All CI gates passed"

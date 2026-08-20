@@ -23,3 +23,8 @@ export function getApiBaseURL(): string {
 export function getMQTTBrokerURL(): string {
   return MQTT_BROKER_URL;
 }
+
+export const DEFAULT_LATITUDE = 19.076;
+export const DEFAULT_LONGITUDE = 72.8777;
+export const DEFAULT_DESTINATION_LATITUDE = 18.5204;
+export const DEFAULT_DESTINATION_LONGITUDE = 73.8567;
