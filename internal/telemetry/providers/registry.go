@@ -33,3 +33,17 @@ func All() map[string]TelematicsProvider {
 	}
 	return out
 }
+
+// Reset clears all registered providers. Intended for test isolation.
+func Reset() {
+	mu.Lock()
+	defer mu.Unlock()
+	registry = map[string]TelematicsProvider{}
+}
+
+// Unregister removes a provider by name from the registry.
+func Unregister(name string) {
+	mu.Lock()
+	defer mu.Unlock()
+	delete(registry, name)
+}

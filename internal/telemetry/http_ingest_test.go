@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
@@ -238,7 +237,3 @@ func TestHMACSHA256_ValidateToken(t *testing.T) {
 	assert.Equal(t, stored, hmacSHA256(pepper, token))
 	assert.NotEqual(t, stored, hmacSHA256(pepper, "wrong-token"))
 }
-
-// Compile-time check that *time is still referenced (avoid unused import if
-// future edits remove time usage).
-var _ = time.Second

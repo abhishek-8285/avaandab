@@ -16,12 +16,14 @@ import (
 )
 
 // scorecardTestNow is the fixed clock for deterministic decay math.
-var scorecardTestNow = time.Date(2026, 8, 19, 12, 0, 0, 0, time.UTC)
+func scorecardTestNow() time.Time {
+	return time.Date(2026, 8, 19, 12, 0, 0, 0, time.UTC)
+}
 
 func scorecardTestServices(t *testing.T, db *sql.DB) *service.Services {
 	t.Helper()
 	svcs := auditTestServices(t, db)
-	svcs.Scorecard.WithClock(func() time.Time { return scorecardTestNow })
+	svcs.Scorecard.WithClock(scorecardTestNow)
 	return svcs
 }
 
@@ -77,9 +79,9 @@ func TestScorecard_ScoreFormula(t *testing.T) {
 	ctx := context.Background()
 
 	seedScorecardDriver(t, db, "d1", "D-001", "Ravi", "Kumar")
-	seedBehaviour(t, db, "b1", "d1", "speeding", "medium", 8, scorecardTestNow, "")
-	seedBehaviour(t, db, "b2", "d1", "speeding", "medium", 8, scorecardTestNow.Add(-10*24*time.Hour), "")
-	seedBehaviour(t, db, "b3", "d1", "speeding", "medium", 8, scorecardTestNow.Add(-20*24*time.Hour), "")
+	seedBehaviour(t, db, "b1", "d1", "speeding", "medium", 8, scorecardTestNow(), "")
+	seedBehaviour(t, db, "b2", "d1", "speeding", "medium", 8, scorecardTestNow().Add(-10*24*time.Hour), "")
+	seedBehaviour(t, db, "b3", "d1", "speeding", "medium", 8, scorecardTestNow().Add(-20*24*time.Hour), "")
 
 	ds, err := svcs.Scorecard.RecomputeDriverScore(ctx, "d1")
 	require.NoError(t, err)
@@ -117,10 +119,10 @@ func TestScorecard_ColdStart(t *testing.T) {
 	seedScorecardDriver(t, db, "d-one", "D-001", "One", "Event")
 	seedScorecardDriver(t, db, "d-three", "D-003", "Three", "Events")
 
-	seedBehaviour(t, db, "b1", "d-one", "idling", "low", 3, scorecardTestNow, "")
-	seedBehaviour(t, db, "b2", "d-three", "idling", "low", 3, scorecardTestNow, "")
-	seedBehaviour(t, db, "b3", "d-three", "idling", "low", 3, scorecardTestNow.Add(-5*24*time.Hour), "")
-	seedBehaviour(t, db, "b4", "d-three", "idling", "low", 3, scorecardTestNow.Add(-10*24*time.Hour), "")
+	seedBehaviour(t, db, "b1", "d-one", "idling", "low", 3, scorecardTestNow(), "")
+	seedBehaviour(t, db, "b2", "d-three", "idling", "low", 3, scorecardTestNow(), "")
+	seedBehaviour(t, db, "b3", "d-three", "idling", "low", 3, scorecardTestNow().Add(-5*24*time.Hour), "")
+	seedBehaviour(t, db, "b4", "d-three", "idling", "low", 3, scorecardTestNow().Add(-10*24*time.Hour), "")
 
 	dsZero, err := svcs.Scorecard.RecomputeDriverScore(ctx, "d-zero")
 	require.NoError(t, err)
@@ -159,7 +161,7 @@ func TestScorecard_FraudCap(t *testing.T) {
 
 	seedScorecardDriver(t, db, "d1", "D-001", "Fraud", "Driver")
 	// Raw score without cap: 100 - 25×1.0×1.0 = 75.
-	seedBehaviour(t, db, "b-theft", "d1", "fuel_theft_suspicion", "low", 25, scorecardTestNow, "")
+	seedBehaviour(t, db, "b-theft", "d1", "fuel_theft_suspicion", "low", 25, scorecardTestNow(), "")
 
 	ds, err := svcs.Scorecard.RecomputeDriverScore(ctx, "d1")
 	require.NoError(t, err)
@@ -201,7 +203,7 @@ func TestScorecard_FraudCapDisabled(t *testing.T) {
 	ctx := context.Background()
 
 	seedScorecardDriver(t, db, "d1", "D-001", "Fraud", "Driver")
-	seedBehaviour(t, db, "b-theft", "d1", "fuel_theft_suspicion", "low", 25, scorecardTestNow, "")
+	seedBehaviour(t, db, "b-theft", "d1", "fuel_theft_suspicion", "low", 25, scorecardTestNow(), "")
 
 	_, err := db.Exec(`INSERT OR REPLACE INTO company_config (tenant_id, key, value)
 		VALUES ('1', 'scorecard.fraud_cap_enabled', 'false')`)
@@ -222,14 +224,14 @@ func TestScorecard_BonusForPayout(t *testing.T) {
 
 	// Tier A driver: 3 low-severity idling events → 91 (A), ≥ min_events.
 	seedScorecardDriver(t, db, "d-a", "D-A", "Alpha", "Driver")
-	seedBehaviour(t, db, "a1", "d-a", "idling", "low", 3, scorecardTestNow, "")
-	seedBehaviour(t, db, "a2", "d-a", "idling", "low", 3, scorecardTestNow.Add(-2*24*time.Hour), "")
-	seedBehaviour(t, db, "a3", "d-a", "idling", "low", 3, scorecardTestNow.Add(-4*24*time.Hour), "")
+	seedBehaviour(t, db, "a1", "d-a", "idling", "low", 3, scorecardTestNow(), "")
+	seedBehaviour(t, db, "a2", "d-a", "idling", "low", 3, scorecardTestNow().Add(-2*24*time.Hour), "")
+	seedBehaviour(t, db, "a3", "d-a", "idling", "low", 3, scorecardTestNow().Add(-4*24*time.Hour), "")
 
 	// Tier C driver: 5 speeding today → score 20 (C).
 	seedScorecardDriver(t, db, "d-c", "D-C", "Charlie", "Driver")
 	for i := 0; i < 5; i++ {
-		seedBehaviour(t, db, "c"+string(rune('0'+i)), "d-c", "speeding", "high", 8, scorecardTestNow, "")
+		seedBehaviour(t, db, "c"+string(rune('0'+i)), "d-c", "speeding", "high", 8, scorecardTestNow(), "")
 	}
 
 	// Unknown score: never recomputed.
@@ -237,7 +239,7 @@ func TestScorecard_BonusForPayout(t *testing.T) {
 
 	// Cold start: only 1 event in window → score known but insufficient.
 	seedScorecardDriver(t, db, "d-cold", "D-CL", "Cold", "Driver")
-	seedBehaviour(t, db, "cold1", "d-cold", "idling", "low", 3, scorecardTestNow, "")
+	seedBehaviour(t, db, "cold1", "d-cold", "idling", "low", 3, scorecardTestNow(), "")
 
 	for _, d := range []string{"d-a", "d-c", "d-cold"} {
 		_, err := svcs.Scorecard.RecomputeDriverScore(ctx, d)
@@ -266,15 +268,15 @@ func TestScorecard_Leaderboard(t *testing.T) {
 	seedScorecardDriver(t, db, "d-d", "D-D", "Delta", "Driver")
 	seedScorecardDriver(t, db, "d-e", "D-E", "Echo", "Driver")
 
-	seedBehaviour(t, db, "b1", "d-b", "speeding", "medium", 8, scorecardTestNow, "")
-	seedBehaviour(t, db, "c1", "d-c", "speeding", "medium", 8, scorecardTestNow, "")
-	seedBehaviour(t, db, "c2", "d-c", "speeding", "medium", 8, scorecardTestNow.Add(-10*24*time.Hour), "")
-	seedBehaviour(t, db, "c3", "d-c", "speeding", "medium", 8, scorecardTestNow.Add(-20*24*time.Hour), "")
+	seedBehaviour(t, db, "b1", "d-b", "speeding", "medium", 8, scorecardTestNow(), "")
+	seedBehaviour(t, db, "c1", "d-c", "speeding", "medium", 8, scorecardTestNow(), "")
+	seedBehaviour(t, db, "c2", "d-c", "speeding", "medium", 8, scorecardTestNow().Add(-10*24*time.Hour), "")
+	seedBehaviour(t, db, "c3", "d-c", "speeding", "medium", 8, scorecardTestNow().Add(-20*24*time.Hour), "")
 	for i := 0; i < 5; i++ {
-		seedBehaviour(t, db, "d"+string(rune('0'+i)), "d-d", "speeding", "high", 8, scorecardTestNow, "")
+		seedBehaviour(t, db, "d"+string(rune('0'+i)), "d-d", "speeding", "high", 8, scorecardTestNow(), "")
 	}
 	for i := 0; i < 7; i++ {
-		seedBehaviour(t, db, "e"+string(rune('0'+i)), "d-e", "idling", "low", 3, scorecardTestNow.Add(-time.Duration(i)*time.Hour), "")
+		seedBehaviour(t, db, "e"+string(rune('0'+i)), "d-e", "idling", "low", 3, scorecardTestNow().Add(-time.Duration(i)*time.Hour), "")
 	}
 
 	for _, d := range []string{"d-a", "d-b", "d-c", "d-d", "d-e"} {
@@ -328,9 +330,9 @@ func TestScorecard_NightlySweep(t *testing.T) {
 	seedScorecardDriver(t, db, "d2", "D-002", "Two", "Driver")
 	seedScorecardDriver(t, db, "d-idle", "D-003", "Idle", "Driver")
 
-	seedBehaviour(t, db, "b1", "d1", "speeding", "high", 8, scorecardTestNow, "")
-	seedBehaviour(t, db, "b2", "d1", "speeding", "high", 8, scorecardTestNow.Add(-3*24*time.Hour), "")
-	seedBehaviour(t, db, "b3", "d2", "idling", "low", 3, scorecardTestNow, "")
+	seedBehaviour(t, db, "b1", "d1", "speeding", "high", 8, scorecardTestNow(), "")
+	seedBehaviour(t, db, "b2", "d1", "speeding", "high", 8, scorecardTestNow().Add(-3*24*time.Hour), "")
+	seedBehaviour(t, db, "b3", "d2", "idling", "low", 3, scorecardTestNow(), "")
 
 	require.NoError(t, svcs.Scorecard.RecomputeAllDrivers(ctx))
 
@@ -375,9 +377,9 @@ func TestSettlement_PersistenceAndBonus(t *testing.T) {
 	require.NoError(t, err)
 
 	// Tier A driver: 3 low-severity idling events → 91, bonus eligible.
-	seedBehaviour(t, db, "a1", "d1", "idling", "low", 3, scorecardTestNow, "")
-	seedBehaviour(t, db, "a2", "d1", "idling", "low", 3, scorecardTestNow.Add(-2*24*time.Hour), "")
-	seedBehaviour(t, db, "a3", "d1", "idling", "low", 3, scorecardTestNow.Add(-4*24*time.Hour), "")
+	seedBehaviour(t, db, "a1", "d1", "idling", "low", 3, scorecardTestNow(), "")
+	seedBehaviour(t, db, "a2", "d1", "idling", "low", 3, scorecardTestNow().Add(-2*24*time.Hour), "")
+	seedBehaviour(t, db, "a3", "d1", "idling", "low", 3, scorecardTestNow().Add(-4*24*time.Hour), "")
 	_, err = svcs.Scorecard.RecomputeDriverScore(ctx, "d1")
 	require.NoError(t, err)
 
@@ -415,9 +417,9 @@ func TestSettlement_NegativePayoutClamp(t *testing.T) {
 	ctx := shared.ContextWithTenantID(context.Background(), shared.DefaultTenant)
 
 	seedScorecardDriver(t, db, "d1", "D-001", "Ravi", "Kumar")
-	seedBehaviour(t, db, "a1", "d1", "idling", "low", 3, scorecardTestNow, "")
-	seedBehaviour(t, db, "a2", "d1", "idling", "low", 3, scorecardTestNow.Add(-2*24*time.Hour), "")
-	seedBehaviour(t, db, "a3", "d1", "idling", "low", 3, scorecardTestNow.Add(-4*24*time.Hour), "")
+	seedBehaviour(t, db, "a1", "d1", "idling", "low", 3, scorecardTestNow(), "")
+	seedBehaviour(t, db, "a2", "d1", "idling", "low", 3, scorecardTestNow().Add(-2*24*time.Hour), "")
+	seedBehaviour(t, db, "a3", "d1", "idling", "low", 3, scorecardTestNow().Add(-4*24*time.Hour), "")
 	_, err := svcs.Scorecard.RecomputeDriverScore(ctx, "d1")
 	require.NoError(t, err)
 

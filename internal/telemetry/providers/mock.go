@@ -23,3 +23,5 @@ func (m *MockProvider) HandleWebhook(ctx context.Context, rawBody []byte) ([]Raw
 func (m *MockProvider) Poll(ctx context.Context, since time.Time) ([]RawFrame, error) {
 	return nil, nil // no-op for mock
 }
+
+var _ TelematicsProvider = (*MockProvider)(nil)

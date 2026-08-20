@@ -145,7 +145,7 @@ func TestClient_Complete(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"choices":[{"message":{"role":"assistant","content":"pong"}}]}`))
 	}))
-	defer srv.Close()
+	t.Cleanup(srv.Close)
 
 	c := NewClient("test-key", srv.URL, "test-model")
 	msg, err := c.Complete(context.Background(), []Message{{Role: "user", Content: "ping"}}, nil)
@@ -162,7 +162,7 @@ func TestClient_Error(t *testing.T) {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(`{"error":{"message":"boom","type":"server_error"}}`))
 	}))
-	defer srv.Close()
+	t.Cleanup(srv.Close)
 
 	c := NewClient("key", srv.URL, "model")
 	_, err := c.Complete(context.Background(), []Message{{Role: "user", Content: "hi"}}, nil)

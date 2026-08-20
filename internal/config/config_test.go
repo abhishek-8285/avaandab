@@ -1,7 +1,6 @@
 package config_test
 
 import (
-	"os"
 	"strings"
 	"testing"
 
@@ -9,30 +8,29 @@ import (
 )
 
 func TestLoad_DefaultsAndEnv(t *testing.T) {
-	_ = os.Setenv("APP_ENV", "production")
-	_ = os.Setenv("PORT", "9090")
-	_ = os.Setenv("MAX_UPLOAD_SIZE", "20")
-	_ = os.Setenv("SESSION_MAX_AGE", "48")
+	t.Run("production env", func(t *testing.T) {
+		t.Setenv("APP_ENV", "production")
+		t.Setenv("PORT", "9090")
+		t.Setenv("MAX_UPLOAD_SIZE", "20")
+		t.Setenv("SESSION_MAX_AGE", "48")
 
-	cfg := config.Load()
+		cfg := config.Load()
 
-	if !cfg.IsProduction() || cfg.IsDevelopment() {
-		t.Fatalf("expected production environment")
-	}
+		if !cfg.IsProduction() || cfg.IsDevelopment() {
+			t.Fatalf("expected production environment")
+		}
 
-	if cfg.Port != "9090" {
-		t.Fatalf("expected port 9090, got %s", cfg.Port)
-	}
+		if cfg.Port != "9090" {
+			t.Fatalf("expected port 9090, got %s", cfg.Port)
+		}
+	})
 
-	_ = os.Unsetenv("APP_ENV")
-	_ = os.Unsetenv("PORT")
-	_ = os.Unsetenv("MAX_UPLOAD_SIZE")
-	_ = os.Unsetenv("SESSION_MAX_AGE")
-
-	devCfg := config.Load()
-	if !devCfg.IsDevelopment() || devCfg.IsProduction() {
-		t.Fatalf("expected development environment default")
-	}
+	t.Run("development default", func(t *testing.T) {
+		devCfg := config.Load()
+		if !devCfg.IsDevelopment() || devCfg.IsProduction() {
+			t.Fatalf("expected development environment default")
+		}
+	})
 }
 
 func TestValidate_DatabaseURL(t *testing.T) {
@@ -72,8 +70,7 @@ func TestValidate_DatabaseURL(t *testing.T) {
 }
 
 func TestLoad_MaxUploadSizeMalformedKeepsDefault(t *testing.T) {
-	_ = os.Setenv("MAX_UPLOAD_SIZE", "not-a-number")
-	defer os.Unsetenv("MAX_UPLOAD_SIZE")
+	t.Setenv("MAX_UPLOAD_SIZE", "not-a-number")
 
 	cfg := config.Load()
 	if cfg.MaxUploadSize != int64(10<<20) {
