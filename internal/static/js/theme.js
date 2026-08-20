@@ -26,6 +26,10 @@
         return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     }
 
+    var SVG_SUN = '<svg class="w-4 h-4 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
+    var SVG_MOON = '<svg class="w-4 h-4 text-indigo-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
+    var SVG_SYSTEM = '<svg class="w-4 h-4 text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>';
+
     function applyTheme(mode) {
         var isDark = isDarkModeActive(mode);
         if (isDark) {
@@ -34,16 +38,16 @@
             document.documentElement.classList.remove('dark');
         }
 
-        // Update 3-way dropdown trigger icons
+        // Update 3-way dropdown trigger icons with vector SVGs
         document.querySelectorAll('[data-current-theme-icon]').forEach(function (icon) {
-            if (mode === 'light') icon.textContent = 'light_mode';
-            else if (mode === 'dark') icon.textContent = 'dark_mode';
-            else icon.textContent = 'brightness_auto';
+            if (mode === 'light') icon.innerHTML = SVG_SUN;
+            else if (mode === 'dark') icon.innerHTML = SVG_MOON;
+            else icon.innerHTML = SVG_SYSTEM;
         });
 
-        // Update legacy/single button icons
+        // Update legacy/single button icons with vector SVGs
         document.querySelectorAll('[data-theme-icon]').forEach(function (icon) {
-            icon.textContent = isDark ? 'light_mode' : 'dark_mode';
+            icon.innerHTML = isDark ? SVG_SUN : SVG_MOON;
         });
 
         // Update 3-way dropdown checkmarks
