@@ -96,6 +96,8 @@ type App struct {
 	Settlements *SettlementHandlers
 	// Document vault handler (Spec 08 §2.3).
 	Documents *DocumentHandlers
+	// PNL daily snapshot handler (Spec 16 §2).
+	PNL *PNLHandlers
 }
 
 // NewApp creates a new handler app with all handler groups initialized.
@@ -157,6 +159,10 @@ func NewApp(svc *service.Services, cfg *config.Config, authStore *auth.SessionSt
 	// Compliance (Spec 05 §5).
 	if svc != nil {
 		app.Compliance = NewComplianceHandlers(app, svc.Compliance)
+	}
+	// PNL daily snapshot (Spec 16 §2).
+	if svc != nil && svc.PNL != nil {
+		app.PNL = NewPNLHandlers(app, svc.PNL, authSrv)
 	}
 
 	return app

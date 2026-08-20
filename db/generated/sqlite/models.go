@@ -418,6 +418,16 @@ type EwayBillEvent struct {
 	CreatedAt sql.NullTime   `json:"created_at"`
 }
 
+type ExperimentAssignment struct {
+	ID           string    `json:"id"`
+	ExperimentID string    `json:"experiment_id"`
+	TenantID     string    `json:"tenant_id"`
+	SubjectType  string    `json:"subject_type"`
+	SubjectID    string    `json:"subject_id"`
+	Variant      string    `json:"variant"`
+	AssignedAt   time.Time `json:"assigned_at"`
+}
+
 type ExperimentEvent struct {
 	ID         string `json:"id"`
 	TenantID   string `json:"tenant_id"`
@@ -427,6 +437,23 @@ type ExperimentEvent struct {
 	Event      string `json:"event"`
 	Meta       string `json:"meta"`
 	CreatedAt  string `json:"created_at"`
+}
+
+type ExperimentsSpec16 struct {
+	ID           string         `json:"id"`
+	TenantID     string         `json:"tenant_id"`
+	Name         string         `json:"name"`
+	Description  sql.NullString `json:"description"`
+	VariantA     string         `json:"variant_a"`
+	VariantB     string         `json:"variant_b"`
+	TrafficSplit float64        `json:"traffic_split"`
+	Status       string         `json:"status"`
+	StartDate    sql.NullTime   `json:"start_date"`
+	EndDate      sql.NullTime   `json:"end_date"`
+	MetricName   sql.NullString `json:"metric_name"`
+	CreatedBy    sql.NullString `json:"created_by"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
 }
 
 type FastagTag struct {
@@ -471,6 +498,34 @@ type File struct {
 	UploadableType string         `json:"uploadable_type"`
 	UploadableID   sql.NullString `json:"uploadable_id"`
 	CreatedAt      time.Time      `json:"created_at"`
+}
+
+type FounderAudit struct {
+	ID           string         `json:"id"`
+	TenantID     string         `json:"tenant_id"`
+	ActorID      string         `json:"actor_id"`
+	ActorRole    string         `json:"actor_role"`
+	Action       string         `json:"action"`
+	ResourceType string         `json:"resource_type"`
+	ResourceID   string         `json:"resource_id"`
+	Details      string         `json:"details"`
+	IpAddress    sql.NullString `json:"ip_address"`
+	UserAgent    sql.NullString `json:"user_agent"`
+	CreatedAt    time.Time      `json:"created_at"`
+}
+
+type FounderSignal struct {
+	ID             string          `json:"id"`
+	TenantID       string          `json:"tenant_id"`
+	SignalType     string          `json:"signal_type"`
+	SignalValue    float64         `json:"signal_value"`
+	ThresholdValue sql.NullFloat64 `json:"threshold_value"`
+	Direction      string          `json:"direction"`
+	Metadata       string          `json:"metadata"`
+	Acknowledged   int64           `json:"acknowledged"`
+	AcknowledgedBy sql.NullString  `json:"acknowledged_by"`
+	AcknowledgedAt sql.NullTime    `json:"acknowledged_at"`
+	CreatedAt      time.Time       `json:"created_at"`
 }
 
 type FuelClaimAudit struct {
@@ -678,6 +733,24 @@ type NotificationsPreference struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
+type OpsAlert struct {
+	ID             string         `json:"id"`
+	TenantID       string         `json:"tenant_id"`
+	AlertType      string         `json:"alert_type"`
+	Severity       string         `json:"severity"`
+	Title          string         `json:"title"`
+	Description    sql.NullString `json:"description"`
+	EntityType     sql.NullString `json:"entity_type"`
+	EntityID       sql.NullString `json:"entity_id"`
+	Status         string         `json:"status"`
+	AcknowledgedBy sql.NullString `json:"acknowledged_by"`
+	AcknowledgedAt sql.NullTime   `json:"acknowledged_at"`
+	ResolvedBy     sql.NullString `json:"resolved_by"`
+	ResolvedAt     sql.NullTime   `json:"resolved_at"`
+	ResolutionNote sql.NullString `json:"resolution_note"`
+	CreatedAt      time.Time      `json:"created_at"`
+}
+
 type OutboxEvent struct {
 	ID            string       `json:"id"`
 	AggregateID   string       `json:"aggregate_id"`
@@ -712,6 +785,23 @@ type Permission struct {
 	Description sql.NullString `json:"description"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
+}
+
+type PnlDaily struct {
+	ID            string    `json:"id"`
+	TenantID      string    `json:"tenant_id"`
+	SnapshotDate  time.Time `json:"snapshot_date"`
+	Revenue       float64   `json:"revenue"`
+	Expenses      float64   `json:"expenses"`
+	FuelCosts     float64   `json:"fuel_costs"`
+	DriverPayouts float64   `json:"driver_payouts"`
+	Maintenance   float64   `json:"maintenance"`
+	TollCosts     float64   `json:"toll_costs"`
+	TdsDeducted   float64   `json:"tds_deducted"`
+	NetProfit     float64   `json:"net_profit"`
+	TripCount     int64     `json:"trip_count"`
+	VehicleCount  int64     `json:"vehicle_count"`
+	CreatedAt     time.Time `json:"created_at"`
 }
 
 type ProviderPollState struct {

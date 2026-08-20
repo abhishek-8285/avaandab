@@ -636,6 +636,9 @@ func main() {
 		telemetry.RegisterTelemetryRoutes(r, ingestor, database, time.Duration(cfg.LiveMap.TelemetryStaleMin)*time.Minute, etaService)
 		r.Get("/api/v1/telemetry/stream", realtime.StreamHandler(sseHub, cfg.LiveMap.SSEEnabled))
 		pnl.RegisterRoutes(r, pnl.NewService(database), authSvc)
+		if app.PNL != nil {
+			app.PNL.RegisterRoutes(r)
+		}
 		bookingAPIHandler.Register(r)
 		tripAPIHandler.Register(r)
 		invoiceAPIHandler.Register(r)
@@ -1090,6 +1093,46 @@ func main() {
 					if err := services.Scorecard.RecomputeAllDrivers(ctx); err != nil && !errors.Is(err, context.Canceled) {
 						logger.Error("scorecard nightly sweep failed", "error", err)
 					}
+				}
+			}
+		}()
+	}
+
+	// Nightly PNL daily snapshot (Spec 16 §2): runs every 24 h, first fires
+	// ~1 minute after startup then on a 24 h ticker. Snapshots yesterday for
+	// all active tenants. Idempotent — safe to re-run.
+	if services.PNL != nil {
+		go func() {
+			// Fire once shortly after boot (catches a missed cron on restarts).
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(1 * time.Minute):
+			}
+			runPNLSnapshot := func() {
+				yesterday := time.Now().AddDate(0, 0, -1)
+				tenantIDs, err := service.GetActiveTenantIDs(ctx, database)
+				if err != nil {
+					logger.Error("PNL: failed to list tenants", "error", err)
+					return
+				}
+				for _, tid := range tenantIDs {
+					if _, err := services.PNL.GenerateDailySnapshot(ctx, tid, yesterday); err != nil && !errors.Is(err, context.Canceled) {
+						logger.Error("PNL daily snapshot failed", "tenant", tid, "date", yesterday.Format("2006-01-02"), "error", err)
+					} else {
+						logger.Info("PNL daily snapshot ok", "tenant", tid, "date", yesterday.Format("2006-01-02"))
+					}
+				}
+			}
+			runPNLSnapshot()
+			ticker := time.NewTicker(24 * time.Hour)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+					runPNLSnapshot()
 				}
 			}
 		}()

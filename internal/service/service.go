@@ -60,6 +60,7 @@ type Services struct {
 	FuelAudit   *FuelAuditService
 	Scorecard   *ScorecardService
 	Documents   *DocumentService
+	PNL         *PNLService
 
 	store Store
 	cfg   *config.Config
@@ -133,6 +134,9 @@ func NewServices(store Store, cfg *config.Config, log *slog.Logger, eventBus eve
 		// bonus hook (Spec 03 §7, gotcha 6 — nil-safe for backward compat).
 		s.Scorecard = NewScorecardService(bs, dbGetter.DB())
 		s.Settlements.scorecard = s.Scorecard
+
+		// PNL daily snapshot service (Spec 16 §2).
+		s.PNL = NewPNLService(dbGetter.DB())
 	}
 
 	// Instantiate Telegram Bot Notifier if token configured, otherwise graceful fallback
