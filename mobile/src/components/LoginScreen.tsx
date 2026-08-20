@@ -46,18 +46,39 @@ export function LoginScreen({ onLoginSuccess, onForgotPassword, onRegisterLink }
 
       const data = await response.json();
 
-      if (!data.token) {
+      if (!data.token || !data.user_id) {
         setLoading(false);
-        Alert.alert('Sign In Failed', 'Server response did not include an authentication token.');
+        Alert.alert('Sign In Failed', data.error || 'Server response missing token or user_id.');
         return;
       }
 
+      const defaultName = email.split('@')[0];
       await setAuth(data.token, {
-        id: data.user?.id || '',
-        name: data.user?.name || '',
-        role: 'DRIVER',
+        id: data.user_id,
+        name: defaultName,
+        role: 'driver',
         email: email,
       });
+
+      // Fetch driver profile to retrieve driverId and linked name
+      try {
+        const meRes = await fetch(`${getApiBaseURL()}/api/v1/drivers/me`, {
+          headers: { Authorization: `Bearer ${data.token}` },
+        });
+        if (meRes.ok) {
+          const me = await meRes.json();
+          useAuthStore.getState().setDriverId(me.driver_id);
+          if (me.name) {
+            const { user } = useAuthStore.getState();
+            if (user) {
+              await useAuthStore.getState().setAuth(data.token, { ...user, name: me.name });
+            }
+          }
+        }
+      } catch {
+        // Driver profile fetch failed; proceed with basic auth
+      }
+
       setLoading(false);
       onLoginSuccess();
     } catch (err: any) {

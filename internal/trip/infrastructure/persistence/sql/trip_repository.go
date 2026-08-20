@@ -442,31 +442,27 @@ WHERE t.tenant_id = ?
 
 func (r *tripRepository) SearchReadModelsByDriver(ctx context.Context, tenantID shared.TenantID, driverIDs []string, query string, status string, limit int, offset int) ([]domain.TripReadModel, int64, error) {
 	if len(driverIDs) == 0 {
-		return nil, 0, nil
+		return nil, 0, sql.ErrNoRows
 	}
 
 	allDriverIDs := make(map[string]struct{})
-	for _, id := range driverIDs {
-		if id != "" {
-			allDriverIDs[id] = struct{}{}
-		}
-	}
-
 	for _, id := range driverIDs {
 		if id == "" {
 			continue
 		}
 		var dID, dCode string
-		_ = r.dbConn.QueryRowContext(ctx, `
+		err := r.dbConn.QueryRowContext(ctx, `
 			SELECT id, driver_id FROM drivers
-			WHERE tenant_id = ? AND (id = ? OR email = (SELECT email FROM users WHERE id = ?))
+			WHERE tenant_id = ? AND (id = ? OR driver_id = ? OR email = (SELECT email FROM users WHERE id = ?))
 			LIMIT 1
-		`, string(tenantID), id, id).Scan(&dID, &dCode)
-		if dID != "" {
-			allDriverIDs[dID] = struct{}{}
-		}
-		if dCode != "" {
-			allDriverIDs[dCode] = struct{}{}
+		`, string(tenantID), id, id, id).Scan(&dID, &dCode)
+		if err == nil {
+			if dID != "" {
+				allDriverIDs[dID] = struct{}{}
+			}
+			if dCode != "" {
+				allDriverIDs[dCode] = struct{}{}
+			}
 		}
 	}
 
@@ -475,7 +471,7 @@ func (r *tripRepository) SearchReadModelsByDriver(ctx context.Context, tenantID 
 		resolvedIDs = append(resolvedIDs, id)
 	}
 	if len(resolvedIDs) == 0 {
-		return nil, 0, nil
+		return nil, 0, sql.ErrNoRows
 	}
 
 	qPattern := "%" + query + "%"

@@ -1,11 +1,14 @@
+import 'react-native-gesture-handler';
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { Colors, Font, Radius, Spacing } from './src/constants/theme';
-import { DEFAULT_DRIVER_ID, DEFAULT_LATITUDE, DEFAULT_LONGITUDE } from './src/constants/network';
+import { DEFAULT_LATITUDE, DEFAULT_LONGITUDE, getApiBaseURL } from './src/constants/network';
 import { TripCard, SkeletonLoader } from './src/components/TripCard';
 import { LiveDriverTrackingMap } from './src/components/LiveDriverTrackingMap';
 import { SplashScreen } from './src/components/SplashScreen';
@@ -22,24 +25,141 @@ import { ActiveNavigationScreen } from './src/components/ActiveNavigationScreen'
 import { DB } from './src/services/storage';
 import { Telemetry } from './src/services/telemetry';
 import { Analytics } from './src/services/analytics';
-import { GraphQL } from './src/services/graphql';
 import { MQTT } from './src/services/mqtt';
 import { SyncEngine } from './src/services/syncEngine';
 import { useAuthStore } from './src/stores/authStore';
 import { Trip } from './src/types/api';
+import { mapTripStatus, RawTrip } from './src/utils/tripMapper';
 import { CameraView } from 'expo-camera';
 
 const queryClient = new QueryClient();
 
-// Configurable demo fallbacks; override via EXPO_PUBLIC_* env vars.
-const DEMO_DRIVER_ID = DEFAULT_DRIVER_ID || 'DRV-9042';
-const DEMO_LATITUDE = DEFAULT_LATITUDE || 18.5204;
-const DEMO_LONGITUDE = DEFAULT_LONGITUDE || 73.8567;
+type AuthStackParamList = {
+  Splash: undefined;
+  GetStarted: undefined;
+  OnboardingOverview: undefined;
+  BookingSchedule: undefined;
+  EarningsOverview: undefined;
+  Login: undefined;
+  Register: undefined;
+  ForgotPassword: undefined;
+};
+
+type DriverStackParamList = {
+  Main: undefined;
+  FirstTimeSetup: undefined;
+  ActiveNavigation: undefined;
+  DeliveryVerification: undefined;
+};
+
+const AuthStack = createStackNavigator<AuthStackParamList>();
+const DriverStack = createStackNavigator<DriverStackParamList>();
+
+function AuthNavigator() {
+  return (
+    <AuthStack.Navigator initialRouteName="Splash" screenOptions={{ headerShown: false }}>
+      <AuthStack.Screen name="Splash">
+        {({ navigation }) => <SplashScreen onFinish={() => navigation.navigate('GetStarted')} />}
+      </AuthStack.Screen>
+      <AuthStack.Screen name="GetStarted">
+        {({ navigation }) => (
+          <GetStartedScreen
+            onGetStarted={() => navigation.navigate('OnboardingOverview')}
+            onSignIn={() => navigation.navigate('Login')}
+          />
+        )}
+      </AuthStack.Screen>
+      <AuthStack.Screen name="OnboardingOverview">
+        {({ navigation }) => (
+          <OnboardingOverviewScreen
+            onNext={() => navigation.navigate('BookingSchedule')}
+            onSkip={() => navigation.navigate('Login')}
+          />
+        )}
+      </AuthStack.Screen>
+      <AuthStack.Screen name="BookingSchedule">
+        {({ navigation }) => (
+          <BookingScheduleScreen
+            onNext={() => navigation.navigate('EarningsOverview')}
+            onBack={() => navigation.goBack()}
+          />
+        )}
+      </AuthStack.Screen>
+      <AuthStack.Screen name="EarningsOverview">
+        {({ navigation }) => (
+          <EarningsOverviewScreen
+            onFinish={() => navigation.navigate('Login')}
+            onBack={() => navigation.goBack()}
+          />
+        )}
+      </AuthStack.Screen>
+      <AuthStack.Screen name="Login">
+        {({ navigation }) => (
+          <LoginScreen
+            onLoginSuccess={() => {}}
+            onForgotPassword={() => navigation.navigate('ForgotPassword')}
+            onRegisterLink={() => navigation.navigate('Register')}
+          />
+        )}
+      </AuthStack.Screen>
+      <AuthStack.Screen name="Register">
+        {({ navigation }) => (
+          <RegisterScreen
+            onRegisterSuccess={() => {}}
+            onBackToLogin={() => navigation.navigate('Login')}
+          />
+        )}
+      </AuthStack.Screen>
+      <AuthStack.Screen name="ForgotPassword">
+        {({ navigation }) => (
+          <ForgotPasswordScreen onBackToLogin={() => navigation.navigate('Login')} />
+        )}
+      </AuthStack.Screen>
+    </AuthStack.Navigator>
+  );
+}
+
+function DriverNavigator() {
+  return (
+    <DriverStack.Navigator screenOptions={{ headerShown: false }}>
+      <DriverStack.Screen name="Main">
+        {({ navigation }) => (
+          <MainScreen
+            onOpenSetup={() => navigation.navigate('FirstTimeSetup')}
+            onStartNav={() => navigation.navigate('ActiveNavigation')}
+          />
+        )}
+      </DriverStack.Screen>
+      <DriverStack.Screen name="FirstTimeSetup">
+        {({ navigation }) => (
+          <FirstTimeSetupScreen
+            onCompleteSetup={() => navigation.navigate('ActiveNavigation')}
+            onBack={() => navigation.goBack()}
+          />
+        )}
+      </DriverStack.Screen>
+      <DriverStack.Screen name="ActiveNavigation">
+        {({ navigation }) => (
+          <ActiveNavigationScreen
+            onArriveAtStop={() => navigation.navigate('DeliveryVerification')}
+            onMenuToggle={() => navigation.navigate('Main')}
+          />
+        )}
+      </DriverStack.Screen>
+      <DriverStack.Screen name="DeliveryVerification">
+        {({ navigation }) => (
+          <DeliveryVerificationScreen
+            onComplete={() => navigation.navigate('ActiveNavigation')}
+            onBack={() => navigation.goBack()}
+          />
+        )}
+      </DriverStack.Screen>
+    </DriverStack.Navigator>
+  );
+}
 
 export default function App() {
   const { isAuthenticated, isLoading, loadSession } = useAuthStore();
-  const [setupCompleted, setSetupCompleted] = useState(false);
-  const [currentScreen, setCurrentScreen] = useState<'splash' | 'get_started' | 'onboarding_overview' | 'booking_schedule' | 'earnings_overview' | 'login' | 'register' | 'forgot_password' | 'first_time_setup' | 'active_nav' | 'delivery_verify'>('splash');
 
   useEffect(() => {
     loadSession();
@@ -49,133 +169,31 @@ export default function App() {
     return <SplashScreen onFinish={() => {}} />;
   }
 
-  // Authenticated State -> Load Main App with Navigation Stack & Setup View Access
-  if (isAuthenticated) {
-    if (!setupCompleted && currentScreen === 'first_time_setup') {
-      return (
-        <FirstTimeSetupScreen
-          onCompleteSetup={() => {
-            setSetupCompleted(true);
-            setCurrentScreen('active_nav');
-          }}
-          onBack={() => setSetupCompleted(true)}
-        />
-      );
-    }
-
-    if (currentScreen === 'active_nav') {
-      return (
-        <ActiveNavigationScreen
-          onArriveAtStop={() => setCurrentScreen('delivery_verify')}
-          onMenuToggle={() => setSetupCompleted(false)}
-        />
-      );
-    }
-
-    if (currentScreen === 'delivery_verify') {
-      return (
-        <DeliveryVerificationScreen
-          onComplete={() => setCurrentScreen('active_nav')}
-          onBack={() => setCurrentScreen('active_nav')}
-        />
-      );
-    }
-
-    return (
-      <SafeAreaProvider>
-        <QueryClientProvider client={queryClient}>
-          <StatusBar style="light" />
-          <MainScreen onOpenSetup={() => setCurrentScreen('first_time_setup')} />
-        </QueryClientProvider>
-      </SafeAreaProvider>
-    );
-  }
-
-  // Unauthenticated Flow -> Splash / Onboarding / Login / Register
-  if (currentScreen === 'splash') {
-    return <SplashScreen onFinish={() => setCurrentScreen('get_started')} />;
-  }
-
-  if (currentScreen === 'get_started') {
-    return (
-      <GetStartedScreen
-        onGetStarted={() => setCurrentScreen('onboarding_overview')}
-        onSignIn={() => setCurrentScreen('login')}
-      />
-    );
-  }
-
-  if (currentScreen === 'onboarding_overview') {
-    return (
-      <OnboardingOverviewScreen
-        onNext={() => setCurrentScreen('booking_schedule')}
-        onSkip={() => setCurrentScreen('login')}
-      />
-    );
-  }
-
-  if (currentScreen === 'booking_schedule') {
-    return (
-      <BookingScheduleScreen
-        onNext={() => setCurrentScreen('earnings_overview')}
-        onBack={() => setCurrentScreen('onboarding_overview')}
-      />
-    );
-  }
-
-  if (currentScreen === 'earnings_overview') {
-    return (
-      <EarningsOverviewScreen
-        onFinish={() => setCurrentScreen('login')}
-        onBack={() => setCurrentScreen('booking_schedule')}
-      />
-    );
-  }
-
-  if (currentScreen === 'login') {
-    return (
-      <LoginScreen
-        onLoginSuccess={() => {
-          setCurrentScreen('first_time_setup');
-        }}
-        onForgotPassword={() => setCurrentScreen('forgot_password')}
-        onRegisterLink={() => setCurrentScreen('register')}
-      />
-    );
-  }
-
-  if (currentScreen === 'register') {
-    return (
-      <RegisterScreen
-        onRegisterSuccess={() => {
-          setCurrentScreen('first_time_setup');
-        }}
-        onBackToLogin={() => setCurrentScreen('login')}
-      />
-    );
-  }
-
-  if (currentScreen === 'forgot_password') {
-    return (
-      <ForgotPasswordScreen
-        onBackToLogin={() => setCurrentScreen('login')}
-      />
-    );
-  }
-
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <StatusBar style="light" />
-        <MainScreen onOpenSetup={() => setCurrentScreen('first_time_setup')} />
+        <NavigationContainer>
+          {isAuthenticated ? <DriverNavigator /> : <AuthNavigator />}
+        </NavigationContainer>
       </QueryClientProvider>
     </SafeAreaProvider>
   );
 }
 
-function MainScreen({ onOpenSetup }: { onOpenSetup?: () => void }) {
+interface MainScreenProps {
+  onOpenSetup?: () => void;
+  onStartNav?: () => void;
+}
+
+function MainScreen({ onOpenSetup, onStartNav }: MainScreenProps) {
   const [activeTab, setActiveTab] = useState<'trips' | 'dispatch'>('trips');
-  const [locationState, setLocationState] = useState<{ granted: boolean; latitude: number | null; longitude: number | null; error: string | null }>({
+  const [locationState, setLocationState] = useState<{
+    granted: boolean;
+    latitude: number | null;
+    longitude: number | null;
+    error: string | null;
+  }>({
     granted: false,
     latitude: null,
     longitude: null,
@@ -186,22 +204,29 @@ function MainScreen({ onOpenSetup }: { onOpenSetup?: () => void }) {
     error: null,
   });
 
-  const { user, loadSession } = useAuthStore();
+  const { token, user, logout, loadSession } = useAuthStore();
+  const driverIdentifier = user?.driverId || user?.id || '';
 
   useEffect(() => {
     Analytics.init();
-    Analytics.identify(user?.id || DEMO_DRIVER_ID, { role: 'fleet_driver' });
+    if (user?.id) {
+      Analytics.identify(user.id, { role: 'fleet_driver', driver_id: user.driverId });
+    }
     loadSession().then(() => {
-      MQTT.connect(user?.id || DEMO_DRIVER_ID);
-      SyncEngine.startAutoSync(user?.id || DEMO_DRIVER_ID, 15000);
+      const activeId = user?.driverId || user?.id;
+      if (activeId) {
+        MQTT.connect(activeId);
+        SyncEngine.startAutoSync(activeId, 15000);
+      }
     });
     return () => SyncEngine.stopAutoSync();
-  }, []);
+  }, [user?.id, user?.driverId]);
 
   const handleManualSync = async () => {
+    if (!driverIdentifier) return;
     try {
       Analytics.track('driver_manual_sync_clicked');
-      const res = await SyncEngine.syncPendingLogs(user?.id || DEMO_DRIVER_ID);
+      const res = await SyncEngine.syncPendingLogs(driverIdentifier);
       if (res.error) {
         Alert.alert('Sync Warning', res.error);
       } else {
@@ -215,29 +240,33 @@ function MainScreen({ onOpenSetup }: { onOpenSetup?: () => void }) {
 
   const handleRequestLocation = async () => {
     try {
-      console.log('Location button clicked');
       Analytics.track('driver_gps_permission_requested');
-
       const loc = await Telemetry.requestLocationPermission();
-      
+
       const finalLoc = {
         granted: true,
-        latitude: loc.latitude || DEMO_LATITUDE,
-        longitude: loc.longitude || DEMO_LONGITUDE,
+        latitude: loc.latitude || DEFAULT_LATITUDE,
+        longitude: loc.longitude || DEFAULT_LONGITUDE,
         error: loc.error,
       };
 
       setLocationState(finalLoc);
       Analytics.track('driver_gps_location_acquired', { lat: finalLoc.latitude, lng: finalLoc.longitude });
-      
-      // Stream live location over MQTT protocol
-      MQTT.publishLocation(user?.id || DEMO_DRIVER_ID, finalLoc.latitude, finalLoc.longitude);
 
-      Alert.alert('GPS Access Granted', `Latitude: ${finalLoc.latitude.toFixed(4)}, Longitude: ${finalLoc.longitude.toFixed(4)}\nStreamed over MQTT & Saved to SQLite.`);
-      
+      if (driverIdentifier) {
+        MQTT.publishLocation(driverIdentifier, finalLoc.latitude, finalLoc.longitude);
+      }
+
+      Alert.alert(
+        'GPS Access Granted',
+        `Latitude: ${finalLoc.latitude.toFixed(4)}, Longitude: ${finalLoc.longitude.toFixed(4)}\nStreamed over MQTT & Saved to SQLite.`
+      );
+
       Telemetry.startLiveLocationTracking((lat, lng) => {
         setLocationState((prev) => ({ ...prev, latitude: lat, longitude: lng }));
-        MQTT.publishLocation(user?.id || DEMO_DRIVER_ID, lat, lng);
+        if (driverIdentifier) {
+          MQTT.publishLocation(driverIdentifier, lat, lng);
+        }
       });
     } catch (e: any) {
       Analytics.track('driver_gps_error', { error: e.message });
@@ -276,33 +305,28 @@ function MainScreen({ onOpenSetup }: { onOpenSetup?: () => void }) {
   };
 
   const { data: trips, isLoading } = useQuery<Trip[]>({
-    queryKey: ['trips'],
+    queryKey: ['trips', driverIdentifier, token],
     queryFn: async () => {
-      const mockData: Trip[] = [
-        {
-          id: '1',
-          tripNumber: 'TRP-8492',
-          driverName: 'Rajesh Kumar',
-          vehiclePlate: 'MH-12-PQ-4521',
-          origin: 'Mumbai Central Depot',
-          destination: 'Pune Distribution Hub',
-          status: 'IN_TRANSIT',
-          startTime: '10:30 AM',
-        },
-        {
-          id: '2',
-          tripNumber: 'TRP-8493',
-          driverName: 'Amit Singh',
-          vehiclePlate: 'DL-01-AB-1234',
-          origin: 'Delhi Logistics Center',
-          destination: 'Jaipur Terminal',
-          status: 'PENDING',
-          startTime: '11:15 AM',
-        },
-      ];
-      await DB.saveTrips(mockData);
+      if (!token) return [];
+      try {
+        const res = await fetch(
+          `${getApiBaseURL()}/api/v1/trips?driver_id=me&page=1&limit=50`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (res.ok) {
+          const json = await res.json();
+          const mapped = ((json.trips as RawTrip[]) || []).map(mapTripStatus);
+          if (mapped.length > 0) {
+            await DB.saveTrips(mapped);
+          }
+          return mapped;
+        }
+      } catch (err) {
+        console.log('[TRIP FETCH WARNING]', err);
+      }
       return await DB.getTrips();
     },
+    enabled: !!token,
   });
 
   return (
@@ -316,11 +340,13 @@ function MainScreen({ onOpenSetup }: { onOpenSetup?: () => void }) {
             <View style={styles.brandDot} />
             <Text style={styles.brandBadgeText}>AVANDAB · OPS</Text>
           </View>
-          <Text style={styles.headerClock}>14:32 IST</Text>
+          <TouchableOpacity onPress={() => logout()}>
+            <Text style={styles.headerClock}>SIGN OUT</Text>
+          </TouchableOpacity>
         </View>
         <Text style={styles.headerTitle}>FLEET MOBILE</Text>
         <Text style={styles.headerSubtitle}>
-          {user ? `${user.name.toUpperCase()} · ${user.id || 'DRV-9042'}` : 'LIVE DISPATCH & TRIP MGMT'}
+          {user ? `${user.name.toUpperCase()} · ${user.driverId || user.id}` : 'LIVE DISPATCH & TRIP MGMT'}
         </Text>
       </View>
 
@@ -366,18 +392,26 @@ function MainScreen({ onOpenSetup }: { onOpenSetup?: () => void }) {
               <SkeletonLoader />
               <SkeletonLoader />
             </>
+          ) : !trips || trips.length === 0 ? (
+            <View style={styles.infoCard}>
+              <Text style={styles.infoTitle}>NO ACTIVE TRIPS</Text>
+              <Text style={styles.infoBody}>
+                You currently have no dispatched trips assigned. Contact dispatch or check back later.
+              </Text>
+            </View>
           ) : (
-            trips?.map((trip) => (
-              <TripCard
-                key={trip.id}
-                tripNumber={trip.tripNumber}
-                driverName={trip.driverName}
-                vehiclePlate={trip.vehiclePlate}
-                origin={trip.origin}
-                destination={trip.destination}
-                status={trip.status}
-                startTime={trip.startTime}
-              />
+            trips.map((trip) => (
+              <TouchableOpacity key={trip.id} activeOpacity={0.9} onPress={() => onStartNav && onStartNav()}>
+                <TripCard
+                  tripNumber={trip.tripNumber}
+                  driverName={trip.driverName}
+                  vehiclePlate={trip.vehiclePlate}
+                  origin={trip.origin}
+                  destination={trip.destination}
+                  status={trip.status}
+                  startTime={trip.startTime}
+                />
+              </TouchableOpacity>
             ))
           )
         ) : (
@@ -420,7 +454,7 @@ function MainScreen({ onOpenSetup }: { onOpenSetup?: () => void }) {
                   {/* Uber-Style Live Interactive Map */}
                   <LiveDriverTrackingMap
                     driverLatitude={locationState.latitude}
-                    driverLongitude={locationState.longitude || DEMO_LONGITUDE}
+                    driverLongitude={locationState.longitude || DEFAULT_LONGITUDE}
                   />
 
                   <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
@@ -495,8 +529,6 @@ function MainScreen({ onOpenSetup }: { onOpenSetup?: () => void }) {
   );
 }
 
-
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -549,76 +581,73 @@ const styles = StyleSheet.create({
     color: Colors.textOnChrome,
     fontSize: 22,
     fontWeight: '900',
-    letterSpacing: 3,
+    letterSpacing: 2,
     fontFamily: Font.mono,
   },
   headerSubtitle: {
     color: Colors.textOnChromeMuted,
     fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1,
+    fontWeight: '600',
+    letterSpacing: 1.5,
+    marginTop: 2,
     fontFamily: Font.mono,
-    marginTop: 4,
   },
   bannerContainer: {
-    backgroundColor: Colors.warningBg,
-    borderWidth: 1,
-    borderColor: '#fde68a',
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.warning,
-    borderRadius: Radius.md,
-    padding: Spacing.md,
+    backgroundColor: '#fffbeb',
+    borderBottomWidth: 1,
+    borderBottomColor: '#fef3c7',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.lg,
-    gap: Spacing.md,
+    gap: 10,
   },
   bannerIconBox: {
-    width: 28,
-    height: 28,
+    width: 24,
+    height: 24,
     borderRadius: Radius.sm,
     backgroundColor: '#fef3c7',
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
   },
   bannerTextContainer: {
     flex: 1,
   },
   bannerTitle: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '800',
-    color: Colors.warning,
-    letterSpacing: 1,
+    color: '#92400e',
+    letterSpacing: 0.5,
     fontFamily: Font.mono,
   },
   bannerSub: {
-    fontSize: 10,
-    color: Colors.textSecondary,
-    marginTop: 2,
-    fontFamily: Font.mono,
+    fontSize: 9,
+    fontWeight: '500',
+    color: '#b45309',
+    marginTop: 1,
   },
   bannerBtn: {
     backgroundColor: Colors.warning,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: Radius.sm,
   },
   bannerBtnText: {
-    color: '#ffffff',
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
-    letterSpacing: 1,
+    color: '#ffffff',
+    letterSpacing: 0.5,
     fontFamily: Font.mono,
   },
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: Colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: Colors.borderLight,
   },
   tab: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: Spacing.md,
     alignItems: 'center',
   },
   activeTab: {
@@ -628,7 +657,7 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 11,
     fontWeight: '700',
-    color: Colors.textMuted,
+    color: Colors.textSecondary,
     letterSpacing: 1.5,
     fontFamily: Font.mono,
   },
@@ -641,13 +670,14 @@ const styles = StyleSheet.create({
   },
   contentPadding: {
     padding: Spacing.lg,
+    gap: Spacing.md,
   },
   infoCard: {
     backgroundColor: Colors.surface,
     borderRadius: Radius.md,
-    padding: Spacing.md,
+    padding: Spacing.lg,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.borderLight,
   },
   infoCardHeader: {
     flexDirection: 'row',
@@ -656,7 +686,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   infoTitle: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
     color: Colors.textPrimary,
     letterSpacing: 1.5,
@@ -673,15 +703,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.textSecondary,
     lineHeight: 18,
+    marginBottom: Spacing.md,
   },
   telemetrySection: {
-    marginTop: Spacing.md,
+    gap: 8,
   },
   telemetryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
   },
   telemetryLabel: {
     fontSize: 10,
@@ -690,47 +720,42 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     fontFamily: Font.mono,
   },
-  telemetryValue: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-    fontFamily: Font.mono,
-  },
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: Radius.sm,
-    borderWidth: 1,
+    borderRadius: 9999,
   },
   statusPillActive: {
     backgroundColor: Colors.successBg,
-    borderColor: '#bbf7d0',
   },
   statusPillPending: {
     backgroundColor: Colors.warningBg,
-    borderColor: '#fde68a',
   },
   statusPillDot: {
     width: 5,
     height: 5,
-    borderRadius: 2,
+    borderRadius: 2.5,
+  },
+  telemetryValue: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1,
+    fontFamily: Font.mono,
   },
   gpsDisplayBox: {
-    backgroundColor: Colors.surfaceSecondary,
-    borderRadius: Radius.md,
-    padding: Spacing.md,
-    marginTop: 8,
+    backgroundColor: Colors.surface,
+    padding: 10,
+    borderRadius: Radius.sm,
+    gap: 4,
     borderWidth: 1,
-    borderColor: Colors.border,
-    gap: 6,
+    borderColor: Colors.borderLight,
   },
   gpsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
   },
   gpsLabel: {
     fontSize: 10,
@@ -740,13 +765,13 @@ const styles = StyleSheet.create({
     fontFamily: Font.mono,
   },
   gpsValue: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: Colors.primary,
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.textPrimary,
     fontFamily: Font.mono,
   },
   gpsSuccessText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
     color: Colors.success,
     letterSpacing: 0.5,
@@ -809,11 +834,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: Colors.textSecondary,
     fontFamily: Font.mono,
-  },
-  coordsText: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    marginBottom: 8,
   },
   divider: {
     height: 1,

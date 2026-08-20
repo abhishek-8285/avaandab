@@ -315,6 +315,41 @@ func TestGetTrips_DriverMe_Filter(t *testing.T) {
 	assert.Equal(t, int64(1), respB.Total)
 	require.Len(t, respB.Trips, 1)
 	assert.Equal(t, "TRP-B1", respB.Trips[0].TripNumber)
+
+	// 3. Test pagination: page=1&limit=1 for Driver Alpha
+	reqPaginated := httptest.NewRequest("GET", "/api/v1/trips?driver_id=me&page=1&limit=1", nil)
+	recPaginated := httptest.NewRecorder()
+	rA.ServeHTTP(recPaginated, reqPaginated)
+
+	assert.Equal(t, http.StatusOK, recPaginated.Code)
+	var respPaginated struct {
+		Trips []struct {
+			TripNumber string `json:"trip_number"`
+		} `json:"trips"`
+		Total int64 `json:"total"`
+	}
+	require.NoError(t, json.Unmarshal(recPaginated.Body.Bytes(), &respPaginated))
+	assert.Equal(t, int64(2), respPaginated.Total)
+	require.Len(t, respPaginated.Trips, 1)
+
+	// 4. Test driver_id=me with user having no linked driver -> 404
+	userNoDriver := &auth.SessionData{UserID: "u-admin-1", Role: "admin"}
+	rNoDriver := buildTestRouterWithAuth(app, tripAPI, userNoDriver)
+
+	reqNoDriver := httptest.NewRequest("GET", "/api/v1/trips?driver_id=me", nil)
+	recNoDriver := httptest.NewRecorder()
+	rNoDriver.ServeHTTP(recNoDriver, reqNoDriver)
+
+	assert.Equal(t, http.StatusNotFound, recNoDriver.Code)
+	assert.Contains(t, recNoDriver.Header().Get("Content-Type"), "application/json")
+
+	// 5. Test unauthenticated request -> 401
+	rUnauth := buildTestRouterWithAuth(app, tripAPI, nil)
+	reqUnauth := httptest.NewRequest("GET", "/api/v1/trips?driver_id=me", nil)
+	recUnauth := httptest.NewRecorder()
+	rUnauth.ServeHTTP(recUnauth, reqUnauth)
+
+	assert.Equal(t, http.StatusUnauthorized, recUnauth.Code)
 }
 
 func TestDeliverPOD_SuccessAndErrors(t *testing.T) {
