@@ -1,7 +1,7 @@
 {{template "layout.html" .}}
 {{define "title"}}Profit &amp; Loss{{end}}
 {{define "content"}}
-<div class="p-6 max-w-7xl mx-auto">
+<div class="p-6 max-w-7xl mx-auto text-on-surface">
     <div class="mb-6">
         <h1 class="text-2xl font-bold text-primary">Profit &amp; Loss</h1>
         <p class="text-sm text-secondary">Daily P&amp;L snapshots</p>
@@ -9,42 +9,42 @@
 
     <div class="flex gap-4 mb-6 items-end">
         <div>
-            <label class="block text-sm font-medium text-gray-700">From</label>
-            <input type="date" id="pnl-from" class="border rounded px-3 py-2" value="{{.From}}">
+            <label class="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-1">From</label>
+            <input type="date" id="pnl-from" class="border border-border-subtle bg-surface-container-lowest text-on-surface rounded px-3 py-2 text-sm focus:outline-none focus:border-primary" value="{{.From}}">
         </div>
         <div>
-            <label class="block text-sm font-medium text-gray-700">To</label>
-            <input type="date" id="pnl-to" class="border rounded px-3 py-2" value="{{.To}}">
+            <label class="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-1">To</label>
+            <input type="date" id="pnl-to" class="border border-border-subtle bg-surface-container-lowest text-on-surface rounded px-3 py-2 text-sm focus:outline-none focus:border-primary" value="{{.To}}">
         </div>
-        <button onclick="loadPNL()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Load</button>
+        <button onclick="loadPNL()" class="px-4 py-2 bg-primary text-on-primary font-medium text-sm rounded hover:bg-primary/90 cursor-pointer border-0">Load</button>
         {{if can .User "pnl" "write"}}
-        <button onclick="generatePNL()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Generate Today</button>
+        <button onclick="generatePNL()" class="px-4 py-2 bg-emerald-600 text-white font-medium text-sm rounded hover:bg-emerald-700 cursor-pointer border-0">Generate Today</button>
         {{end}}
     </div>
 
-    <div id="pnl-container">
-        <table class="w-full bg-white rounded-lg shadow">
+    <div id="pnl-container" class="overflow-x-auto">
+        <table class="w-full bg-surface-container-lowest text-on-surface rounded-lg shadow-sm border border-border-subtle overflow-hidden">
             <thead>
-                <tr class="border-b">
-                    <th class="px-3 py-2 text-left">Date</th>
-                    <th class="px-3 py-2 text-left">Revenue</th>
-                    <th class="px-3 py-2 text-left">Expenses</th>
-                    <th class="px-3 py-2 text-left">Fuel</th>
-                    <th class="px-3 py-2 text-left">Payouts</th>
-                    <th class="px-3 py-2 text-left">Net Profit</th>
-                    <th class="px-3 py-2 text-left">Trips</th>
+                <tr class="border-b border-border-subtle bg-surface-container-low text-secondary text-xs uppercase font-semibold">
+                    <th class="px-3 py-2.5 text-left">Date</th>
+                    <th class="px-3 py-2.5 text-left">Revenue</th>
+                    <th class="px-3 py-2.5 text-left">Expenses</th>
+                    <th class="px-3 py-2.5 text-left">Fuel</th>
+                    <th class="px-3 py-2.5 text-left">Payouts</th>
+                    <th class="px-3 py-2.5 text-left">Net Profit</th>
+                    <th class="px-3 py-2.5 text-left">Trips</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody class="divide-y divide-border-subtle text-sm">
                 {{range .Snapshots}}
-                <tr class="border-b hover:bg-gray-50">
-                    <td class="px-3 py-2">{{.SnapshotDate}}</td>
-                    <td class="px-3 py-2 text-green-600">₹{{printf "%.2f" .Revenue}}</td>
-                    <td class="px-3 py-2 text-red-600">₹{{printf "%.2f" .Expenses}}</td>
-                    <td class="px-3 py-2">₹{{printf "%.2f" .FuelCosts}}</td>
-                    <td class="px-3 py-2">₹{{printf "%.2f" .DriverPayouts}}</td>
-                    <td class="px-3 py-2 font-bold {{if gt .NetProfit 0.0}}text-green-600{{else}}text-red-600{{end}}">₹{{printf "%.2f" .NetProfit}}</td>
-                    <td class="px-3 py-2">{{.TripCount}}</td>
+                <tr class="hover:bg-surface-container-low transition-colors">
+                    <td class="px-3 py-2 font-mono text-xs">{{.SnapshotDate}}</td>
+                    <td class="px-3 py-2 text-emerald-500 font-medium">₹{{printf "%.2f" .Revenue}}</td>
+                    <td class="px-3 py-2 text-red-500 font-medium">₹{{printf "%.2f" .Expenses}}</td>
+                    <td class="px-3 py-2 text-secondary">₹{{printf "%.2f" .FuelCosts}}</td>
+                    <td class="px-3 py-2 text-secondary">₹{{printf "%.2f" .DriverPayouts}}</td>
+                    <td class="px-3 py-2 font-bold {{if gt .NetProfit 0.0}}text-emerald-500{{else}}text-red-500{{end}}">₹{{printf "%.2f" .NetProfit}}</td>
+                    <td class="px-3 py-2 text-on-surface font-medium">{{.TripCount}}</td>
                 </tr>
                 {{end}}
             </tbody>

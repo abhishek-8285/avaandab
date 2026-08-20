@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -17,6 +18,10 @@ type UserHandlers struct {
 }
 
 func (h *UserHandlers) Routes(r chi.Router) {
+	r.Get("/me/preferences", h.GetMyPreferences)
+	r.Patch("/me/preferences", h.UpdateMyPreferences)
+	r.Post("/me/preferences", h.UpdateMyPreferences)
+
 	r.With(middleware.ResourcePermission(h.AuthSrv, "users", "read")).Get("/", h.List)
 	r.With(middleware.ResourcePermission(h.AuthSrv, "users", "create")).Get("/new", h.New)
 	r.With(middleware.ResourcePermission(h.AuthSrv, "users", "create")).Post("/new", h.Create)
@@ -197,4 +202,76 @@ func (h *UserHandlers) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/users", http.StatusSeeOther)
+}
+
+// GetMyPreferences handles GET /api/v1/users/me/preferences and GET /users/me/preferences
+func (h *UserHandlers) GetMyPreferences(w http.ResponseWriter, r *http.Request) {
+	session, ok := h.getUserFromContext(r)
+	if !ok || session == nil || session.UserID == "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	u, err := h.Services.Users.GetUser(r.Context(), domain.UserID(session.UserID))
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "user not found"})
+		return
+	}
+
+	theme := u.ThemePreference
+	if theme == "" {
+		theme = "system"
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"user_id":          session.UserID,
+		"theme_preference": theme,
+	})
+}
+
+// UpdateMyPreferences handles PATCH /api/v1/users/me/preferences and POST /api/v1/users/me/preferences
+func (h *UserHandlers) UpdateMyPreferences(w http.ResponseWriter, r *http.Request) {
+	session, ok := h.getUserFromContext(r)
+	if !ok || session == nil || session.UserID == "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	var req struct {
+		Theme string `json:"theme"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	if req.Theme != "light" && req.Theme != "dark" && req.Theme != "system" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid theme: must be 'light', 'dark', or 'system'"})
+		return
+	}
+
+	u, err := h.Services.Users.UpdateThemePreference(r.Context(), domain.UserID(session.UserID), req.Theme)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":           "updated",
+		"theme_preference": u.ThemePreference,
+	})
 }

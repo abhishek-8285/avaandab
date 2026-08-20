@@ -223,3 +223,16 @@ func (s *UserService) ResetPassword(ctx context.Context, id domain.UserID) error
 	_, err = s.store.UpdateUserPassword(ctx, id, hashed)
 	return err
 }
+
+// UpdateThemePreference updates a user's theme preference ('light', 'dark', 'system').
+func (s *UserService) UpdateThemePreference(ctx context.Context, id domain.UserID, theme string) (domain.User, error) {
+	if theme != "light" && theme != "dark" && theme != "system" {
+		return domain.User{}, fmt.Errorf("invalid theme preference: must be 'light', 'dark', or 'system'")
+	}
+	updated, err := s.store.UpdateUserThemePreference(ctx, id, theme)
+	if err != nil {
+		return domain.User{}, err
+	}
+	s.log.Info("theme preference updated", "user_id", id, "theme", theme)
+	return updated, nil
+}

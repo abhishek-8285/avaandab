@@ -77,11 +77,24 @@
     <script>
         (function () {
             try {
-                var t = localStorage.getItem('theme');
-                if (t !== 'light' && t !== 'dark') {
-                    t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                var getCookie = function(name) {
+                    var match = document.cookie.match(new RegExp('(^|;\\s*)' + name + '=([^;]*)'));
+                    return match ? decodeURIComponent(match[2]) : null;
+                };
+                var mode = getCookie('user_theme') || localStorage.getItem('theme_mode') || localStorage.getItem('theme') || 'system';
+                var isDark = false;
+                if (mode === 'dark') {
+                    isDark = true;
+                } else if (mode === 'light') {
+                    isDark = false;
+                } else {
+                    isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
                 }
-                if (t === 'dark') document.documentElement.classList.add('dark');
+                if (isDark) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
             } catch (e) {}
         })();
     </script>
@@ -279,12 +292,40 @@
                         <input type="text" name="q" value="{{.Query}}" class="bg-surface-container-low border border-border-subtle rounded-md py-2 pl-9 pr-4 text-sm text-on-surface placeholder-text-text-muted w-64 md:w-80 focus:outline-none focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Search logs, vehicles, drivers..." />
                     </form>
 
-                    <!-- Dark mode toggle -->
-                    <button id="theme-toggle" type="button"
-                        class="hover:bg-surface-container p-2 rounded-lg transition-colors text-secondary hover:text-primary border-0 bg-transparent cursor-pointer flex items-center justify-center"
-                        aria-label="Toggle dark mode" title="Toggle dark mode" aria-pressed="false">
-                        <span class="material-symbols-outlined text-xl" data-theme-icon>dark_mode</span>
-                    </button>
+                    <!-- 3-Way Theme Switcher (Day / Night / System) -->
+                    <div class="relative" id="theme-menu-wrapper">
+                        <button id="theme-menu-btn" type="button"
+                            class="hover:bg-surface-container p-2 rounded-lg transition-colors text-secondary hover:text-primary border-0 bg-transparent cursor-pointer flex items-center justify-center relative"
+                            aria-label="Select color mode" title="Color Mode (Day, Night, System)" aria-expanded="false" aria-haspopup="true">
+                            <span class="material-symbols-outlined text-xl" data-current-theme-icon>brightness_auto</span>
+                        </button>
+                        <div id="theme-dropdown" class="absolute right-0 top-full mt-2 w-44 bg-surface-container-lowest border border-border-subtle rounded-xl shadow-lg z-50 overflow-hidden hidden p-1 text-on-surface">
+                            <div class="px-2.5 py-1.5 text-[11px] font-semibold text-text-muted uppercase tracking-wider border-b border-border-subtle mb-1">
+                                Color Mode
+                            </div>
+                            <button type="button" data-theme-choice="light" class="w-full text-left px-2.5 py-2 text-xs rounded-lg hover:bg-surface-container-low flex items-center justify-between text-on-surface border-0 bg-transparent cursor-pointer transition-colors">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-base text-amber-500">light_mode</span>
+                                    <span class="font-medium">Day (Light)</span>
+                                </div>
+                                <span class="material-symbols-outlined text-sm text-primary hidden" data-theme-check="light">check</span>
+                            </button>
+                            <button type="button" data-theme-choice="dark" class="w-full text-left px-2.5 py-2 text-xs rounded-lg hover:bg-surface-container-low flex items-center justify-between text-on-surface border-0 bg-transparent cursor-pointer transition-colors">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-base text-indigo-400">dark_mode</span>
+                                    <span class="font-medium">Night (Dark)</span>
+                                </div>
+                                <span class="material-symbols-outlined text-sm text-primary hidden" data-theme-check="dark">check</span>
+                            </button>
+                            <button type="button" data-theme-choice="system" class="w-full text-left px-2.5 py-2 text-xs rounded-lg hover:bg-surface-container-low flex items-center justify-between text-on-surface border-0 bg-transparent cursor-pointer transition-colors">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-base text-slate-400">desktop_windows</span>
+                                    <span class="font-medium">System (Auto)</span>
+                                </div>
+                                <span class="material-symbols-outlined text-sm text-primary hidden" data-theme-check="system">check</span>
+                            </button>
+                        </div>
+                    </div>
 
                     <!-- Notifications Dropdown (Click Toggle & Compact View) -->
                     <div class="relative" id="notif-dropdown-wrapper">
@@ -564,30 +605,114 @@
 
     <script>
         (function () {
-            var btn = document.getElementById('theme-toggle');
-            if (!btn) return;
-            var icon = btn.querySelector('[data-theme-icon]');
-            function sync() {
-                var dark = document.documentElement.classList.contains('dark');
-                if (icon) icon.textContent = dark ? 'light_mode' : 'dark_mode';
-                btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
+            var btn = document.getElementById('theme-menu-btn');
+            var dropdown = document.getElementById('theme-dropdown');
+            var wrapper = document.getElementById('theme-menu-wrapper');
+            var icon = document.querySelector('[data-current-theme-icon]');
+            var choices = document.querySelectorAll('[data-theme-choice]');
+            var checks = document.querySelectorAll('[data-theme-check]');
+
+            function getCookie(name) {
+                var match = document.cookie.match(new RegExp('(^|;\\s*)' + name + '=([^;]*)'));
+                return match ? decodeURIComponent(match[2]) : null;
             }
-            btn.addEventListener('click', function () {
-                var dark = document.documentElement.classList.toggle('dark');
-                try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
-                sync();
+
+            function setCookie(name, val, days) {
+                var d = new Date();
+                d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+                document.cookie = name + "=" + encodeURIComponent(val) + ";path=/;max-age=" + (days * 86400) + ";SameSite=Lax";
+            }
+
+            function currentMode() {
+                return getCookie('user_theme') || localStorage.getItem('theme_mode') || localStorage.getItem('theme') || 'system';
+            }
+
+            function apply(mode) {
+                var isDark = false;
+                if (mode === 'dark') {
+                    isDark = true;
+                } else if (mode === 'light') {
+                    isDark = false;
+                } else {
+                    isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                }
+
+                if (isDark) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+
+                if (icon) {
+                    if (mode === 'light') icon.textContent = 'light_mode';
+                    else if (mode === 'dark') icon.textContent = 'dark_mode';
+                    else icon.textContent = 'brightness_auto';
+                }
+
+                checks.forEach(function (c) {
+                    if (c.getAttribute('data-theme-check') === mode) {
+                        c.classList.remove('hidden');
+                    } else {
+                        c.classList.add('hidden');
+                    }
+                });
+            }
+
+            function selectMode(mode) {
+                try {
+                    localStorage.setItem('theme_mode', mode);
+                    localStorage.setItem('theme', mode);
+                    setCookie('user_theme', mode, 30);
+                } catch (e) {}
+
+                apply(mode);
+                if (dropdown) dropdown.classList.add('hidden');
+
+                // Backend sync (FlyFleet Rule 1)
+                fetch('/api/v1/users/me/preferences', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ theme: mode })
+                }).catch(function () {});
+            }
+
+            if (btn && dropdown) {
+                btn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    var hidden = dropdown.classList.toggle('hidden');
+                    btn.setAttribute('aria-expanded', hidden ? 'false' : 'true');
+                });
+
+                document.addEventListener('click', function (e) {
+                    if (wrapper && !wrapper.contains(e.target)) {
+                        dropdown.classList.add('hidden');
+                        btn.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            }
+
+            choices.forEach(function (el) {
+                el.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    var mode = el.getAttribute('data-theme-choice');
+                    selectMode(mode);
+                });
             });
-            sync();
+
+            // Initial sync
+            var initial = currentMode();
+            apply(initial);
+
+            // Listen for OS live dark mode changes
             try {
                 var mq = window.matchMedia('(prefers-color-scheme: dark)');
-                var onChange = function (e) {
-                    if (!localStorage.getItem('theme')) {
-                        document.documentElement.classList.toggle('dark', e.matches);
-                        sync();
+                var onOSChange = function (e) {
+                    if (currentMode() === 'system') {
+                        apply('system');
                     }
                 };
-                if (mq.addEventListener) mq.addEventListener('change', onChange);
-                else if (mq.addListener) mq.addListener(onChange);
+                if (mq.addEventListener) mq.addEventListener('change', onOSChange);
+                else if (mq.addListener) mq.addListener(onOSChange);
             } catch (e) {}
         })();
     </script>

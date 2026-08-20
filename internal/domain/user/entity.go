@@ -8,17 +8,18 @@ import (
 
 // User represents an application user with authentication credentials.
 type User struct {
-	ID           types.UserID
-	Email        string
-	PasswordHash string
-	Name         string
-	Phone        *string
-	Timezone     string
-	Role         Role
-	Status       UserStatus
-	LastLoginAt  *time.Time
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID              types.UserID
+	Email           string
+	PasswordHash    string
+	Name            string
+	Phone           *string
+	Timezone        string
+	ThemePreference string
+	Role            Role
+	Status          UserStatus
+	LastLoginAt     *time.Time
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 // Role represents a user role with associated permissions.

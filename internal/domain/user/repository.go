@@ -21,6 +21,7 @@ type UserRepository interface {
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	UpdateUser(ctx context.Context, user User) (User, error)
 	UpdateUserPassword(ctx context.Context, userID types.UserID, passwordHash string) (User, error)
+	UpdateUserThemePreference(ctx context.Context, userID types.UserID, theme string) (User, error)
 	UpdateUserLastLogin(ctx context.Context, userID types.UserID) (User, error)
 	DeleteUser(ctx context.Context, userID types.UserID) error
 	SearchUsers(ctx context.Context, query string, status string, limit, offset int) ([]UserWithRole, error)

@@ -1,21 +1,21 @@
 {{template "layout.html" .}}
 {{define "title"}}Ops Alerts{{end}}
 {{define "content"}}
-<div class="p-6 max-w-7xl mx-auto">
+<div class="p-6 max-w-7xl mx-auto text-on-surface">
     <div class="mb-6">
         <h1 class="text-2xl font-bold text-primary">Operational Alerts</h1>
         <p class="text-sm text-secondary">Business process alerts requiring attention</p>
     </div>
 
     <div class="flex gap-4 mb-6">
-        <select id="status-filter" class="border rounded px-3 py-2" onchange="filterAlerts()">
+        <select id="status-filter" class="border border-border-subtle bg-surface-container-lowest text-on-surface rounded px-3 py-2 text-sm focus:outline-none focus:border-primary" onchange="filterAlerts()">
             <option value="">All Statuses</option>
             <option value="open">Open</option>
             <option value="acknowledged">Acknowledged</option>
             <option value="resolved">Resolved</option>
             <option value="dismissed">Dismissed</option>
         </select>
-        <select id="type-filter" class="border rounded px-3 py-2" onchange="filterAlerts()">
+        <select id="type-filter" class="border border-border-subtle bg-surface-container-lowest text-on-surface rounded px-3 py-2 text-sm focus:outline-none focus:border-primary" onchange="filterAlerts()">
             <option value="">All Types</option>
             <option value="vehicle_breakdown">Vehicle Breakdown</option>
             <option value="driver_absence">Driver Absence</option>
@@ -27,52 +27,52 @@
         </select>
     </div>
 
-    <div id="alerts-container">
-        <table class="w-full bg-white rounded-lg shadow">
+    <div id="alerts-container" class="overflow-x-auto">
+        <table class="w-full bg-surface-container-lowest text-on-surface rounded-lg shadow-sm border border-border-subtle overflow-hidden">
             <thead>
-                <tr class="border-b">
-                    <th class="px-3 py-2 text-left">Severity</th>
-                    <th class="px-3 py-2 text-left">Type</th>
-                    <th class="px-3 py-2 text-left">Title</th>
-                    <th class="px-3 py-2 text-left">Status</th>
-                    <th class="px-3 py-2 text-left">Created</th>
-                    <th class="px-3 py-2 text-left">Actions</th>
+                <tr class="border-b border-border-subtle bg-surface-container-low text-secondary text-xs uppercase font-semibold">
+                    <th class="px-3 py-2.5 text-left">Severity</th>
+                    <th class="px-3 py-2.5 text-left">Type</th>
+                    <th class="px-3 py-2.5 text-left">Title</th>
+                    <th class="px-3 py-2.5 text-left">Status</th>
+                    <th class="px-3 py-2.5 text-left">Created</th>
+                    <th class="px-3 py-2.5 text-left">Actions</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody class="divide-y divide-border-subtle text-sm">
                 {{range .Alerts}}
-                <tr class="border-b hover:bg-gray-50">
+                <tr class="hover:bg-surface-container-low transition-colors">
                     <td class="px-3 py-2">
                         <span class="px-2 py-0.5 rounded text-xs font-bold
-                            {{if eq .Severity "critical"}}bg-red-100 text-red-800
-                            {{else if eq .Severity "high"}}bg-orange-100 text-orange-800
-                            {{else if eq .Severity "medium"}}bg-yellow-100 text-yellow-800
-                            {{else}}bg-gray-100 text-gray-800{{end}}">
+                            {{if eq .Severity "critical"}}bg-red-500/15 text-red-500
+                            {{else if eq .Severity "high"}}bg-amber-500/15 text-amber-500
+                            {{else if eq .Severity "medium"}}bg-yellow-500/15 text-yellow-500
+                            {{else}}bg-surface-container-high text-secondary{{end}}">
                             {{.Severity}}
                         </span>
                     </td>
-                    <td class="px-3 py-2 text-sm">{{.AlertType}}</td>
-                    <td class="px-3 py-2">{{.Title}}</td>
+                    <td class="px-3 py-2 text-xs font-mono text-secondary">{{.AlertType}}</td>
+                    <td class="px-3 py-2 font-medium">{{.Title}}</td>
                     <td class="px-3 py-2">
-                        <span class="px-2 py-0.5 rounded text-xs
-                            {{if eq .Status "open"}}bg-red-100 text-red-800
-                            {{else if eq .Status "acknowledged"}}bg-blue-100 text-blue-800
-                            {{else if eq .Status "resolved"}}bg-green-100 text-green-800
-                            {{else}}bg-gray-100 text-gray-800{{end}}">
+                        <span class="px-2 py-0.5 rounded text-xs font-medium
+                            {{if eq .Status "open"}}bg-red-500/15 text-red-500
+                            {{else if eq .Status "acknowledged"}}bg-primary/15 text-primary
+                            {{else if eq .Status "resolved"}}bg-emerald-500/15 text-emerald-500
+                            {{else}}bg-surface-container-high text-secondary{{end}}">
                             {{.Status}}
                         </span>
                     </td>
-                    <td class="px-3 py-2 text-sm text-gray-500">{{.CreatedAt.Format "2006-01-02 15:04"}}</td>
+                    <td class="px-3 py-2 text-xs text-text-muted">{{.CreatedAt.Format "2006-01-02 15:04"}}</td>
                     <td class="px-3 py-2">
                         {{if eq .Status "open"}}
                             {{if can $.User "ops_alerts" "update"}}
-                            <button onclick="acknowledgeAlert('{{.ID}}')" class="px-2 py-1 bg-blue-600 text-white text-xs rounded">Ack</button>
-                            <button onclick="resolveAlert('{{.ID}}')" class="px-2 py-1 bg-green-600 text-white text-xs rounded ml-1">Resolve</button>
-                            <button onclick="dismissAlert('{{.ID}}')" class="px-2 py-1 bg-gray-400 text-white text-xs rounded ml-1">Dismiss</button>
+                            <button onclick="acknowledgeAlert('{{.ID}}')" class="px-2 py-1 bg-primary text-on-primary text-xs font-medium rounded hover:bg-primary/90 cursor-pointer border-0">Ack</button>
+                            <button onclick="resolveAlert('{{.ID}}')" class="px-2 py-1 bg-emerald-600 text-white text-xs font-medium rounded hover:bg-emerald-700 ml-1 cursor-pointer border-0">Resolve</button>
+                            <button onclick="dismissAlert('{{.ID}}')" class="px-2 py-1 bg-surface-container-high text-secondary text-xs font-medium rounded hover:bg-surface-container ml-1 cursor-pointer border-0">Dismiss</button>
                             {{end}}
                         {{else if eq .Status "acknowledged"}}
                             {{if can $.User "ops_alerts" "update"}}
-                            <button onclick="resolveAlert('{{.ID}}')" class="px-2 py-1 bg-green-600 text-white text-xs rounded">Resolve</button>
+                            <button onclick="resolveAlert('{{.ID}}')" class="px-2 py-1 bg-emerald-600 text-white text-xs font-medium rounded hover:bg-emerald-700 cursor-pointer border-0">Resolve</button>
                             {{end}}
                         {{end}}
                     </td>

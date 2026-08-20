@@ -38,32 +38,34 @@ func (q *Queries) CountUsers(ctx context.Context, arg CountUsersParams) (int64, 
 }
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (id, email, password_hash, name, phone, role_id, status)
-VALUES (?, ?, ?, ?, ?, ?, ?)
-RETURNING id, email, password_hash, name, phone, role_id, status, last_login_at, created_at, updated_at
+INSERT INTO users (id, email, password_hash, name, phone, role_id, status, theme_preference)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id, email, password_hash, name, phone, role_id, status, last_login_at, theme_preference, created_at, updated_at
 `
 
 type CreateUserParams struct {
-	ID           string         `json:"id"`
-	Email        string         `json:"email"`
-	PasswordHash string         `json:"password_hash"`
-	Name         string         `json:"name"`
-	Phone        sql.NullString `json:"phone"`
-	RoleID       int64          `json:"role_id"`
-	Status       string         `json:"status"`
+	ID              string         `json:"id"`
+	Email           string         `json:"email"`
+	PasswordHash    string         `json:"password_hash"`
+	Name            string         `json:"name"`
+	Phone           sql.NullString `json:"phone"`
+	RoleID          int64          `json:"role_id"`
+	Status          string         `json:"status"`
+	ThemePreference string         `json:"theme_preference"`
 }
 
 type CreateUserRow struct {
-	ID           string         `json:"id"`
-	Email        string         `json:"email"`
-	PasswordHash string         `json:"password_hash"`
-	Name         string         `json:"name"`
-	Phone        sql.NullString `json:"phone"`
-	RoleID       int64          `json:"role_id"`
-	Status       string         `json:"status"`
-	LastLoginAt  sql.NullTime   `json:"last_login_at"`
-	CreatedAt    time.Time      `json:"created_at"`
-	UpdatedAt    time.Time      `json:"updated_at"`
+	ID              string         `json:"id"`
+	Email           string         `json:"email"`
+	PasswordHash    string         `json:"password_hash"`
+	Name            string         `json:"name"`
+	Phone           sql.NullString `json:"phone"`
+	RoleID          int64          `json:"role_id"`
+	Status          string         `json:"status"`
+	LastLoginAt     sql.NullTime   `json:"last_login_at"`
+	ThemePreference string         `json:"theme_preference"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
@@ -75,6 +77,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 		arg.Phone,
 		arg.RoleID,
 		arg.Status,
+		arg.ThemePreference,
 	)
 	var i CreateUserRow
 	err := row.Scan(
@@ -86,6 +89,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 		&i.RoleID,
 		&i.Status,
 		&i.LastLoginAt,
+		&i.ThemePreference,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -139,21 +143,22 @@ func (q *Queries) GetRoleByName(ctx context.Context, name string) (Role, error) 
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password_hash, name, phone, role_id, status, last_login_at, created_at, updated_at
+SELECT id, email, password_hash, name, phone, role_id, status, last_login_at, theme_preference, created_at, updated_at
 FROM users WHERE email = ?
 `
 
 type GetUserByEmailRow struct {
-	ID           string         `json:"id"`
-	Email        string         `json:"email"`
-	PasswordHash string         `json:"password_hash"`
-	Name         string         `json:"name"`
-	Phone        sql.NullString `json:"phone"`
-	RoleID       int64          `json:"role_id"`
-	Status       string         `json:"status"`
-	LastLoginAt  sql.NullTime   `json:"last_login_at"`
-	CreatedAt    time.Time      `json:"created_at"`
-	UpdatedAt    time.Time      `json:"updated_at"`
+	ID              string         `json:"id"`
+	Email           string         `json:"email"`
+	PasswordHash    string         `json:"password_hash"`
+	Name            string         `json:"name"`
+	Phone           sql.NullString `json:"phone"`
+	RoleID          int64          `json:"role_id"`
+	Status          string         `json:"status"`
+	LastLoginAt     sql.NullTime   `json:"last_login_at"`
+	ThemePreference string         `json:"theme_preference"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
 }
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error) {
@@ -168,6 +173,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 		&i.RoleID,
 		&i.Status,
 		&i.LastLoginAt,
+		&i.ThemePreference,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -175,21 +181,22 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, password_hash, name, phone, role_id, status, last_login_at, created_at, updated_at
+SELECT id, email, password_hash, name, phone, role_id, status, last_login_at, theme_preference, created_at, updated_at
 FROM users WHERE id = ?
 `
 
 type GetUserByIDRow struct {
-	ID           string         `json:"id"`
-	Email        string         `json:"email"`
-	PasswordHash string         `json:"password_hash"`
-	Name         string         `json:"name"`
-	Phone        sql.NullString `json:"phone"`
-	RoleID       int64          `json:"role_id"`
-	Status       string         `json:"status"`
-	LastLoginAt  sql.NullTime   `json:"last_login_at"`
-	CreatedAt    time.Time      `json:"created_at"`
-	UpdatedAt    time.Time      `json:"updated_at"`
+	ID              string         `json:"id"`
+	Email           string         `json:"email"`
+	PasswordHash    string         `json:"password_hash"`
+	Name            string         `json:"name"`
+	Phone           sql.NullString `json:"phone"`
+	RoleID          int64          `json:"role_id"`
+	Status          string         `json:"status"`
+	LastLoginAt     sql.NullTime   `json:"last_login_at"`
+	ThemePreference string         `json:"theme_preference"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
 }
 
 // Users
@@ -205,6 +212,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id string) (GetUserByIDRow, e
 		&i.RoleID,
 		&i.Status,
 		&i.LastLoginAt,
+		&i.ThemePreference,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -246,7 +254,7 @@ func (q *Queries) ListRoles(ctx context.Context) ([]Role, error) {
 }
 
 const searchUsers = `-- name: SearchUsers :many
-SELECT u.id, u.email, u.password_hash, u.name, u.phone, u.role_id, u.status, u.last_login_at, u.created_at, u.updated_at,
+SELECT u.id, u.email, u.password_hash, u.name, u.phone, u.role_id, u.status, u.last_login_at, u.theme_preference, u.created_at, u.updated_at,
        r.name AS role_name
 FROM users u
 JOIN roles r ON u.role_id = r.id
@@ -266,17 +274,18 @@ type SearchUsersParams struct {
 }
 
 type SearchUsersRow struct {
-	ID           string         `json:"id"`
-	Email        string         `json:"email"`
-	PasswordHash string         `json:"password_hash"`
-	Name         string         `json:"name"`
-	Phone        sql.NullString `json:"phone"`
-	RoleID       int64          `json:"role_id"`
-	Status       string         `json:"status"`
-	LastLoginAt  sql.NullTime   `json:"last_login_at"`
-	CreatedAt    time.Time      `json:"created_at"`
-	UpdatedAt    time.Time      `json:"updated_at"`
-	RoleName     string         `json:"role_name"`
+	ID              string         `json:"id"`
+	Email           string         `json:"email"`
+	PasswordHash    string         `json:"password_hash"`
+	Name            string         `json:"name"`
+	Phone           sql.NullString `json:"phone"`
+	RoleID          int64          `json:"role_id"`
+	Status          string         `json:"status"`
+	LastLoginAt     sql.NullTime   `json:"last_login_at"`
+	ThemePreference string         `json:"theme_preference"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+	RoleName        string         `json:"role_name"`
 }
 
 func (q *Queries) SearchUsers(ctx context.Context, arg SearchUsersParams) ([]SearchUsersRow, error) {
@@ -304,6 +313,7 @@ func (q *Queries) SearchUsers(ctx context.Context, arg SearchUsersParams) ([]Sea
 			&i.RoleID,
 			&i.Status,
 			&i.LastLoginAt,
+			&i.ThemePreference,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.RoleName,
@@ -325,7 +335,7 @@ const updateUser = `-- name: UpdateUser :one
 UPDATE users
 SET email = ?, name = ?, phone = ?, role_id = ?, status = ?, updated_at = datetime('now')
 WHERE id = ?
-RETURNING id, email, password_hash, name, phone, role_id, status, last_login_at, created_at, updated_at
+RETURNING id, email, password_hash, name, phone, role_id, status, last_login_at, theme_preference, created_at, updated_at
 `
 
 type UpdateUserParams struct {
@@ -338,16 +348,17 @@ type UpdateUserParams struct {
 }
 
 type UpdateUserRow struct {
-	ID           string         `json:"id"`
-	Email        string         `json:"email"`
-	PasswordHash string         `json:"password_hash"`
-	Name         string         `json:"name"`
-	Phone        sql.NullString `json:"phone"`
-	RoleID       int64          `json:"role_id"`
-	Status       string         `json:"status"`
-	LastLoginAt  sql.NullTime   `json:"last_login_at"`
-	CreatedAt    time.Time      `json:"created_at"`
-	UpdatedAt    time.Time      `json:"updated_at"`
+	ID              string         `json:"id"`
+	Email           string         `json:"email"`
+	PasswordHash    string         `json:"password_hash"`
+	Name            string         `json:"name"`
+	Phone           sql.NullString `json:"phone"`
+	RoleID          int64          `json:"role_id"`
+	Status          string         `json:"status"`
+	LastLoginAt     sql.NullTime   `json:"last_login_at"`
+	ThemePreference string         `json:"theme_preference"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (UpdateUserRow, error) {
@@ -369,6 +380,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (UpdateU
 		&i.RoleID,
 		&i.Status,
 		&i.LastLoginAt,
+		&i.ThemePreference,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -379,20 +391,21 @@ const updateUserLastLogin = `-- name: UpdateUserLastLogin :one
 UPDATE users
 SET last_login_at = datetime('now')
 WHERE id = ?
-RETURNING id, email, password_hash, name, phone, role_id, status, last_login_at, created_at, updated_at
+RETURNING id, email, password_hash, name, phone, role_id, status, last_login_at, theme_preference, created_at, updated_at
 `
 
 type UpdateUserLastLoginRow struct {
-	ID           string         `json:"id"`
-	Email        string         `json:"email"`
-	PasswordHash string         `json:"password_hash"`
-	Name         string         `json:"name"`
-	Phone        sql.NullString `json:"phone"`
-	RoleID       int64          `json:"role_id"`
-	Status       string         `json:"status"`
-	LastLoginAt  sql.NullTime   `json:"last_login_at"`
-	CreatedAt    time.Time      `json:"created_at"`
-	UpdatedAt    time.Time      `json:"updated_at"`
+	ID              string         `json:"id"`
+	Email           string         `json:"email"`
+	PasswordHash    string         `json:"password_hash"`
+	Name            string         `json:"name"`
+	Phone           sql.NullString `json:"phone"`
+	RoleID          int64          `json:"role_id"`
+	Status          string         `json:"status"`
+	LastLoginAt     sql.NullTime   `json:"last_login_at"`
+	ThemePreference string         `json:"theme_preference"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
 }
 
 func (q *Queries) UpdateUserLastLogin(ctx context.Context, id string) (UpdateUserLastLoginRow, error) {
@@ -407,6 +420,7 @@ func (q *Queries) UpdateUserLastLogin(ctx context.Context, id string) (UpdateUse
 		&i.RoleID,
 		&i.Status,
 		&i.LastLoginAt,
+		&i.ThemePreference,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -417,7 +431,7 @@ const updateUserPassword = `-- name: UpdateUserPassword :one
 UPDATE users
 SET password_hash = ?, updated_at = datetime('now')
 WHERE id = ?
-RETURNING id, email, password_hash, name, phone, role_id, status, last_login_at, created_at, updated_at
+RETURNING id, email, password_hash, name, phone, role_id, status, last_login_at, theme_preference, created_at, updated_at
 `
 
 type UpdateUserPasswordParams struct {
@@ -426,16 +440,17 @@ type UpdateUserPasswordParams struct {
 }
 
 type UpdateUserPasswordRow struct {
-	ID           string         `json:"id"`
-	Email        string         `json:"email"`
-	PasswordHash string         `json:"password_hash"`
-	Name         string         `json:"name"`
-	Phone        sql.NullString `json:"phone"`
-	RoleID       int64          `json:"role_id"`
-	Status       string         `json:"status"`
-	LastLoginAt  sql.NullTime   `json:"last_login_at"`
-	CreatedAt    time.Time      `json:"created_at"`
-	UpdatedAt    time.Time      `json:"updated_at"`
+	ID              string         `json:"id"`
+	Email           string         `json:"email"`
+	PasswordHash    string         `json:"password_hash"`
+	Name            string         `json:"name"`
+	Phone           sql.NullString `json:"phone"`
+	RoleID          int64          `json:"role_id"`
+	Status          string         `json:"status"`
+	LastLoginAt     sql.NullTime   `json:"last_login_at"`
+	ThemePreference string         `json:"theme_preference"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
 }
 
 func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) (UpdateUserPasswordRow, error) {
@@ -450,6 +465,52 @@ func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPassword
 		&i.RoleID,
 		&i.Status,
 		&i.LastLoginAt,
+		&i.ThemePreference,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateUserThemePreference = `-- name: UpdateUserThemePreference :one
+UPDATE users
+SET theme_preference = ?, updated_at = datetime('now')
+WHERE id = ?
+RETURNING id, email, password_hash, name, phone, role_id, status, last_login_at, theme_preference, created_at, updated_at
+`
+
+type UpdateUserThemePreferenceParams struct {
+	ThemePreference string `json:"theme_preference"`
+	ID              string `json:"id"`
+}
+
+type UpdateUserThemePreferenceRow struct {
+	ID              string         `json:"id"`
+	Email           string         `json:"email"`
+	PasswordHash    string         `json:"password_hash"`
+	Name            string         `json:"name"`
+	Phone           sql.NullString `json:"phone"`
+	RoleID          int64          `json:"role_id"`
+	Status          string         `json:"status"`
+	LastLoginAt     sql.NullTime   `json:"last_login_at"`
+	ThemePreference string         `json:"theme_preference"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+}
+
+func (q *Queries) UpdateUserThemePreference(ctx context.Context, arg UpdateUserThemePreferenceParams) (UpdateUserThemePreferenceRow, error) {
+	row := q.db.QueryRowContext(ctx, updateUserThemePreference, arg.ThemePreference, arg.ID)
+	var i UpdateUserThemePreferenceRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.PasswordHash,
+		&i.Name,
+		&i.Phone,
+		&i.RoleID,
+		&i.Status,
+		&i.LastLoginAt,
+		&i.ThemePreference,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

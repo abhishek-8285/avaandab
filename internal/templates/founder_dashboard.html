@@ -1,7 +1,7 @@
 {{template "layout.html" .}}
 {{define "title"}}Founder Dashboard{{end}}
 {{define "content"}}
-<div class="p-6 max-w-7xl mx-auto">
+<div class="p-6 max-w-7xl mx-auto text-on-surface">
     <div class="mb-6">
         <h1 class="text-2xl font-bold text-primary">Founder Dashboard</h1>
         <p class="text-sm text-secondary">Key business metrics and operational signals</p>
@@ -9,40 +9,40 @@
 
     <!-- Stats Row -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white rounded-lg shadow p-4">
-            <p class="text-sm text-gray-500">Unacknowledged Signals</p>
-            <p class="text-2xl font-bold text-red-600">{{.UnacknowledgedSignals}}</p>
+        <div class="bg-surface-container-lowest border border-border-subtle rounded-lg shadow-sm p-4">
+            <p class="text-sm text-text-muted">Unacknowledged Signals</p>
+            <p class="text-2xl font-bold text-red-500">{{.UnacknowledgedSignals}}</p>
         </div>
-        <div class="bg-white rounded-lg shadow p-4">
-            <p class="text-sm text-gray-500">Active Experiments</p>
-            <p class="text-2xl font-bold text-blue-600">{{.ActiveExperiments}}</p>
+        <div class="bg-surface-container-lowest border border-border-subtle rounded-lg shadow-sm p-4">
+            <p class="text-sm text-text-muted">Active Experiments</p>
+            <p class="text-2xl font-bold text-primary">{{.ActiveExperiments}}</p>
         </div>
-        <div class="bg-white rounded-lg shadow p-4">
-            <p class="text-sm text-gray-500">Open Ops Alerts</p>
-            <p class="text-2xl font-bold text-amber-600">{{.OpenOpsAlerts}}</p>
+        <div class="bg-surface-container-lowest border border-border-subtle rounded-lg shadow-sm p-4">
+            <p class="text-sm text-text-muted">Open Ops Alerts</p>
+            <p class="text-2xl font-bold text-amber-500">{{.OpenOpsAlerts}}</p>
         </div>
-        <div class="bg-white rounded-lg shadow p-4">
-            <p class="text-sm text-gray-500">Latest Net Profit</p>
-            <p class="text-2xl font-bold text-green-600">{{if .LatestPNL}}₹{{printf "%.2f" .LatestPNL.NetProfit}}{{else}}₹0.00{{end}}</p>
+        <div class="bg-surface-container-lowest border border-border-subtle rounded-lg shadow-sm p-4">
+            <p class="text-sm text-text-muted">Latest Net Profit</p>
+            <p class="text-2xl font-bold text-emerald-500">{{if .LatestPNL}}₹{{printf "%.2f" .LatestPNL.NetProfit}}{{else}}₹0.00{{end}}</p>
         </div>
     </div>
 
     <!-- Unacknowledged Signals -->
     {{if .RecentSignals}}
-    <div class="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 class="text-lg font-semibold mb-4">⚠️ Unacknowledged Signals</h2>
+    <div class="bg-surface-container-lowest border border-border-subtle rounded-lg shadow-sm p-6 mb-6">
+        <h2 class="text-lg font-semibold mb-4 text-on-surface">⚠️ Unacknowledged Signals</h2>
         <div class="space-y-3">
             {{range .RecentSignals}}
-            <div class="flex items-center justify-between p-3 border rounded-lg {{if eq .Direction "above"}}bg-green-50 border-green-200{{else}}bg-red-50 border-red-200{{end}}">
+            <div class="flex items-center justify-between p-3 border rounded-lg {{if eq .Direction "above"}}bg-emerald-500/10 border-emerald-500/20 text-on-surface{{else}}bg-red-500/10 border-red-500/20 text-on-surface{{end}}">
                 <div>
                     <span class="font-medium text-sm">{{.SignalType}}</span>
-                    <span class="text-sm text-gray-600 ml-2">Value: {{printf "%.2f" .SignalValue}}</span>
-                    {{with .ThresholdValue}}<span class="text-sm text-gray-500 ml-2">Threshold: {{printf "%.2f" .}}</span>{{end}}
-                    <span class="text-xs text-gray-400 ml-2">{{.Direction}}</span>
+                    <span class="text-sm text-secondary ml-2">Value: {{printf "%.2f" .SignalValue}}</span>
+                    {{with .ThresholdValue}}<span class="text-sm text-text-muted ml-2">Threshold: {{printf "%.2f" .}}</span>{{end}}
+                    <span class="text-xs text-text-muted ml-2">({{.Direction}})</span>
                 </div>
                 {{if can $.User "founder" "update"}}
                 <form method="POST" action="/api/v1/founder/signals/{{.ID}}/acknowledge" class="inline">
-                    <button type="submit" class="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">Acknowledge</button>
+                    <button type="submit" class="px-3 py-1 bg-primary text-on-primary text-xs font-medium rounded hover:bg-primary/90 cursor-pointer border-0">Acknowledge</button>
                 </form>
                 {{end}}
             </div>
@@ -53,45 +53,45 @@
 
     <!-- Latest PNL Summary -->
     {{if .LatestPNL}}
-    <div class="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 class="text-lg font-semibold mb-4">📊 Latest P&L ({{.LatestPNL.SnapshotDate}})</h2>
+    <div class="bg-surface-container-lowest border border-border-subtle rounded-lg shadow-sm p-6 mb-6">
+        <h2 class="text-lg font-semibold mb-4 text-on-surface">📊 Latest P&L ({{.LatestPNL.SnapshotDate}})</h2>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-                <span class="text-sm text-gray-500">Revenue</span>
-                <p class="text-xl font-bold text-green-600">₹{{printf "%.2f" .LatestPNL.Revenue}}</p>
+                <span class="text-sm text-text-muted">Revenue</span>
+                <p class="text-xl font-bold text-emerald-500">₹{{printf "%.2f" .LatestPNL.Revenue}}</p>
             </div>
             <div>
-                <span class="text-sm text-gray-500">Expenses</span>
-                <p class="text-xl font-bold text-red-600">₹{{printf "%.2f" .LatestPNL.Expenses}}</p>
+                <span class="text-sm text-text-muted">Expenses</span>
+                <p class="text-xl font-bold text-red-500">₹{{printf "%.2f" .LatestPNL.Expenses}}</p>
             </div>
             <div>
-                <span class="text-sm text-gray-500">Net Profit</span>
-                <p class="text-xl font-bold {{if gt .LatestPNL.NetProfit 0.0}}text-green-600{{else}}text-red-600{{end}}">₹{{printf "%.2f" .LatestPNL.NetProfit}}</p>
+                <span class="text-sm text-text-muted">Net Profit</span>
+                <p class="text-xl font-bold {{if gt .LatestPNL.NetProfit 0.0}}text-emerald-500{{else}}text-red-500{{end}}">₹{{printf "%.2f" .LatestPNL.NetProfit}}</p>
             </div>
             <div>
-                <span class="text-sm text-gray-500">Trips</span>
-                <p class="text-xl font-bold">{{.LatestPNL.TripCount}}</p>
+                <span class="text-sm text-text-muted">Trips</span>
+                <p class="text-xl font-bold text-on-surface">{{.LatestPNL.TripCount}}</p>
             </div>
         </div>
         <div class="mt-4">
-            <a href="/pnl/dashboard" class="text-blue-600 hover:underline text-sm">View full P&L history →</a>
+            <a href="/pnl/dashboard" class="text-primary hover:underline text-sm font-medium">View full P&L history →</a>
         </div>
     </div>
     {{end}}
 
     <!-- Quick Links -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <a href="/ops-alerts" class="block p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow">
-            <h3 class="font-semibold">🚨 Ops Alerts</h3>
-            <p class="text-sm text-gray-500 mt-1">View and manage operational alerts</p>
+        <a href="/ops-alerts" class="block p-4 bg-surface-container-lowest border border-border-subtle rounded-lg shadow-sm hover:border-primary/50 transition-colors text-decoration-none">
+            <h3 class="font-semibold text-on-surface">🚨 Ops Alerts</h3>
+            <p class="text-sm text-text-muted mt-1">View and manage operational alerts</p>
         </a>
-        <a href="/experiments" class="block p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow">
-            <h3 class="font-semibold">🧪 Experiments</h3>
-            <p class="text-sm text-gray-500 mt-1">Manage A/B tests and feature flags</p>
+        <a href="/experiments" class="block p-4 bg-surface-container-lowest border border-border-subtle rounded-lg shadow-sm hover:border-primary/50 transition-colors text-decoration-none">
+            <h3 class="font-semibold text-on-surface">🧪 Experiments</h3>
+            <p class="text-sm text-text-muted mt-1">Manage A/B tests and feature flags</p>
         </a>
-        <a href="/founder/audit" class="block p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow">
-            <h3 class="font-semibold">📋 Audit Trail</h3>
-            <p class="text-sm text-gray-500 mt-1">View founder action history</p>
+        <a href="/founder/audit" class="block p-4 bg-surface-container-lowest border border-border-subtle rounded-lg shadow-sm hover:border-primary/50 transition-colors text-decoration-none">
+            <h3 class="font-semibold text-on-surface">📋 Audit Trail</h3>
+            <p class="text-sm text-text-muted mt-1">View founder action history</p>
         </a>
     </div>
 </div>

@@ -658,6 +658,9 @@ func main() {
 		r.Get("/api/v1/hsn-sac/search", app.Invoices.SearchHSNSAC)
 		r.Get("/api/v1/drivers/me", app.Drivers.GetMe)
 		r.Post("/api/v1/trips/{id}/deliver-pod", app.Kharcha.DeliverWithPOD)
+		r.Get("/api/v1/users/me/preferences", app.Users.GetMyPreferences)
+		r.Patch("/api/v1/users/me/preferences", app.Users.UpdateMyPreferences)
+		r.Post("/api/v1/users/me/preferences", app.Users.UpdateMyPreferences)
 		if ragHandler != nil {
 			ragHandler.RegisterRoutes(r)
 		}

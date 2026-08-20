@@ -43,14 +43,19 @@ func (r *SQLRepository) ListRoles(ctx context.Context) ([]domain.Role, error) {
 // UserRepository implementation
 
 func (r *SQLRepository) CreateUser(ctx context.Context, user domain.User) (domain.User, error) {
+	theme := user.ThemePreference
+	if theme == "" {
+		theme = "system"
+	}
 	created, err := r.Q(ctx).CreateUser(ctx, db.CreateUserParams{
-		ID:           string(user.ID),
-		Email:        user.Email,
-		PasswordHash: user.PasswordHash,
-		Name:         user.Name,
-		Phone:        nullString(user.Phone),
-		RoleID:       user.Role.ID,
-		Status:       string(user.Status),
+		ID:              string(user.ID),
+		Email:           user.Email,
+		PasswordHash:    user.PasswordHash,
+		Name:            user.Name,
+		Phone:           nullString(user.Phone),
+		RoleID:          user.Role.ID,
+		Status:          string(user.Status),
+		ThemePreference: theme,
 	})
 	if err != nil {
 		return domain.User{}, err
@@ -104,6 +109,18 @@ func (r *SQLRepository) UpdateUserPassword(ctx context.Context, userID domain.Us
 	}
 	role, _ := r.Q(ctx).GetRoleByID(ctx, updated.RoleID)
 	return toUpdateUserPasswordRowWithRole(updated, toDomainRole(role)), nil
+}
+
+func (r *SQLRepository) UpdateUserThemePreference(ctx context.Context, userID domain.UserID, theme string) (domain.User, error) {
+	updated, err := r.Q(ctx).UpdateUserThemePreference(ctx, db.UpdateUserThemePreferenceParams{
+		ThemePreference: theme,
+		ID:              string(userID),
+	})
+	if err != nil {
+		return domain.User{}, err
+	}
+	role, _ := r.Q(ctx).GetRoleByID(ctx, updated.RoleID)
+	return toUpdateUserThemePreferenceRowWithRole(updated, toDomainRole(role)), nil
 }
 
 func (r *SQLRepository) UpdateUserLastLogin(ctx context.Context, userID domain.UserID) (domain.User, error) {

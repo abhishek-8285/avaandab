@@ -1043,17 +1043,18 @@ type TripDetention struct {
 }
 
 type User struct {
-	ID           string         `json:"id"`
-	Email        string         `json:"email"`
-	PasswordHash string         `json:"password_hash"`
-	Name         string         `json:"name"`
-	Phone        sql.NullString `json:"phone"`
-	RoleID       int64          `json:"role_id"`
-	Status       string         `json:"status"`
-	LastLoginAt  sql.NullTime   `json:"last_login_at"`
-	CreatedAt    time.Time      `json:"created_at"`
-	UpdatedAt    time.Time      `json:"updated_at"`
-	Timezone     string         `json:"timezone"`
+	ID              string         `json:"id"`
+	Email           string         `json:"email"`
+	PasswordHash    string         `json:"password_hash"`
+	Name            string         `json:"name"`
+	Phone           sql.NullString `json:"phone"`
+	RoleID          int64          `json:"role_id"`
+	Status          string         `json:"status"`
+	LastLoginAt     sql.NullTime   `json:"last_login_at"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+	Timezone        string         `json:"timezone"`
+	ThemePreference string         `json:"theme_preference"`
 }
 
 type UserRole struct {
