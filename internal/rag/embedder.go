@@ -2,6 +2,7 @@ package rag
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -58,7 +59,7 @@ func (e *OpenAIEmbedder) Embed(text string) ([]float64, error) {
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", e.baseURL+"/embeddings", bytes.NewReader(reqBody))
+	req, err := http.NewRequestWithContext(context.Background(), "POST", e.baseURL+"/embeddings", bytes.NewReader(reqBody))
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}

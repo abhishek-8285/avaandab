@@ -372,6 +372,7 @@ func (s *ScorecardService) Leaderboard(ctx context.Context, tenantID string, lim
 	if err != nil {
 		return nil, ScorecardStats{}, err
 	}
+	defer rows.Close()
 
 	var out []LeaderboardRow
 	var ids []string
@@ -379,13 +380,12 @@ func (s *ScorecardService) Leaderboard(ctx context.Context, tenantID string, lim
 		var r LeaderboardRow
 		var tenant string
 		if err := rows.Scan(&r.DriverID, &r.DriverCode, &r.DriverName, &r.Score, &r.Tier, &tenant); err != nil {
-			rows.Close()
 			return nil, ScorecardStats{}, err
 		}
 		out = append(out, r)
 		ids = append(ids, r.DriverID)
 	}
-	if err := rows.Close(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, ScorecardStats{}, err
 	}
 
@@ -400,16 +400,16 @@ func (s *ScorecardService) Leaderboard(ctx context.Context, tenantID string, lim
 		if err != nil {
 			return nil, ScorecardStats{}, err
 		}
+		defer crows.Close()
 		for crows.Next() {
 			var d string
 			var n int
 			if err := crows.Scan(&d, &n); err != nil {
-				crows.Close()
 				return nil, ScorecardStats{}, err
 			}
 			counts[d] = n
 		}
-		if err := crows.Close(); err != nil {
+		if err := crows.Err(); err != nil {
 			return nil, ScorecardStats{}, err
 		}
 	}
@@ -425,11 +425,11 @@ func (s *ScorecardService) Leaderboard(ctx context.Context, tenantID string, lim
 		if err != nil {
 			return nil, ScorecardStats{}, err
 		}
+		defer hrows.Close()
 		for hrows.Next() {
 			var d string
 			var sc float64
 			if err := hrows.Scan(&d, &sc); err != nil {
-				hrows.Close()
 				return nil, ScorecardStats{}, err
 			}
 			hist := history[d]
@@ -438,7 +438,7 @@ func (s *ScorecardService) Leaderboard(ctx context.Context, tenantID string, lim
 			}
 			history[d] = append(hist, sc)
 		}
-		if err := hrows.Close(); err != nil {
+		if err := hrows.Err(); err != nil {
 			return nil, ScorecardStats{}, err
 		}
 	}
@@ -518,11 +518,11 @@ func (s *ScorecardService) DriverDetail(ctx context.Context, driverID string) (D
 	if err != nil {
 		return DriverDetail{}, err
 	}
+	defer hrows.Close()
 	for hrows.Next() {
 		var p ScorePoint
 		var pe, ca string
 		if err := hrows.Scan(&p.Score, &p.Tier, &pe, &ca); err != nil {
-			hrows.Close()
 			return DriverDetail{}, err
 		}
 		if t, ok := parseDBTime(pe); ok {
@@ -533,7 +533,7 @@ func (s *ScorecardService) DriverDetail(ctx context.Context, driverID string) (D
 		}
 		d.History = append(d.History, p)
 	}
-	if err := hrows.Close(); err != nil {
+	if err := hrows.Err(); err != nil {
 		return DriverDetail{}, err
 	}
 
@@ -546,11 +546,11 @@ func (s *ScorecardService) DriverDetail(ctx context.Context, driverID string) (D
 	if err != nil {
 		return DriverDetail{}, err
 	}
+	defer frows.Close()
 	for frows.Next() {
 		var f FraudEventView
 		var occ string
 		if err := frows.Scan(&f.ID, &f.EventType, &occ); err != nil {
-			frows.Close()
 			return DriverDetail{}, err
 		}
 		if t, ok := parseDBTime(occ); ok {
@@ -560,7 +560,7 @@ func (s *ScorecardService) DriverDetail(ctx context.Context, driverID string) (D
 		// The dedicated query below fills resolution state.
 		d.FraudEvents = append(d.FraudEvents, f)
 	}
-	if err := frows.Close(); err != nil {
+	if err := frows.Err(); err != nil {
 		return DriverDetail{}, err
 	}
 	for i := range d.FraudEvents {

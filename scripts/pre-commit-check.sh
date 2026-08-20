@@ -47,10 +47,10 @@ echo -e "\n${CYAN}[4/7] Running go vet static analysis...${NC}"
 go vet ./...
 echo -e "${GREEN}✅ Go vet passed.${NC}"
 
-# 3. Linter (golangci-lint)
-echo -e "\n${CYAN}[5/7] Running golangci-lint...${NC}"
-go run github.com/golangci/golangci-lint/cmd/golangci-lint@latest run ./...
-echo -e "${GREEN}✅ Linter check passed.${NC}"
+# 3. Security Scanners (golangci-lint, govulncheck, npm audit)
+echo -e "\n${CYAN}[5/7] Running security scanner suite...${NC}"
+./scripts/security-check.sh
+echo -e "${GREEN}✅ Security checks passed.${NC}"
 
 # 4. SQLC Out-of-Date Check
 echo -e "\n${CYAN}[6/7] Checking sqlc generated files integrity...${NC}"
