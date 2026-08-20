@@ -9,7 +9,9 @@
   },
   "scripts": {
     "build:css": "npx @tailwindcss/cli -i src/input.css -o internal/static/css/tailwind.css --minify",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "go test ./...",
+    "test:cover": "go test -coverprofile=coverage.out -covermode=atomic ./test",
+    "test:cover:html": "go tool cover -html=coverage.out",
     "test:ui": "playwright test"
   },
   "keywords": [],

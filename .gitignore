@@ -37,6 +37,8 @@ Thumbs.db
 # Coverage
 *.out
 coverage.html
+coverage/
+*.coverage
 
 # Build output
 dist/

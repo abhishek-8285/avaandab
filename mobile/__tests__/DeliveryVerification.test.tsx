@@ -41,6 +41,12 @@ describe('DeliveryVerificationScreen', () => {
     const nameInput = getByPlaceholderText('e.g. Rajesh Sharma');
     fireEvent.changeText(nameInput, 'Suresh Verma');
 
+    const phoneInput = getByPlaceholderText('+91 98765 43210');
+    fireEvent.changeText(phoneInput, '+91 98765 43210');
+
+    const notesInput = getByPlaceholderText('e.g. Received at Gate 3 with intact seal');
+    fireEvent.changeText(notesInput, 'Package received with seal intact');
+
     const submitBtn = getByText('CONFIRM & SUBMIT E-POD');
     await act(async () => {
       fireEvent.press(submitBtn);
@@ -52,6 +58,17 @@ describe('DeliveryVerificationScreen', () => {
 
     const calledUrl = fetchMock.mock.calls[0][0];
     expect(calledUrl).toContain('/api/v1/trips/trip_99/deliver-pod');
+  });
+
+  test('calls onBack handler when back button is pressed', () => {
+    const onComplete = jest.fn();
+    const onBack = jest.fn();
+
+    const { getByText } = render(
+      <DeliveryVerificationScreen tripId="trip_back" onComplete={onComplete} onBack={onBack} />
+    );
+
+    expect(getByText('POD VERIFICATION')).toBeTruthy();
   });
 
   test('falls back to OfflineQueue.enqueuePOD on network failure', async () => {

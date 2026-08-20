@@ -54,6 +54,10 @@ describe('OfflineQueue', () => {
     expect(pods.find((p) => p.trip_id === 'trip_103')).toBeUndefined();
   });
 
+  test('clearGPS with empty array does nothing', async () => {
+    await expect(OfflineQueue.clearGPS([])).resolves.not.toThrow();
+  });
+
   test('enqueueGPS stores, pendingGPS returns, clearGPS removes', async () => {
     await OfflineQueue.enqueueGPS({
       driver_id: 'drv_1',
@@ -72,8 +76,14 @@ describe('OfflineQueue', () => {
     expect(afterClear).toHaveLength(0);
   });
 
-  test('flush with network succeeds and clears flushed items', async () => {
-    await OfflineQueue.enqueuePOD('trip_flush_1', { consignee_name: 'Receiver 1' });
+  test('flush with network succeeds and clears flushed items with photos and coordinates', async () => {
+    await OfflineQueue.enqueuePOD('trip_flush_1', {
+      consignee_name: 'Receiver 1',
+      notes: 'Dock notes',
+      photo_uri: 'file:///photo.jpg',
+      latitude: 18.5204,
+      longitude: 73.8567,
+    });
     await OfflineQueue.enqueueGPS({
       driver_id: 'drv_1',
       latitude: 18.5204,
@@ -99,13 +109,25 @@ describe('OfflineQueue', () => {
     expect(remainingPods).toHaveLength(0);
   });
 
+  test('flush without token stops early', async () => {
+    await useAuthStore.getState().logout();
+    await OfflineQueue.enqueuePOD('trip_unauth', { consignee_name: 'Unauth' });
+    await OfflineQueue.enqueueGPS({ driver_id: 'd1', latitude: 1, longitude: 2, timestamp: '' });
+
+    const result = await OfflineQueue.flush();
+    expect(result.podsFlushed).toBe(0);
+    expect(result.gpsFlushed).toBe(0);
+  });
+
   test('flush without network leaves items in queue', async () => {
     await OfflineQueue.enqueuePOD('trip_flush_offline', { consignee_name: 'Receiver Offline' });
+    await OfflineQueue.enqueueGPS({ driver_id: 'd1', latitude: 1, longitude: 2, timestamp: '' });
 
     global.fetch = jest.fn().mockRejectedValue(new Error('Network error')) as any;
 
     const result = await OfflineQueue.flush();
     expect(result.podsFlushed).toBe(0);
+    expect(result.gpsFlushed).toBe(0);
 
     const remaining = await OfflineQueue.pendingPODs();
     expect(remaining).toHaveLength(1);
