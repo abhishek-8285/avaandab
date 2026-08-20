@@ -218,8 +218,32 @@
                       <span>Alerts</span>
                       {{if .HasUnread}}<span class="ml-auto bg-red-500 text-white rounded-full px-2 py-0.5 text-[10px] font-bold">{{.UnreadCount}}</span>{{end}}
                   </a>
-                  {{end}}
-             </nav>
+                   {{end}}
+                {{if can .User "founder" "read"}}
+                <a href="/founder/dashboard" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Founder Dashboard"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
+                    <span class="material-symbols-outlined text-xl">insights</span>
+                    <span>Founder</span>
+                </a>
+                {{end}}
+                {{if can .User "ops_alerts" "read"}}
+                <a href="/ops-alerts" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Ops Alerts"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
+                    <span class="material-symbols-outlined text-xl">priority_high</span>
+                    <span>Ops Alerts</span>
+                </a>
+                {{end}}
+                {{if can .User "pnl" "read"}}
+                <a href="/pnl/dashboard" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Profit & Loss"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
+                    <span class="material-symbols-outlined text-xl">accounting</span>
+                    <span>P&amp;L</span>
+                </a>
+                {{end}}
+                {{if can .User "experiments" "read"}}
+                <a href="/experiments" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "A/B Experiments"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
+                    <span class="material-symbols-outlined text-xl">science</span>
+                    <span>Experiments</span>
+                </a>
+                {{end}}
+              </nav>
             <div class="mt-auto p-4 border-t border-border-subtle flex flex-col gap-3">
                 <form method="POST" action="/logout">
                     <button type="submit" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-md text-status-alert hover:bg-status-alert/10 hover:text-status-alert hover:translate-x-1 transition-all duration-150 cursor-pointer border-0 bg-transparent font-medium text-sm">

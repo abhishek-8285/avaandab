@@ -1,0 +1,112 @@
+{{template "layout.html" .}}
+{{define "title"}}Ops Alerts{{end}}
+{{define "content"}}
+<div class="p-6 max-w-7xl mx-auto">
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-primary">Operational Alerts</h1>
+        <p class="text-sm text-secondary">Business process alerts requiring attention</p>
+    </div>
+
+    <div class="flex gap-4 mb-6">
+        <select id="status-filter" class="border rounded px-3 py-2" onchange="filterAlerts()">
+            <option value="">All Statuses</option>
+            <option value="open">Open</option>
+            <option value="acknowledged">Acknowledged</option>
+            <option value="resolved">Resolved</option>
+            <option value="dismissed">Dismissed</option>
+        </select>
+        <select id="type-filter" class="border rounded px-3 py-2" onchange="filterAlerts()">
+            <option value="">All Types</option>
+            <option value="vehicle_breakdown">Vehicle Breakdown</option>
+            <option value="driver_absence">Driver Absence</option>
+            <option value="payment_delay">Payment Delay</option>
+            <option value="compliance_breach">Compliance Breach</option>
+            <option value="fuel_theft_confirmed">Fuel Theft</option>
+            <option value="settlement_dispute">Settlement Dispute</option>
+            <option value="system_error">System Error</option>
+        </select>
+    </div>
+
+    <div id="alerts-container">
+        <table class="w-full bg-white rounded-lg shadow">
+            <thead>
+                <tr class="border-b">
+                    <th class="px-3 py-2 text-left">Severity</th>
+                    <th class="px-3 py-2 text-left">Type</th>
+                    <th class="px-3 py-2 text-left">Title</th>
+                    <th class="px-3 py-2 text-left">Status</th>
+                    <th class="px-3 py-2 text-left">Created</th>
+                    <th class="px-3 py-2 text-left">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Alerts}}
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-3 py-2">
+                        <span class="px-2 py-0.5 rounded text-xs font-bold
+                            {{if eq .Severity "critical"}}bg-red-100 text-red-800
+                            {{else if eq .Severity "high"}}bg-orange-100 text-orange-800
+                            {{else if eq .Severity "medium"}}bg-yellow-100 text-yellow-800
+                            {{else}}bg-gray-100 text-gray-800{{end}}">
+                            {{.Severity}}
+                        </span>
+                    </td>
+                    <td class="px-3 py-2 text-sm">{{.AlertType}}</td>
+                    <td class="px-3 py-2">{{.Title}}</td>
+                    <td class="px-3 py-2">
+                        <span class="px-2 py-0.5 rounded text-xs
+                            {{if eq .Status "open"}}bg-red-100 text-red-800
+                            {{else if eq .Status "acknowledged"}}bg-blue-100 text-blue-800
+                            {{else if eq .Status "resolved"}}bg-green-100 text-green-800
+                            {{else}}bg-gray-100 text-gray-800{{end}}">
+                            {{.Status}}
+                        </span>
+                    </td>
+                    <td class="px-3 py-2 text-sm text-gray-500">{{.CreatedAt.Format "2006-01-02 15:04"}}</td>
+                    <td class="px-3 py-2">
+                        {{if eq .Status "open"}}
+                            {{if can $.User "ops_alerts" "update"}}
+                            <button onclick="acknowledgeAlert('{{.ID}}')" class="px-2 py-1 bg-blue-600 text-white text-xs rounded">Ack</button>
+                            <button onclick="resolveAlert('{{.ID}}')" class="px-2 py-1 bg-green-600 text-white text-xs rounded ml-1">Resolve</button>
+                            <button onclick="dismissAlert('{{.ID}}')" class="px-2 py-1 bg-gray-400 text-white text-xs rounded ml-1">Dismiss</button>
+                            {{end}}
+                        {{else if eq .Status "acknowledged"}}
+                            {{if can $.User "ops_alerts" "update"}}
+                            <button onclick="resolveAlert('{{.ID}}')" class="px-2 py-1 bg-green-600 text-white text-xs rounded">Resolve</button>
+                            {{end}}
+                        {{end}}
+                    </td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+async function acknowledgeAlert(id) {
+    await fetch('/api/v1/ops-alerts/' + id + '/acknowledge', { method: 'POST' });
+    location.reload();
+}
+async function resolveAlert(id) {
+    const note = prompt('Resolution note:');
+    if (note === null) return;
+    await fetch('/api/v1/ops-alerts/' + id + '/resolve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note: note })
+    });
+    location.reload();
+}
+async function dismissAlert(id) {
+    const reason = prompt('Dismissal reason:');
+    if (reason === null) return;
+    await fetch('/api/v1/ops-alerts/' + id + '/dismiss', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: reason })
+    });
+    location.reload();
+}
+</script>
+{{end}}

@@ -38,30 +38,33 @@ type Store interface {
 
 // Services holds all service instances and shared dependencies.
 type Services struct {
-	Auth        *AuthService
-	Users       *UserService
-	Drivers     *DriverService
-	Vehicles    *VehicleService
-	Customers   *CustomerService
-	Routes      *RouteService
-	Bookings    *BookingService
-	Trips       *TripService
-	Invoices    *InvoiceService
-	Payments    *PaymentService
-	Settings    *CompanySettingsService
-	Dashboard   *DashboardService
-	Files       *FileService
-	Audit       *AuditLogService
-	Founder     *founder.FounderService
-	Compliance  *ComplianceService
-	Settlements *DriverSettlementService
-	Telemetry   *TelemetryService
-	Kharcha     *KharchaService
-	FuelAudit   *FuelAuditService
-	Scorecard   *ScorecardService
-	Documents   *DocumentService
-	PNL         *PNLService
-	OpsAlerts   *OpsAlertService
+	Auth           *AuthService
+	Users          *UserService
+	Drivers        *DriverService
+	Vehicles       *VehicleService
+	Customers      *CustomerService
+	Routes         *RouteService
+	Bookings       *BookingService
+	Trips          *TripService
+	Invoices       *InvoiceService
+	Payments       *PaymentService
+	Settings       *CompanySettingsService
+	Dashboard      *DashboardService
+	Files          *FileService
+	Audit          *AuditLogService
+	Founder        *founder.FounderService
+	Compliance     *ComplianceService
+	Settlements    *DriverSettlementService
+	Telemetry      *TelemetryService
+	Kharcha        *KharchaService
+	FuelAudit      *FuelAuditService
+	Scorecard      *ScorecardService
+	Documents      *DocumentService
+	PNL            *PNLService
+	OpsAlerts      *OpsAlertService
+	Experiments    *ExperimentsService
+	FounderSignals *FounderSignalsService
+	FounderAudit   *FounderAuditService
 
 	store Store
 	cfg   *config.Config
@@ -143,6 +146,19 @@ func NewServices(store Store, cfg *config.Config, log *slog.Logger, eventBus eve
 		s.OpsAlerts = NewOpsAlertService(bs, dbGetter.DB())
 		s.Settlements.opsAlerts = s.OpsAlerts
 		s.Compliance.opsAlerts = s.OpsAlerts
+
+		// A/B experiments service (Spec 16 §5).
+		s.Experiments = NewExperimentsService(bs, dbGetter.DB())
+
+		// Founder signals + audit trail (Spec 16 §6, §7).
+		s.FounderAudit = NewFounderAuditService(bs, dbGetter.DB())
+		s.FounderSignals = NewFounderSignalsService(bs, dbGetter.DB())
+		s.FounderSignals.SetAudit(s.FounderAudit)
+		s.Experiments.SetAudit(s.FounderAudit)
+
+		// Founder-signal integration points (Spec 16 §6 hooks).
+		s.OpsAlerts.SetFounderSignals(s.FounderSignals)
+		s.PNL.SetFounderSignals(s.FounderSignals)
 	}
 
 	// Instantiate Telegram Bot Notifier if token configured, otherwise graceful fallback

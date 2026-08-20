@@ -1,0 +1,72 @@
+{{template "layout.html" .}}
+{{define "title"}}A/B Experiments{{end}}
+{{define "content"}}
+<div class="p-6 max-w-7xl mx-auto">
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-primary">A/B Experiments</h1>
+        <p class="text-sm text-secondary">Feature flags and experiment management</p>
+    </div>
+
+    {{if can .User "experiments" "write"}}
+    <div class="mb-6">
+        <button onclick="document.getElementById('create-modal').classList.remove('hidden')"
+                class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">+ New Experiment</button>
+    </div>
+    {{end}}
+
+    <table class="w-full bg-white rounded-lg shadow">
+        <thead>
+            <tr class="border-b">
+                <th class="px-3 py-2 text-left">Name</th>
+                <th class="px-3 py-2 text-left">Status</th>
+                <th class="px-3 py-2 text-left">Traffic Split</th>
+                <th class="px-3 py-2 text-left">Metric</th>
+                <th class="px-3 py-2 text-left">Created</th>
+                <th class="px-3 py-2 text-left">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range .Experiments}}
+            <tr class="border-b hover:bg-gray-50">
+                <td class="px-3 py-2 font-medium">{{.Name}}</td>
+                <td class="px-3 py-2">
+                    <span class="px-2 py-0.5 rounded text-xs
+                        {{if eq .Status "running"}}bg-green-100 text-green-800
+                        {{else if eq .Status "paused"}}bg-yellow-100 text-yellow-800
+                        {{else if eq .Status "completed"}}bg-blue-100 text-blue-800
+                        {{else if eq .Status "archived"}}bg-gray-100 text-gray-800
+                        {{else}}bg-gray-100 text-gray-800{{end}}">
+                        {{.Status}}
+                    </span>
+                </td>
+                <td class="px-3 py-2">{{printf "%.0f" .TrafficSplit}}% → B</td>
+                <td class="px-3 py-2 text-sm">{{.MetricName}}</td>
+                <td class="px-3 py-2 text-sm text-gray-500">{{.CreatedAt.Format "2006-01-02"}}</td>
+                <td class="px-3 py-2">
+                    {{if can $.User "experiments" "write"}}
+                        {{if eq .Status "draft"}}
+                        <button onclick="experimentAction('{{.ID}}', 'start')" class="px-2 py-1 bg-green-600 text-white text-xs rounded">Start</button>
+                        {{else if eq .Status "running"}}
+                        <button onclick="experimentAction('{{.ID}}', 'pause')" class="px-2 py-1 bg-yellow-600 text-white text-xs rounded">Pause</button>
+                        <button onclick="experimentAction('{{.ID}}', 'complete')" class="px-2 py-1 bg-blue-600 text-white text-xs rounded">Complete</button>
+                        {{else if eq .Status "paused"}}
+                        <button onclick="experimentAction('{{.ID}}', 'resume')" class="px-2 py-1 bg-green-600 text-white text-xs rounded">Resume</button>
+                        <button onclick="experimentAction('{{.ID}}', 'complete')" class="px-2 py-1 bg-blue-600 text-white text-xs rounded">Complete</button>
+                        {{else if eq .Status "completed"}}
+                        <button onclick="experimentAction('{{.ID}}', 'archive')" class="px-2 py-1 bg-gray-400 text-white text-xs rounded">Archive</button>
+                        {{end}}
+                    {{end}}
+                </td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+
+<script>
+async function experimentAction(id, action) {
+    await fetch('/api/v1/experiments/' + id + '/' + action, { method: 'POST' });
+    location.reload();
+}
+</script>
+{{end}}

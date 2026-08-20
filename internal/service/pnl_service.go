@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 
 	"transport-app/internal/shared"
@@ -13,7 +14,13 @@ import (
 // maintenance_records, fastag_transactions) and upserts into pnl_daily.
 // Spec 16 §2 (PNL Engine), §3.1 (DDL for pnl_daily).
 type PNLService struct {
-	db *sql.DB
+	db             *sql.DB
+	founderSignals *FounderSignalsService
+}
+
+// SetFounderSignals wires the founder signals service to emit cash-flow alerts.
+func (s *PNLService) SetFounderSignals(f *FounderSignalsService) {
+	s.founderSignals = f
 }
 
 // NewPNLService creates a PNLService backed by the given database.
@@ -143,8 +150,47 @@ func (s *PNLService) GenerateDailySnapshot(ctx context.Context, tenantID string,
 		snap.Expenses, snap.FuelCosts, snap.DriverPayouts,
 		snap.Maintenance, snap.TollCosts, snap.TdsDeducted,
 		snap.NetProfit, snap.TripCount, snap.VehicleCount)
+	if err != nil {
+		return snap, err
+	}
 
-	return snap, err
+	// Founder signal: cash flow alert when net profit is negative (Spec 16 §6).
+	if snap.NetProfit < 0 && s.founderSignals != nil {
+		_, _ = s.founderSignals.EmitCashFlowAlert(ctx, tenantID, snap.NetProfit, snap.SnapshotDate)
+	}
+
+	return snap, nil
+}
+
+// GetLatest returns the most recent P&L snapshot for a tenant, or nil if none.
+func (s *PNLService) GetLatest(ctx context.Context, tenantID string) (*PNLSnapshot, error) {
+	if s.db == nil {
+		return nil, fmt.Errorf("database unavailable")
+	}
+	if tenantID == "" {
+		tenantID = string(shared.DefaultTenant)
+	}
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, tenant_id, snapshot_date, revenue, expenses, fuel_costs,
+		        driver_payouts, maintenance, toll_costs, tds_deducted, net_profit,
+		        trip_count, vehicle_count
+		 FROM pnl_daily WHERE tenant_id = ? ORDER BY snapshot_date DESC LIMIT 1`,
+		tenantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	if !rows.Next() {
+		return nil, nil
+	}
+	var snap PNLSnapshot
+	if err := rows.Scan(&snap.ID, &snap.TenantID, &snap.SnapshotDate,
+		&snap.Revenue, &snap.Expenses, &snap.FuelCosts, &snap.DriverPayouts,
+		&snap.Maintenance, &snap.TollCosts, &snap.TdsDeducted,
+		&snap.NetProfit, &snap.TripCount, &snap.VehicleCount); err != nil {
+		return nil, err
+	}
+	return &snap, rows.Err()
 }
 
 // GetPNLRange returns P&L snapshots for an inclusive date range, oldest first.

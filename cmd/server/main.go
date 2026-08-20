@@ -643,6 +643,12 @@ func main() {
 		if app.OpsAlerts != nil {
 			app.OpsAlerts.RegisterRoutes(r)
 		}
+		if app.ABExperiments != nil {
+			app.ABExperiments.RegisterRoutes(r)
+		}
+		if app.Founder != nil {
+			app.Founder.RegisterRoutes(r)
+		}
 		bookingAPIHandler.Register(r)
 		tripAPIHandler.Register(r)
 		invoiceAPIHandler.Register(r)
@@ -918,6 +924,14 @@ func main() {
 			r.Get("/dashboard/stream", app.Dashboard.Stream)
 			r.Post("/dashboard/event", app.Dashboard.Event)
 			r.Get("/files/{id}", app.DownloadFile)
+
+			// Founder visibility layer web UI (Spec 16 §8)
+			if app.Founder != nil {
+				r.Get("/founder/dashboard", app.Founder.DashboardPage)
+				r.Get("/ops-alerts", app.Founder.OpsAlertsPage)
+				r.Get("/pnl/dashboard", app.Founder.PNLDashboardPage)
+				r.Get("/experiments", app.Founder.ExperimentsPage)
+			}
 
 			// Live Fleet Map (Spec 12 §2.2, §4.3)
 			r.Get("/map", app.Map.Page)

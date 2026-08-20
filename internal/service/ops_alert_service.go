@@ -79,7 +79,13 @@ type OpsAlertFilters struct {
 // OpsAlertService handles operational alert creation, lifecycle, and querying (Spec 16 §4).
 type OpsAlertService struct {
 	baseService
-	db *sql.DB
+	db             *sql.DB
+	founderSignals *FounderSignalsService
+}
+
+// SetFounderSignals wires the founder signals service to emit dispute spikes.
+func (s *OpsAlertService) SetFounderSignals(f *FounderSignalsService) {
+	s.founderSignals = f
 }
 
 // NewOpsAlertService constructs an OpsAlertService with database access.
@@ -149,7 +155,52 @@ func (s *OpsAlertService) CreateAlert(ctx context.Context, alert OpsAlert) (stri
 		})
 	}
 
+	// Founder signal: spike in settlement disputes (Spec 16 §6).
+	if alert.AlertType == OpsAlertSettlementDispute && s.founderSignals != nil {
+		count, _ := s.CountAlertsSince(ctx, tenantID, OpsAlertSettlementDispute, 7*24*time.Hour)
+		if count >= 3 {
+			_, _ = s.founderSignals.EmitSettlementDisputeSpike(ctx, tenantID, float64(count), 3.0)
+		}
+	}
+
 	return id, nil
+}
+
+// CountAlertsSince returns the number of alerts of a given type created within
+// the last `since` duration for a tenant. Used for founder-signal spike detection.
+func (s *OpsAlertService) CountAlertsSince(ctx context.Context, tenantID, alertType string, since time.Duration) (int, error) {
+	if s.db == nil {
+		return 0, fmt.Errorf("database unavailable")
+	}
+	if tenantID == "" {
+		tenantID = string(shared.DefaultTenant)
+	}
+	var n int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM ops_alerts
+		 WHERE tenant_id = ? AND alert_type = ? AND created_at > datetime('now', ?)`,
+		tenantID, alertType, fmt.Sprintf("-%d hour", int(since.Hours()))).Scan(&n)
+	if err != nil {
+		return 0, err
+	}
+	return n, nil
+}
+
+// CountByStatus returns the number of alerts in a given status for a tenant.
+func (s *OpsAlertService) CountByStatus(ctx context.Context, tenantID, status string) (int, error) {
+	if s.db == nil {
+		return 0, fmt.Errorf("database unavailable")
+	}
+	if tenantID == "" {
+		tenantID = string(shared.DefaultTenant)
+	}
+	var n int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM ops_alerts WHERE tenant_id = ? AND status = ?`, tenantID, status).Scan(&n)
+	if err != nil {
+		return 0, err
+	}
+	return n, nil
 }
 
 // AcknowledgeAlert transitions an alert from 'open' to 'acknowledged'.

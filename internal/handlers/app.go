@@ -100,6 +100,10 @@ type App struct {
 	PNL *PNLHandlers
 	// Operational alerts handler (Spec 16 §4).
 	OpsAlerts *OpsAlertHandlers
+	// ABExperiments powers the A/B experiment framework + feature flag API (Spec 16 §5).
+	ABExperiments *ExperimentHandlers
+	// Founder powers the founder signals + audit visibility layer (Spec 16 §6, §7).
+	Founder *FounderHandlers
 }
 
 // NewApp creates a new handler app with all handler groups initialized.
@@ -169,6 +173,14 @@ func NewApp(svc *service.Services, cfg *config.Config, authStore *auth.SessionSt
 	// Operational alerts (Spec 16 §4).
 	if svc != nil && svc.OpsAlerts != nil {
 		app.OpsAlerts = NewOpsAlertHandlers(app, svc.OpsAlerts, authSrv)
+	}
+	// A/B experiments (Spec 16 §5).
+	if svc != nil && svc.Experiments != nil {
+		app.ABExperiments = NewExperimentHandlers(app, svc.Experiments, authSrv)
+	}
+	// Founder signals + audit (Spec 16 §6, §7).
+	if svc != nil && svc.FounderSignals != nil && svc.FounderAudit != nil {
+		app.Founder = NewFounderHandlers(app, svc.FounderSignals, svc.FounderAudit, authSrv)
 	}
 
 	return app

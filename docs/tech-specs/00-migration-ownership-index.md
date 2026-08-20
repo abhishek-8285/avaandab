@@ -39,7 +39,8 @@ Single source of truth for `db/migrations/` version numbers. Repo head is
 | 00057 | Payment Razorpay fields (order_id, payment_id, signature, event_id) | 11 |
 | 00058 | PNL / ops / experiments / founder (pnl_snapshots, notification_log, error_reports, incidents, experiment_assignments, login_audit, founder channels) | 16 |
 | 00059 | telemetry_alerts rebuild (widened CHECK, 13 types) | 05 |
-| 00060–00061 | reserved (future: refunds, load board, ESG) | — |
+| 00060 | experiments RBAC permissions & role assignments | 16 |
+| 00061 | founder RBAC permissions & role assignments | 16 |
 | 00062 | RAG multi-tenant vectors + provider registry | 10 |
 | 00063+ | future specs (predictive ETA, AIS-140/VLT, ERP) | reserved |
 
