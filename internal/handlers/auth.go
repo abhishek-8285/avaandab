@@ -34,8 +34,16 @@ func (h *AuthHandlers) LoginPage(w http.ResponseWriter, r *http.Request) {
 		Extra: map[string]interface{}{},
 	}
 
-	if cookie, err := r.Cookie("flash_error"); err == nil {
+	if cookie, err := r.Cookie("flash_error"); err == nil && cookie.Value != "" {
+		pd.FlashError = cookie.Value
 		pd.Extra["Error"] = cookie.Value
+		http.SetCookie(w, &http.Cookie{Name: "flash_error", Value: "", Path: "/", MaxAge: -1})
+	}
+
+	if cookie, err := r.Cookie("flash_success"); err == nil && cookie.Value != "" {
+		pd.FlashSuccess = cookie.Value
+		pd.Extra["FlashSuccess"] = cookie.Value
+		http.SetCookie(w, &http.Cookie{Name: "flash_success", Value: "", Path: "/", MaxAge: -1})
 	}
 
 	if cookie, err := r.Cookie("auth_email"); err == nil {
@@ -295,12 +303,20 @@ func (h *AuthHandlers) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	confirmPassword := r.PostFormValue("confirm_password")
 
 	if newPassword != confirmPassword {
-		http.Error(w, "Passwords do not match", http.StatusBadRequest)
+		h.renderAuthPage(w, "change_password.html", PageData{
+			Title:      "Change Password",
+			FlashError: "Passwords do not match",
+			User:       session,
+		})
 		return
 	}
 
 	if err := h.Services.Auth.ChangePassword(r.Context(), userID, oldPassword, newPassword); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		h.renderAuthPage(w, "change_password.html", PageData{
+			Title:      "Change Password",
+			FlashError: err.Error(),
+			User:       session,
+		})
 		return
 	}
 

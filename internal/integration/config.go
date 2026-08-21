@@ -20,15 +20,21 @@ type Config struct {
 
 // LoadConfig reads integration settings from environment variables.
 func LoadConfig() Config {
+	// EWayBill supports both INTEGRATION_EWAYBILL_USE_MOCK and INTEGRATION_EWB_USE_MOCK
+	ewbUseMock := os.Getenv("INTEGRATION_EWAYBILL_USE_MOCK")
+	if ewbUseMock == "" {
+		ewbUseMock = os.Getenv("INTEGRATION_EWB_USE_MOCK")
+	}
 	return Config{
 		EWayBill: ewaybill.Config{
 			Endpoint: os.Getenv("INTEGRATION_EWAYBILL_ENDPOINT"),
-			APIKey:   os.Getenv("INTEGRATION_EWAYBILL_API_KEY"),
+			APIKey:   getEnvDefault("INTEGRATION_EWAYBILL_API_KEY", os.Getenv("EWB_API_KEY")),
 			Enabled:  parseBool(os.Getenv("INTEGRATION_EWAYBILL_ENABLED")),
+			UseMock:  parseBoolDefault(ewbUseMock, true),
 		},
 		GSTN: gstn.Config{
 			Endpoint:     os.Getenv("INTEGRATION_GSTN_ENDPOINT"),
-			APIKey:       os.Getenv("INTEGRATION_GSTN_API_KEY"),
+			APIKey:       getEnvDefault("INTEGRATION_GSTN_API_KEY", os.Getenv("GSTN_API_KEY")),
 			Enabled:      parseBool(os.Getenv("INTEGRATION_GSTN_ENABLED")),
 			UseMock:      parseBoolDefault(os.Getenv("INTEGRATION_GSTN_USE_MOCK"), true),
 			Username:     os.Getenv("INTEGRATION_GSTN_USERNAME"),
@@ -38,8 +44,9 @@ func LoadConfig() Config {
 		},
 		FASTag: fastag.Config{
 			Endpoint: os.Getenv("INTEGRATION_FASTAG_ENDPOINT"),
-			APIKey:   os.Getenv("INTEGRATION_FASTAG_API_KEY"),
+			APIKey:   getEnvDefault("INTEGRATION_FASTAG_API_KEY", os.Getenv("FASTAG_API_KEY")),
 			Enabled:  parseBool(os.Getenv("INTEGRATION_FASTAG_ENABLED")),
+			UseMock:  parseBoolDefault(os.Getenv("INTEGRATION_FASTAG_USE_MOCK"), true),
 		},
 		Accounting: accounting.Config{
 			Endpoint: os.Getenv("INTEGRATION_ACCOUNTING_ENDPOINT"),

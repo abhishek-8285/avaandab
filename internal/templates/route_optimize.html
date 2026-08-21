@@ -1,0 +1,73 @@
+{{template "page_header.html" (dict "Title" "Route Optimization" "Subtitle" "VRP solver — mock + OSRM (Spec 18 Wave A)" "ActionHref" "/routes" "ActionLabel" "Back to Routes")}}
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+  <div class="bg-surface-container-lowest border border-border-subtle rounded p-6">
+    <h3 class="text-sm font-semibold mb-3">Create Optimization Job</h3>
+    <p class="text-xs text-text-muted mb-4">Provider: <span class="font-mono">{{.RoutingProvider}}</span> (configure via <span class="font-mono">ROUTING_PROVIDER=mock|osrm-public|osrm-selfhost</span> and <span class="font-mono">OSRM_URL</span>). Max 50 shipments.</p>
+    <form id="optimize-form" onsubmit="return submitOptimize(event)" class="space-y-3">
+      <label class="block text-xs font-medium">Shipments JSON <span class="text-text-muted">(array of {id, latitude, longitude})</span>
+        <textarea name="shipments" rows="6" class="w-full border rounded p-2 font-mono text-xs" placeholder='[{"id":"s1","latitude":19.076,"longitude":72.877},{"id":"s2","latitude":19.218,"longitude":72.978}]'>[{"id":"s1","latitude":19.076,"longitude":72.877},{"id":"s2","latitude":19.218,"longitude":72.978}]</textarea>
+      </label>
+      <label class="block text-xs font-medium">Vehicles JSON
+        <textarea name="vehicles" rows="3" class="w-full border rounded p-2 font-mono text-xs" placeholder='[{"id":"v1","start_lat":19.076,"start_lng":72.877,"capacity":100}]'>[{"id":"v1","start_lat":19.076,"start_lng":72.877,"capacity":100}]</textarea>
+      </label>
+      <div class="flex items-center gap-2">
+        {{template "btn.html" (dict "Label" "Optimize" "Type" "submit" "Icon" "route")}}
+        <span id="optimize-status" class="text-xs text-text-muted"></span>
+      </div>
+    </form>
+    <pre id="optimize-result" class="mt-4 bg-surface-container-low border rounded p-3 text-xs overflow-auto max-h-96 hidden"></pre>
+  </div>
+
+  <div class="bg-surface-container-lowest border border-border-subtle rounded p-6">
+    <h3 class="text-sm font-semibold mb-3">Recent Jobs</h3>
+    <div id="jobs-list" class="text-xs text-text-muted">Loading...</div>
+  </div>
+</div>
+
+<div class="mt-6 bg-surface-container-lowest border border-border-subtle rounded p-4">
+  <h4 class="text-xs font-semibold mb-2">How it works</h4>
+  <ul class="text-xs text-text-muted list-disc ml-4 space-y-1">
+    <li><span class="font-mono">mock</span>: greedy nearest-neighbor, zero deps, deterministic.</li>
+    <li><span class="font-mono">osrm-public</span>: <span class="font-mono">http://router.project-osrm.org</span> table API + greedy assignment, falls back to mock on error/rate-limit.</li>
+    <li><span class="font-mono">osrm-selfhost</span>: <span class="font-mono">OSRM_URL</span> (e.g. <span class="font-mono">http://osrm.internal:5000</span>), docs in <span class="font-mono">docs/ops/osrm-setup.md</span>.</li>
+    <li>Jobs are tenant-scoped and stored in <span class="font-mono">route_optimization_jobs</span> (migration 00066).</li>
+  </ul>
+</div>
+
+<script>
+async function submitOptimize(e){
+  e.preventDefault();
+  const status = document.getElementById('optimize-status');
+  const out = document.getElementById('optimize-result');
+  status.textContent = 'Solving...';
+  out.classList.add('hidden');
+  let shipments, vehicles;
+  try {
+    shipments = JSON.parse(e.target.shipments.value);
+    vehicles = JSON.parse(e.target.vehicles.value);
+  } catch(err){ status.textContent='Invalid JSON: '+err.message; return false; }
+  const res = await fetch('/routes/optimize/jobs', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({shipments, vehicles})
+  });
+  const data = await res.json();
+  if(!res.ok){ status.textContent = data.error || 'Failed'; out.textContent = JSON.stringify(data,null,2); out.classList.remove('hidden'); return false; }
+  status.textContent = 'Completed ('+ (data.provider||'') +') in '+(data.result?data.result.solve_time_ms:'?')+'ms';
+  out.textContent = JSON.stringify(data.result,null,2);
+  out.classList.remove('hidden');
+  loadJobs();
+  return false;
+}
+async function loadJobs(){
+  const el = document.getElementById('jobs-list');
+  try{
+    const res = await fetch('/routes/optimize/jobs', {headers:{'Datastar-Request':'true'}});
+    if(res.ok){ el.innerHTML = await res.text(); return; }
+    const data = await res.json();
+    el.textContent = JSON.stringify(data,null,2);
+  }catch(err){ el.textContent = 'Failed to load jobs'; }
+}
+loadJobs();
+</script>

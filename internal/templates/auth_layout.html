@@ -25,203 +25,24 @@
             font-family: 'Plus Jakarta Sans', sans-serif;
         }
         .font-display { font-family: 'Outfit', 'Satoshi', 'Plus Jakarta Sans', sans-serif; }
-
-        /* Full Width Edge-to-Edge Navigation Bar */
-        .header {
-            background-color: var(--color-surface-container-lowest);
-            border-bottom: 1px solid var(--color-border-subtle);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
-            width: 100%;
-        }
-        .navigation {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 100%;
-            padding: 0 1.5rem;
-            height: 80px;
-        }
-        @media (min-width: 768px) {
-            .navigation {
-                padding: 0 3rem;
-            }
-        }
-        .navigation-button-container { display: none; }
-        @media (max-width: 1023px) {
-            .navigation-button-container { display: flex; }
-        }
-        .navigation-button {
-            width: 24px;
-            height: 24px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-        }
-
-        /* Far Left Logo */
-        .navigation-main-logo {
-            display: flex;
-            align-items: center;
-            flex-shrink: 0;
-        }
-        .navigation-main-logo a {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            text-decoration: none;
-        }
-        .logo-icon-box {
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            background-color: var(--color-primary);
-            color: var(--color-surface-container-lowest);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 4px rgba(0, 104, 95, 0.2);
-            flex-shrink: 0;
-        }
-
-        /* Center Navigation Links */
-        .navigation-body {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex: 1;
-        }
-        @media (max-width: 1023px) {
-            .navigation-body { display: none; }
-        }
-        .navigation-body-container {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        .navigation-top-menu {
-            display: flex;
-            align-items: center;
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            gap: 0.5rem;
-        }
-        .navigation-top-menu-item {
-            position: relative;
-        }
-        .navigation-top-menu-label,
-        .navigation-top-menu-link {
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--color-on-surface-variant);
-            text-decoration: none;
-            cursor: pointer;
-            padding: 10px 14px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            transition: color 0.15s ease;
-        }
-        .navigation-top-menu-item:hover > .navigation-top-menu-label,
-        .navigation-top-menu-item:hover > .navigation-top-menu-link {
-            color: var(--color-primary);
-        }
-        .navigation-top-menu-label-arrow::after {
-            content: '';
-            display: inline-block;
-            width: 5px;
-            height: 5px;
-            border-right: 2px solid var(--color-text-muted);
-            border-bottom: 2px solid var(--color-text-muted);
-            transform: rotate(45deg);
-            margin-top: -2px;
-            transition: transform 0.2s ease;
-        }
-        .navigation-top-menu-item:hover > .navigation-top-menu-label-arrow::after {
-            transform: rotate(225deg);
-            border-color: var(--color-primary);
-        }
-        /* Dropdown Sublists */
-        .navigation-top-menu-sublist {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            min-width: 220px;
-            background-color: var(--color-surface-container-lowest);
-            border: 1px solid var(--color-border-subtle);
-            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
-            border-radius: 6px;
-            padding: 8px 0;
-            list-style: none;
-            display: none;
-            z-index: 110;
-        }
-        .navigation-top-menu-item:hover > .navigation-top-menu-sublist {
-            display: block;
-        }
-        .navigation-top-menu-sublist .navigation-top-menu-link {
-            padding: 8px 20px;
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--color-on-surface-variant);
-            width: 100%;
-            display: block;
-        }
-        .navigation-top-menu-sublist .navigation-top-menu-link:hover {
-            background-color: var(--color-surface-container-low);
-            color: var(--color-primary);
-        }
-
-        /* Far Right Action Buttons */
-        .navigation-top-menu-user-actions {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            flex-shrink: 0;
-        }
-        .btn.black-border-button {
-            border: 2px solid var(--color-on-surface);
-            color: var(--color-on-surface);
-            background-color: transparent;
-            padding: 8px 20px;
-            border-radius: 6px;
-            font-weight: 700;
-            font-size: 14px;
-            text-decoration: none;
-            transition: all 0.2s ease;
-        }
-        .btn.black-border-button:hover {
-            background-color: var(--color-on-surface);
-            color: var(--color-surface-container-lowest);
-        }
-        .login-link-button {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 16px;
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--color-primary);
-            text-decoration: none;
-            border-radius: 6px;
-            transition: background-color 0.15s ease;
-        }
-        .login-link-button:hover {
-            background-color: color-mix(in srgb, var(--color-primary) 10%, transparent);
-        }
-
     </style>
     <script>
         document.documentElement.style.opacity = "1";
         document.addEventListener("DOMContentLoaded", function() {
             document.documentElement.style.opacity = "1";
         });
+        function togglePassword(inputId, btn) {
+            var input = document.getElementById(inputId);
+            if (!input) return;
+            var icon = btn.querySelector('.material-symbols-outlined') || btn;
+            if (input.type === 'password') {
+                input.type = 'text';
+                if (icon) icon.textContent = 'visibility_off';
+            } else {
+                input.type = 'password';
+                if (icon) icon.textContent = 'visibility';
+            }
+        }
     </script>
     {{template "theme_head.html" .}}
 </head>
@@ -231,9 +52,18 @@
     </div>
 
     {{if .FlashError}}
-    <div class="fixed bottom-4 right-4 safe-bottom safe-right max-w-md w-full bg-status-alert/10 border-l-4 border-status-alert text-status-alert p-4 rounded shadow-lg flex items-start justify-between">
-        <span class="flex-1">{{.FlashError}}</span>
-        <button type="button" class="flash-dismiss ml-2 text-status-alert hover:text-status-alert focus:outline-none flex items-center justify-center" aria-label="Dismiss error">
+    <div class="fixed bottom-4 right-4 safe-bottom safe-right max-w-md w-full bg-status-alert/10 border-l-4 border-status-alert text-status-alert p-4 rounded shadow-lg flex items-start justify-between z-50">
+        <span class="flex-1 text-sm font-medium">{{.FlashError}}</span>
+        <button type="button" class="flash-dismiss ml-2 text-status-alert hover:text-status-alert focus:outline-none flex items-center justify-center min-h-[32px] min-w-[32px]" aria-label="Dismiss error" onclick="this.parentElement.remove()">
+            <span class="material-symbols-outlined text-sm">close</span>
+        </button>
+    </div>
+    {{end}}
+
+    {{if .FlashSuccess}}
+    <div class="fixed bottom-4 right-4 safe-bottom safe-right max-w-md w-full bg-status-success/10 border-l-4 border-status-success text-status-success p-4 rounded shadow-lg flex items-start justify-between z-50">
+        <span class="flex-1 text-sm font-medium">{{.FlashSuccess}}</span>
+        <button type="button" class="flash-dismiss ml-2 text-status-success hover:text-status-success focus:outline-none flex items-center justify-center min-h-[32px] min-w-[32px]" aria-label="Dismiss message" onclick="this.parentElement.remove()">
             <span class="material-symbols-outlined text-sm">close</span>
         </button>
     </div>

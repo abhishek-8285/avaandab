@@ -41,11 +41,10 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             {{template "field.html" (dict "Label" "Insurance Expiry" "Name" "insurance_expiry" "Type" "date" "Value" (and $vehicle (date_only $vehicle.InsuranceExpiry)) "Required" "true")}}
             {{template "field.html" (dict "Label" "Fitness Expiry" "Name" "fitness_expiry" "Type" "date" "Value" (and $vehicle (date_only $vehicle.FitnessExpiry)) "Required" "true")}}
             {{template "field.html" (dict "Label" "Permit Expiry" "Name" "permit_expiry" "Type" "date" "Value" (and $vehicle (date_only $vehicle.PermitExpiry)) "Required" "true")}}
-            {{template "field.html" (dict "Label" "PUC Expiry" "Name" "puc_expiry" "Type" "date" "Value" (and $vehicle $vehicle.PUCExpiry (date_only $vehicle.PUCExpiry)))}}
         </div>
 
         <div>

@@ -25,7 +25,7 @@
     <!-- Current Score -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="bg-surface-container-lowest rounded-lg shadow-sm p-6 text-center md:col-span-1">
-            <div class="text-5xl font-bold tabular-nums {{if ge .Detail.Score 85}}text-emerald-600{{else if ge .Detail.Score 70}}text-blue-600{{else}}text-rose-600{{end}}">{{printf "%.0f" .Detail.Score}}</div>
+            <div class="text-5xl font-bold tabular-nums {{if ge .Detail.Score 85.0}}text-emerald-600{{else if ge .Detail.Score 70.0}}text-blue-600{{else}}text-rose-600{{end}}">{{printf "%.0f" .Detail.Score}}</div>
             <div class="text-xs uppercase tracking-wide text-text-muted mt-2">Current Score</div>
             <div class="text-xs text-secondary mt-1">{{.Detail.EventCount}} behaviour event(s) in the 30-day window</div>
         </div>
@@ -41,7 +41,7 @@
                     <div class="flex items-center gap-3 text-sm">
                         <span class="w-20 text-text-muted tabular-nums text-xs">{{datetime .PeriodEnd}}</span>
                         <div class="flex-1 h-2 bg-surface-container-low rounded-full overflow-hidden">
-                            <div class="h-full rounded-full {{if ge .Score 85}}bg-emerald-500{{else if ge .Score 70}}bg-blue-500{{else}}bg-rose-500{{end}}" style="width: {{printf "%.0f" .Score}}%"></div>
+                            <div class="h-full rounded-full {{if ge .Score 85.0}}bg-emerald-500{{else if ge .Score 70.0}}bg-blue-500{{else}}bg-rose-500{{end}}" style="width: {{printf "%.0f" .Score}}%"></div>
                         </div>
                         <span class="w-10 text-right font-semibold tabular-nums">{{printf "%.0f" .Score}}</span>
                         <span class="w-6 text-center text-xs font-bold text-text-muted">{{.Tier}}</span>

@@ -1,5 +1,4 @@
-{{template "base" .}}
-{{define "content"}}
+{{define "fuel_kmpl_report.html"}}
 <div class="px-6 py-8 max-w-7xl mx-auto space-y-6">
   <div class="flex items-center justify-between">
     <div>
@@ -8,14 +7,14 @@
     </div>
     <form method="get" class="flex items-center gap-2">
       <label class="text-sm text-secondary">From</label>
-      <input type="date" name="from" value="{{.Extra.From}}" class="input input-sm">
+      <input type="date" name="from" value="{{.From}}" class="input input-sm">
       <label class="text-sm text-secondary">To</label>
-      <input type="date" name="to"   value="{{.Extra.To}}"   class="input input-sm">
+      <input type="date" name="to"   value="{{.To}}"   class="input input-sm">
       <button type="submit" class="btn btn-sm btn-primary">Filter</button>
     </form>
   </div>
 
-  {{if .Extra.KmplRows}}
+  {{if .KmplRows}}
   <div class="card">
     <table class="table w-full text-sm">
       <thead>
@@ -30,7 +29,7 @@
         </tr>
       </thead>
       <tbody>
-        {{range .Extra.KmplRows}}
+        {{range .KmplRows}}
         <tr class="hover:bg-surface-container-low">
           <td class="font-medium">{{.RegistrationNo}}</td>
           <td class="text-right tabular-nums">{{printf "%.1f" .OdometerDeltaKm}}</td>

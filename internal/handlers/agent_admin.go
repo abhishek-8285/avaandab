@@ -6,6 +6,8 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"transport-app/internal/agent"
+	"transport-app/internal/domain"
+	"transport-app/internal/middleware"
 )
 
 // AgentAdminHandlers renders the AI agent approval queue and learning stats.
@@ -20,9 +22,9 @@ func NewAgentAdminHandlers(app *App, approval *agent.ApprovalService) *AgentAdmi
 }
 
 func (h *AgentAdminHandlers) Routes(r chi.Router) {
-	r.Get("/", h.Queue)
-	r.Post("/{id}/approve", h.Approve)
-	r.Post("/{id}/reject", h.Reject)
+	r.With(middleware.RoleRequired(domain.DefaultRoleID(domain.RoleAdmin))).Get("/", h.Queue)
+	r.With(middleware.RoleRequired(domain.DefaultRoleID(domain.RoleAdmin))).Post("/{id}/approve", h.Approve)
+	r.With(middleware.RoleRequired(domain.DefaultRoleID(domain.RoleAdmin))).Post("/{id}/reject", h.Reject)
 }
 
 func (h *AgentAdminHandlers) Queue(w http.ResponseWriter, r *http.Request) {

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -89,7 +90,11 @@ func (h *PaymentHandlers) New(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invoice not found", http.StatusNotFound)
 		return
 	}
-	balance, _ := h.Services.Invoices.GetBalance(r.Context(), domain.InvoiceID(invoiceID))
+	balance, errBal := h.Services.Invoices.GetBalance(r.Context(), domain.InvoiceID(invoiceID))
+	if errBal != nil {
+		slog.Error("Failed to calculate balance for payment form", "invoice_id", invoiceID, "error", errBal)
+		balance = 0
+	}
 
 	h.renderForm(w, r, "payment_edit.html", PageData{
 		Title:         "Record Payment",
@@ -145,7 +150,11 @@ func (h *PaymentHandlers) Create(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		session, _ := h.getUserFromContext(r)
 		invoice, _ := h.Services.Invoices.GetInvoice(r.Context(), domain.InvoiceID(invoiceID))
-		balance, _ := h.Services.Invoices.GetBalance(r.Context(), domain.InvoiceID(invoiceID))
+		balance, errBal := h.Services.Invoices.GetBalance(r.Context(), domain.InvoiceID(invoiceID))
+		if errBal != nil {
+			slog.Error("Failed to calculate balance for payment error form", "invoice_id", invoiceID, "error", errBal)
+			balance = 0
+		}
 
 		h.renderForm(w, r, "payment_edit.html", PageData{
 			Title:         "Record Payment",
@@ -181,7 +190,8 @@ func (h *PaymentHandlers) View(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Payment not found", http.StatusNotFound)
 		return
 	}
-	h.renderPage(w, r, "payment_view.html", PageData{Title: "View Payment", Extra: map[string]interface{}{"Payment": payment}})
+	session, _ := h.getUserFromContext(r)
+	h.renderPage(w, r, "payment_view.html", PageData{Title: "View Payment", User: session, Extra: map[string]interface{}{"Payment": payment}})
 }
 
 func (h *PaymentHandlers) Delete(w http.ResponseWriter, r *http.Request) {

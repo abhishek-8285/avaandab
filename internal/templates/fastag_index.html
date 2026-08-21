@@ -10,15 +10,15 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="bg-surface-container-low rounded-lg p-5 border border-border-subtle shadow-sm">
             <span class="text-xs font-medium text-text-muted uppercase">Active Wallets</span>
-            <div class="text-2xl font-bold text-on-surface mt-1">{{.Extra.TotalTags}}</div>
+            <div class="text-2xl font-bold text-on-surface mt-1">{{.TotalTags}}</div>
         </div>
         <div class="bg-surface-container-low rounded-lg p-5 border border-border-subtle shadow-sm">
             <span class="text-xs font-medium text-text-muted uppercase">Total Wallet Balance</span>
-            <div class="text-2xl font-bold text-primary mt-1">₹{{printf "%.2f" .Extra.TotalBalance}}</div>
+            <div class="text-2xl font-bold text-primary mt-1">₹{{printf "%.2f" .TotalBalance}}</div>
         </div>
         <div class="bg-surface-container-low rounded-lg p-5 border border-border-subtle shadow-sm">
             <span class="text-xs font-medium text-text-muted uppercase">Pending Reconciliation</span>
-            <div class="text-2xl font-bold text-status-warn mt-1">{{.Extra.PendingReconcile}}</div>
+            <div class="text-2xl font-bold text-status-warn mt-1">{{.PendingReconcile}}</div>
         </div>
     </div>
 
@@ -40,7 +40,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-border-subtle">
-                        {{range .Extra.Tags}}
+                        {{range .Tags}}
                         <tr class="hover:bg-surface-container-highest/50">
                             <td class="px-4 py-3 font-medium">{{.VehicleNumber}}</td>
                             <td class="px-4 py-3 font-mono text-xs">{{.TagID}}</td>
@@ -101,6 +101,6 @@
     <!-- Recent Transactions -->
     <div class="bg-surface-container-low rounded-lg border border-border-subtle p-5 shadow-sm">
         <h2 class="text-lg font-semibold text-on-surface mb-4">Recent Toll Deductions</h2>
-        {{template "fastag_transactions.html" .Extra.Transactions}}
+        {{template "fastag_transactions.html" .Transactions}}
     </div>
 </div>

@@ -122,7 +122,7 @@ func (h *ShareHandlers) CreateShare(w http.ResponseWriter, r *http.Request) {
 	var tripTenantID string
 	err := h.db.QueryRowContext(r.Context(),
 		`SELECT tenant_id FROM trips WHERE id = ?`, tripID).Scan(&tripTenantID)
-	if err != nil || (tripTenantID != tenantID && tripTenantID != "1" && tenantID != "1") {
+	if err != nil || tripTenantID != tenantID {
 		http.Error(w, `{"error":"trip not found"}`, http.StatusNotFound)
 		return
 	}
@@ -676,7 +676,7 @@ func (h *ShareHandlers) ListShares(w http.ResponseWriter, r *http.Request) {
 		FROM share_links s
 		JOIN trips t ON t.id = s.trip_id
 		LEFT JOIN users u ON u.id = s.created_by
-		WHERE t.tenant_id = ? OR t.tenant_id = '1'
+		WHERE t.tenant_id = ?
 		ORDER BY s.created_at DESC`, tenantID)
 	if err != nil {
 		http.Error(w, "failed to load share links", http.StatusInternalServerError)
@@ -689,13 +689,18 @@ func (h *ShareHandlers) ListShares(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var item ShareLinkItem
 		var lastViewed, revoked sql.NullTime
+		var hasPIN int
+		var createdAtVal, expiresAtVal interface{}
 		if err := rows.Scan(
 			&item.ID, &item.TripID, &item.TripNumber, &item.CreatedBy, &item.CreatorName,
-			&item.CreatedAt, &item.ExpiresAt, &lastViewed, &item.ViewCount,
-			&item.HasPIN, &revoked,
+			&createdAtVal, &expiresAtVal, &lastViewed, &item.ViewCount,
+			&hasPIN, &revoked,
 		); err != nil {
 			continue
 		}
+		item.HasPIN = (hasPIN != 0)
+		item.CreatedAt = parseAnyTime(createdAtVal)
+		item.ExpiresAt = parseAnyTime(expiresAtVal)
 		if lastViewed.Valid {
 			item.LastViewedAt = &lastViewed.Time
 		}
@@ -730,8 +735,8 @@ func (h *ShareHandlers) RevokeShare(w http.ResponseWriter, r *http.Request) {
 	_, err := h.db.ExecContext(r.Context(), `
 		UPDATE share_links
 		SET revoked_at = CURRENT_TIMESTAMP
-		WHERE id = ? AND (trip_id IN (SELECT id FROM trips WHERE tenant_id = ?) OR ? = '1')`,
-		id, tenantID, tenantID)
+		WHERE id = ? AND trip_id IN (SELECT id FROM trips WHERE tenant_id = ?)`,
+		id, tenantID)
 	if err != nil {
 		http.Error(w, `{"error":"failed to revoke share link"}`, http.StatusInternalServerError)
 		return
@@ -761,4 +766,35 @@ func (h *ShareHandlers) renderStandalone(w http.ResponseWriter, name string, dat
 	if err := tmpl.Execute(w, data); err != nil {
 		http.Error(w, fmt.Sprintf("template error: %v", err), http.StatusInternalServerError)
 	}
+}
+
+func parseAnyTime(v interface{}) time.Time {
+	if v == nil {
+		return time.Time{}
+	}
+	switch val := v.(type) {
+	case time.Time:
+		return val
+	case string:
+		return parseTimeStr(val)
+	case []byte:
+		return parseTimeStr(string(val))
+	}
+	return time.Time{}
+}
+
+func parseTimeStr(s string) time.Time {
+	formats := []string{
+		"2006-01-02 15:04:05",
+		time.RFC3339,
+		"2006-01-02T15:04:05Z07:00",
+		"2006-01-02 15:04:05.999999999-07:00",
+		"2006-01-02",
+	}
+	for _, f := range formats {
+		if t, err := time.Parse(f, s); err == nil {
+			return t
+		}
+	}
+	return time.Time{}
 }

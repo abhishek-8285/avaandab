@@ -13,7 +13,7 @@
             <div class="space-y-4 bg-surface-container-lowest border border-border-subtle rounded p-6 shadow-sm">
                 <div>
                     <label for="name" class="block text-xs font-medium text-secondary mb-1">Name</label>
-                    <input id="name" name="name" required value="{{.Zone.Name}}"
+                    <input id="name" name="name" required value="{{if .Zone}}{{.Zone.Name}}{{end}}"
                         class="w-full bg-surface-container-low border border-border-subtle rounded-md px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                         placeholder="e.g. Mumbai Depot">
                 </div>
@@ -22,17 +22,17 @@
                     <label for="kind" class="block text-xs font-medium text-secondary mb-1">Kind</label>
                     <select id="kind" name="kind" required
                         class="w-full bg-surface-container-low border border-border-subtle rounded-md px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary">
-                        <option value="pickup" {{if eq .Zone.Kind "pickup"}}selected{{end}}>Pickup — auto-reach on entry</option>
-                        <option value="drop" {{if eq .Zone.Kind "drop"}}selected{{end}}>Drop — auto-start on entry</option>
-                        <option value="depot" {{if eq .Zone.Kind "depot"}}selected{{end}}>Depot — dwell/detention</option>
-                        <option value="restricted" {{if eq .Zone.Kind "restricted"}}selected{{end}}>Restricted</option>
-                        <option value="no_entry" {{if eq .Zone.Kind "no_entry"}}selected{{end}}>No-entry</option>
+                        <option value="pickup" {{if and .Zone (eq .Zone.Kind "pickup")}}selected{{end}}>Pickup — auto-reach on entry</option>
+                        <option value="drop" {{if and .Zone (eq .Zone.Kind "drop")}}selected{{end}}>Drop — auto-start on entry</option>
+                        <option value="depot" {{if and .Zone (eq .Zone.Kind "depot")}}selected{{end}}>Depot — dwell/detention</option>
+                        <option value="restricted" {{if and .Zone (eq .Zone.Kind "restricted")}}selected{{end}}>Restricted</option>
+                        <option value="no_entry" {{if and .Zone (eq .Zone.Kind "no_entry")}}selected{{end}}>No-entry</option>
                     </select>
                 </div>
 
                 <div>
                     <label for="route_name" class="block text-xs font-medium text-secondary mb-1">Route (optional)</label>
-                    <input id="route_name" name="route_name" value="{{nullString .Zone.RouteName}}"
+                    <input id="route_name" name="route_name" value="{{if .Zone}}{{.Zone.RouteName}}{{end}}"
                         class="w-full bg-surface-container-low border border-border-subtle rounded-md px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                         placeholder="Only applies to trips on this route (name match, case-insensitive)">
                 </div>

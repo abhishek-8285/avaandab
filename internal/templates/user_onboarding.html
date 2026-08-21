@@ -2,7 +2,7 @@
 <div class="max-w-2xl mx-auto pt-6 pb-12">
     <!-- Top Bar with Back Arrow -->
     <div class="mb-6">
-        <a href="/login" class="w-10 h-10 rounded-full border border-border-subtle bg-surface-container-lowest hover:bg-surface-container-low flex items-center justify-center text-on-surface transition-colors inline-flex">
+        <a href="/dashboard" class="w-10 h-10 rounded-full border border-border-subtle bg-surface-container-lowest hover:bg-surface-container-low flex items-center justify-center text-on-surface transition-colors inline-flex" aria-label="Go to Dashboard">
             <span class="material-symbols-outlined text-xl">arrow_back</span>
         </a>
     </div>
@@ -12,7 +12,7 @@
         <!-- Welcome Header -->
         <div class="text-center mb-8">
             <h1 class="font-headline-lg text-2xl sm:text-3xl font-extrabold text-on-surface">
-                Welcome!, {{if .UserDetail}}{{.UserDetail.Name}}{{else if .User}}{{.User.Name}}{{else}}Esther{{end}}
+                Welcome, {{if .UserDetail}}{{.UserDetail.Name}}{{else if .User}}{{.User.Name}}{{else}}there{{end}}!
             </h1>
             <p class="text-sm text-text-muted mt-1">Please complete your profile details to unlock full access.</p>
         </div>
@@ -69,7 +69,7 @@
 
         <!-- Continue Button -->
         <div>
-            <a href="/dashboard" class="w-full py-3.5 px-6 bg-status-warning hover:bg-status-warning/90 text-on-primary font-bold text-base rounded-full shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 text-decoration-none">
+            <a href="/dashboard" class="w-full py-3.5 px-6 bg-primary hover:bg-primary/90 text-on-primary font-bold text-base rounded-full shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 text-decoration-none">
                 Continue
             </a>
         </div>

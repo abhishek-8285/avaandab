@@ -134,7 +134,8 @@ func (h *BookingHandlers) Create(w http.ResponseWriter, r *http.Request) {
 		Notes:       r.PostFormValue("notes"),
 	})
 	if err != nil {
-		h.renderForm(w, r, "booking_edit.html", PageData{Title: "New Booking", FlashError: err.Error()})
+		session, _ := h.getUserFromContext(r)
+		h.renderForm(w, r, "booking_edit.html", PageData{Title: "New Booking", User: session, FlashError: err.Error()})
 		return
 	}
 
@@ -220,8 +221,10 @@ func (h *BookingHandlers) Update(w http.ResponseWriter, r *http.Request) {
 		})
 		customers, _, _ := h.Services.Customers.ListCustomers(r.Context(), "", 1000, 0)
 		routes, _, _ := h.Services.Routes.ListRoutes(r.Context(), "", 1000, 0)
+		session, _ := h.getUserFromContext(r)
 		h.renderForm(w, r, "booking_edit.html", PageData{
 			Title:      "Edit Booking",
+			User:       session,
 			FlashError: err.Error(),
 			Extra:      map[string]interface{}{"Booking": booking, "Customers": customers, "Routes": routes},
 		})

@@ -1,8 +1,5 @@
 <div class="flex-1 flex items-center justify-center p-4 min-h-[calc(100vh-2rem)]">
-    <main class="w-full max-w-[480px] bg-surface-container-lowest border border-border-subtle rounded-xl shadow-xs flex flex-col p-6 sm:p-8 gap-6 relative overflow-hidden my-8">
-        <!-- Decorative Header Line -->
-        <div class="absolute top-0 left-0 w-full h-[4px] bg-primary"></div>
-
+    <main class="w-full max-w-md bg-surface-container-lowest border border-border-subtle rounded-xl shadow-xs flex flex-col p-6 sm:p-8 gap-6 relative overflow-hidden my-8">
         <!-- Top Action Bar -->
         <div class="flex items-center justify-between border-b border-border-subtle pb-3">
             <a href="/" class="inline-flex items-center gap-1.5 text-xs font-bold text-text-muted hover:text-primary transition-colors">
@@ -31,11 +28,11 @@
             <div class="flex flex-col sm:flex-row gap-4">
                 <div class="flex flex-col gap-1 flex-1">
                     <label class="text-xs font-bold text-secondary uppercase tracking-wider" for="name">Full Name *</label>
-                    <input class="h-[40px] px-3 py-2 border border-border-subtle bg-surface-container-low rounded-md text-sm text-on-surface focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" id="name" name="name" value="{{.Name}}" placeholder="Jane Doe" required type="text"/>
+                    <input class="h-[40px] px-3 py-2 border border-border-subtle bg-surface-container-low rounded-md text-sm text-on-surface focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" id="name" name="name" value="{{.Name}}" placeholder="Jane Doe" required type="text" autocomplete="name"/>
                 </div>
                 <div class="flex flex-col gap-1 flex-1">
                     <label class="text-xs font-bold text-secondary uppercase tracking-wider" for="phone">Phone Number</label>
-                    <input class="h-[40px] px-3 py-2 border border-border-subtle bg-surface-container-low rounded-md text-sm text-on-surface focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" id="phone" name="phone" value="{{.Phone}}" placeholder="+91 8285336507" type="tel"/>
+                    <input class="h-[40px] px-3 py-2 border border-border-subtle bg-surface-container-low rounded-md text-sm text-on-surface focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" id="phone" name="phone" value="{{.Phone}}" placeholder="+91 8285336507" type="tel" autocomplete="tel"/>
                 </div>
             </div>
 
@@ -43,20 +40,31 @@
                 <label class="text-xs font-bold text-secondary uppercase tracking-wider" for="email">Work Email *</label>
                 <div class="relative">
                     <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-lg">mail</span>
-                    <input class="w-full h-[40px] pl-10 pr-3 py-2 border border-border-subtle bg-surface-container-low rounded-md text-sm text-on-surface focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" id="email" name="email" value="{{.Email}}" placeholder="jane.doe@company.com" required type="email"/>
+                    <input class="w-full h-[40px] pl-10 pr-3 py-2 border border-border-subtle bg-surface-container-low rounded-md text-sm text-on-surface focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" id="email" name="email" value="{{.Email}}" placeholder="jane.doe@company.com" required type="email" autocomplete="email"/>
                 </div>
             </div>
 
             <div class="flex flex-col sm:flex-row gap-4">
                 <div class="flex flex-col gap-1 flex-1">
                     <label class="text-xs font-bold text-secondary uppercase tracking-wider" for="password">Password *</label>
-                    <input class="h-[40px] px-3 py-2 border border-border-subtle bg-surface-container-low rounded-md text-sm text-on-surface focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" id="password" name="password" placeholder="••••••••" required type="password"/>
+                    <div class="relative">
+                        <input class="w-full h-[40px] px-3 pr-10 py-2 border border-border-subtle bg-surface-container-low rounded-md text-sm text-on-surface focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" id="password" name="password" placeholder="••••••••" required type="password" minlength="8" autocomplete="new-password"/>
+                        <button type="button" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-on-surface focus:outline-none flex items-center justify-center p-1" onclick="togglePassword('password', this)" aria-label="Toggle password visibility">
+                            <span class="material-symbols-outlined text-lg">visibility</span>
+                        </button>
+                    </div>
                 </div>
                 <div class="flex flex-col gap-1 flex-1">
                     <label class="text-xs font-bold text-secondary uppercase tracking-wider" for="confirm_password">Confirm Password *</label>
-                    <input class="h-[40px] px-3 py-2 border border-border-subtle bg-surface-container-low rounded-md text-sm text-on-surface focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" id="confirm_password" name="confirm_password" placeholder="••••••••" required type="password"/>
+                    <div class="relative">
+                        <input class="w-full h-[40px] px-3 pr-10 py-2 border border-border-subtle bg-surface-container-low rounded-md text-sm text-on-surface focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" id="confirm_password" name="confirm_password" placeholder="••••••••" required type="password" minlength="8" autocomplete="new-password"/>
+                        <button type="button" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-on-surface focus:outline-none flex items-center justify-center p-1" onclick="togglePassword('confirm_password', this)" aria-label="Toggle password visibility">
+                            <span class="material-symbols-outlined text-lg">visibility</span>
+                        </button>
+                    </div>
                 </div>
             </div>
+            <p class="text-xs text-text-muted">Must be at least 8 characters with letters and numbers</p>
 
             <div class="pt-2">
                 {{template "btn.html" (dict "Label" "Register Operator Account" "Type" "submit" "Icon" "how_to_reg" "Class" "w-full")}}

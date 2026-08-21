@@ -8,7 +8,7 @@
         </a>
         <div class="text-xs text-text-muted">{{$r.DriverCode}}</div>
     </td>
-    <td class="px-4 py-3 text-right font-bold tabular-nums {{if ge $r.Score 85}}text-emerald-600{{else if ge $r.Score 70}}text-blue-600{{else}}text-rose-600{{end}}">
+    <td class="px-4 py-3 text-right font-bold tabular-nums {{if ge $r.Score 85.0}}text-emerald-600{{else if ge $r.Score 70.0}}text-blue-600{{else}}text-rose-600{{end}}">
         {{printf "%.0f" $r.Score}}
     </td>
     <td class="px-4 py-3 text-center">

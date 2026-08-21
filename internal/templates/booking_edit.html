@@ -67,7 +67,7 @@
         <div>
             <label class="block text-sm font-medium text-on-surface-variant">Notes</label>
             <textarea name="notes" rows="2"
-                class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">{{if $b}}{{nullString $b.Notes}}{{end}}</textarea>
+                class="mt-1 block w-full text-base border border-border-subtle rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">{{if $b}}{{$b.Notes}}{{end}}</textarea>
         </div>
 
         <div class="flex justify-end space-x-3 pt-4">

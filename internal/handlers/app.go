@@ -549,10 +549,15 @@ func (a *App) renderPage(w http.ResponseWriter, r *http.Request, name string, da
 		PWAEnabled    bool
 		Extra         map[string]interface{}
 	}{
-		Title:         data.Title,
-		Content:       template.HTML(buf.String()),
-		User:          data.User,
-		Query:         fmt.Sprintf("%v", templateData["Query"]),
+		Title:   data.Title,
+		Content: template.HTML(buf.String()),
+		User:    data.User,
+		Query: func() string {
+			if q, ok := templateData["Query"].(string); ok {
+				return q
+			}
+			return ""
+		}(),
 		Notifications: notifications,
 		UnreadCount:   unreadCount,
 		HasUnread:     unreadCount > 0,
@@ -839,17 +844,31 @@ func (a *App) renderError(w http.ResponseWriter, statusCode int, title string, m
 		return
 	}
 
+	pwaEnabled := false
+	if a.Config != nil {
+		pwaEnabled = a.Config.PWAEnabled
+	}
+
 	if err := layout.Execute(w, struct {
-		Title        string
-		Content      template.HTML
-		User         *auth.SessionData
-		FlashError   string
-		FlashSuccess string
-		PWAEnabled   bool
+		Title         string
+		Content       template.HTML
+		User          *auth.SessionData
+		Query         string
+		Notifications interface{}
+		UnreadCount   int
+		HasUnread     bool
+		FlashError    string
+		FlashSuccess  string
+		Version       string
+		PWAEnabled    bool
+		Extra         map[string]interface{}
 	}{
-		Title:   title,
-		Content: template.HTML(buf.String()),
-		User:    user,
+		Title:      title,
+		Content:    template.HTML(buf.String()),
+		User:       user,
+		Version:    AppVersion,
+		PWAEnabled: pwaEnabled,
+		Extra:      map[string]interface{}{},
 	}); err != nil {
 		slog.Error("error layout execution failed", "statusCode", statusCode, "title", title, "error", err)
 		_, _ = w.Write([]byte(fallback))

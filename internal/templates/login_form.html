@@ -19,6 +19,9 @@
             <p class="text-xs text-text-muted font-medium">Logistics Management Operator Portal</p>
         </header>
 
+        {{if .FlashSuccess}}
+        {{template "alert.html" (dict "Tone" "success" "Message" .FlashSuccess)}}
+        {{end}}
         {{if .Error}}
         {{template "alert.html" (dict "Tone" "error" "Message" .Error)}}
         {{end}}
@@ -30,7 +33,7 @@
                 <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1" for="email">Email Address</label>
                 <div class="relative">
                     <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-lg">mail</span>
-                    <input class="w-full bg-surface-container-low border border-border-subtle rounded-md pl-10 pr-3 py-2.5 text-sm text-on-surface focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none" id="email" name="email" value="{{.Email}}" placeholder="dispatcher@fleet.com" required type="email"/>
+                    <input class="w-full bg-surface-container-low border border-border-subtle rounded-md pl-10 pr-3 py-2.5 text-sm text-on-surface focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none" id="email" name="email" value="{{.Email}}" placeholder="dispatcher@fleet.com" required type="email" autocomplete="email"/>
                 </div>
             </div>
 
@@ -41,7 +44,10 @@
                 </div>
                 <div class="relative">
                     <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-lg">lock</span>
-                    <input class="w-full bg-surface-container-low border border-border-subtle rounded-md pl-10 pr-3 py-2.5 text-sm text-on-surface focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none" id="password" name="password" placeholder="••••••••" required type="password"/>
+                    <input class="w-full bg-surface-container-low border border-border-subtle rounded-md pl-10 pr-10 py-2.5 text-sm text-on-surface focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none" id="password" name="password" placeholder="••••••••" required type="password" autocomplete="current-password"/>
+                    <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-on-surface focus:outline-none flex items-center justify-center p-1" onclick="togglePassword('password', this)" aria-label="Toggle password visibility">
+                        <span class="material-symbols-outlined text-lg">visibility</span>
+                    </button>
                 </div>
             </div>
 

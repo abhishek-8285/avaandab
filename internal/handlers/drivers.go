@@ -133,7 +133,8 @@ func (h *DriverHandlers) Create(w http.ResponseWriter, r *http.Request) {
 		Notes:                 strPtr(notes),
 	})
 	if err != nil {
-		h.renderForm(w, r, "driver_edit.html", PageData{Title: "New Driver", FlashError: err.Error()})
+		session, _ := h.getUserFromContext(r)
+		h.renderForm(w, r, "driver_edit.html", PageData{Title: "New Driver", User: session, FlashError: err.Error()})
 		return
 	}
 
@@ -173,7 +174,7 @@ func (h *DriverHandlers) Edit(w http.ResponseWriter, r *http.Request) {
 		h.renderError(w, http.StatusNotFound, "Driver Not Found", fmt.Sprintf("No driver found with ID %q.", id), session)
 		return
 	}
-	h.renderForm(w, r, "driver_edit.html", PageData{Title: "Edit Driver", Extra: map[string]interface{}{"Driver": driver}})
+	h.renderForm(w, r, "driver_edit.html", PageData{Title: "Edit Driver", User: session, Extra: map[string]interface{}{"Driver": driver}})
 }
 
 func (h *DriverHandlers) Update(w http.ResponseWriter, r *http.Request) {

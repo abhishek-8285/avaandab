@@ -156,5 +156,9 @@ func (s *InvoiceService) GetBalance(ctx context.Context, invoiceID domain.Invoic
 		return 0, err
 	}
 
-	return invoice.Total - paid, nil
+	balance := invoice.Total - paid
+	if balance < 0 {
+		balance = 0
+	}
+	return balance, nil
 }

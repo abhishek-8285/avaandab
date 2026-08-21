@@ -76,7 +76,8 @@ func (h *CustomerHandlers) Create(w http.ResponseWriter, r *http.Request) {
 		r.PostFormValue("notes"),
 	)
 	if err != nil {
-		h.renderForm(w, r, "customer_edit.html", PageData{Title: "New Customer", FlashError: err.Error()})
+		session, _ := h.getUserFromContext(r)
+		h.renderForm(w, r, "customer_edit.html", PageData{Title: "New Customer", User: session, FlashError: err.Error()})
 		return
 	}
 
@@ -95,7 +96,8 @@ func (h *CustomerHandlers) View(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Customer not found", http.StatusNotFound)
 		return
 	}
-	h.renderPage(w, r, "customer_view.html", PageData{Title: "View Customer", Extra: map[string]interface{}{"Customer": customer}})
+	session, _ := h.getUserFromContext(r)
+	h.renderPage(w, r, "customer_view.html", PageData{Title: "View Customer", User: session, Extra: map[string]interface{}{"Customer": customer}})
 }
 
 func (h *CustomerHandlers) Edit(w http.ResponseWriter, r *http.Request) {
@@ -105,7 +107,8 @@ func (h *CustomerHandlers) Edit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Customer not found", http.StatusNotFound)
 		return
 	}
-	h.renderForm(w, r, "customer_edit.html", PageData{Title: "Edit Customer", Extra: map[string]interface{}{"Customer": customer}})
+	session, _ := h.getUserFromContext(r)
+	h.renderForm(w, r, "customer_edit.html", PageData{Title: "Edit Customer", User: session, Extra: map[string]interface{}{"Customer": customer}})
 }
 
 func (h *CustomerHandlers) Update(w http.ResponseWriter, r *http.Request) {

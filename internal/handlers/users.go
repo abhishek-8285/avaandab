@@ -101,7 +101,8 @@ func (h *UserHandlers) Create(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		roles, _ := h.Services.Users.ListRoles(r.Context())
-		h.renderForm(w, r, "user_edit.html", PageData{Title: "New User", FlashError: err.Error(), Roles: roles})
+		session, _ := h.getUserFromContext(r)
+		h.renderForm(w, r, "user_edit.html", PageData{Title: "New User", User: session, FlashError: err.Error(), Roles: roles})
 		return
 	}
 

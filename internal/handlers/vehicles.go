@@ -136,7 +136,8 @@ func (h *VehicleHandlers) Create(w http.ResponseWriter, r *http.Request) {
 		CurrentMileage:     currentMileage,
 	})
 	if err != nil {
-		h.renderForm(w, r, "vehicle_edit.html", PageData{Title: "New Vehicle", FlashError: err.Error()})
+		session, _ := h.getUserFromContext(r)
+		h.renderForm(w, r, "vehicle_edit.html", PageData{Title: "New Vehicle", User: session, FlashError: err.Error()})
 		return
 	}
 
@@ -177,7 +178,8 @@ func (h *VehicleHandlers) View(w http.ResponseWriter, r *http.Request) {
 		"IsMaintenanceOverridden":   maintOvBy.Valid && maintOvBy.String != "",
 	}
 
-	h.renderPage(w, r, "vehicle_view.html", PageData{Title: "View Vehicle", Extra: extra})
+	session, _ := h.getUserFromContext(r)
+	h.renderPage(w, r, "vehicle_view.html", PageData{Title: "View Vehicle", User: session, Extra: extra})
 }
 
 func (h *VehicleHandlers) Edit(w http.ResponseWriter, r *http.Request) {
@@ -207,7 +209,8 @@ func (h *VehicleHandlers) Edit(w http.ResponseWriter, r *http.Request) {
 		"IsMaintenanceOverridden":   maintOvBy.Valid && maintOvBy.String != "",
 	}
 
-	h.renderForm(w, r, "vehicle_edit.html", PageData{Title: "Edit Vehicle", Extra: extra})
+	session, _ := h.getUserFromContext(r)
+	h.renderForm(w, r, "vehicle_edit.html", PageData{Title: "Edit Vehicle", User: session, Extra: extra})
 }
 
 func (h *VehicleHandlers) Update(w http.ResponseWriter, r *http.Request) {

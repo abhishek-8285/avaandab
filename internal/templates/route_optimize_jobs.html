@@ -1,0 +1,15 @@
+{{if .Jobs}}
+<div class="space-y-2">
+  {{range .Jobs}}
+  <div class="flex items-center justify-between border border-border-subtle rounded px-3 py-2 bg-surface-container-low">
+    <div>
+      <div class="font-mono text-xs">{{slice .ID 0 8}}…</div>
+      <div class="text-[11px] text-text-muted">{{.Provider}} · {{.Status}} · {{.CreatedAt}}</div>
+    </div>
+    <a href="/routes/optimize/jobs/{{.ID}}" class="text-xs text-primary hover:underline">View</a>
+  </div>
+  {{end}}
+</div>
+{{else}}
+<div class="py-6 text-center text-text-muted text-xs">No jobs yet — run an optimization.</div>
+{{end}}
