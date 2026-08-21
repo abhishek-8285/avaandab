@@ -44,7 +44,19 @@ Single source of truth for `db/migrations/` version numbers. Repo head is
 | 00062 | user theme preferences (users.theme_preference) | 12 |
 | 00063 | RAG multi-tenant vectors + provider registry | 10 |
 | 00064 | org_admin role & RBAC permissions (tenant-scoped organization admin) | 10 |
-| 00065+ | future specs (predictive ETA, AIS-140/VLT, ERP) | reserved |
+| 00065 | Tenant backfill (normalize NULL/'' → '1' for 15 tables, idempotent) | 10 |
+| 00066 | Route optimization jobs + constraints (Spec 18) | 18 |
+| 00067 | ETA history + monthly aggregation (Spec 18) | 18 |
+| 00068 | Backhaul matching (no DB — uses existing routes/trips) | 19 |
+| 00069 | STO portal + load board listings (Spec 19) | 19 |
+| 00070 | CX: customer tracking timeline (no DB — uses 00044 share) | 20 |
+| 00071 | Fuel cards + accounting sync extension (Spec 20) | 20 |
+| 00072 | ESG snapshots (Spec 20) | 20 |
+| 00073 | Churn: compliance shipper portal (customer_users, dispatch_overrides, trip_feedback, POD columns) | 21 |
+| 00074 | Churn: driver offline sync log | 21 |
+| 00075 | Churn: vernacular i18n keys | 21 |
+| 00076 | Churn: expense idempotency (idempotency_key unique partial index) | 21.1 |
+| 00077+ | future specs (AIS-140/VLT, ERP) | reserved |
 
 ## Implementation rule
 Pick the number from this table for your feature and update the spec's §3 to
