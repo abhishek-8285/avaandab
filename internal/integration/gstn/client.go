@@ -68,17 +68,6 @@ type stubClient struct {
 	einvoice *MockEInvoiceClient
 }
 
-// NewClient returns a GSTN/GSP client based on configuration.
-func NewClient(cfg Config) Client {
-	if cfg.Endpoint == "" {
-		cfg.Endpoint = "https://api.gstn.org"
-	}
-	return &stubClient{
-		cfg:      cfg,
-		einvoice: NewMockEInvoiceClient(cfg),
-	}
-}
-
 func (c *stubClient) ValidateGSTIN(ctx context.Context, gstin string) (GSTINDetails, error) {
 	slog.Default().Info("[gstn] ValidateGSTIN called", "endpoint", c.cfg.Endpoint, "enabled", c.cfg.Enabled, "gstin", gstin)
 	if !c.cfg.Enabled {

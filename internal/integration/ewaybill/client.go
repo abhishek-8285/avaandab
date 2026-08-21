@@ -14,6 +14,7 @@ type Config struct {
 	Endpoint string
 	APIKey   string
 	Enabled  bool
+	UseMock  bool
 }
 
 // GenerateRequest carries the inputs needed to create an E-way bill.
@@ -72,14 +73,6 @@ type Client interface {
 
 type stubClient struct {
 	cfg Config
-}
-
-// NewClient returns a stub E-way bill client that logs calls and returns fake data.
-func NewClient(cfg Config) Client {
-	if cfg.Endpoint == "" {
-		cfg.Endpoint = "https://ewaybill.nic.in/api"
-	}
-	return &stubClient{cfg: cfg}
 }
 
 func (c *stubClient) Generate(ctx context.Context, req GenerateRequest) (EWayBill, error) {

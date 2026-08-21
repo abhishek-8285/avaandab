@@ -73,18 +73,6 @@ type clientImpl struct {
 	db  *sql.DB
 }
 
-// NewClient returns a FASTag client that connects to DB when available or falls back to stub.
-func NewClient(cfg Config, dbConn ...*sql.DB) Client {
-	if cfg.Endpoint == "" {
-		cfg.Endpoint = "https://api.fastag.org"
-	}
-	var db *sql.DB
-	if len(dbConn) > 0 {
-		db = dbConn[0]
-	}
-	return &clientImpl{cfg: cfg, db: db}
-}
-
 func (c *clientImpl) GetBalance(ctx context.Context, vehicleNumber, tagID string) (Balance, error) {
 	slog.Default().Info("[fastag] GetBalance called", "endpoint", c.cfg.Endpoint, "enabled", c.cfg.Enabled, "vehicle", vehicleNumber, "tag", tagID)
 	if !c.cfg.Enabled {

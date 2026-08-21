@@ -13,8 +13,8 @@ interface LoginScreenProps {
 }
 
 export function LoginScreen({ onLoginSuccess, onForgotPassword, onRegisterLink }: LoginScreenProps) {
-  const [email, setEmail] = useState('driver@avandab.com');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -172,12 +172,12 @@ export function LoginScreen({ onLoginSuccess, onForgotPassword, onRegisterLink }
         </View>
 
         <View style={styles.socialRow}>
-          <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8} onPress={handleSignIn}>
+          <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8} onPress={() => Alert.alert('Single Sign-On', 'Google Sign-In is coming soon.')}>
             <MaterialCommunityIcons name="google" size={14} color="#4285F4" />
             <Text style={styles.socialBtnText}>GOOGLE</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8} onPress={handleSignIn}>
+          <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8} onPress={() => Alert.alert('Single Sign-On', 'Microsoft Sign-In is coming soon.')}>
             <MaterialCommunityIcons name="microsoft" size={14} color="#00a4ef" />
             <Text style={styles.socialBtnText}>MICROSOFT</Text>
           </TouchableOpacity>

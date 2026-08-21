@@ -83,6 +83,9 @@ func newShareTestApp(t *testing.T, db *sql.DB, authSrv auth.AuthorizationService
 
 func setupTestTrip(t *testing.T, db *sql.DB, tripID, vehicleID string) {
 	t.Helper()
+	_, _ = db.Exec(`INSERT OR IGNORE INTO users (id, name, email, password_hash, status, tenant_id)
+		VALUES ('user-1', 'Admin User', 'user-1@test.com', 'hash', 'active', '1')`)
+
 	_, err := db.Exec(`INSERT INTO vehicles
 		(id, registration_number, vehicle_number, vehicle_type, capacity, insurance_expiry, fitness_expiry, permit_expiry, maintenance_due)
 		VALUES (?, ?, ?, 'truck', 10, date('now','+1 year'), date('now','+1 year'), date('now','+1 year'), 0)`,
@@ -353,8 +356,9 @@ func TestShare_ListShares_And_Revoke(t *testing.T) {
 	app := newShareTestApp(t, db, allowAuthSvc{})
 	setupTestTrip(t, db, "trip-6", "veh-6")
 
-	_, _ = db.Exec(`INSERT INTO share_links (id, trip_id, token_hash, created_by, created_at, expires_at)
+	_, err := db.Exec(`INSERT INTO share_links (id, trip_id, token_hash, created_by, created_at, expires_at)
 		VALUES ('link-to-revoke', 'trip-6', 'hash-1', 'user-1', CURRENT_TIMESTAMP, datetime('now', '+1 day'))`)
+	require.NoError(t, err)
 
 	r := chi.NewRouter()
 	r.Get("/shares", app.Share.ListShares)

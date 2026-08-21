@@ -319,7 +319,7 @@ func (r *invoiceRepository) GetReadModel(ctx context.Context, id aggregate.Invoi
 	_ = r.exec(ctx).QueryRowContext(ctx, `
 		SELECT COALESCE(cgst,0), COALESCE(sgst,0), COALESCE(igst,0), irn, irn_ack_no, irn_ack_date, signed_qr
 		FROM invoices
-		WHERE id = ? AND (tenant_id = ? OR tenant_id = '1')
+		WHERE id = ? AND tenant_id = ?
 	`, string(id), string(tenantID)).Scan(&cgst, &sgst, &igst, &irn, &irnAckNo, &irnAckDate, &signedQR)
 
 	return domain.InvoiceReadModel{
