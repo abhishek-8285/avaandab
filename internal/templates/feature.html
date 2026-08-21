@@ -24,13 +24,13 @@
             <div class="flex flex-col justify-center">
                 <nav class="mb-6 flex items-center gap-1 text-sm text-text-muted" aria-label="Breadcrumb">
                     <a href="/" class="hover:text-primary">Home</a>
-                    <span class="material-symbols-outlined !text-base">chevron_right</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="m9 18 6-6-6-6"/></svg>
                     <a href="/features" class="hover:text-primary">Features</a>
-                    <span class="material-symbols-outlined !text-base">chevron_right</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="m9 18 6-6-6-6"/></svg>
                     <span class="text-primary" aria-current="page">{{.Feature.Title}}</span>
                 </nav>
                 <span class="inline-flex w-fit items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
-                    <span class="material-symbols-outlined !text-base">grid_view</span>{{.Feature.Eyebrow}}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>{{.Feature.Eyebrow}}
                 </span>
                 <div class="mt-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-on-primary shadow-lg shadow-primary/20">
                     <span class="material-symbols-outlined !text-3xl">{{.Feature.Icon}}</span>
@@ -40,7 +40,7 @@
                 <p class="mt-2 text-sm font-medium text-text-muted">{{.Feature.Audience}}</p>
                 <div class="mt-8 flex flex-wrap items-center gap-3">
                     <a href="/login" class="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-on-primary shadow-sm transition hover:bg-primary/90 hover:shadow-md">
-                        Sign in <span class="material-symbols-outlined !text-base">arrow_forward</span>
+                        Sign in <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                     </a>
                     <a href="/register" class="inline-flex items-center gap-2 rounded-lg border border-border-subtle bg-surface-container-lowest px-6 py-3 text-sm font-semibold text-primary shadow-sm transition hover:bg-background hover:shadow-md">
                         Start free
@@ -48,9 +48,9 @@
                     <a href="/contact-us" class="text-sm font-semibold text-text-muted underline-offset-4 hover:text-primary hover:underline">or book a demo</a>
                 </div>
                 <div class="mt-6 flex flex-wrap gap-2">
-                    <span class="inline-flex items-center gap-1.5 rounded-full bg-surface-container-lowest px-3 py-1 text-xs font-medium text-on-surface-variant shadow-sm ring-1 ring-border-subtle"><span class="material-symbols-outlined !text-base text-primary">receipt_long</span>GST-ready invoicing</span>
-                    <span class="inline-flex items-center gap-1.5 rounded-full bg-surface-container-lowest px-3 py-1 text-xs font-medium text-on-surface-variant shadow-sm ring-1 ring-border-subtle"><span class="material-symbols-outlined !text-base text-primary">lock</span>Bank-grade encryption</span>
-                    <span class="inline-flex items-center gap-1.5 rounded-full bg-surface-container-lowest px-3 py-1 text-xs font-medium text-on-surface-variant shadow-sm ring-1 ring-border-subtle"><span class="material-symbols-outlined !text-base text-primary">commute</span>Made for Indian fleets</span>
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-surface-container-lowest px-3 py-1 text-xs font-medium text-on-surface-variant shadow-sm ring-1 ring-border-subtle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/></svg>GST-ready invoicing</span>
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-surface-container-lowest px-3 py-1 text-xs font-medium text-on-surface-variant shadow-sm ring-1 ring-border-subtle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Bank-grade encryption</span>
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-surface-container-lowest px-3 py-1 text-xs font-medium text-on-surface-variant shadow-sm ring-1 ring-border-subtle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-2.8a.5.5 0 0 0-.45-.3H3a.5.5 0 0 0-.45.3L1.14 12.2a1.5 1.5 0 0 0 0 1.6L2.6 16.6A.5.5 0 0 0 3.05 17H18"/></svg>Made for Indian fleets</span>
                 </div>
             </div>
 
@@ -104,10 +104,10 @@
     <!-- Social proof bar -->
     <div class="border-b border-border-subtle bg-surface-container-lowest">
         <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-8 gap-y-2 px-4 py-3 text-xs font-medium text-secondary sm:justify-start">
-            <span class="flex items-center gap-1.5"><span class="material-symbols-outlined !text-base text-primary">verified</span>GST-compliant</span>
-            <span class="flex items-center gap-1.5"><span class="material-symbols-outlined !text-base text-primary">lock</span>AES-256 encryption</span>
-            <span class="flex items-center gap-1.5"><span class="material-symbols-outlined !text-base text-primary">history</span>DPDPA-aligned</span>
-            <span class="flex items-center gap-1.5"><span class="material-symbols-outlined !text-base text-primary">public</span>Data hosted in India</span>
+            <span class="flex items-center gap-1.5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>GST-compliant</span>
+            <span class="flex items-center gap-1.5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>AES-256 encryption</span>
+            <span class="flex items-center gap-1.5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>DPDPA-aligned</span>
+            <span class="flex items-center gap-1.5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Data hosted in India</span>
         </div>
     </div>
 
@@ -174,7 +174,7 @@
                 <div class="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                     {{range .Feature.Benefits}}
                     <div class="flex items-start gap-3 rounded-2xl border border-border-subtle bg-primary/40 p-5">
-                        <span class="material-symbols-outlined !text-2xl text-primary">check_circle</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
                         <p class="text-sm font-medium leading-relaxed text-on-surface-variant">{{.Text}}</p>
                     </div>
                     {{end}}
@@ -242,41 +242,41 @@
                     <div class="divide-y divide-border-subtle bg-surface-container-lowest">
                         <div class="grid grid-cols-2 text-sm">
                             <div class="flex items-start gap-3 px-6 py-4 text-text-muted">
-                                <span class="material-symbols-outlined mt-0.5 !text-lg text-status-alert">close</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                                 <span>Spreadsheets and WhatsApp for dispatch</span>
                             </div>
                             <div class="flex items-start gap-3 px-6 py-4 text-on-surface-variant">
-                                <span class="material-symbols-outlined mt-0.5 !text-lg text-primary">check_circle</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
                                 <span>One live dashboard with real-time tracking</span>
                             </div>
                         </div>
                         <div class="grid grid-cols-2 text-sm">
                             <div class="flex items-start gap-3 px-6 py-4 text-text-muted">
-                                <span class="material-symbols-outlined mt-0.5 !text-lg text-status-alert">close</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                                 <span>Manual invoice generation and email</span>
                             </div>
                             <div class="flex items-start gap-3 px-6 py-4 text-on-surface-variant">
-                                <span class="material-symbols-outlined mt-0.5 !text-lg text-primary">check_circle</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
                                 <span>Auto-generated GST-compliant invoices with EWB</span>
                             </div>
                         </div>
                         <div class="grid grid-cols-2 text-sm">
                             <div class="flex items-start gap-3 px-6 py-4 text-text-muted">
-                                <span class="material-symbols-outlined mt-0.5 !text-lg text-status-alert">close</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                                 <span>Cash-based expense tracking with no audit trail</span>
                             </div>
                             <div class="flex items-start gap-3 px-6 py-4 text-on-surface-variant">
-                                <span class="material-symbols-outlined mt-0.5 !text-lg text-primary">check_circle</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
                                 <span>Digital kharcha with proof and trip reconciliation</span>
                             </div>
                         </div>
                         <div class="grid grid-cols-2 text-sm">
                             <div class="flex items-start gap-3 px-6 py-4 text-text-muted">
-                                <span class="material-symbols-outlined mt-0.5 !text-lg text-status-alert">close</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                                 <span>Phone calls to check delivery status</span>
                             </div>
                             <div class="flex items-start gap-3 px-6 py-4 text-on-surface-variant">
-                                <span class="material-symbols-outlined mt-0.5 !text-lg text-primary">check_circle</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
                                 <span>Customer-facing tracking with live ETAs</span>
                             </div>
                         </div>
@@ -290,7 +290,7 @@
             <div class="mx-auto flex max-w-6xl flex-col items-start gap-4 px-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
                 <div class="flex items-center gap-4">
                     <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                        <span class="material-symbols-outlined !text-2xl">groups</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     </span>
                     <div>
                         <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Who it's for</p>
@@ -298,7 +298,7 @@
                     </div>
                 </div>
                 <a href="/register" class="inline-flex flex-none items-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-on-primary transition hover:bg-primary/90 hover:shadow-md">
-                    Start free <span class="material-symbols-outlined !text-base">arrow_forward</span>
+                    Start free <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                 </a>
             </div>
         </section>
@@ -312,7 +312,7 @@
                 <ul class="mt-8 grid gap-4 sm:grid-cols-2">
                     {{range .Feature.UseCases}}
                     <li class="flex items-start gap-3 rounded-2xl border border-border-subtle bg-surface-container-lowest p-5 shadow-sm">
-                        <span class="material-symbols-outlined mt-0.5 !text-2xl text-primary">task_alt</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
                         <span class="text-sm leading-relaxed text-on-surface-variant">{{.}}</span>
                     </li>
                     {{end}}
@@ -330,7 +330,7 @@
                     <details class="group rounded-2xl border border-border-subtle bg-surface-container-lowest shadow-sm [&_summary::-webkit-details-marker]:hidden">
                         <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 font-semibold text-on-surface">
                             <span>{{.Question}}</span>
-                            <span class="material-symbols-outlined !text-xl text-primary transition-transform duration-250 group-open:rotate-90">chevron_right</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="m9 18 6-6-6-6"/></svg>
                         </summary>
                         <div class="px-5 pb-5 text-sm leading-relaxed text-secondary">{{.Answer}}</div>
                     </details>
@@ -338,35 +338,35 @@
                     <details class="group rounded-2xl border border-border-subtle bg-surface-container-lowest shadow-sm [&_summary::-webkit-details-marker]:hidden">
                         <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 font-semibold text-on-surface">
                             <span>How long does setup take?</span>
-                            <span class="material-symbols-outlined !text-xl text-primary transition-transform duration-250 group-open:rotate-90">chevron_right</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="m9 18 6-6-6-6"/></svg>
                         </summary>
                         <div class="px-5 pb-5 text-sm leading-relaxed text-secondary">Most teams are running in the same day. Add your vehicles and drivers, and start creating trips — no hardware or training required to begin.</div>
                     </details>
                     <details class="group rounded-2xl border border-border-subtle bg-surface-container-lowest shadow-sm [&_summary::-webkit-details-marker]:hidden">
                         <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 font-semibold text-on-surface">
                             <span>Is my data secure?</span>
-                            <span class="material-symbols-outlined !text-xl text-primary transition-transform duration-250 group-open:rotate-90">chevron_right</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="m9 18 6-6-6-6"/></svg>
                         </summary>
                         <div class="px-5 pb-5 text-sm leading-relaxed text-secondary">Data is encrypted in transit and at rest (AES-256), access is role-based, and every meaningful action is recorded in append-only audit logs. Data is hosted in India.</div>
                     </details>
                     <details class="group rounded-2xl border border-border-subtle bg-surface-container-lowest shadow-sm [&_summary::-webkit-details-marker]:hidden">
                         <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 font-semibold text-on-surface">
                             <span>Do drivers need a smartphone?</span>
-                            <span class="material-symbols-outlined !text-xl text-primary transition-transform duration-250 group-open:rotate-90">chevron_right</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="m9 18 6-6-6-6"/></svg>
                         </summary>
                         <div class="px-5 pb-5 text-sm leading-relaxed text-secondary">The web app works on any device with a browser. Drivers can use the mobile app for e-POD and status updates from any Android phone.</div>
                     </details>
                     <details class="group rounded-2xl border border-border-subtle bg-surface-container-lowest shadow-sm [&_summary::-webkit-details-marker]:hidden">
                         <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 font-semibold text-on-surface">
                             <span>Is this actually GST-compliant?</span>
-                            <span class="material-symbols-outlined !text-xl text-primary transition-transform duration-250 group-open:rotate-90">chevron_right</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="m9 18 6-6-6-6"/></svg>
                         </summary>
                         <div class="px-5 pb-5 text-sm leading-relaxed text-secondary">Invoices carry your company's GSTIN and tax details. Line items follow GST structure so your accountant can file without reformatting. CGST/SGST for in-state, IGST for inter-state.</div>
                     </details>
                     <details class="group rounded-2xl border border-border-subtle bg-surface-container-lowest shadow-sm [&_summary::-webkit-details-marker]:hidden">
                         <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 font-semibold text-on-surface">
                             <span>Can we start with just 5–10 vehicles?</span>
-                            <span class="material-symbols-outlined !text-xl text-primary transition-transform duration-250 group-open:rotate-90">chevron_right</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="m9 18 6-6-6-6"/></svg>
                         </summary>
                         <div class="px-5 pb-5 text-sm leading-relaxed text-secondary">Avandab scales from a handful of vehicles to hundreds. Start with a pilot, prove the value, and expand — no long-term contracts required.</div>
                     </details>
@@ -381,22 +381,22 @@
                 <p class="mt-3 text-secondary">Built for the way Indian transport businesses actually run.</p>
                 <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                     <div class="rounded-2xl border border-border-subtle bg-surface-container-lowest p-6 shadow-sm">
-                        <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary"><span class="material-symbols-outlined !text-2xl">receipt_long</span></span>
+                        <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/></svg></span>
                         <h3 class="mt-4 text-base font-semibold text-on-surface">GST-ready invoicing</h3>
                         <p class="mt-1.5 text-sm leading-relaxed text-secondary">Professional, compliant invoices generated from completed trips.</p>
                     </div>
                     <div class="rounded-2xl border border-border-subtle bg-surface-container-lowest p-6 shadow-sm">
-                        <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary"><span class="material-symbols-outlined !text-2xl">lock</span></span>
+                        <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
                         <h3 class="mt-4 text-base font-semibold text-on-surface">Bank-grade security</h3>
                         <p class="mt-1.5 text-sm leading-relaxed text-secondary">Encryption in transit and at rest with role-based access control.</p>
                     </div>
                     <div class="rounded-2xl border border-border-subtle bg-surface-container-lowest p-6 shadow-sm">
-                        <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary"><span class="material-symbols-outlined !text-2xl">history</span></span>
+                        <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg></span>
                         <h3 class="mt-4 text-base font-semibold text-on-surface">DPDPA-aligned trails</h3>
                         <p class="mt-1.5 text-sm leading-relaxed text-secondary">Append-only audit logs so every action is traceable.</p>
                     </div>
                     <div class="rounded-2xl border border-border-subtle bg-surface-container-lowest p-6 shadow-sm">
-                        <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary"><span class="material-symbols-outlined !text-2xl">commute</span></span>
+                        <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-2.8a.5.5 0 0 0-.45-.3H3a.5.5 0 0 0-.45.3L1.14 12.2a1.5 1.5 0 0 0 0 1.6L2.6 16.6A.5.5 0 0 0 3.05 17H18"/></svg></span>
                         <h3 class="mt-4 text-base font-semibold text-on-surface">Driver mobile app</h3>
                         <p class="mt-1.5 text-sm leading-relaxed text-secondary">e-POD and live status updates from the road, on any phone.</p>
                     </div>
@@ -420,7 +420,7 @@
                             <span class="block text-base font-semibold text-on-surface">{{.Title}}</span>
                             <span class="block truncate text-sm text-text-muted">{{.Tagline}}</span>
                         </span>
-                        <span class="material-symbols-outlined !text-xl ml-auto flex-none text-text-muted transition group-hover:text-primary">chevron_right</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="m9 18 6-6-6-6"/></svg>
                     </a>
                     {{end}}
                 </div>
@@ -436,7 +436,7 @@
                 <p class="mx-auto mt-4 max-w-2xl text-lg text-on-primary/80">Spin up your Avandab workspace and put this feature to work on your very next trip.</p>
                 <div class="mt-8 flex flex-wrap justify-center gap-3">
                     <a href="/register" class="inline-flex items-center gap-2 rounded-lg bg-surface-container-lowest px-6 py-3 text-sm font-semibold text-primary shadow-sm transition hover:bg-primary/10 hover:shadow-md">
-                        Create your workspace <span class="material-symbols-outlined !text-base">arrow_forward</span>
+                        Create your workspace <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                     </a>
                     <a href="/contact-us" class="inline-flex items-center gap-2 rounded-lg border border-on-primary/30 px-6 py-3 text-sm font-semibold text-on-primary transition hover:bg-surface-container-lowest/10">
                         Talk to sales

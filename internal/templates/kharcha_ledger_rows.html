@@ -53,7 +53,7 @@
 <div class="px-4 py-2 flex items-center gap-4 bg-status-success/10 border-l-4 border-status-success/30 transition-all"
      id="expense-row-{{.ID}}">
     <div class="w-10 h-10 rounded-full bg-status-success/10 flex items-center justify-center shrink-0">
-        <span class="material-symbols-outlined text-status-success text-base">check_circle</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
     </div>
     <div class="flex-1 min-w-0">
         <p class="text-sm font-semibold text-status-success">Approved — {{.DriverName}}</p>
@@ -67,7 +67,7 @@
 <div class="px-4 py-2 flex items-center gap-4 bg-status-alert/10 border-l-4 border-status-alert/30 transition-all"
      id="expense-row-{{.ID}}">
     <div class="w-10 h-10 rounded-full bg-status-alert/10 flex items-center justify-center shrink-0">
-        <span class="material-symbols-outlined text-status-alert text-base">cancel</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
     </div>
     <div class="flex-1 min-w-0">
         <p class="text-sm font-semibold text-status-alert">Rejected — {{.DriverName}}</p>

@@ -8,7 +8,7 @@
         <div class="flex items-center gap-3">
             <form method="POST" action="/alerts/mark-all-read">
                 <button type="submit" class="px-4 py-2 text-xs font-semibold rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors cursor-pointer border border-border-subtle flex items-center gap-2">
-                    <span class="material-symbols-outlined text-sm">done_all</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M18 6 7 17 2 12"/><path d="M22 6 12 17 7 12"/></svg>
                     Mark All Acknowledged
                 </button>
             </form>
@@ -18,19 +18,19 @@
     <!-- Status Tabs Filter -->
     <div class="flex border-b border-border-subtle gap-2 text-sm font-medium">
         <a href="/alerts?status=open" class="px-4 py-2.5 border-b-2 transition-colors {{if eq .CurrentStatus "open"}}border-primary text-primary font-semibold{{else}}border-transparent text-secondary hover:text-on-surface{{end}} flex items-center gap-2">
-            <span class="material-symbols-outlined text-base">error</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
             Open
         </a>
         <a href="/alerts?status=acknowledged" class="px-4 py-2.5 border-b-2 transition-colors {{if eq .CurrentStatus "acknowledged"}}border-primary text-primary font-semibold{{else}}border-transparent text-secondary hover:text-on-surface{{end}} flex items-center gap-2">
-            <span class="material-symbols-outlined text-base">visibility</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
             Acknowledged
         </a>
         <a href="/alerts?status=resolved" class="px-4 py-2.5 border-b-2 transition-colors {{if eq .CurrentStatus "resolved"}}border-primary text-primary font-semibold{{else}}border-transparent text-secondary hover:text-on-surface{{end}} flex items-center gap-2">
-            <span class="material-symbols-outlined text-base">check_circle</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
             Resolved
         </a>
         <a href="/alerts?status=all" class="px-4 py-2.5 border-b-2 transition-colors {{if eq .CurrentStatus ""}}border-primary text-primary font-semibold{{else}}border-transparent text-secondary hover:text-on-surface{{end}} flex items-center gap-2">
-            <span class="material-symbols-outlined text-base">list</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
             All Alerts
         </a>
     </div>
@@ -140,7 +140,7 @@
                         <tr>
                             <td colspan="8" class="px-5 py-12 text-center text-text-muted text-sm">
                                 <div class="flex flex-col items-center justify-center gap-2">
-                                    <span class="material-symbols-outlined text-4xl text-text-muted/60">check_circle</span>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
                                     <span class="font-medium">No alerts found for this filter.</span>
                                 </div>
                             </td>

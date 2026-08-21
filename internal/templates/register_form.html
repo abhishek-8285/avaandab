@@ -3,7 +3,7 @@
         <!-- Top Action Bar -->
         <div class="flex items-center justify-between border-b border-border-subtle pb-3">
             <a href="/" class="inline-flex items-center gap-1.5 text-xs font-bold text-text-muted hover:text-primary transition-colors">
-                <span class="material-symbols-outlined text-base">arrow_back</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
                 <span>Back to Home</span>
             </a>
         </div>
@@ -39,7 +39,7 @@
             <div class="flex flex-col gap-1">
                 <label class="text-xs font-bold text-secondary uppercase tracking-wider" for="email">Work Email *</label>
                 <div class="relative">
-                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-lg">mail</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
                     <input class="w-full h-[40px] pl-10 pr-3 py-2 border border-border-subtle bg-surface-container-low rounded-md text-sm text-on-surface focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" id="email" name="email" value="{{.Email}}" placeholder="jane.doe@company.com" required type="email" autocomplete="email"/>
                 </div>
             </div>
@@ -50,7 +50,7 @@
                     <div class="relative">
                         <input class="w-full h-[40px] px-3 pr-10 py-2 border border-border-subtle bg-surface-container-low rounded-md text-sm text-on-surface focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" id="password" name="password" placeholder="••••••••" required type="password" minlength="8" autocomplete="new-password"/>
                         <button type="button" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-on-surface focus:outline-none flex items-center justify-center p-1" onclick="togglePassword('password', this)" aria-label="Toggle password visibility">
-                            <span class="material-symbols-outlined text-lg">visibility</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                         </button>
                     </div>
                 </div>
@@ -59,7 +59,7 @@
                     <div class="relative">
                         <input class="w-full h-[40px] px-3 pr-10 py-2 border border-border-subtle bg-surface-container-low rounded-md text-sm text-on-surface focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all" id="confirm_password" name="confirm_password" placeholder="••••••••" required type="password" minlength="8" autocomplete="new-password"/>
                         <button type="button" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-on-surface focus:outline-none flex items-center justify-center p-1" onclick="togglePassword('confirm_password', this)" aria-label="Toggle password visibility">
-                            <span class="material-symbols-outlined text-lg">visibility</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                         </button>
                     </div>
                 </div>

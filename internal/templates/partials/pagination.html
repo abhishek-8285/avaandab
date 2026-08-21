@@ -10,11 +10,11 @@
         {{if .Pagination.HasPrev}}
         <a href="{{.Pagination.BasePath}}?page={{sub .Pagination.Page 1}}{{if .Query}}&q={{.Query}}{{end}}{{if .Status}}&status={{.Status}}{{end}}"
            class="inline-flex items-center justify-center px-3 py-1.5 rounded-sm border border-border-subtle bg-surface-container-lowest text-xs font-semibold text-on-surface hover:bg-surface-container-low transition-all text-decoration-none shadow-xs active:scale-[0.98]">
-            <span class="material-symbols-outlined text-sm mr-1">chevron_left</span> Prev
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="m15 18-6-6 6-6"/></svg> Prev
         </a>
         {{else}}
         <span class="inline-flex items-center justify-center px-3 py-1.5 rounded-sm border border-border-subtle bg-surface-container-low text-xs font-semibold text-outline cursor-not-allowed opacity-60">
-            <span class="material-symbols-outlined text-sm mr-1">chevron_left</span> Prev
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="m15 18-6-6 6-6"/></svg> Prev
         </span>
         {{end}}
 
@@ -26,11 +26,11 @@
         {{if .Pagination.HasNext}}
         <a href="{{.Pagination.BasePath}}?page={{add .Pagination.Page 1}}{{if .Query}}&q={{.Query}}{{end}}{{if .Status}}&status={{.Status}}{{end}}"
            class="inline-flex items-center justify-center px-3 py-1.5 rounded-sm border border-border-subtle bg-surface-container-lowest text-xs font-semibold text-on-surface hover:bg-surface-container-low transition-all text-decoration-none shadow-xs active:scale-[0.98]">
-            Next <span class="material-symbols-outlined text-sm ml-1">chevron_right</span>
+            Next <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="m9 18 6-6-6-6"/></svg>
         </a>
         {{else}}
         <span class="inline-flex items-center justify-center px-3 py-1.5 rounded-sm border border-border-subtle bg-surface-container-low text-xs font-semibold text-outline cursor-not-allowed opacity-60">
-            Next <span class="material-symbols-outlined text-sm ml-1">chevron_right</span>
+            Next <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="m9 18 6-6-6-6"/></svg>
         </span>
         {{end}}
     </div>

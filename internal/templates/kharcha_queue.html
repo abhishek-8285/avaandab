@@ -12,7 +12,7 @@
         </a>
         {{else}}
         <div class="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center text-text-muted shrink-0">
-            <span class="material-symbols-outlined text-xl">receipt_long</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/></svg>
         </div>
         {{end}}
 
@@ -37,19 +37,19 @@
             {{if eq .AuditStatus "needs_review"}}
             <span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-status-warning/10 text-status-warning text-[10px] font-bold border border-status-warning/30 cursor-help"
                   title="Claimed {{printf "%.1f" .FuelLitres}}L, Expected {{printf "%.1f" .ExpectedLitres}}L ±{{printf "%.1f" .VariancePct}}% — review at /fuel/audit">
-                <span class="material-symbols-outlined text-xs" style="font-size:11px">warning</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
                 AUDIT: NEEDS REVIEW
             </span>
             {{else if eq .AuditStatus "passed"}}
             <span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-status-success/10 text-status-success text-[10px] font-bold border border-status-success/30 cursor-help"
                   title="Claimed {{printf "%.1f" .FuelLitres}}L, Expected {{printf "%.1f" .ExpectedLitres}}L ±{{printf "%.1f" .VariancePct}}%">
-                <span class="material-symbols-outlined text-xs" style="font-size:11px">verified</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
                 AUDIT PASSED
             </span>
             {{else if eq .AuditStatus "failed"}}
             <span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-status-alert/10 text-status-alert text-[10px] font-bold border border-status-alert/30 cursor-help"
                   title="Claimed {{printf "%.1f" .FuelLitres}}L, Expected {{printf "%.1f" .ExpectedLitres}}L ±{{printf "%.1f" .VariancePct}}%">
-                <span class="material-symbols-outlined text-xs" style="font-size:11px">cancel</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
                 AUDIT FAILED
             </span>
             {{end}}
@@ -68,7 +68,7 @@
                 hx-swap="outerHTML"
                 hx-indicator="#spin-{{.ID}}"
                 class="flex items-center gap-1.5 px-4 py-2 bg-status-success hover:bg-status-success/90 text-on-primary text-xs font-semibold rounded-lg transition shadow-sm shadow-primary/20">
-                <span class="material-symbols-outlined text-sm" style="font-size:14px">check</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M20 6 9 17l-5-5"/></svg>
                 APPROVE
             </button>
             <button
@@ -88,7 +88,7 @@
 {{else}}
 <div class="flex flex-col items-center justify-center py-16 text-center">
     <div class="w-16 h-16 rounded-full bg-status-success/10 flex items-center justify-center mb-4">
-        <span class="material-symbols-outlined text-3xl text-status-success">check_circle</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
     </div>
     <p class="text-text-muted font-medium text-sm">All clear! No pending approvals.</p>
     <p class="text-text-muted text-xs mt-1">New requests will appear here automatically.</p>

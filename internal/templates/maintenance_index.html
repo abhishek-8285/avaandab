@@ -7,11 +7,11 @@
         <div class="flex gap-2">
             {{if can .User "maintenance" "create"}}
             <a href="/maintenance/schedules/new" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-primary text-on-primary rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm">
-                <span class="material-symbols-outlined text-lg">add</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                 <span>New Schedule</span>
             </a>
             <a href="/maintenance/records/new" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-surface-container-high text-on-surface rounded-lg text-sm font-medium hover:bg-surface-container-highest transition-colors border border-border-subtle">
-                <span class="material-symbols-outlined text-lg">history_edu</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><path d="M10 9H8"/></svg>
                 <span>Record Work</span>
             </a>
             {{end}}
@@ -22,7 +22,7 @@
     <div class="bg-surface-container-lowest rounded-xl border border-border-subtle overflow-hidden shadow-sm">
         <div class="p-4 border-b border-border-subtle bg-surface-container-low/30 flex justify-between items-center">
             <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-amber-500 text-xl">warning</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
                 <h2 class="font-semibold text-on-surface">Vehicles Requiring Maintenance</h2>
                 <span class="px-2 py-0.5 text-xs font-bold rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">{{len .DueVehicles}}</span>
             </div>
@@ -65,7 +65,7 @@
                     {{else}}
                     <tr>
                         <td colspan="6" class="px-4 py-6 text-center text-secondary">
-                            <span class="material-symbols-outlined text-emerald-500 text-3xl mb-1">check_circle</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
                             <p>All fleet vehicles are compliant and up-to-date.</p>
                         </td>
                     </tr>

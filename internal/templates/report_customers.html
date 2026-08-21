@@ -9,13 +9,13 @@
             {{if can .User "reports" "read"}}
             <div class="flex items-center gap-2 print:hidden">
                 <a href="/reports/customers.csv{{if .QueryString}}?{{.QueryString}}{{end}}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-on-primary rounded hover:bg-primary/90 text-sm font-medium shadow-sm transition-colors">
-                    <span class="material-icons text-base">download</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                     Export CSV
                 </a>
             </div>
             {{end}}
             <button onclick="window.print()" class="px-4 py-2 min-h-[44px] inline-flex items-center justify-center bg-surface-container-lowest border border-border-subtle text-on-surface-variant rounded-lg hover:bg-surface-container-low font-medium focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-sm transition-colors">
-                <span class="material-icons text-sm mr-2">print</span>Print Report
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>Print Report
             </button>
         </div>
     </div>
