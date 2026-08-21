@@ -674,13 +674,20 @@
                 'key':'<svg viewBox="0 0 24 24" fill="none\" stroke="currentColor\" stroke-width="2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class="w-4 h-4"><circle cx="7.5\" cy=\"15.5\" r=\"5.5\"/><path d="m21 2-9.6 9.6\"/></svg>',
                 'gps_fixed':'<svg viewBox="0 0 24 24" fill="none\" stroke="currentColor\" stroke-width="2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class="w-4 h-4"><circle cx="12\" cy=\"12\" r=\"3\"/><path d="M12 2v4\"/></svg>'
             };
-            document.querySelectorAll('.material-symbols-outlined, .material-icons').forEach(function(el){
-                var name = (el.textContent||'').trim();
-                if(iconMap[name]){
-                    var tmp=document.createElement('div'); tmp.innerHTML=iconMap[name];
-                    var svg=tmp.firstChild; if(svg){ svg.className=el.className; el.parentNode.replaceChild(svg, el); }
-                }
-            });
+            function replaceIcons(root){
+                (root||document).querySelectorAll('.material-symbols-outlined, .material-icons').forEach(function(el){
+                    var name = (el.textContent||'').trim();
+                    if(iconMap[name]){
+                        var tmp=document.createElement('div'); tmp.innerHTML=iconMap[name];
+                        var svg=tmp.firstChild; if(svg){ svg.className=el.className; el.parentNode.replaceChild(svg, el); }
+                    }
+                });
+            }
+            replaceIcons(document);
+            // htmx/datastar fragments inserted after load won't fire DOMContentLoaded — observe
+            new MutationObserver(function(muts){ muts.forEach(function(m){ m.addedNodes.forEach(function(n){ if(n.nodeType===1) replaceIcons(n); }); }); }).observe(document.body,{childList:true, subtree:true});
+            document.body.addEventListener('htmx:load', function(e){ replaceIcons(e.target); });
+            document.body.addEventListener('htmx:afterSwap', function(e){ replaceIcons(e.target); });
         });
     </script>
 
