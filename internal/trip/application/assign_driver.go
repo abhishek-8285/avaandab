@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	driverDomain "transport-app/internal/driver/domain"
@@ -47,7 +48,37 @@ func (uc *AssignDriverUseCase) Execute(ctx context.Context, cmd AssignDriverComm
 			return err
 		}
 		if err := uc.checkDriverCompliance(txCtx, cmd.DriverID, cmd.TenantID); err != nil {
-			return err
+			// Compliance override: allow if override flag with reason >=10 chars (Spec 21 §5 EnforceWithOverride)
+			if cmd.OverrideMaintenance && len(strings.TrimSpace(cmd.OverrideReason)) >= 10 {
+				reasonJSON := fmt.Sprintf(`{"driver_id":%q,"reason":%q,"blocked_by":%q}`, cmd.DriverID, cmd.OverrideReason, err.Error())
+				logAudit(txCtx, "assign_driver_override", string(cmd.TripID), nil, &reasonJSON)
+				// Insert dispatch_overrides for audit (best-effort)
+				if dbGetter, ok := txCtx.Repositories().AuditLogs().(repository.DBGetter); ok && dbGetter.DB() != nil {
+					tenant := cmd.TenantID
+					if tenant == "" {
+						tenant = shared.DefaultTenant
+					}
+					_, _ = dbGetter.DB().ExecContext(txCtx, `CREATE TABLE IF NOT EXISTS dispatch_overrides (
+                        id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL DEFAULT '1', trip_id TEXT NOT NULL, vehicle_id TEXT, driver_id TEXT, blocked_by TEXT NOT NULL, reason TEXT NOT NULL, overridden_by TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now'))
+                    )`)
+					var vehicleID string
+					if t.VehicleID != nil {
+						vehicleID = *t.VehicleID
+					}
+					overriddenBy := ""
+					if uid := getUserID(txCtx); uid != nil {
+						overriddenBy = string(*uid)
+					}
+					blockedBy := "license_expiry"
+					if strings.Contains(strings.ToLower(err.Error()), "license") {
+						blockedBy = "license_expiry"
+					}
+					_, _ = dbGetter.DB().ExecContext(txCtx, `INSERT INTO dispatch_overrides (id, tenant_id, trip_id, vehicle_id, driver_id, blocked_by, reason, overridden_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+						fmt.Sprintf("ovr-%d", time.Now().UnixNano()), string(tenant), string(cmd.TripID), vehicleID, cmd.DriverID, blockedBy, cmd.OverrideReason, overriddenBy)
+				}
+			} else {
+				return err
+			}
 		}
 		// When trip already carries a vehicle, ensure that vehicle is not blocked for maintenance
 		if t.VehicleID != nil && *t.VehicleID != "" {

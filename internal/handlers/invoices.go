@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	"transport-app/internal/domain"
 	"transport-app/internal/domain/invoice"
 	"transport-app/internal/domain/types"
+	"transport-app/internal/integration"
 	gstn "transport-app/internal/integration/gstn"
 	invoiceapp "transport-app/internal/invoice/application"
 	invoiceagg "transport-app/internal/invoice/domain/aggregate"
@@ -113,11 +115,22 @@ func (h *InvoiceHandlers) View(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Retrieve payments using the legacy services for now until the payment module vertical slice is ready
-	payments, _ := h.Services.Invoices.GetPaymentsForInvoice(r.Context(), domain.InvoiceID(idParam))
-	balance, _ := h.Services.Invoices.GetBalance(r.Context(), domain.InvoiceID(idParam))
+	payments, errPay := h.Services.Invoices.GetPaymentsForInvoice(r.Context(), domain.InvoiceID(idParam))
+	if errPay != nil {
+		slog.Error("Failed to load payments for invoice", "invoice_id", idParam, "error", errPay)
+		payments = nil
+	}
+	balance, errBal := h.Services.Invoices.GetBalance(r.Context(), domain.InvoiceID(idParam))
+	if errBal != nil {
+		slog.Error("Failed to calculate balance for invoice", "invoice_id", idParam, "error", errBal)
+		balance = 0
+	}
+
+	session, _ := h.getUserFromContext(r)
 
 	h.renderPage(w, r, "invoice_view.html", PageData{
 		Title: "View Invoice",
+		User:  session,
 		Extra: map[string]interface{}{
 			"Invoice":  invoice,
 			"Payments": payments,
@@ -134,8 +147,10 @@ func (h *InvoiceHandlers) ViewByNumber(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invoice not found", http.StatusNotFound)
 		return
 	}
+	session, _ := h.getUserFromContext(r)
 	h.renderPage(w, r, "invoice_view.html", PageData{
 		Title: "View Invoice",
+		User:  session,
 		Extra: map[string]interface{}{"Invoice": invoice},
 	})
 }
@@ -161,7 +176,11 @@ func (h *InvoiceHandlers) DownloadPDF(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	balance, _ := h.Services.Invoices.GetBalance(r.Context(), domain.InvoiceID(idParam))
+	balance, errBal := h.Services.Invoices.GetBalance(r.Context(), domain.InvoiceID(idParam))
+	if errBal != nil {
+		slog.Error("Failed to calculate balance for PDF", "invoice_id", idParam, "error", errBal)
+		balance = 0
+	}
 	paidAmount := invDTO.Total - balance
 	if paidAmount < 0 {
 		paidAmount = 0
@@ -651,7 +670,10 @@ func (h *InvoiceHandlers) GenerateIRN(w http.ResponseWriter, r *http.Request) {
 		LineItems:      lineViews,
 	}
 
-	client := gstn.NewMockEInvoiceClient(gstn.Config{Enabled: true})
+	// Use factory to respect INTEGRATION_GSTN_USE_MOCK && APIKey (Spec 21 §5)
+	integCfg := integration.LoadConfig()
+	integCfg.GSTN.Enabled = true
+	client := gstn.NewClient(integCfg.GSTN)
 	res, err := client.GenerateIRN(r.Context(), invView)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("GSTN IRN generation failed: %v", err), http.StatusBadGateway)
@@ -662,7 +684,7 @@ func (h *InvoiceHandlers) GenerateIRN(w http.ResponseWriter, r *http.Request) {
 	_, err = h.DB.ExecContext(r.Context(), `
 		UPDATE invoices
 		SET irn = ?, irn_ack_no = ?, irn_ack_date = ?, signed_qr = ?, updated_at = datetime('now')
-		WHERE id = ? AND (tenant_id = ? OR tenant_id = '1')
+		WHERE id = ? AND tenant_id = ?
 	`, res.IRN, res.AckNo, res.AckDate, res.SignedQR, invoiceID, string(tenantID))
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to save IRN: %v", err), http.StatusInternalServerError)

@@ -1,13 +1,18 @@
 package handlers
 
 import (
+	"bytes"
+	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 
 	bookingdomain "transport-app/internal/booking/domain"
 	bookingaggregate "transport-app/internal/booking/domain/aggregate"
@@ -168,7 +173,8 @@ func (h *TripHandlers) Create(w http.ResponseWriter, r *http.Request) {
 		Remarks:       r.PostFormValue("remarks"),
 	})
 	if err != nil {
-		h.renderForm(w, r, "trip_edit.html", PageData{Title: "New Trip", FlashError: err.Error()})
+		session, _ := h.getUserFromContext(r)
+		h.renderForm(w, r, "trip_edit.html", PageData{Title: "New Trip", User: session, FlashError: err.Error()})
 		return
 	}
 
@@ -220,6 +226,7 @@ func (h *TripHandlers) View(w http.ResponseWriter, r *http.Request) {
 
 	h.renderPage(w, r, "trip_view.html", PageData{
 		Title: "View Trip",
+		User:  session,
 		Extra: map[string]interface{}{
 			"Trip":              trip,
 			"AvailableDrivers":  availableDrivers,
@@ -324,17 +331,179 @@ func (h *TripHandlers) Schedule(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/trips/"+id, http.StatusSeeOther)
 }
 
+func (h *TripHandlers) extractAssignParams(r *http.Request, key string) (string, bool, string) {
+	idVal := r.FormValue(key)
+	overrideStr := r.FormValue("override_maintenance")
+	if overrideStr == "" {
+		overrideStr = r.FormValue("override")
+	}
+	reason := r.FormValue("override_reason")
+	if reason == "" {
+		reason = r.FormValue("reason")
+	}
+	override := overrideStr == "1" || strings.EqualFold(overrideStr, "true") || strings.EqualFold(overrideStr, "on")
+
+	ct := r.Header.Get("Content-Type")
+	if strings.Contains(ct, "application/json") {
+		// Need to read body without losing it for later; we decode into map and reuse values
+		bodyBytes, err := io.ReadAll(r.Body)
+		if err == nil && len(bodyBytes) > 0 {
+			// restore body for downstream if needed (not needed currently)
+			r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+			var data map[string]interface{}
+			if json.Unmarshal(bodyBytes, &data) == nil {
+				if v, ok := data[key].(string); ok && v != "" {
+					idVal = v
+				}
+				if v, ok := data["driver_id"].(string); ok && key == "driver_id" && v != "" {
+					idVal = v
+				}
+				if v, ok := data["vehicle_id"].(string); ok && key == "vehicle_id" && v != "" {
+					idVal = v
+				}
+				if v, ok := data["override"].(bool); ok {
+					override = v
+				}
+				if v, ok := data["override_maintenance"].(bool); ok {
+					override = override || v
+				}
+				if v, ok := data["override"].(string); ok {
+					override = override || v == "1" || strings.EqualFold(v, "true")
+				}
+				if v, ok := data["reason"].(string); ok && v != "" {
+					reason = v
+				}
+				if v, ok := data["override_reason"].(string); ok && v != "" {
+					reason = v
+				}
+			}
+		}
+	}
+	return idVal, override, reason
+}
+
+func (h *TripHandlers) handleComplianceBlock(w http.ResponseWriter, r *http.Request, tripID, driverID, vehicleID string, override bool, reason string, blockErr error) bool {
+	blockedBy := blockErr.Error()
+	lower := strings.ToLower(blockedBy)
+	code := blockedBy
+	switch {
+	case strings.Contains(lower, "license"):
+		code = "license_expiry"
+	case strings.Contains(lower, "insurance"):
+		code = "insurance_expiry"
+	case strings.Contains(lower, "fitness"):
+		code = "fitness_expiry"
+	case strings.Contains(lower, "permit"), strings.Contains(lower, "rc"):
+		code = "rc_expiry"
+	case strings.Contains(lower, "puc"):
+		code = "puc_expiry"
+	case strings.Contains(lower, "blocked"):
+		code = "blocked"
+	default:
+		code = "compliance"
+	}
+	if !override {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "dispatch_blocked", "blocked_by": code, "detail": blockedBy})
+		return true
+	}
+	user, _ := h.getUserFromContext(r)
+	if user == nil {
+		http.Error(w, "authentication required", http.StatusUnauthorized)
+		return true
+	}
+	hasPerm := false
+	if h.AuthSrv != nil && h.AuthSrv.Can(user.UserID, "users", "update") {
+		hasPerm = true
+	}
+	if user.Role == "admin" {
+		hasPerm = true
+	}
+	if !hasPerm {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "forbidden", "detail": "dispatch override requires users:update permission"})
+		return true
+	}
+	if len(strings.TrimSpace(reason)) < 10 {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "reason is required (≥10 chars)"})
+		return true
+	}
+	tenant := shared.TenantIDFromContext(r.Context())
+	if tenant == "" {
+		tenant = shared.DefaultTenant
+	}
+	if h.DB != nil {
+		_, _ = h.DB.ExecContext(r.Context(), `CREATE TABLE IF NOT EXISTS dispatch_overrides (
+            id TEXT PRIMARY KEY,
+            tenant_id TEXT NOT NULL DEFAULT '1',
+            trip_id TEXT NOT NULL,
+            vehicle_id TEXT,
+            driver_id TEXT,
+            blocked_by TEXT NOT NULL,
+            reason TEXT NOT NULL,
+            overridden_by TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )`)
+		id := uuid.NewString()
+		_, _ = h.DB.ExecContext(r.Context(), `INSERT INTO dispatch_overrides (id, tenant_id, trip_id, vehicle_id, driver_id, blocked_by, reason, overridden_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+			id, string(tenant), tripID, vehicleID, driverID, code, reason, user.UserID)
+	}
+	if h.Services != nil && h.Services.Audit != nil {
+		uid := domain.UserID(user.UserID)
+		rc := reason
+		_ = h.Services.Audit.LogAction(r.Context(), &uid, "dispatch_override", "trips", tripID, nil, &rc)
+	} else if h.DB != nil {
+		auditID := uuid.NewString()
+		_, _ = h.DB.ExecContext(r.Context(), `INSERT INTO audit_logs (id, user_id, action, table_name, record_id, new_values, created_at) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`,
+			auditID, user.UserID, "dispatch_override", "trips", tripID, reason)
+	}
+	return false
+}
+
 func (h *TripHandlers) AssignDriver(w http.ResponseWriter, r *http.Request) {
 	h.init()
 	tripID := chi.URLParam(r, "id")
-	driverID := r.FormValue("driver_id")
-	override := r.FormValue("override_maintenance") == "1" || r.FormValue("override_maintenance") == "true" || r.FormValue("override") == "true"
-	reason := r.FormValue("override_reason")
+	driverID, override, reason := h.extractAssignParams(r, "driver_id")
 
+	// Hard dispatch blocker via EnforceDispatchCompliance (Spec 21 §5)
+	if h.Services != nil && h.Services.Compliance != nil {
+		ctx := r.Context()
+		var vehicleID string
+		if h.DB != nil {
+			var v sql.NullString
+			_ = h.DB.QueryRowContext(ctx, `SELECT vehicle_id FROM trips WHERE id = ?`, tripID).Scan(&v)
+			if v.Valid {
+				vehicleID = v.String
+			}
+		}
+		var dPtr *domain.DriverID
+		var vPtr *domain.VehicleID
+		if driverID != "" {
+			did := domain.DriverID(driverID)
+			dPtr = &did
+		}
+		if vehicleID != "" {
+			vid := domain.VehicleID(vehicleID)
+			vPtr = &vid
+		}
+		if err := h.Services.Compliance.EnforceDispatchCompliance(ctx, dPtr, vPtr); err != nil {
+			if blocked := h.handleComplianceBlock(w, r, tripID, driverID, vehicleID, override, reason, err); blocked {
+				return
+			}
+		}
+	}
+
+	// Maintenance override still requires maintenance:update unless compliance override already handled users:update
 	user, _ := h.getUserFromContext(r)
 	if override && user != nil && h.AuthSrv != nil {
-		if !h.AuthSrv.Can(user.UserID, "maintenance", "update") {
-			http.Error(w, "maintenance override requires maintenance:update permission", http.StatusForbidden)
+		// For maintenance override path, require maintenance:update; for compliance we already checked users:update above.
+		// Allow either permission to proceed when override is requested.
+		if !h.AuthSrv.Can(user.UserID, "maintenance", "update") && !h.AuthSrv.Can(user.UserID, "users", "update") && user.Role != "admin" {
+			http.Error(w, "override requires maintenance:update or users:update permission", http.StatusForbidden)
 			return
 		}
 	}
@@ -348,10 +517,18 @@ func (h *TripHandlers) AssignDriver(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if strings.Contains(strings.ToLower(err.Error()), "dispatch blocked") || strings.Contains(strings.ToLower(err.Error()), "compliance") {
-			http.Error(w, err.Error(), http.StatusConflict)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusForbidden)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "dispatch_blocked", "blocked_by": err.Error()})
 			return
 		}
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if strings.Contains(r.Header.Get("Accept"), "application/json") || strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "assigned", "trip_id": tripID, "driver_id": driverID})
 		return
 	}
 	http.Redirect(w, r, "/trips/"+tripID, http.StatusSeeOther)
@@ -360,14 +537,40 @@ func (h *TripHandlers) AssignDriver(w http.ResponseWriter, r *http.Request) {
 func (h *TripHandlers) AssignVehicle(w http.ResponseWriter, r *http.Request) {
 	h.init()
 	tripID := chi.URLParam(r, "id")
-	vehicleID := r.FormValue("vehicle_id")
-	override := r.FormValue("override_maintenance") == "1" || r.FormValue("override_maintenance") == "true" || r.FormValue("override") == "true"
-	reason := r.FormValue("override_reason")
+	vehicleID, override, reason := h.extractAssignParams(r, "vehicle_id")
+
+	// Hard dispatch blocker via EnforceDispatchCompliance (Spec 21 §5)
+	if h.Services != nil && h.Services.Compliance != nil {
+		ctx := r.Context()
+		var driverID string
+		if h.DB != nil {
+			var d sql.NullString
+			_ = h.DB.QueryRowContext(ctx, `SELECT driver_id FROM trips WHERE id = ?`, tripID).Scan(&d)
+			if d.Valid {
+				driverID = d.String
+			}
+		}
+		var dPtr *domain.DriverID
+		var vPtr *domain.VehicleID
+		if driverID != "" {
+			did := domain.DriverID(driverID)
+			dPtr = &did
+		}
+		if vehicleID != "" {
+			vid := domain.VehicleID(vehicleID)
+			vPtr = &vid
+		}
+		if err := h.Services.Compliance.EnforceDispatchCompliance(ctx, dPtr, vPtr); err != nil {
+			if blocked := h.handleComplianceBlock(w, r, tripID, driverID, vehicleID, override, reason, err); blocked {
+				return
+			}
+		}
+	}
 
 	user, _ := h.getUserFromContext(r)
 	if override && user != nil && h.AuthSrv != nil {
-		if !h.AuthSrv.Can(user.UserID, "maintenance", "update") {
-			http.Error(w, "maintenance override requires maintenance:update permission", http.StatusForbidden)
+		if !h.AuthSrv.Can(user.UserID, "maintenance", "update") && !h.AuthSrv.Can(user.UserID, "users", "update") && user.Role != "admin" {
+			http.Error(w, "override requires maintenance:update or users:update permission", http.StatusForbidden)
 			return
 		}
 	}
@@ -381,10 +584,18 @@ func (h *TripHandlers) AssignVehicle(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if strings.Contains(strings.ToLower(err.Error()), "dispatch blocked") || strings.Contains(strings.ToLower(err.Error()), "compliance") {
-			http.Error(w, err.Error(), http.StatusConflict)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusForbidden)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "dispatch_blocked", "blocked_by": err.Error()})
 			return
 		}
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if strings.Contains(r.Header.Get("Accept"), "application/json") || strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "assigned", "trip_id": tripID, "vehicle_id": vehicleID})
 		return
 	}
 	http.Redirect(w, r, "/trips/"+tripID, http.StatusSeeOther)

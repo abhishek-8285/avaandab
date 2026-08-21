@@ -10,6 +10,12 @@ import (
 	"time"
 )
 
+// RoutingConfig holds route optimization provider settings (Spec 18 Wave A).
+type RoutingConfig struct {
+	Provider string // mock | osrm-public | osrm-selfhost | http://...
+	OSRMURL  string // override for self-host
+}
+
 // Config holds all application configuration.
 type Config struct {
 	AppEnv               string
@@ -39,6 +45,8 @@ type Config struct {
 	Alerts               AlertConfig
 	EWayBill             EWayBillConfig
 	GSTN                 GSTNConfig
+	FASTag               FASTagConfig
+	Routing              RoutingConfig
 }
 
 // GSTNConfig holds configuration for GSTN / GSP / E-Invoicing (Spec 07).
@@ -48,6 +56,14 @@ type GSTNConfig struct {
 	Password     string
 	ClientID     string
 	ClientSecret string
+}
+
+// FASTagConfig holds configuration for FASTag NETC (Spec 21 §6).
+type FASTagConfig struct {
+	UseMock  bool
+	APIKey   string
+	Enabled  bool
+	Endpoint string
 }
 
 // EWayBillConfig holds configuration for the E-Way Bill lifecycle worker (Spec 05 §7, Spec 07).
@@ -297,6 +313,20 @@ func Load() *Config {
 		Password:     os.Getenv("INTEGRATION_GSTN_PASSWORD"),
 		ClientID:     os.Getenv("INTEGRATION_GSTN_CLIENT_ID"),
 		ClientSecret: os.Getenv("INTEGRATION_GSTN_CLIENT_SECRET"),
+	}
+
+	// Spec 21 §6 — FASTag NETC configuration (fix: load INTEGRATION_FASTAG_USE_MOCK).
+	cfg.FASTag = FASTagConfig{
+		UseMock:  getEnvBool("INTEGRATION_FASTAG_USE_MOCK", true),
+		APIKey:   getEnv("INTEGRATION_FASTAG_API_KEY", os.Getenv("FASTAG_API_KEY")),
+		Enabled:  getEnvBool("INTEGRATION_FASTAG_ENABLED", false),
+		Endpoint: getEnv("INTEGRATION_FASTAG_ENDPOINT", "https://api.fastag.org"),
+	}
+
+	// Spec 18 — Route optimization (Wave A)
+	cfg.Routing = RoutingConfig{
+		Provider: getEnv("ROUTING_PROVIDER", "mock"),
+		OSRMURL:  getEnv("OSRM_URL", getEnv("ROUTING_OSRM_URL", "http://osrm.internal:5000")),
 	}
 
 	if err := cfg.Validate(); err != nil {

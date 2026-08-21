@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	maintsql "transport-app/internal/maintenance/infrastructure/sql"
@@ -90,6 +91,28 @@ func (uc *AssignVehicleUseCase) checkVehicleCompliance(ctx ports.TxContext, cmd 
 				recordComplianceCheck(ctx, "vehicle", cmd.VehicleID, expiry.name, "warning", "bypassed by exemption")
 				continue
 			}
+			if cmd.OverrideMaintenance && len(strings.TrimSpace(cmd.OverrideReason)) >= 10 {
+				reasonJSON := fmt.Sprintf(`{"vehicle_id":%q,"blocked_by":%q,"reason":%q}`, cmd.VehicleID, expiry.name, cmd.OverrideReason)
+				logAudit(ctx, "assign_vehicle_override", string(cmd.TripID), nil, &reasonJSON)
+				if dbGetter, ok := ctx.Repositories().AuditLogs().(repository.DBGetter); ok && dbGetter.DB() != nil {
+					tenant := cmd.TenantID
+					if tenant == "" {
+						tenant = shared.DefaultTenant
+					}
+					_, _ = dbGetter.DB().ExecContext(ctx, `CREATE TABLE IF NOT EXISTS dispatch_overrides (
+                        id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL DEFAULT '1', trip_id TEXT NOT NULL, vehicle_id TEXT, driver_id TEXT, blocked_by TEXT NOT NULL, reason TEXT NOT NULL, overridden_by TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now'))
+                    )`)
+					overriddenBy := ""
+					if uid := getUserID(ctx); uid != nil {
+						overriddenBy = string(*uid)
+					}
+					blockedBy := expiry.name + "_expiry"
+					_, _ = dbGetter.DB().ExecContext(ctx, `INSERT INTO dispatch_overrides (id, tenant_id, trip_id, vehicle_id, driver_id, blocked_by, reason, overridden_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+						fmt.Sprintf("ovr-%d", time.Now().UnixNano()), string(tenant), string(cmd.TripID), cmd.VehicleID, "", blockedBy, cmd.OverrideReason, overriddenBy)
+				}
+				recordComplianceCheck(ctx, "vehicle", cmd.VehicleID, expiry.name, "warning", "bypassed by override")
+				continue
+			}
 			recordComplianceCheck(ctx, "vehicle", cmd.VehicleID, expiry.name, "expired", fmt.Sprintf("vehicle %s expired", expiry.name))
 			return fmt.Errorf("Dispatch blocked: vehicle %s expired (compliance)", expiry.name)
 		} else if !expiry.when.IsZero() && expiry.when.Before(now.Add(7*24*time.Hour)) {
@@ -101,10 +124,32 @@ func (uc *AssignVehicleUseCase) checkVehicleCompliance(ctx ports.TxContext, cmd 
 	if puc := getPUCExpiry(ctx, cmd.VehicleID); puc != nil && !puc.IsZero() {
 		if puc.Before(now) {
 			if !isExempt(ctx, "vehicle", cmd.VehicleID, "puc") {
-				recordComplianceCheck(ctx, "vehicle", cmd.VehicleID, "puc", "expired", "vehicle PUC expired")
-				return fmt.Errorf("Dispatch blocked: vehicle PUC expired (compliance)")
+				if cmd.OverrideMaintenance && len(strings.TrimSpace(cmd.OverrideReason)) >= 10 {
+					reasonJSON := fmt.Sprintf(`{"vehicle_id":%q,"blocked_by":"puc","reason":%q}`, cmd.VehicleID, cmd.OverrideReason)
+					logAudit(ctx, "assign_vehicle_override", string(cmd.TripID), nil, &reasonJSON)
+					if dbGetter, ok := ctx.Repositories().AuditLogs().(repository.DBGetter); ok && dbGetter.DB() != nil {
+						tenant := cmd.TenantID
+						if tenant == "" {
+							tenant = shared.DefaultTenant
+						}
+						_, _ = dbGetter.DB().ExecContext(ctx, `CREATE TABLE IF NOT EXISTS dispatch_overrides (
+                            id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL DEFAULT '1', trip_id TEXT NOT NULL, vehicle_id TEXT, driver_id TEXT, blocked_by TEXT NOT NULL, reason TEXT NOT NULL, overridden_by TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now'))
+                        )`)
+						overriddenBy := ""
+						if uid := getUserID(ctx); uid != nil {
+							overriddenBy = string(*uid)
+						}
+						_, _ = dbGetter.DB().ExecContext(ctx, `INSERT INTO dispatch_overrides (id, tenant_id, trip_id, vehicle_id, driver_id, blocked_by, reason, overridden_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+							fmt.Sprintf("ovr-%d", time.Now().UnixNano()), string(tenant), string(cmd.TripID), cmd.VehicleID, "", "puc_expiry", cmd.OverrideReason, overriddenBy)
+					}
+					recordComplianceCheck(ctx, "vehicle", cmd.VehicleID, "puc", "warning", "bypassed by override")
+				} else {
+					recordComplianceCheck(ctx, "vehicle", cmd.VehicleID, "puc", "expired", "vehicle PUC expired")
+					return fmt.Errorf("Dispatch blocked: vehicle PUC expired (compliance)")
+				}
+			} else {
+				recordComplianceCheck(ctx, "vehicle", cmd.VehicleID, "puc", "warning", "bypassed by exemption")
 			}
-			recordComplianceCheck(ctx, "vehicle", cmd.VehicleID, "puc", "warning", "bypassed by exemption")
 		} else if puc.Before(now.Add(7 * 24 * time.Hour)) {
 			recordComplianceCheck(ctx, "vehicle", cmd.VehicleID, "puc", "warning", "vehicle PUC expires in <7 days")
 		}
