@@ -4,6 +4,7 @@ import { Trip } from '../types/api';
 
 const KEYS = {
   OFFLINE_TRIPS: '@avandab_offline_trips',
+  OFFLINE_EXPENSES: '@avandab_offline_expenses',
 };
 
 // ==========================================
@@ -24,6 +25,18 @@ export const Storage = {
 // 2. High-Performance SQLite (Structured Offline Data)
 // ==========================================
 let db: SQLite.SQLiteDatabase | null = null;
+
+export interface OfflineExpense {
+  id: number;
+  trip_id: string;
+  expense_type: string;
+  amount: number;
+  receipt_uri: string | null;
+  notes: string;
+  latitude: number | null;
+  longitude: number | null;
+  created_at: string;
+}
 
 export const initDatabase = async (): Promise<void> => {
   if (db) return;
@@ -48,6 +61,18 @@ export const initDatabase = async (): Promise<void> => {
       longitude REAL NOT NULL,
       timestamp TEXT NOT NULL,
       synced INTEGER DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS offline_expenses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      trip_id TEXT NOT NULL,
+      expense_type TEXT NOT NULL,
+      amount REAL NOT NULL,
+      receipt_uri TEXT,
+      notes TEXT NOT NULL DEFAULT '',
+      latitude REAL,
+      longitude REAL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `);
 };
@@ -104,5 +129,58 @@ export const DB = {
       `UPDATE offline_gps_logs SET synced = 1 WHERE id IN (${placeholders});`,
       ids
     );
+  },
+
+  // ── Offline Expenses cache (mirrors offlineQueue.offline_expenses) ──
+  async saveOfflineExpense(expense: {
+    trip_id: string;
+    expense_type: string;
+    amount: number;
+    receipt_uri?: string | null;
+    notes?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+  }): Promise<void> {
+    await initDatabase();
+    if (!db) return;
+    await db.runAsync(
+      `INSERT INTO offline_expenses (trip_id, expense_type, amount, receipt_uri, notes, latitude, longitude)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        expense.trip_id,
+        expense.expense_type,
+        expense.amount,
+        expense.receipt_uri || null,
+        expense.notes || '',
+        expense.latitude ?? null,
+        expense.longitude ?? null,
+      ]
+    );
+  },
+
+  async getOfflineExpenses(): Promise<OfflineExpense[]> {
+    await initDatabase();
+    if (!db) return [];
+    return await db.getAllAsync<OfflineExpense>('SELECT * FROM offline_expenses ORDER BY created_at ASC');
+  },
+
+  async getPendingOfflineExpenses(): Promise<OfflineExpense[]> {
+    await initDatabase();
+    if (!db) return [];
+    return await db.getAllAsync<OfflineExpense>('SELECT * FROM offline_expenses ORDER BY created_at ASC');
+  },
+
+  async clearOfflineExpense(id: number): Promise<void> {
+    await initDatabase();
+    if (!db) return;
+    await db.runAsync('DELETE FROM offline_expenses WHERE id = ?', [id]);
+  },
+
+  async clearOfflineExpenses(ids: number[]): Promise<void> {
+    if (!ids || ids.length === 0) return;
+    await initDatabase();
+    if (!db) return;
+    const placeholders = ids.map(() => '?').join(',');
+    await db.runAsync(`DELETE FROM offline_expenses WHERE id IN (${placeholders})`, ids);
   },
 };

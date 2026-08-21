@@ -14,11 +14,11 @@ export function startNetworkWatcher(): void {
     const isConnected = state.isConnected ?? false;
 
     if (isConnected && !wasConnected) {
-      // Just reconnected — flush offline queues
+      // Just reconnected — flush offline queues in batch (pods/expenses/gps)
       OfflineQueue.flush()
-        .then(({ podsFlushed, gpsFlushed }) => {
-          if (podsFlushed > 0 || gpsFlushed > 0) {
-            console.log(`[OfflineQueue] Flushed ${podsFlushed} PODs, ${gpsFlushed} GPS logs on reconnect`);
+        .then(({ podsFlushed, gpsFlushed, expensesFlushed }) => {
+          if (podsFlushed > 0 || gpsFlushed > 0 || (expensesFlushed ?? 0) > 0) {
+            console.log(`[OfflineQueue] Flushed ${podsFlushed} PODs, ${expensesFlushed ?? 0} Expenses, ${gpsFlushed} GPS logs on reconnect`);
           }
         })
         .catch((err) => {
@@ -28,6 +28,8 @@ export function startNetworkWatcher(): void {
       const driverId = useAuthStore.getState().user?.driverId || useAuthStore.getState().user?.id;
       if (driverId) {
         SyncEngine.syncPendingLogs(driverId).catch(() => {});
+        // Also flush offlineQueue via sync engine batch
+        SyncEngine.flushOfflineQueues().catch(() => {});
       }
     }
 
@@ -42,6 +44,8 @@ export function stopNetworkWatcher(): void {
   }
 }
 
+const OFFLINE_FLUSH_BATCH = 20;
+
 class SyncEngineService {
   private syncTimer: NodeJS.Timeout | null = null;
   private isSyncing = false;
@@ -51,6 +55,7 @@ class SyncEngineService {
 
     this.syncTimer = setInterval(() => {
       this.syncPendingLogs(driverId);
+      this.flushOfflineQueues();
     }, intervalMs);
 
     console.log(`[SYNC ENGINE] Auto-sync background service started (${intervalMs / 1000}s interval)`);
@@ -63,6 +68,23 @@ class SyncEngineService {
     }
   }
 
+  /**
+   * Flush OfflineQueue pods/expenses/gps in batch with continue-on-failure semantics.
+   * Each item is retried independently — one failure does not block the rest.
+   */
+  async flushOfflineQueues(): Promise<{ podsFlushed: number; expensesFlushed: number; gpsFlushed: number }> {
+    try {
+      const result = await OfflineQueue.flush();
+      return {
+        podsFlushed: result.podsFlushed,
+        expensesFlushed: (result as any).expensesFlushed ?? 0,
+        gpsFlushed: result.gpsFlushed,
+      };
+    } catch {
+      return { podsFlushed: 0, expensesFlushed: 0, gpsFlushed: 0 };
+    }
+  }
+
   async syncPendingLogs(driverId: string): Promise<{ syncedCount: number; error: string | null }> {
     if (this.isSyncing) return { syncedCount: 0, error: 'Sync already in progress' };
 
@@ -70,6 +92,8 @@ class SyncEngineService {
     try {
       const unsyncedLogs = await DB.getUnsyncedGPSLogs();
       if (!unsyncedLogs || unsyncedLogs.length === 0) {
+        // Even if no DB gps logs, try to flush OfflineQueue batch
+        await this.flushOfflineQueues();
         this.isSyncing = false;
         return { syncedCount: 0, error: null };
       }
@@ -77,32 +101,66 @@ class SyncEngineService {
       const syncEndpoint = `${getApiBaseURL()}/api/v1/telemetry/sync`;
       const token = useAuthStore.getState().token;
 
-      const response = await fetch(syncEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          driver_id: driverId,
-          logs: unsyncedLogs,
-        }),
-      });
+      // Batch flush in chunks of OFFLINE_FLUSH_BATCH with continue on partial failure
+      let totalSynced = 0;
+      let lastError: string | null = null;
 
-      if (!response.ok) {
-        throw new Error(`Server returned HTTP ${response.status}`);
+      for (let i = 0; i < unsyncedLogs.length; i += OFFLINE_FLUSH_BATCH) {
+        const batch = unsyncedLogs.slice(i, i + OFFLINE_FLUSH_BATCH);
+        try {
+          const response = await fetch(syncEndpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({
+              driver_id: driverId,
+              logs: batch,
+            }),
+          });
+
+          if (!response.ok) {
+            lastError = `Server returned HTTP ${response.status}`;
+            continue;
+          }
+
+          const result = await response.json();
+          if (result.success && Array.isArray(result.synced_ids)) {
+            await DB.markLogsAsSynced(result.synced_ids);
+            console.log(`[SYNC ENGINE SUCCESS] Synced & marked ${result.synced_ids.length} records in SQLite DB`);
+            totalSynced += result.synced_ids.length;
+          } else if (result.synced_ids) {
+            await DB.markLogsAsSynced(result.synced_ids);
+            totalSynced += result.synced_ids.length;
+          } else {
+            // No synced_ids but success true — mark whole batch
+            if (result.success) {
+              await DB.markLogsAsSynced(batch.map((b: any) => b.id));
+              totalSynced += batch.length;
+            } else {
+              lastError = 'Unexpected server response';
+              continue;
+            }
+          }
+        } catch (err: any) {
+          lastError = err.message;
+          continue;
+        }
       }
 
-      const result = await response.json();
-      if (result.success && Array.isArray(result.synced_ids)) {
-        await DB.markLogsAsSynced(result.synced_ids);
-        console.log(`[SYNC ENGINE SUCCESS] Synced & marked ${result.synced_ids.length} records in SQLite DB`);
-        this.isSyncing = false;
-        return { syncedCount: result.synced_ids.length, error: null };
+      // After DB GPS, also flush OfflineQueue pods/expenses/gps batch
+      try {
+        await this.flushOfflineQueues();
+      } catch {
+        // continue even if flush fails
       }
 
       this.isSyncing = false;
-      return { syncedCount: 0, error: 'Unexpected server response' };
+      if (totalSynced > 0) {
+        return { syncedCount: totalSynced, error: null };
+      }
+      return { syncedCount: 0, error: lastError };
     } catch (err: any) {
       this.isSyncing = false;
       console.log('[SYNC ENGINE WARNING] Auto-sync failed (re-queueing for offline retention):', err.message);

@@ -21,7 +21,8 @@
         "CAMERA",
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION"
+        "ACCESS_BACKGROUND_LOCATION",
+        "READ_MEDIA_IMAGES"
       ]
     },
     "plugins": [
@@ -36,16 +37,20 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Avandab requires location access to track active fleet trip routes and driver position."
         }
-      ]
-    ],
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
-    "plugins": [
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Avandab requires gallery access to attach expense receipts and delivery photos."
+        }
+      ],
       "expo-asset",
       "expo-font",
       "expo-secure-store",
       "expo-sqlite"
-    ]
+    ],
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
   }
 }

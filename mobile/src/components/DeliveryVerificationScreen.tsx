@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -14,10 +14,20 @@ import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImageManipulator from 'expo-image-manipulator';
+import * as Location from 'expo-location';
 import { Colors, Font, Radius, Spacing } from '../constants/theme';
 import { getApiBaseURL } from '../constants/network';
 import { useAuthStore } from '../stores/authStore';
 import { OfflineQueue } from '../services/offlineQueue';
+
+// react-native-signature-canvas is WebView based; fallback to placeholder if not installed in test
+let SignaturePad: any = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  SignaturePad = require('react-native-signature-canvas').default;
+} catch {
+  SignaturePad = null;
+}
 
 interface DeliveryVerificationScreenProps {
   tripId?: string;
@@ -38,7 +48,13 @@ export function DeliveryVerificationScreen({
   const [consigneeName, setConsigneeName] = useState('');
   const [consigneePhone, setConsigneePhone] = useState('');
   const [notes, setNotes] = useState('');
+  const [quantityShort, setQuantityShort] = useState('');
+  const [damageQty, setDamageQty] = useState('');
+  const [refusalReason, setRefusalReason] = useState('');
+  const [signatureData, setSignatureData] = useState<string | null>(null);
+  const [showSignaturePad, setShowSignaturePad] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const signatureRef = useRef<any>(null);
 
   const compressPhoto = async (uri: string): Promise<string> => {
     try {
@@ -65,13 +81,38 @@ export function DeliveryVerificationScreen({
     }
   };
 
+  const handleSignatureOK = (sig: string) => {
+    setSignatureData(sig);
+    setShowSignaturePad(false);
+  };
+
+  const clearSignature = () => {
+    signatureRef.current?.clearSignature();
+    setSignatureData(null);
+  };
+
+  const getCurrentGPS = async (): Promise<{ latitude: number | null; longitude: number | null }> => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return { latitude: null, longitude: null };
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      return { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+    } catch {
+      return { latitude: null, longitude: null };
+    }
+  };
+
   const submit = async () => {
-    if (!capturedPhoto && !consigneeName.trim()) {
-      Alert.alert('Missing Fields', 'Please add a consignee name or capture a photo proof.');
+    if (!capturedPhoto && !consigneeName.trim() && !signatureData) {
+      Alert.alert('Missing Fields', 'Please add a consignee name, signature or capture a photo proof.');
       return;
     }
 
     setSubmitting(true);
+    const gps = await getCurrentGPS();
+    const shortVal = quantityShort ? parseFloat(quantityShort) : 0;
+    const damageVal = damageQty ? parseFloat(damageQty) : 0;
+
     const form = new FormData();
     form.append('consignee_name', consigneeName.trim());
     if (consigneePhone.trim()) {
@@ -86,6 +127,23 @@ export function DeliveryVerificationScreen({
         name: 'pod.jpg',
         type: 'image/jpeg',
       } as any);
+    }
+    if (signatureData) {
+      form.append('pod_signature_data', signatureData);
+      form.append('signature_dataurl', signatureData);
+    }
+    if (!isNaN(shortVal) && shortVal > 0) {
+      form.append('quantity_short', String(shortVal));
+    }
+    if (!isNaN(damageVal) && damageVal > 0) {
+      form.append('damage_qty', String(damageVal));
+    }
+    if (refusalReason.trim()) {
+      form.append('refusal_reason', refusalReason.trim());
+    }
+    if (gps.latitude != null && gps.longitude != null) {
+      form.append('latitude', String(gps.latitude));
+      form.append('longitude', String(gps.longitude));
     }
 
     try {
@@ -111,11 +169,18 @@ export function DeliveryVerificationScreen({
         { text: 'OK', onPress: onComplete },
       ]);
     } catch {
-      // Queue for automatic offline sync retry
+      // Queue for automatic offline sync retry — persist all ePOD fields
       await OfflineQueue.enqueuePOD(tripId, {
         consignee_name: consigneeName.trim() || 'Consignee',
+        consignee_phone: consigneePhone.trim() || null,
         notes: notes.trim(),
         photo_uri: capturedPhoto,
+        latitude: gps.latitude,
+        longitude: gps.longitude,
+        pod_signature_data: signatureData,
+        quantity_short: isNaN(shortVal) ? null : shortVal,
+        damage_qty: isNaN(damageVal) ? null : damageVal,
+        refusal_reason: refusalReason.trim() || null,
       });
       Alert.alert('Saved Offline', 'Delivery proof queued in offline storage. Will submit when back online.', [
         { text: 'OK', onPress: onComplete },
@@ -125,7 +190,7 @@ export function DeliveryVerificationScreen({
     }
   };
 
-  const isSubmitDisabled = submitting || (!capturedPhoto && !consigneeName.trim());
+  const isSubmitDisabled = submitting || (!capturedPhoto && !consigneeName.trim() && !signatureData);
 
   return (
     <View style={styles.container}>
@@ -167,6 +232,41 @@ export function DeliveryVerificationScreen({
               </View>
             </CameraView>
           )}
+        </View>
+      ) : showSignaturePad ? (
+        <View style={styles.signaturePadContainer}>
+          <View style={styles.signatureHeader}>
+            <Text style={styles.signatureHeaderText}>CONSIGNEE SIGNATURE</Text>
+            <TouchableOpacity onPress={() => setShowSignaturePad(false)}>
+              <MaterialCommunityIcons name="close" size={20} color={Colors.textPrimary} />
+            </TouchableOpacity>
+          </View>
+          {SignaturePad ? (
+            <SignaturePad
+              ref={signatureRef}
+              onOK={handleSignatureOK}
+              onEmpty={() => Alert.alert('Empty Signature', 'Please provide a signature.')}
+              descriptionText="Sign above"
+              clearText="Clear"
+              confirmText="Save"
+              webStyle={`.m-signature-pad {box-shadow: none; border: 1px solid #cbd5e1;} .m-signature-pad--body {border: none;}`}
+            />
+          ) : (
+            <View style={styles.signatureFallback}>
+              <Text style={styles.cardSubtitle}>Signature pad not available in this environment.</Text>
+              <TouchableOpacity style={styles.permissionBtn} onPress={() => handleSignatureOK('data:image/png;base64,mock_signature_data')}>
+                <Text style={styles.permissionBtnText}>MOCK SIGN</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          <View style={styles.signatureActions}>
+            <TouchableOpacity style={styles.secondaryBtn} onPress={clearSignature}>
+              <Text style={styles.secondaryBtnText}>CLEAR</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.primaryBtn} onPress={() => signatureRef.current?.readSignature()}>
+              <Text style={styles.primaryBtnText}>SAVE SIGNATURE</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -218,6 +318,91 @@ export function DeliveryVerificationScreen({
                 numberOfLines={3}
               />
             </View>
+          </View>
+
+          {/* Delivery Exceptions — Short / Damage / Refusal */}
+          <View style={styles.card}>
+            <View style={styles.cardHeaderRow}>
+              <Text style={styles.cardHeader}>DELIVERY EXCEPTIONS</Text>
+              <Text style={styles.cardMeta}>IF ANY</Text>
+            </View>
+            <Text style={styles.cardSubtitle}>Record short quantity, damage or refusal if applicable.</Text>
+
+            <View style={styles.rowGroup}>
+              <View style={[styles.formGroup, { flex: 1 }]}>
+                <Text style={styles.label}>SHORT QTY</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="0"
+                  placeholderTextColor={Colors.textMuted}
+                  value={quantityShort}
+                  onChangeText={setQuantityShort}
+                  keyboardType="numeric"
+                />
+              </View>
+              <View style={{ width: 12 }} />
+              <View style={[styles.formGroup, { flex: 1 }]}>
+                <Text style={styles.label}>DAMAGE QTY</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="0"
+                  placeholderTextColor={Colors.textMuted}
+                  value={damageQty}
+                  onChangeText={setDamageQty}
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>REFUSAL REASON</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="e.g. Damaged packaging refused"
+                placeholderTextColor={Colors.textMuted}
+                value={refusalReason}
+                onChangeText={setRefusalReason}
+                multiline
+                numberOfLines={2}
+              />
+            </View>
+          </View>
+
+          {/* Signature Pad Card */}
+          <View style={styles.card}>
+            <View style={styles.cardHeaderRow}>
+              <Text style={styles.cardHeader}>CONSIGNEE SIGNATURE</Text>
+              {signatureData ? (
+                <Text style={styles.cardMetaSuccess}>CAPTURED</Text>
+              ) : (
+                <Text style={styles.cardMeta}>RECOMMENDED</Text>
+              )}
+            </View>
+            <Text style={styles.cardSubtitle}>Capture receiver signature for ePOD verification.</Text>
+
+            {signatureData ? (
+              <View style={styles.signaturePreviewBox}>
+                <Image source={{ uri: signatureData }} style={styles.signaturePreview} resizeMode="contain" />
+                <View style={styles.signaturePreviewActions}>
+                  <TouchableOpacity style={styles.secondaryBtn} onPress={clearSignature}>
+                    <Text style={styles.secondaryBtnText}>CLEAR</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.secondaryBtn} onPress={() => setShowSignaturePad(true)}>
+                    <Text style={styles.secondaryBtnText}>RETAKE</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.signaturePlaceholder}
+                activeOpacity={0.8}
+                onPress={() => setShowSignaturePad(true)}
+              >
+                <MaterialCommunityIcons name="draw" size={28} color={Colors.primary} />
+                <Text style={styles.placeholderTitle}>TAP TO SIGN</Text>
+                <Text style={styles.placeholderSub}>Consignee signature required</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Photo POD Card */}
@@ -388,6 +573,10 @@ const styles = StyleSheet.create({
   formGroup: {
     marginBottom: Spacing.md,
   },
+  rowGroup: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
   label: {
     fontSize: 10,
     fontWeight: '800',
@@ -412,6 +601,16 @@ const styles = StyleSheet.create({
   },
   photoPlaceholder: {
     height: 140,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderStyle: 'dashed',
+    borderRadius: Radius.md,
+    backgroundColor: Colors.surfaceSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  signaturePlaceholder: {
+    height: 120,
     borderWidth: 1,
     borderColor: Colors.border,
     borderStyle: 'dashed',
@@ -462,6 +661,88 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 1,
     fontFamily: Font.mono,
+  },
+  signaturePreviewBox: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.md,
+    padding: 8,
+    backgroundColor: Colors.surfaceSecondary,
+  },
+  signaturePreview: {
+    width: '100%',
+    height: 100,
+    backgroundColor: '#fff',
+    borderRadius: Radius.sm,
+  },
+  signaturePreviewActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+    marginTop: 8,
+  },
+  secondaryBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: Radius.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  secondaryBtnText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: Colors.textSecondary,
+    letterSpacing: 1,
+    fontFamily: Font.mono,
+  },
+  primaryBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.primary,
+  },
+  primaryBtnText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: Colors.textOnPrimary,
+    letterSpacing: 1,
+    fontFamily: Font.mono,
+  },
+  signaturePadContainer: {
+    flex: 1,
+    backgroundColor: Colors.surface,
+  },
+  signatureHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderLight,
+  },
+  signatureHeaderText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+    letterSpacing: 1.5,
+    fontFamily: Font.mono,
+  },
+  signatureFallback: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    gap: 12,
+  },
+  signatureActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: Spacing.md,
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderLight,
   },
   submitBtn: {
     height: 48,
