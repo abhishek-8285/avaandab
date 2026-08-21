@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 
@@ -96,8 +97,9 @@ func (h *KharchaHandlers) Create(w http.ResponseWriter, r *http.Request) {
 	if category == "fuel" {
 		_, _ = fmt.Sscanf(r.FormValue("fuel_litres"), "%f", &fuelLitres)
 	}
+	idemKey := r.FormValue("idempotency_key")
 
-	expenseID, err := h.Services.Kharcha.CreateExpense(ctx, tripID, driverID, category, amount, description, receiptURL, fuelLitres)
+	expenseID, err := h.Services.Kharcha.CreateExpense(ctx, tripID, driverID, category, amount, description, receiptURL, fuelLitres, idemKey)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = fmt.Fprintf(w, `<div class="px-6 py-4 bg-red-50 text-red-600 text-sm font-semibold border-l-4 border-red-500">Error: %s</div>`, template.HTMLEscapeString(err.Error()))
@@ -232,6 +234,13 @@ func (h *KharchaHandlers) DeliverWithPOD(w http.ResponseWriter, r *http.Request)
 	consigneeName := r.FormValue("consignee_name")
 	consigneePhone := r.FormValue("consignee_phone")
 	notes := r.FormValue("notes")
+	signatureData := r.FormValue("pod_signature_data")
+	if signatureData == "" {
+		signatureData = r.FormValue("signature_dataurl")
+	}
+	quantityShort, _ := strconv.ParseFloat(r.FormValue("quantity_short"), 64)
+	damageQty, _ := strconv.ParseFloat(r.FormValue("damage_qty"), 64)
+	refusalReason := r.FormValue("refusal_reason")
 
 	// Upload POD photo using existing UploadFile if provided
 	var podPhotoURL string
@@ -251,12 +260,26 @@ func (h *KharchaHandlers) DeliverWithPOD(w http.ResponseWriter, r *http.Request)
 		ConsigneePhone: consigneePhone,
 		Notes:          notes,
 		PODPhotoURL:    podPhotoURL,
+		SignatureURL:   signatureData,
 	}
 
 	tripNum, err := h.Services.Trips.DeliverWithPOD(ctx, tripID, req)
 	if err != nil {
 		writePODJSONError(w, err.Error(), http.StatusBadRequest)
 		return
+	}
+
+	// Persist ePOD signature + delivery discrepancies (Spec 21 §3 00073) — best-effort, never fails delivery
+	if h.DB != nil && (signatureData != "" || quantityShort != 0 || damageQty != 0 || refusalReason != "") {
+		_, _ = h.DB.ExecContext(ctx,
+			`UPDATE trips SET pod_signature_data = COALESCE(NULLIF(?,''), pod_signature_data),
+			 pod_quantity_short = CASE WHEN ? != 0 THEN ? ELSE pod_quantity_short END,
+			 pod_damage_qty = CASE WHEN ? != 0 THEN ? ELSE pod_damage_qty END,
+			 pod_refusal_reason = COALESCE(NULLIF(?,''), pod_refusal_reason),
+			 pod_consignee_name = COALESCE(NULLIF(?,''), pod_consignee_name),
+			 pod_consignee_phone = COALESCE(NULLIF(?,''), pod_consignee_phone)
+			 WHERE id = ?`,
+			signatureData, quantityShort, quantityShort, damageQty, damageQty, refusalReason, consigneeName, consigneePhone, tripID)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

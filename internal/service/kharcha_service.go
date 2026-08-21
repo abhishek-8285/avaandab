@@ -326,7 +326,8 @@ func (s *KharchaService) fuelAuditEnforce(ctx context.Context, db interface {
 
 // CreateExpense logs a new driver kharcha claim. fuelLitres is persisted
 // only for fuel claims (Spec 03 §3.2 step 1; NULL elsewhere).
-func (s *KharchaService) CreateExpense(ctx context.Context, tripID, driverID, category string, amount float64, description, receiptURL string, fuelLitres float64) (string, error) {
+// IdempotencyKey prevents duplicate offline sync (Spec 21.1 Seam 2); empty = no dedup.
+func (s *KharchaService) CreateExpense(ctx context.Context, tripID, driverID, category string, amount float64, description, receiptURL string, fuelLitres float64, idempotencyKey ...string) (string, error) {
 	if amount <= 0 {
 		return "", fmt.Errorf("amount must be greater than zero")
 	}
@@ -364,13 +365,29 @@ func (s *KharchaService) CreateExpense(ctx context.Context, tripID, driverID, ca
 	if category == "fuel" && fuelLitres > 0 {
 		litres = fuelLitres
 	}
+	var idemKey interface{} = nil
+	if len(idempotencyKey) > 0 && idempotencyKey[0] != "" {
+		idemKey = idempotencyKey[0]
+		// Idempotency check: if key exists, return existing ID (offline retry safe)
+		var existingID string
+		if err := db.QueryRowContext(ctx, `SELECT id FROM driver_expenses WHERE idempotency_key = ?`, idemKey).Scan(&existingID); err == nil && existingID != "" {
+			return existingID, nil
+		}
+	}
 
 	_, err := db.ExecContext(ctx,
 		`INSERT INTO driver_expenses
-		 (id, trip_id, driver_id, expense_type, category, amount, description, receipt_url, fuel_litres, status, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
-		expID, tID, dID, category, category, amount, desc, recURL, litres, time.Now())
+		 (id, trip_id, driver_id, expense_type, category, amount, description, receipt_url, fuel_litres, status, created_at, idempotency_key)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
+		expID, tID, dID, category, category, amount, desc, recURL, litres, time.Now(), idemKey)
 	if err != nil {
+		// Handle race: unique index violation → return existing
+		if idemKey != nil {
+			var existingID string
+			if err2 := db.QueryRowContext(ctx, `SELECT id FROM driver_expenses WHERE idempotency_key = ?`, idemKey).Scan(&existingID); err2 == nil && existingID != "" {
+				return existingID, nil
+			}
+		}
 		return "", err
 	}
 
