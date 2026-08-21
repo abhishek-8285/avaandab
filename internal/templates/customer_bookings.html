@@ -1,0 +1,31 @@
+{{define "customer_bookings.html"}}
+{{template "page_header.html" (dict "Title" "My Shipments" "Subtitle" "Your bookings and shipment history")}}
+
+<div class="bg-surface-container-lowest border border-border-subtle rounded shadow-sm flex flex-col h-full overflow-hidden">
+    <!-- Sticky Filter Bar (Stitch Design) -->
+    <form method="GET" action="/customer/bookings" class="px-4 py-2 border-b border-border-subtle flex flex-wrap items-center gap-2 bg-surface-container-lowest sticky top-0 z-10">
+        <span class="text-xs font-medium text-secondary mr-2">Filters:</span>
+        <a href="/customer/bookings" class="px-3 py-1 rounded-full border text-xs font-medium transition-colors {{if eq .StatusFilter ""}}border-primary bg-primary text-on-primary{{else}}border-border-subtle bg-surface-container-lowest text-secondary hover:bg-surface-container-low{{end}}">All Shipments</a>
+        <a href="/customer/bookings?status=pending" class="px-3 py-1 rounded-full border text-xs font-medium transition-colors {{if eq .StatusFilter "pending"}}border-primary bg-primary text-on-primary{{else}}border-border-subtle bg-surface-container-lowest text-secondary hover:bg-surface-container-low{{end}}">Pending</a>
+        <a href="/customer/bookings?status=confirmed" class="px-3 py-1 rounded-full border text-xs font-medium transition-colors {{if eq .StatusFilter "confirmed"}}border-primary bg-primary text-on-primary{{else}}border-border-subtle bg-surface-container-lowest text-secondary hover:bg-surface-container-low{{end}}">Confirmed</a>
+        <a href="/customer/bookings?status=completed" class="px-3 py-1 rounded-full border text-xs font-medium transition-colors {{if eq .StatusFilter "completed"}}border-primary bg-primary text-on-primary{{else}}border-border-subtle bg-surface-container-lowest text-secondary hover:bg-surface-container-low{{end}}">Completed</a>
+        <a href="/customer/bookings?status=cancelled" class="px-3 py-1 rounded-full border text-xs font-medium transition-colors {{if eq .StatusFilter "cancelled"}}border-primary bg-primary text-on-primary{{else}}border-border-subtle bg-surface-container-lowest text-secondary hover:bg-surface-container-low{{end}}">Cancelled</a>
+
+        <div class="ml-auto flex items-center gap-3">
+            <div class="relative min-w-[200px]">
+                <span class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-sm">search</span>
+                <input type="text" name="q" value="{{.Query}}" placeholder="Search shipment..."
+                    class="bg-surface-container-lowest border border-border-subtle rounded py-1.5 pl-9 pr-4 text-sm w-full focus:outline-none focus:border-primary transition-colors">
+            </div>
+            <button type="submit" class="px-3 py-1 rounded bg-primary text-on-primary text-xs font-medium hover:bg-primary/90 transition-colors">
+                Search
+            </button>
+        </div>
+    </form>
+
+    <!-- Data Table Fragment (Datastar refresh target) — reuses booking_list_table partial -->
+    <div id="list-table">
+        {{template "booking_list_table.html" .}}
+    </div>
+</div>
+{{end}}

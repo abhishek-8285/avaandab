@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"html/template"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
@@ -474,6 +475,57 @@ func TestAllTemplatesRenderCleanly(t *testing.T) {
 				ExtensionCount: 0,
 			},
 		}},
+		{"scorecard_leaderboard.html", buildTemplateData(PageData{
+			Title: "Driver Scorecard",
+			Extra: map[string]interface{}{
+				"Leaderboard": []service.LeaderboardRow{{
+					DriverID:   "d1",
+					DriverCode: "DRV-001",
+					DriverName: "John Doe",
+					Score:      88.5,
+					Tier:       "A",
+					EventCount: 10,
+					Sparkline:  "<svg></svg>",
+				}},
+				"Stats": service.ScorecardStats{
+					TotalDrivers: 1,
+					TierA:        1,
+					TierB:        0,
+					TierC:        0,
+					AvgScore:     88.5,
+				},
+			},
+		})},
+		{"scorecard_table.html", map[string]interface{}{
+			"Leaderboard": []service.LeaderboardRow{{
+				DriverID:   "d1",
+				DriverCode: "DRV-001",
+				DriverName: "John Doe",
+				Score:      88.5,
+				Tier:       "A",
+				EventCount: 10,
+				Sparkline:  "<svg></svg>",
+			}},
+			"Stats": service.ScorecardStats{TotalDrivers: 1, AvgScore: 88.5},
+		}},
+		{"scorecard_driver.html", buildTemplateData(PageData{
+			Title: "Driver Scorecard",
+			Extra: map[string]interface{}{
+				"Detail": &service.DriverDetail{
+					DriverID:   "d1",
+					DriverCode: "DRV-001",
+					DriverName: "John Doe",
+					Score:      88.5,
+					Tier:       "A",
+					EventCount: 10,
+					History: []service.ScorePoint{{
+						Score:     88.5,
+						PeriodEnd: time.Now(),
+						Tier:      "A",
+					}},
+				},
+			},
+		})},
 	}
 
 	for _, tc := range testCases {
@@ -582,7 +634,30 @@ func TestCanTemplateFunc(t *testing.T) {
 
 func TestLayoutNoHardcodedAdminRole(t *testing.T) {
 	content, err := os.ReadFile("internal/templates/layout.html")
+	if err != nil {
+		content, err = os.ReadFile("../templates/layout.html")
+	}
 	require.NoError(t, err)
 
 	assert.NotContains(t, string(content), `eq .User.Role "admin"`, "layout.html should not contain hardcoded role check")
+}
+
+func TestRenderError_LayoutVersion(t *testing.T) {
+	if cwd, _ := os.Getwd(); filepath.Base(cwd) == "handlers" {
+		_ = os.Chdir("../..")
+	}
+	tmpl, err := parseTemplates(&mockAuthSvc{})
+	require.NoError(t, err)
+
+	app := &App{Templates: tmpl}
+	w := httptest.NewRecorder()
+
+	user := &auth.SessionData{UserID: "u-1", Role: "admin", Name: "Admin User"}
+	app.renderError(w, http.StatusInternalServerError, "Test Error Title", "Detailed error message here", user)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	body := w.Body.String()
+	assert.Contains(t, body, "Test Error Title")
+	assert.Contains(t, body, "Detailed error message here")
+	assert.NotContains(t, body, "can't evaluate field Version", "renderError should not produce template Version evaluation error")
 }

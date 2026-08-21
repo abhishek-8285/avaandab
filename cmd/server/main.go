@@ -633,11 +633,13 @@ func main() {
 	sseHub := realtime.NewHub(cfg.LiveMap.SSEKeepaliveSec, logger)
 	realtime.AttachToBus(eventBus, sseHub)
 
-	// ETA service (pure read path, Spec 04 §5, 3D)
+	// ETA service (pure read path, Spec 04 §5, 3D) + history recorder (Spec 18 Wave A bridge)
 	etaService := eta.NewEtaService(database, cfg.LiveMap.EtaStaleMin, cfg.LiveMap.EtaWindowMin, cfg.LiveMap.EtaGuardMaxRegressMin)
 	if app.Share != nil {
 		app.Share.EtaService = etaService
 	}
+	// Bridge: TripCompleted → eta_history segments (must be before Wave B backhaul)
+	etaService.SubscribeTripEvents(eventBus, logger)
 
 	// Protected: Telemetry, and all /api/v1/* routes require a valid session or Bearer token
 	r.Group(func(r chi.Router) {
@@ -663,6 +665,10 @@ func main() {
 		paymentAPIHandler.Register(r)
 		integrationHandler.Register(r)
 		geofenceAPIHandler.Register(r)
+		// Spec 18 Wave A — route optimization API (tenant-scoped, permission-gated)
+		r.With(middleware.ResourcePermission(authSvc, "routes", "create")).Post("/api/v1/routes/optimize", app.Routes.Optimize)
+		r.With(middleware.ResourcePermission(authSvc, "routes", "read")).Get("/api/v1/routes/optimize/jobs", app.Routes.OptimizeJobs)
+		r.With(middleware.ResourcePermission(authSvc, "routes", "read")).Get("/api/v1/routes/optimize/jobs/{jobID}", app.Routes.OptimizeJobStatus)
 		r.Get("/api/v1/hsn-sac/search", app.Invoices.SearchHSNSAC)
 		r.Get("/api/v1/drivers/me", app.Drivers.GetMe)
 		r.Post("/api/v1/trips/{id}/deliver-pod", app.Kharcha.DeliverWithPOD)
@@ -1058,6 +1064,13 @@ func main() {
 			// e-POD delivery from driver mobile
 			r.Post("/trips/{id}/deliver-pod", app.Kharcha.DeliverWithPOD)
 
+			// Shipper portal (Spec 21 §2.3) — customer-scoped bookings/invoices/tracking + feedback
+			customerPortal := handlers.NewCustomerPortalHandlers(app)
+			r.With(middleware.ResourcePermission(authSvc, "customer_portal", "read")).Get("/customer/bookings", customerPortal.ListMyBookings)
+			r.With(middleware.ResourcePermission(authSvc, "customer_portal", "read")).Get("/customer/invoices", customerPortal.ListMyInvoices)
+			r.With(middleware.ResourcePermission(authSvc, "customer_portal", "read")).Get("/customer/tracking/{trip_id}", customerPortal.Tracking)
+			r.With(middleware.ResourcePermission(authSvc, "customer_portal", "write")).Post("/customer/feedback", customerPortal.Feedback)
+
 			// Profile (auth)
 			r.Get("/profile", app.Auth.ProfilePage)
 			r.Post("/profile", app.Auth.UpdateProfile)
@@ -1234,6 +1247,10 @@ func main() {
 	// E-Way Bill expiry monitor (Spec 07 §2.8)
 	ewbMonitor := ewaybill.NewMonitor(ewbService, ewbCfg)
 	go ewbMonitor.Run(ctx)
+
+	// ETA history cleanup + monthly aggregation crons (Spec 18 Wave A — 90-day retention)
+	go etaService.RunCleanupCron(ctx, 24*time.Hour, logger)
+	go etaService.RunAggregationCron(ctx, 24*time.Hour, logger)
 
 	go func() {
 		logger.Info("Server listening", "address", addr)
