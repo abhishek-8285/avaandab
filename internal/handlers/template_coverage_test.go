@@ -22,6 +22,7 @@ import (
 	invoiceapp "transport-app/internal/invoice/application"
 	maintenancedomain "transport-app/internal/maintenance/domain"
 	"transport-app/internal/service"
+	"transport-app/internal/shared"
 	"transport-app/internal/telemetry"
 	tripapp "transport-app/internal/trip/application"
 	vehicleapp "transport-app/internal/vehicle/application"
@@ -92,7 +93,7 @@ func TestAllTemplatesRender(t *testing.T) {
 
 	sampleDevice := telemetry.Device{
 		ID:         "dev-1",
-		TenantID:   "1",
+		TenantID:   string(shared.DefaultTenant),
 		IMEI:       "123456789012345",
 		DeviceType: telemetry.DeviceTypeHardware,
 		Status:     telemetry.DeviceStatusAssigned,
@@ -103,7 +104,7 @@ func TestAllTemplatesRender(t *testing.T) {
 
 	sampleQuarantine := telemetry.QuarantineEntry{
 		ID:         "q-1",
-		TenantID:   "1",
+		TenantID:   string(shared.DefaultTenant),
 		IMEI:       "123456789012345",
 		Source:     "http_ingest",
 		RawPayload: `{"imei":"123456789012345"}`,
@@ -114,7 +115,7 @@ func TestAllTemplatesRender(t *testing.T) {
 
 	sampleZone := geofencedomain.Geofence{
 		ID:        "geo-1",
-		TenantID:  "1",
+		TenantID:  string(shared.DefaultTenant),
 		Name:      "Warehouse A",
 		Kind:      geofencedomain.KindDepot,
 		Shape:     geofencedomain.ShapeCircle,

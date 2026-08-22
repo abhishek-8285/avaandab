@@ -190,6 +190,7 @@
         .story-progress{position:absolute;top:0;left:0;right:0;height:3px;z-index:6}
         .story-progress-bar{height:100%;background:var(--color-primary);transform:scaleX(0);transform-origin:left}
         .story-stage{position:sticky;top:80px;height:calc(100vh - 80px);height:calc(100dvh - 80px);min-height:460px;overflow:hidden;--roadH:96px}
+        html.cookie-open .story-stage{height:calc(100vh - 80px - var(--bannerH,0px));height:calc(100dvh - 80px - var(--bannerH,0px));min-height:0}
         .scene-sky{position:absolute;inset:0;background:radial-gradient(120% 90% at 72% 8%,color-mix(in srgb,var(--color-primary) 20%,transparent) 0%,transparent 55%),linear-gradient(180deg,color-mix(in srgb,var(--color-primary) 10%,transparent),transparent 60%)}
         .scene-glow{position:absolute;top:-30%;right:6%;width:380px;height:380px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--color-primary) 32%,transparent) 0%,transparent 70%);filter:blur(12px);animation:glowPulse 7s ease-in-out infinite alternate}
         @keyframes glowPulse{from{opacity:.5;transform:scale(1)}to{opacity:.95;transform:scale(1.12)}}

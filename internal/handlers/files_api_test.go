@@ -65,10 +65,13 @@ func filesAPIContext(r *http.Request) *http.Request {
 	return r.WithContext(ctx)
 }
 
-// pngBytes is a minimal valid PNG header so magic-byte detection passes.
-var pngBytes = []byte{
-	0x89, 'P', 'N', 'G', 0x0d, 0x0a, 0x1a, 0x0a,
-	0x00, 0x00, 0x00, 0x0d, 'I', 'H', 'D', 'R',
+// pngBytes returns a minimal valid PNG header so magic-byte detection passes.
+// A function (not a package-level var) keeps test state isolated per call.
+func pngBytes() []byte {
+	return []byte{
+		0x89, 'P', 'N', 'G', 0x0d, 0x0a, 0x1a, 0x0a,
+		0x00, 0x00, 0x00, 0x0d, 'I', 'H', 'D', 'R',
+	}
 }
 
 func multipartFileRequest(t *testing.T, url string, filename string, content []byte, fields map[string]string) *http.Request {
@@ -94,7 +97,7 @@ func TestFilesAPIUploadRoundTrip(t *testing.T) {
 	app, rtr, dbConn := setupFilesAPITest(t, nil) // nil map => mockAuthSvc allows everything
 
 	// Upload
-	req := multipartFileRequest(t, "/api/v1/files", "proof.png", pngBytes, map[string]string{
+	req := multipartFileRequest(t, "/api/v1/files", "proof.png", pngBytes(), map[string]string{
 		"uploadable_type": "trip_pod",
 		"uploadable_id":   "trip-123",
 	})
@@ -169,7 +172,7 @@ func TestFilesAPIValidation(t *testing.T) {
 	_, rtr, _ := setupFilesAPITest(t, nil) // nil map => mockAuthSvc allows everything
 
 	// Invalid uploadable_type rejected
-	req := multipartFileRequest(t, "/api/v1/files", "x.png", pngBytes, map[string]string{
+	req := multipartFileRequest(t, "/api/v1/files", "x.png", pngBytes(), map[string]string{
 		"uploadable_type": "not_a_type",
 		"uploadable_id":   "e1",
 	})
@@ -204,7 +207,7 @@ func TestFilesAPIPermissionsDenied(t *testing.T) {
 	})
 
 	// Permission denied for upload (no files:create)
-	req3 := multipartFileRequest(t, "/api/v1/files", "y.png", pngBytes, map[string]string{
+	req3 := multipartFileRequest(t, "/api/v1/files", "y.png", pngBytes(), map[string]string{
 		"uploadable_type": "general",
 	})
 	rec := httptest.NewRecorder()

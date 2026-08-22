@@ -11,6 +11,7 @@ import (
 
 	"transport-app/internal/events"
 	"transport-app/internal/service"
+	"transport-app/internal/shared"
 )
 
 func openOpsAlertTestDB(t *testing.T) *sql.DB {
@@ -52,7 +53,7 @@ func TestOpsAlert_CreateAndList(t *testing.T) {
 	ctx := context.Background()
 
 	id, err := svc.CreateAlert(ctx, service.OpsAlert{
-		TenantID:    "1",
+		TenantID:    string(shared.DefaultTenant),
 		AlertType:   service.OpsAlertVehicleBreakdown,
 		Severity:    service.OpsAlertSeverityHigh,
 		Title:       "Vehicle broken down on highway",
@@ -99,7 +100,7 @@ func TestOpsAlert_Acknowledge(t *testing.T) {
 	ctx := context.Background()
 
 	id, err := svc.CreateAlert(ctx, service.OpsAlert{
-		TenantID:  "1",
+		TenantID:  string(shared.DefaultTenant),
 		AlertType: service.OpsAlertDriverAbsence,
 		Severity:  service.OpsAlertSeverityMedium,
 		Title:     "Driver absence reported",
@@ -141,7 +142,7 @@ func TestOpsAlert_Resolve(t *testing.T) {
 	ctx := context.Background()
 
 	id, err := svc.CreateAlert(ctx, service.OpsAlert{
-		TenantID:  "1",
+		TenantID:  string(shared.DefaultTenant),
 		AlertType: service.OpsAlertRouteDisruption,
 		Severity:  service.OpsAlertSeverityMedium,
 		Title:     "Route disrupted due to roadwork",
@@ -187,7 +188,7 @@ func TestOpsAlert_Dismiss(t *testing.T) {
 	ctx := context.Background()
 
 	id, err := svc.CreateAlert(ctx, service.OpsAlert{
-		TenantID:  "1",
+		TenantID:  string(shared.DefaultTenant),
 		AlertType: service.OpsAlertPaymentDelay,
 		Severity:  service.OpsAlertSeverityLow,
 		Title:     "Payment delay warning",
@@ -223,19 +224,19 @@ func TestOpsAlert_ListFilters(t *testing.T) {
 
 	// Create diverse alerts
 	id1, _ := svc.CreateAlert(ctx, service.OpsAlert{
-		TenantID:  "1",
+		TenantID:  string(shared.DefaultTenant),
 		AlertType: service.OpsAlertVehicleBreakdown,
 		Severity:  service.OpsAlertSeverityCritical,
 		Title:     "Breakdown 1",
 	})
 	id2, _ := svc.CreateAlert(ctx, service.OpsAlert{
-		TenantID:  "1",
+		TenantID:  string(shared.DefaultTenant),
 		AlertType: service.OpsAlertDriverAbsence,
 		Severity:  service.OpsAlertSeverityLow,
 		Title:     "Absence 1",
 	})
 	id3, _ := svc.CreateAlert(ctx, service.OpsAlert{
-		TenantID:  "1",
+		TenantID:  string(shared.DefaultTenant),
 		AlertType: service.OpsAlertVehicleBreakdown,
 		Severity:  service.OpsAlertSeverityMedium,
 		Title:     "Breakdown 2",
@@ -295,7 +296,7 @@ func TestOpsAlert_CriticalPublishesEvent(t *testing.T) {
 	})
 
 	id, err := svc.CreateAlert(ctx, service.OpsAlert{
-		TenantID:    "1",
+		TenantID:    string(shared.DefaultTenant),
 		AlertType:   service.OpsAlertComplianceBreach,
 		Severity:    service.OpsAlertSeverityCritical,
 		Title:       "Dispatch blocked: Expired RC",
@@ -337,7 +338,7 @@ func TestOpsAlert_NonCriticalNoEvent(t *testing.T) {
 
 	// Medium severity alert should NOT publish critical event
 	_, err := svc.CreateAlert(ctx, service.OpsAlert{
-		TenantID:  "1",
+		TenantID:  string(shared.DefaultTenant),
 		AlertType: service.OpsAlertPaymentDelay,
 		Severity:  service.OpsAlertSeverityMedium,
 		Title:     "Invoice delayed by 3 days",

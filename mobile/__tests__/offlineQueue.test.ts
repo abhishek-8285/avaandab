@@ -132,4 +132,132 @@ describe('OfflineQueue', () => {
     const remaining = await OfflineQueue.pendingPODs();
     expect(remaining).toHaveLength(1);
   });
+
+  test('enqueueExpense stores, pendingExpenses returns, clearExpense removes', async () => {
+    await OfflineQueue.enqueueExpense({
+      trip_id: 'trip_exp_1',
+      expense_type: 'fuel',
+      amount: 1200,
+      receipt_uri: 'file:///receipt.jpg',
+      notes: 'Diesel refill',
+      latitude: 18.5204,
+      longitude: 73.8567,
+    });
+
+    const expenses = await OfflineQueue.pendingExpenses();
+    expect(expenses).toHaveLength(1);
+    expect(expenses[0].trip_id).toBe('trip_exp_1');
+    expect(expenses[0].amount).toBe(1200);
+
+    await OfflineQueue.clearExpense(expenses[0].id);
+    expect(await OfflineQueue.pendingExpenses()).toHaveLength(0);
+  });
+
+  test('clearExpenses removes many; empty array is a no-op', async () => {
+    await OfflineQueue.enqueueExpense({ trip_id: 't1', expense_type: 'toll', amount: 100 });
+    await OfflineQueue.enqueueExpense({ trip_id: 't2', expense_type: 'toll', amount: 200 });
+    await expect(OfflineQueue.clearExpenses([])).resolves.not.toThrow();
+
+    const expenses = await OfflineQueue.pendingExpenses();
+    expect(expenses).toHaveLength(2);
+    await OfflineQueue.clearExpenses(expenses.map((e) => e.id));
+    expect(await OfflineQueue.pendingExpenses()).toHaveLength(0);
+  });
+
+  test('flush uploads expenses with receipt and coords then clears', async () => {
+    await OfflineQueue.enqueueExpense({
+      trip_id: 'trip_exp_flush',
+      expense_type: 'fuel',
+      amount: 1500,
+      receipt_uri: 'file:///receipt.jpg',
+      notes: 'HP pump',
+      latitude: 18.5204,
+      longitude: 73.8567,
+    });
+
+    global.fetch = jest.fn().mockImplementation(async (url: string) => {
+      if (url.includes('/kharcha/expense')) {
+        return { ok: true, json: async () => ({}) };
+      }
+      return { ok: true, json: async () => ({}) };
+    }) as any;
+
+    const result = await OfflineQueue.flush();
+    expect(result.expensesFlushed).toBe(1);
+    expect(await OfflineQueue.pendingExpenses()).toHaveLength(0);
+  });
+
+  test('flush keeps expenses when server rejects or network fails', async () => {
+    await OfflineQueue.enqueueExpense({ trip_id: 't_reject', expense_type: 'fuel', amount: 500 });
+    await OfflineQueue.enqueueExpense({ trip_id: 't_offline', expense_type: 'toll', amount: 60 });
+
+    global.fetch = jest.fn().mockImplementation(async (url: string) => {
+      if (url.includes('/kharcha/expense')) {
+        return { ok: false, status: 400, json: async () => ({}) };
+      }
+      throw new Error('Network down');
+    }) as any;
+
+    const result = await OfflineQueue.flush();
+    expect(result.expensesFlushed).toBe(0);
+    expect(await OfflineQueue.pendingExpenses()).toHaveLength(2);
+  });
+
+  test('flush sends every optional POD field when present', async () => {
+    await OfflineQueue.enqueuePOD('trip_full_pod', {
+      consignee_name: 'Full Fields',
+      consignee_phone: '+919876543210',
+      notes: 'Gate pass required',
+      pod_signature_data: 'data:image/png;base64,AAAA',
+      quantity_short: 2,
+      damage_qty: 1,
+      refusal_reason: 'Damaged carton refused',
+    });
+
+    const sentForms: any[] = [];
+    global.fetch = jest.fn().mockImplementation(async (_url: string, opts: any) => {
+      sentForms.push(opts.body);
+      return { ok: true, json: async () => ({}) };
+    }) as any;
+
+    const result = await OfflineQueue.flush();
+    expect(result.podsFlushed).toBe(1);
+
+    const form = sentForms[0];
+    expect(form.get('consignee_phone')).toBe('+919876543210');
+    expect(form.get('pod_signature_data')).toBe('data:image/png;base64,AAAA');
+    expect(form.get('signature_dataurl')).toBe('data:image/png;base64,AAAA');
+    expect(form.get('quantity_short')).toBe('2');
+    expect(form.get('damage_qty')).toBe('1');
+    expect(form.get('refusal_reason')).toBe('Damaged carton refused');
+  });
+
+  test('flush keeps POD queued when server rejects it', async () => {
+    await OfflineQueue.enqueuePOD('trip_rejected', { consignee_name: 'Reject Me' });
+
+    global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 422, json: async () => ({}) }) as any;
+
+    const result = await OfflineQueue.flush();
+    expect(result.podsFlushed).toBe(0);
+    expect(await OfflineQueue.pendingPODs()).toHaveLength(1);
+  });
+
+  test('flush clears only synced_ids when GPS sync reports partial success', async () => {
+    await OfflineQueue.enqueueGPS({ driver_id: 'drv_1', latitude: 1, longitude: 2, timestamp: '2026-08-20T10:00:00Z' });
+    await OfflineQueue.enqueueGPS({ driver_id: 'drv_1', latitude: 3, longitude: 4, timestamp: '2026-08-20T10:01:00Z' });
+
+    global.fetch = jest.fn().mockImplementation(async (url: string) => {
+      if (url.includes('/telemetry/sync')) {
+        return { ok: true, json: async () => ({ success: false, synced_ids: [1] }) };
+      }
+      return { ok: true, json: async () => ({}) };
+    }) as any;
+
+    const result = await OfflineQueue.flush();
+    expect(result.gpsFlushed).toBe(1);
+
+    const remaining = await OfflineQueue.pendingGPS();
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].latitude).toBe(3);
+  });
 });

@@ -64,8 +64,17 @@
     document.head.appendChild(ph);
   }
 
-  function showBanner() { var b = document.getElementById('cookie-banner'); if (b) b.style.display = 'flex'; }
-  function hideBanner() { var b = document.getElementById('cookie-banner'); if (b) b.style.display = 'none'; }
+  function showBanner() {
+    var b = document.getElementById('cookie-banner'); if (!b) return;
+    b.style.display = 'flex';
+    document.documentElement.classList.add('cookie-open');
+    document.documentElement.style.setProperty('--bannerH', Math.ceil(b.getBoundingClientRect().height) + 'px');
+  }
+  function hideBanner() {
+    var b = document.getElementById('cookie-banner'); if (b) b.style.display = 'none';
+    document.documentElement.classList.remove('cookie-open');
+    document.documentElement.style.setProperty('--bannerH', '0px');
+  }
   function accept() { setConsent('accepted'); hideBanner(); loadAnalytics(); }
   function reject() {
     setConsent('rejected'); hideBanner();
@@ -87,6 +96,11 @@
     var rejectBtn = document.getElementById('cookie-reject');
     if (acceptBtn) acceptBtn.addEventListener('click', accept);
     if (rejectBtn) rejectBtn.addEventListener('click', reject);
+    window.addEventListener('resize', function () {
+      if (!document.documentElement.classList.contains('cookie-open')) return;
+      var b = document.getElementById('cookie-banner');
+      if (b) document.documentElement.style.setProperty('--bannerH', Math.ceil(b.getBoundingClientRect().height) + 'px');
+    });
   });
 })();
 </script>

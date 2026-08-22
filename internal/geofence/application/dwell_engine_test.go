@@ -5,12 +5,13 @@ import (
 	"time"
 
 	"transport-app/internal/geofence/domain"
+	"transport-app/internal/shared"
 )
 
 // zone builds a circular geofence for engine tests.
 func zone(id, kind string, centerLat, centerLng, radius float64) domain.Geofence {
 	return domain.Geofence{
-		ID: id, TenantID: "1", Name: id, Kind: kind, Shape: domain.ShapeCircle,
+		ID: id, TenantID: string(shared.DefaultTenant), Name: id, Kind: kind, Shape: domain.ShapeCircle,
 		CenterLat: centerLat, CenterLng: centerLng, RadiusM: radius, IsActive: true,
 	}
 }
@@ -25,7 +26,7 @@ func insidePoint(centerLat, centerLng, northM float64) (float64, float64) {
 }
 
 func state(s string) domain.EngineState {
-	return domain.EngineState{VehicleID: "v1", TenantID: "1", State: s}
+	return domain.EngineState{VehicleID: "v1", TenantID: string(shared.DefaultTenant), State: s}
 }
 
 const (

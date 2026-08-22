@@ -12,6 +12,7 @@ import (
 
 	"transport-app/internal/auth"
 	"transport-app/internal/service"
+	"transport-app/internal/shared"
 )
 
 // TestPhase12TemplatesRender verifies the four new Phase 12 templates render
@@ -34,15 +35,15 @@ func TestPhase12TemplatesRender(t *testing.T) {
 		"ActiveExperiments":     1,
 		"OpenOpsAlerts":         3,
 		"RecentSignals": []service.FounderSignal{
-			{ID: "fs1", TenantID: "1", SignalType: service.SignalRevenueMilestone, SignalValue: 150000, ThresholdValue: &thr, Direction: service.DirectionAbove},
-			{ID: "fs2", TenantID: "1", SignalType: service.SignalCashFlowAlert, SignalValue: -500, Direction: service.DirectionBelow},
+			{ID: "fs1", TenantID: string(shared.DefaultTenant), SignalType: service.SignalRevenueMilestone, SignalValue: 150000, ThresholdValue: &thr, Direction: service.DirectionAbove},
+			{ID: "fs2", TenantID: string(shared.DefaultTenant), SignalType: service.SignalCashFlowAlert, SignalValue: -500, Direction: service.DirectionBelow},
 		},
 		"LatestPNL": service.PNLSnapshot{
 			SnapshotDate: "2026-08-20", Revenue: 1000, Expenses: 800,
 			FuelCosts: 100, DriverPayouts: 600, NetProfit: 200, TripCount: 5,
 		},
 		"Alerts": []service.OpsAlert{
-			{ID: "a1", TenantID: "1", AlertType: service.OpsAlertSettlementDispute, Severity: service.OpsAlertSeverityHigh,
+			{ID: "a1", TenantID: string(shared.DefaultTenant), AlertType: service.OpsAlertSettlementDispute, Severity: service.OpsAlertSeverityHigh,
 				Title: "Dispute", Status: service.OpsAlertStatusOpen, CreatedAt: now},
 		},
 		"Snapshots": []service.PNLSnapshot{
@@ -51,7 +52,7 @@ func TestPhase12TemplatesRender(t *testing.T) {
 		"From": "2026-07-20",
 		"To":   "2026-08-20",
 		"Experiments": []service.Experiment{
-			{ID: "e1", TenantID: "1", Name: "exp1", Status: service.ExperimentStatusRunning, TrafficSplit: 50, MetricName: "conv", CreatedAt: now},
+			{ID: "e1", TenantID: string(shared.DefaultTenant), Name: "exp1", Status: service.ExperimentStatusRunning, TrafficSplit: 50, MetricName: "conv", CreatedAt: now},
 		},
 		"User": user,
 	}

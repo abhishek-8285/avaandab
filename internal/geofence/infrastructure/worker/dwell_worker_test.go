@@ -13,6 +13,7 @@ import (
 	"transport-app/internal/geofence/application"
 	"transport-app/internal/geofence/domain"
 	sqlrepo "transport-app/internal/geofence/infrastructure/persistence/sql"
+	"transport-app/internal/shared"
 	"transport-app/internal/shared/clock"
 	"transport-app/internal/shared/id"
 	"transport-app/internal/shared/outbox"
@@ -118,7 +119,7 @@ func northOf(lat, lng, metres float64) (float64, float64) {
 func TestDwellWorker_SweepCrossesCircleBoundary(t *testing.T) {
 	db := newTestDB(t)
 	seedFixtures(t, db, domain.Geofence{
-		ID: "z1", TenantID: "1", Name: "pickup-zone", Kind: domain.KindPickup,
+		ID: "z1", TenantID: string(shared.DefaultTenant), Name: "pickup-zone", Kind: domain.KindPickup,
 		Shape: domain.ShapeCircle, CenterLat: 12.97, CenterLng: 77.59, RadiusM: 100,
 	})
 
@@ -187,7 +188,7 @@ func TestDwellWorker_SweepCrossesCircleBoundary(t *testing.T) {
 func TestDwellWorker_RestrictedBreachEmitsOutboxAlert(t *testing.T) {
 	db := newTestDB(t)
 	seedFixtures(t, db, domain.Geofence{
-		ID: "zr", TenantID: "1", Name: "restricted-yard", Kind: domain.KindRestricted,
+		ID: "zr", TenantID: string(shared.DefaultTenant), Name: "restricted-yard", Kind: domain.KindRestricted,
 		Shape: domain.ShapeCircle, CenterLat: 12.97, CenterLng: 77.59, RadiusM: 100,
 	})
 
@@ -272,7 +273,7 @@ func buildTransitioner(t *testing.T, db *sql.DB, fixes []domain.Fix) *DwellWorke
 func TestDwellWorker_AutoReachPickupOnPickupEntering(t *testing.T) {
 	db := newTestDB(t)
 	seedFixtures(t, db, domain.Geofence{
-		ID: "z1", TenantID: "1", Name: "pickup-zone", Kind: domain.KindPickup,
+		ID: "z1", TenantID: string(shared.DefaultTenant), Name: "pickup-zone", Kind: domain.KindPickup,
 		Shape: domain.ShapeCircle, CenterLat: 12.97, CenterLng: 77.59, RadiusM: 100,
 	})
 	setTripStatus(t, db, "started")
@@ -305,7 +306,7 @@ func TestDwellWorker_AutoReachPickupOnPickupEntering(t *testing.T) {
 func TestDwellWorker_AutoStartTransitOnDropEntering(t *testing.T) {
 	db := newTestDB(t)
 	seedFixtures(t, db, domain.Geofence{
-		ID: "z1", TenantID: "1", Name: "drop-zone", Kind: domain.KindDrop,
+		ID: "z1", TenantID: string(shared.DefaultTenant), Name: "drop-zone", Kind: domain.KindDrop,
 		Shape: domain.ShapeCircle, CenterLat: 12.97, CenterLng: 77.59, RadiusM: 100,
 	})
 	setTripStatus(t, db, "reached_pickup")
@@ -333,7 +334,7 @@ func TestDwellWorker_AutoStartTransitOnDropEntering(t *testing.T) {
 func TestDwellWorker_RouteNameFallbackGatesPickupTransition(t *testing.T) {
 	db := newTestDB(t)
 	seedFixtures(t, db, domain.Geofence{
-		ID: "z1", TenantID: "1", Name: "pickup-zone", Kind: domain.KindPickup,
+		ID: "z1", TenantID: string(shared.DefaultTenant), Name: "pickup-zone", Kind: domain.KindPickup,
 		Shape: domain.ShapeCircle, CenterLat: 12.97, CenterLng: 77.59, RadiusM: 100,
 		RouteName: "bengaluru", // lowercase vs route source "Bengaluru"
 	})
@@ -370,7 +371,7 @@ func TestDwellWorker_RouteNameFallbackGatesPickupTransition(t *testing.T) {
 func TestDwellWorker_DetentionBilling_FreeSecondsAndRate(t *testing.T) {
 	db := newTestDB(t)
 	seedFixtures(t, db, domain.Geofence{
-		ID: "z1", TenantID: "1", Name: "pickup-zone", Kind: domain.KindPickup,
+		ID: "z1", TenantID: string(shared.DefaultTenant), Name: "pickup-zone", Kind: domain.KindPickup,
 		Shape: domain.ShapeCircle, CenterLat: 12.97, CenterLng: 77.59, RadiusM: 100,
 	})
 	setConfig(t, db, application.ConfigDetentionFreeSeconds, "1800")
