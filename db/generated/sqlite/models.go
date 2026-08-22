@@ -334,6 +334,19 @@ type DriverExpense struct {
 	Longitude      sql.NullFloat64 `json:"longitude"`
 }
 
+type DriverIssue struct {
+	ID        string         `json:"id"`
+	TenantID  string         `json:"tenant_id"`
+	DriverID  string         `json:"driver_id"`
+	TripID    sql.NullString `json:"trip_id"`
+	Category  string         `json:"category"`
+	Severity  string         `json:"severity"`
+	Message   string         `json:"message"`
+	PhotoUrl  sql.NullString `json:"photo_url"`
+	Status    string         `json:"status"`
+	CreatedAt time.Time      `json:"created_at"`
+}
+
 type DriverScore struct {
 	ID          string    `json:"id"`
 	DriverID    string    `json:"driver_id"`
@@ -1146,6 +1159,7 @@ type Trip struct {
 	PodQuantityShort      sql.NullFloat64 `json:"pod_quantity_short"`
 	PodDamageQty          sql.NullFloat64 `json:"pod_damage_qty"`
 	PodRefusalReason      sql.NullString  `json:"pod_refusal_reason"`
+	PodScanValue          sql.NullString  `json:"pod_scan_value"`
 }
 
 type TripDetention struct {

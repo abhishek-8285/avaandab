@@ -63,7 +63,14 @@ Single source of truth for `db/migrations/` version numbers. Repo head is
 | 00081 | Rebuild `trips` — status CHECK gains reached_pickup/in_transit/delivered (Spec 09 lifecycle) | Spec 13 mobile e-POD E2E fix |
 | 00082 | driver_expenses geo capture (latitude/longitude) | Spec 13 mobile kharcha flow |
 | 00083 | error_reports + incidents DDL (carried over from 00058 gap) — renumbered from duplicate 00081 | Spec 16 §3 |
-| 00084+ | future specs (AIS-140/VLT, ERP) | reserved |
+| 00084 | error_reports correlation: request_id + metadata (JSON breadcrumbs) columns | Spec 16 §5.5 |
+| 00085+ | future specs (AIS-140/VLT, ERP) | reserved |
+| 00086 | `driver_issues` table — mobile Report-Issues screen (FleetBase parity) | Spec 13 |
+| 00087 | `trips.pod_scan_value` — barcode/QR POD proof column | Spec 13 |
+
+> NOTE: Spec 13 briefly held 00084/00085 for these same migrations during a
+> concurrent-session collision on 2026-08-22; renumbered to 00086/00087 per the
+> "next free slot" rule. Nothing shipped on the old numbers.
 
 ## Implementation rule
 Pick the number from this table for your feature and update the spec's §3 to

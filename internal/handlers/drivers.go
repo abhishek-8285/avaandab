@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 
 	"transport-app/internal/domain"
 	driverapp "transport-app/internal/driver/application"
@@ -394,4 +395,199 @@ func (h *DriverHandlers) GetMe(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(resp)
+}
+
+// UpdateMyStatus lets the authenticated driver flip their own duty status
+// from the mobile app (FleetBase-style online/offline toggle).
+// 'on_trip' is deliberately rejected here: it is system-controlled by the
+// trip lifecycle (start/complete), never hand-set.
+func (h *DriverHandlers) UpdateMyStatus(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	session, ok := h.getUserFromContext(r)
+	if !ok || session == nil || session.UserID == "" {
+		writeJSONError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	var req struct {
+		Status string `json:"status"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	switch req.Status {
+	case "available", "leave", "inactive":
+		// allowed
+	default:
+		writeJSONError(w, http.StatusBadRequest, "status must be one of: available, leave, inactive")
+		return
+	}
+
+	ctx := r.Context()
+	var driverID string
+	err := h.DB.QueryRowContext(ctx, `
+		SELECT id FROM drivers
+		WHERE id = ? OR email = (SELECT email FROM users WHERE id = ?)
+		LIMIT 1`, session.UserID, session.UserID).Scan(&driverID)
+	if err != nil {
+		writeJSONError(w, http.StatusNotFound, "driver not found")
+		return
+	}
+
+	res, err := h.DB.ExecContext(ctx,
+		`UPDATE drivers SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+		req.Status, driverID)
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "update failed")
+		return
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		writeJSONError(w, http.StatusNotFound, "driver not found")
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"driver_id": driverID, "status": req.Status})
+}
+
+// ReportIssue lets the authenticated driver submit an issue from the mobile
+// app (FleetBase Navigator parity). Accepts multipart so a photo can ride
+// along; photo is optional.
+func (h *DriverHandlers) ReportIssue(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	session, ok := h.getUserFromContext(r)
+	if !ok || session == nil || session.UserID == "" {
+		writeJSONError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	if err := r.ParseMultipartForm(10 << 20); err != nil && err != http.ErrNotMultipart {
+		writeJSONError(w, http.StatusBadRequest, "invalid form")
+		return
+	}
+
+	message := strings.TrimSpace(r.FormValue("message"))
+	if message == "" {
+		writeJSONError(w, http.StatusBadRequest, "message is required")
+		return
+	}
+	category := r.FormValue("category")
+	switch category {
+	case "vehicle", "road", "cargo", "customer", "accident":
+	default:
+		category = "other"
+	}
+	severity := r.FormValue("severity")
+	switch severity {
+	case "low", "medium", "high", "critical":
+	default:
+		severity = "low"
+	}
+	tripID := strings.TrimSpace(r.FormValue("trip_id"))
+
+	ctx := r.Context()
+	var driverID string
+	err := h.DB.QueryRowContext(ctx, `
+		SELECT id FROM drivers
+		WHERE id = ? OR email = (SELECT email FROM users WHERE id = ?)
+		LIMIT 1`, session.UserID, session.UserID).Scan(&driverID)
+	if err != nil {
+		writeJSONError(w, http.StatusNotFound, "driver not found")
+		return
+	}
+
+	var photoURL string
+	if _, fh, err := r.FormFile("photo"); err == nil {
+		if fileRec, saveErr := h.Services.Files.UploadFile(ctx, fh, "driver_issue", driverID); saveErr == nil {
+			photoURL = "/files/" + string(fileRec.ID)
+		} else {
+			writeJSONError(w, http.StatusBadRequest, "file upload failed: "+saveErr.Error())
+			return
+		}
+	}
+
+	issueID := uuid.NewString()
+	if tripID != "" {
+		_, err = h.DB.ExecContext(ctx,
+			`INSERT INTO driver_issues (id, driver_id, trip_id, category, severity, message, photo_url)
+			 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			issueID, driverID, tripID, category, severity, message, nullIfEmpty(photoURL))
+	} else {
+		_, err = h.DB.ExecContext(ctx,
+			`INSERT INTO driver_issues (id, driver_id, category, severity, message, photo_url)
+			 VALUES (?, ?, ?, ?, ?, ?)`,
+			issueID, driverID, category, severity, message, nullIfEmpty(photoURL))
+	}
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "insert failed")
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"id":       issueID,
+		"status":   "open",
+		"category": category,
+		"severity": severity,
+	})
+}
+
+// ListMyIssues returns the authenticated driver's recent issues (newest first).
+func (h *DriverHandlers) ListMyIssues(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	session, ok := h.getUserFromContext(r)
+	if !ok || session == nil || session.UserID == "" {
+		writeJSONError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	ctx := r.Context()
+	var driverID string
+	err := h.DB.QueryRowContext(ctx, `
+		SELECT id FROM drivers
+		WHERE id = ? OR email = (SELECT email FROM users WHERE id = ?)
+		LIMIT 1`, session.UserID, session.UserID).Scan(&driverID)
+	if err != nil {
+		writeJSONError(w, http.StatusNotFound, "driver not found")
+		return
+	}
+
+	rows, err := h.DB.QueryContext(ctx, `
+		SELECT id, COALESCE(trip_id,''), category, severity, message, COALESCE(photo_url,''), status, created_at
+		FROM driver_issues WHERE driver_id = ? ORDER BY created_at DESC LIMIT 20`, driverID)
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "query failed")
+		return
+	}
+	defer func() { _ = rows.Close() }()
+
+	type issue struct {
+		ID        string `json:"id"`
+		TripID    string `json:"trip_id,omitempty"`
+		Category  string `json:"category"`
+		Severity  string `json:"severity"`
+		Message   string `json:"message"`
+		PhotoURL  string `json:"photo_url,omitempty"`
+		Status    string `json:"status"`
+		CreatedAt string `json:"created_at"`
+	}
+	issues := []issue{}
+	for rows.Next() {
+		var i issue
+		if err := rows.Scan(&i.ID, &i.TripID, &i.Category, &i.Severity, &i.Message, &i.PhotoURL, &i.Status, &i.CreatedAt); err == nil {
+			issues = append(issues, i)
+		}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{"issues": issues})
+}
+
+func nullIfEmpty(s string) interface{} {
+	if s == "" {
+		return nil
+	}
+	return s
 }
