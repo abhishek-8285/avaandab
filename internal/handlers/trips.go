@@ -385,7 +385,7 @@ func (h *TripHandlers) extractAssignParams(r *http.Request, key string) (string,
 func (h *TripHandlers) handleComplianceBlock(w http.ResponseWriter, r *http.Request, tripID, driverID, vehicleID string, override bool, reason string, blockErr error) bool {
 	blockedBy := blockErr.Error()
 	lower := strings.ToLower(blockedBy)
-	code := blockedBy
+	var code string
 	switch {
 	case strings.Contains(lower, "license"):
 		code = "license_expiry"

@@ -35,7 +35,10 @@ func (r *SQLRepository) CreateRoute(ctx context.Context, route domain.Route) (do
 }
 
 func (r *SQLRepository) GetRouteByID(ctx context.Context, id domain.RouteID) (domain.Route, error) {
-	route, err := r.Q(ctx).GetRouteByID(ctx, string(id))
+	route, err := r.Q(ctx).GetRouteByID(ctx, db.GetRouteByIDParams{
+		ID:       string(id),
+		TenantID: tenantIDFromCtx(ctx),
+	})
 	if err != nil {
 		return domain.Route{}, err
 	}
@@ -69,6 +72,7 @@ func (r *SQLRepository) UpdateRoute(ctx context.Context, route domain.Route) (do
 		IsActive:            boolToInt64(route.IsActive),
 		Remarks:             nullString(route.Remarks),
 		ID:                  string(route.ID),
+		TenantID:            tenantIDFromCtx(ctx),
 	})
 	if err != nil {
 		return domain.Route{}, err
@@ -77,7 +81,10 @@ func (r *SQLRepository) UpdateRoute(ctx context.Context, route domain.Route) (do
 }
 
 func (r *SQLRepository) DeleteRoute(ctx context.Context, id domain.RouteID) error {
-	return r.Q(ctx).DeleteRoute(ctx, string(id))
+	return r.Q(ctx).DeleteRoute(ctx, db.DeleteRouteParams{
+		ID:       string(id),
+		TenantID: tenantIDFromCtx(ctx),
+	})
 }
 
 func (r *SQLRepository) SearchRoutes(ctx context.Context, query string, limit, offset int) ([]domain.Route, error) {

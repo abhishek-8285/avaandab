@@ -2,67 +2,67 @@
 <div class="space-y-6">
 
     <!-- Page Header -->
-    <div class="flex items-center justify-between flex-wrap gap-3">
+    <div class="flex items-start justify-between gap-4 mb-6 flex-wrap">
         <div>
-            <h1 class="text-2xl font-bold text-on-surface tracking-tight">Driver Scorecard</h1>
-            <p class="text-sm text-secondary mt-1">30-day rolling behaviour score · tiers A/B/C · settlement bonus hook</p>
+            <h1 class="text-xl font-semibold text-on-surface font-display tracking-tight">Driver Scorecard</h1>
+            <p class="text-sm text-text-muted mt-1">30-day rolling behaviour score · tiers A/B/C · settlement bonus hook</p>
         </div>
         <span class="text-[10px] font-bold text-text-muted flex items-center gap-1.5 cursor-default"
               hx-get="/scorecard/table"
               hx-trigger="every 60s"
               hx-target="#scorecard-table"
               hx-swap="innerHTML">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="w-2 h-2 rounded-full bg-status-success animate-pulse"></span>
             LIVE · auto-refreshes
         </span>
     </div>
 
     <!-- Stats Row -->
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4 mb-6">
-        <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center">
-            <div class="text-stat text-on-surface tabular-nums text-xl sm:text-2xl font-bold">{{.Stats.TotalDrivers}}</div>
+        <div class="bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm p-3 sm:p-4 text-center">
+            <div class="text-stat text-on-surface tabular-nums text-xl sm:text-2xl font-bold" data-numeric>{{.Stats.TotalDrivers}}</div>
             <div class="text-xs sm:text-sm text-secondary">Total Drivers</div>
         </div>
-        <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center">
-            <div class="text-stat text-emerald-600 tabular-nums text-xl sm:text-2xl font-bold">{{.Stats.TierA}}</div>
+        <div class="bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm p-3 sm:p-4 text-center">
+            <div class="text-stat text-status-success tabular-nums text-xl sm:text-2xl font-bold" data-numeric>{{.Stats.TierA}}</div>
             <div class="text-xs sm:text-sm text-secondary">Tier A</div>
             <div class="text-xs text-text-muted mt-0.5">score ≥ 85</div>
         </div>
-        <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center">
-            <div class="text-stat text-blue-600 tabular-nums text-xl sm:text-2xl font-bold">{{.Stats.TierB}}</div>
+        <div class="bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm p-3 sm:p-4 text-center">
+            <div class="text-stat text-status-info tabular-nums text-xl sm:text-2xl font-bold" data-numeric>{{.Stats.TierB}}</div>
             <div class="text-xs sm:text-sm text-secondary">Tier B</div>
             <div class="text-xs text-text-muted mt-0.5">score ≥ 70</div>
         </div>
-        <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center">
-            <div class="text-stat text-rose-600 tabular-nums text-xl sm:text-2xl font-bold">{{.Stats.TierC}}</div>
+        <div class="bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm p-3 sm:p-4 text-center">
+            <div class="text-stat text-status-alert tabular-nums text-xl sm:text-2xl font-bold" data-numeric>{{.Stats.TierC}}</div>
             <div class="text-xs sm:text-sm text-secondary">Tier C</div>
             <div class="text-xs text-text-muted mt-0.5">below threshold</div>
         </div>
-        <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center">
-            <div class="text-stat text-primary tabular-nums text-xl sm:text-2xl font-bold">{{printf "%.1f" .Stats.AvgScore}}</div>
+        <div class="bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm p-3 sm:p-4 text-center col-span-2 sm:col-span-1">
+            <div class="text-stat text-primary tabular-nums text-xl sm:text-2xl font-bold" data-numeric>{{printf "%.1f" .Stats.AvgScore}}</div>
             <div class="text-xs sm:text-sm text-secondary">Avg Score</div>
         </div>
     </div>
 
     <!-- Ranked Leaderboard -->
-    <div class="bg-surface-container-lowest rounded-lg shadow-sm">
+    <div class="bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm">
         <div class="px-4 py-3 border-b flex items-center justify-between">
             <div>
                 <h3 class="text-sm font-semibold text-on-surface">Leaderboard</h3>
                 <p class="text-xs text-text-muted mt-0.5">Ranked by current score · sparkline shows score history</p>
             </div>
         </div>
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto -mx-2 px-2">
             <table class="w-full text-sm">
                 <thead>
-                    <tr class="text-left text-xs uppercase tracking-wide text-text-muted border-b border-border-subtle">
-                        <th class="px-4 py-3 font-semibold w-12">#</th>
-                        <th class="px-4 py-3 font-semibold">Driver</th>
-                        <th class="px-4 py-3 font-semibold text-right">Score</th>
-                        <th class="px-4 py-3 font-semibold text-center">Tier</th>
-                        <th class="px-4 py-3 font-semibold text-right">Events</th>
-                        <th class="px-4 py-3 font-semibold">30-Day Trend</th>
-                        <th class="px-4 py-3 font-semibold text-center">Status</th>
+                    <tr>
+                        <th class="th-cell w-12">#</th>
+                        <th class="th-cell">Driver</th>
+                        <th class="th-cell-right">Score</th>
+                        <th class="th-cell text-center">Tier</th>
+                        <th class="th-cell-right">Events</th>
+                        <th class="th-cell">30-Day Trend</th>
+                        <th class="th-cell text-center">Status</th>
                     </tr>
                 </thead>
                 <tbody id="scorecard-table">

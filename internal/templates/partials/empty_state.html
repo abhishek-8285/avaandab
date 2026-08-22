@@ -1,6 +1,6 @@
 <div class="flex flex-col items-center justify-center py-16 text-center">
-  {{if .Icon}}<span class="material-symbols-outlined text-4xl text-text-muted mb-3">{{.Icon}}</span>{{end}}
+  {{if .Icon}}<span class="text-text-muted mb-3 flex items-center justify-center text-4xl">{{iconWithClass .Icon "w-9 h-9"}}</span>{{end}}
   <div class="text-on-surface font-semibold">{{.Title}}</div>
   {{if .Message}}<div class="text-text-muted text-sm mt-1 max-w-sm">{{.Message}}</div>{{end}}
-  {{if .ActionHref}}<a href="{{.ActionHref}}" class="mt-4 inline-flex items-center gap-2 rounded-md bg-primary text-on-primary px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-all text-decoration-none">{{if .ActionIcon}}<span class="material-symbols-outlined text-base">{{.ActionIcon}}</span>{{end}}{{.ActionLabel}}</a>{{end}}
+  {{if .ActionHref}}<a href="{{.ActionHref}}" class="mt-4 inline-flex items-center gap-2 rounded-md bg-primary text-on-primary px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-all text-decoration-none">{{if .ActionIcon}}{{icon .ActionIcon}}{{end}}{{.ActionLabel}}</a>{{end}}
 </div>

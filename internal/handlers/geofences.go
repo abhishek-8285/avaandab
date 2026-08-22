@@ -79,23 +79,31 @@ func (h *GeofenceHandlers) List(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+const (
+	tmplGeofenceEdit = "geofence_edit.html"
+	titleNewGeofence = "New Geofence"
+	routeGeofences   = "/geofences"
+)
+
 // NewForm renders the drawing form with a blank map.
 func (h *GeofenceHandlers) NewForm(w http.ResponseWriter, r *http.Request) {
 	session, _ := h.getUserFromContext(r)
-	h.renderForm(w, r, "geofence_edit.html", PageData{
-		Title: "New Geofence",
+	h.renderForm(w, r, tmplGeofenceEdit, PageData{
+		Title: titleNewGeofence,
 		User:  session,
-		Extra: map[string]interface{}{"Zone": nil},
+		Extra: map[string]interface{}{"Zone": nil, "MapAssets": true},
 	})
-} // Create persists a new zone from the drawing form.
+}
+
+// Create persists a new zone from the drawing form.
 func (h *GeofenceHandlers) Create(w http.ResponseWriter, r *http.Request) {
 	session, _ := h.getUserFromContext(r)
 	pz, err := parseZoneForm(r)
 	if err != nil {
-		h.renderForm(w, r, "geofence_edit.html", PageData{
-			Title: "New Geofence", User: session,
+		h.renderForm(w, r, tmplGeofenceEdit, PageData{
+			Title: titleNewGeofence, User: session,
 			FlashError: err.Error(),
-			Extra:      map[string]interface{}{"Zone": nil},
+			Extra:      map[string]interface{}{"Zone": nil, "MapAssets": true},
 		})
 		return
 	}
@@ -107,15 +115,15 @@ func (h *GeofenceHandlers) Create(w http.ResponseWriter, r *http.Request) {
 		CreatedBy: &createdBy,
 	})
 	if err != nil {
-		h.renderForm(w, r, "geofence_edit.html", PageData{
-			Title: "New Geofence", User: session,
+		h.renderForm(w, r, tmplGeofenceEdit, PageData{
+			Title: titleNewGeofence, User: session,
 			FlashError: err.Error(),
-			Extra:      map[string]interface{}{"Zone": nil},
+			Extra:      map[string]interface{}{"Zone": nil, "MapAssets": true},
 		})
 		return
 	}
 	http.SetCookie(w, flashCookie("flash_success", "Geofence created"))
-	http.Redirect(w, r, "/geofences", http.StatusSeeOther)
+	http.Redirect(w, r, routeGeofences, http.StatusSeeOther)
 }
 
 // EditForm renders the drawing form pre-loaded with the zone.
@@ -128,10 +136,10 @@ func (h *GeofenceHandlers) EditForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	polygonJSON, _ := domain.PolygonJSON(zone.Polygon)
-	h.renderForm(w, r, "geofence_edit.html", PageData{
+	h.renderForm(w, r, tmplGeofenceEdit, PageData{
 		Title: "Edit Geofence",
 		User:  session,
-		Extra: map[string]interface{}{"Zone": zone, "PolygonJSON": polygonJSON},
+		Extra: map[string]interface{}{"Zone": zone, "PolygonJSON": polygonJSON, "MapAssets": true},
 	})
 }
 
@@ -141,7 +149,7 @@ func (h *GeofenceHandlers) Update(w http.ResponseWriter, r *http.Request) {
 	pz, err := parseZoneForm(r)
 	if err != nil {
 		http.SetCookie(w, flashCookie("flash_error", err.Error()))
-		http.Redirect(w, r, "/geofences/"+id+"/edit", http.StatusSeeOther)
+		http.Redirect(w, r, routeGeofences+"/"+id+"/edit", http.StatusSeeOther)
 		return
 	}
 	err = h.crudUC.Update(r.Context(), application.UpdateZoneCommand{
@@ -151,11 +159,11 @@ func (h *GeofenceHandlers) Update(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		http.SetCookie(w, flashCookie("flash_error", "Update failed: "+err.Error()))
-		http.Redirect(w, r, "/geofences/"+id+"/edit", http.StatusSeeOther)
+		http.Redirect(w, r, routeGeofences+"/"+id+"/edit", http.StatusSeeOther)
 		return
 	}
 	http.SetCookie(w, flashCookie("flash_success", "Geofence updated"))
-	http.Redirect(w, r, "/geofences", http.StatusSeeOther)
+	http.Redirect(w, r, routeGeofences, http.StatusSeeOther)
 }
 
 // Delete soft-deletes the zone (is_active=0).
@@ -163,11 +171,11 @@ func (h *GeofenceHandlers) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if err := h.crudUC.SoftDelete(r.Context(), h.tenant(r.Context()), id); err != nil {
 		http.SetCookie(w, flashCookie("flash_error", "Delete failed: "+err.Error()))
-		http.Redirect(w, r, "/geofences", http.StatusSeeOther)
+		http.Redirect(w, r, routeGeofences, http.StatusSeeOther)
 		return
 	}
 	http.SetCookie(w, flashCookie("flash_success", "Geofence deleted"))
-	http.Redirect(w, r, "/geofences", http.StatusSeeOther)
+	http.Redirect(w, r, routeGeofences, http.StatusSeeOther)
 }
 
 // parsedZone holds the drawing form fields shared by create/update.

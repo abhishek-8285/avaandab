@@ -33,7 +33,7 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>{{.Feature.Eyebrow}}
                 </span>
                 <div class="mt-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-on-primary shadow-lg shadow-primary/20">
-                    <span class="material-symbols-outlined !text-3xl">{{.Feature.Icon}}</span>
+                    {{iconWithClass .Feature.Icon "w-8 h-8"}}
                 </div>
                 <h1 class="mt-5 text-4xl font-extrabold tracking-tight text-on-surface sm:text-5xl lg:text-6xl" style="font-family:'Outfit',sans-serif">{{.Feature.Title}}</h1>
                 <p class="mt-4 max-w-xl text-lg leading-relaxed text-secondary">{{.Feature.Tagline}}</p>
@@ -58,7 +58,7 @@
             <div class="mt-12 hidden lg:mt-0 lg:flex lg:items-center lg:justify-center">
                 <div class="relative w-full max-w-md overflow-hidden rounded-2xl border border-border-subtle bg-surface-container-lowest shadow-2xl shadow-on-surface/8">
                     <div class="flex items-center gap-2 bg-gradient-to-r from-primary to-primary px-4 py-3">
-                        <span class="material-symbols-outlined !text-xl text-on-primary/90">{{.Feature.Icon}}</span>
+                        <span class="text-on-primary/90 flex items-center">{{iconWithClass .Feature.Icon "w-5 h-5"}}</span>
                         <span class="text-sm font-semibold text-on-primary">{{.Feature.Title}}</span>
                         <span class="ml-auto flex gap-1.5">
                             <span class="h-2.5 w-2.5 rounded-full bg-surface-container-lowest/30"></span>
@@ -136,7 +136,7 @@
                 <div class="mt-6 flex flex-wrap gap-2">
                     {{range .Feature.Capabilities}}
                     <span class="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary">
-                        <span class="material-symbols-outlined !text-sm">{{.Icon}}</span>{{.Title}}
+                        {{iconWithClass .Icon "w-4 h-4"}} {{.Title}}
                     </span>
                     {{end}}
                 </div>
@@ -154,7 +154,7 @@
                     {{range .Feature.Capabilities}}
                     <div class="group rounded-2xl border border-border-subtle bg-surface-container-lowest p-6 shadow-sm transition-all duration-250 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md">
                         <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition group-hover:bg-primary group-hover:text-on-primary">
-                            <span class="material-symbols-outlined !text-2xl">{{.Icon}}</span>
+                            {{iconWithClass .Icon "w-6 h-6"}}
                         </div>
                         <h3 class="mt-4 text-lg font-semibold text-on-surface" style="font-family:'Outfit',sans-serif">{{.Title}}</h3>
                         <p class="mt-2 text-sm leading-relaxed text-secondary">{{.Text}}</p>
@@ -414,7 +414,7 @@
                     {{range .RelatedFeatures}}
                     <a href="/features/{{.Slug}}" class="group flex items-center gap-4 rounded-2xl border border-border-subtle bg-surface-container-lowest p-5 shadow-sm transition-all duration-250 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md">
                         <span class="flex h-12 w-12 flex-none items-center justify-center rounded-xl bg-primary/10 text-primary transition group-hover:bg-primary group-hover:text-on-primary">
-                            <span class="material-symbols-outlined !text-2xl">{{.Icon}}</span>
+                            {{iconWithClass .Icon "w-6 h-6"}}
                         </span>
                         <span class="min-w-0">
                             <span class="block text-base font-semibold text-on-surface">{{.Title}}</span>

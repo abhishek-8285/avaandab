@@ -146,6 +146,228 @@
             margin: 0;
         }
 
+        /* Full feature matrix */
+        .feat-intro{margin-bottom:2rem;display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:1rem;border-bottom:2px solid color-mix(in srgb,var(--color-primary) 10%,transparent);padding-bottom:1rem}
+        .feat-count{display:inline-flex;align-items:center;gap:.5rem;background:color-mix(in srgb,var(--color-primary) 10%,transparent);color:var(--color-primary);font-weight:800;font-size:.8rem;border-radius:9999px;padding:.45rem 1rem}
+        .feat-intro .mini-title{border-bottom:none;margin:0;padding-bottom:0}
+        .feat-groups{display:grid;grid-template-columns:repeat(1,minmax(0,1fr));gap:1.25rem}
+        @media(min-width:768px){.feat-groups{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        @media(min-width:1280px){.feat-groups{grid-template-columns:repeat(3,minmax(0,1fr))}}
+        .feat-group{background:var(--color-background);border:1px solid var(--color-border-subtle);border-radius:1rem;padding:1.5rem;transition:all .2s ease-in-out}
+        .feat-group:hover{border-color:rgba(0,104,95,.4);box-shadow:0 10px 28px -8px rgba(0,64,55,.14);transform:translateY(-3px)}
+        .fg-head{display:flex;align-items:center;gap:.65rem;margin-bottom:1.05rem}
+        .fg-icon{width:38px;height:38px;border-radius:.65rem;background:color-mix(in srgb,var(--color-primary) 10%,transparent);color:var(--color-primary);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+        .fg-head h4{font-family:'Outfit',sans-serif;font-weight:800;font-size:1rem;color:var(--color-on-surface);line-height:1.3}
+        .fg-chips{display:flex;flex-wrap:wrap;gap:.45rem}
+        .fg-chips span{font-size:.72rem;font-weight:700;color:var(--color-secondary);background:var(--color-surface-container-lowest);border:1px solid var(--color-border-subtle);border-radius:9999px;padding:.32rem .72rem;transition:color .15s,border-color .15s;cursor:default}
+        .fg-chips span:hover{color:var(--color-primary);border-color:rgba(0,104,95,.4)}
+
+        /* Hero entrance */
+        .hero-enter{opacity:0;animation:heroUp .7s cubic-bezier(.22,.61,.36,1) forwards}
+        .hero-enter.d1{animation-delay:.05s}
+        .hero-enter.d2{animation-delay:.15s}
+        .hero-enter.d3{animation-delay:.25s}
+        .hero-enter.d4{animation-delay:.35s}
+        .hero-enter.d5{animation-delay:.45s}
+        @keyframes heroUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+
+        .pill-float{animation:pillFloat 4.5s ease-in-out infinite alternate}
+        .pill-float.pd{animation-delay:2.2s}
+        @keyframes pillFloat{from{transform:translateY(0)}to{transform:translateY(-7px)}}
+
+        /* Scroll reveal */
+        .reveal{opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .6s cubic-bezier(.22,.61,.36,1);transition-delay:var(--rd,0s)}
+        .reveal.is-visible{opacity:1;transform:translateY(0)}
+        .mini-grid>.reveal:nth-child(2){--rd:.07s}
+        .mini-grid>.reveal:nth-child(3){--rd:.14s}
+        .mini-grid>.reveal:nth-child(4){--rd:.21s}
+        .mini-grid>.reveal:nth-child(5){--rd:.28s}
+        #features .grid>.reveal:nth-child(2){--rd:.1s}
+        #features .grid>.reveal:nth-child(3){--rd:.2s}
+
+        /* Scroll-driven story */
+        .story{position:relative;background:linear-gradient(180deg,var(--color-background) 0%,color-mix(in srgb,var(--color-primary) 5%,var(--color-background)) 100%)}
+        .story-progress{position:absolute;top:0;left:0;right:0;height:3px;z-index:6}
+        .story-progress-bar{height:100%;background:var(--color-primary);transform:scaleX(0);transform-origin:left}
+        .story-stage{position:sticky;top:80px;height:calc(100vh - 80px);min-height:540px;overflow:hidden}
+        .scene-sky{position:absolute;inset:0;background:radial-gradient(120% 90% at 72% 8%,color-mix(in srgb,var(--color-primary) 20%,transparent) 0%,transparent 55%),linear-gradient(180deg,color-mix(in srgb,var(--color-primary) 10%,transparent),transparent 60%)}
+        .scene-glow{position:absolute;top:-30%;right:6%;width:380px;height:380px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--color-primary) 32%,transparent) 0%,transparent 70%);filter:blur(12px);animation:glowPulse 7s ease-in-out infinite alternate}
+        @keyframes glowPulse{from{opacity:.5;transform:scale(1)}to{opacity:.95;transform:scale(1.12)}}
+        .cloud{position:absolute;left:0;height:16px;width:72px;border-radius:999px;background:color-mix(in srgb,var(--color-on-surface) 20%,transparent);opacity:.45;filter:blur(2px);animation:cloudDrift 32s linear infinite}
+        .cloud::before{content:"";position:absolute;left:14px;top:-9px;width:26px;height:18px;border-radius:999px;background:inherit}
+        .cloud::after{content:"";position:absolute;right:12px;top:-6px;width:20px;height:14px;border-radius:999px;background:inherit}
+        .cloud.c1{top:12%;animation-duration:36s}
+        .cloud.c2{top:26%;scale:.8;animation-duration:46s;animation-delay:-14s}
+        .cloud.c3{top:6%;scale:.6;animation-duration:40s;animation-delay:-27s}
+        @keyframes cloudDrift{from{transform:translateX(-18vw)}to{transform:translateX(112vw)}}
+        .scene-skyline{position:absolute;left:0;right:0;bottom:96px;height:110px;overflow:hidden;color:var(--color-on-surface)}
+        .scene-skyline svg{width:200%;height:100%;display:block;animation:skylineSlide 46s linear infinite}
+        @keyframes skylineSlide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+        .scene-road{position:absolute;left:0;right:0;bottom:0;height:96px}
+        .road-base{position:absolute;inset:0;background:linear-gradient(180deg,#4b5563 0%,#374151 10%,#1f2937 100%)}
+        .road-base::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:#6b7280}
+        .road-base::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 2px,transparent 2px 9px),repeating-linear-gradient(0deg,rgba(0,0,0,.12) 0 1px,transparent 1px 23px)}
+        .scene-roadside{position:absolute;left:0;right:0;bottom:92px;height:70px;overflow:hidden;color:var(--color-on-surface)}
+        .scene-roadside svg{width:200%;height:100%;display:block;animation:skylineSlide 16s linear infinite}
+        .puff{opacity:0;transform-box:fill-box;transform-origin:center;animation:puffRise 1.6s ease-out infinite}
+        .puff.p2{animation-delay:.5s}
+        .puff.p3{animation-delay:1s}
+        @keyframes puffRise{0%{opacity:.5;transform:translate(0,0) scale(.5)}100%{opacity:0;transform:translate(-18px,-24px) scale(1.8)}}
+        .lane-dashes{position:absolute;left:0;right:0;top:48px;height:5px;background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.55) 0 54px,transparent 54px 116px);animation:dashScroll .85s linear infinite}
+        .story-stage[data-state="solved"] .lane-dashes{animation-duration:.4s}
+        @keyframes dashScroll{to{background-position-x:-116px}}
+
+        .vehicle-track{position:absolute;left:0;right:0;bottom:18px;z-index:3;display:flex;justify-content:center}
+        .story-truck{position:relative;width:clamp(240px,32vw,420px);transform:translateX(var(--truck-x,0px));will-change:transform;transition:filter .6s ease,opacity .6s ease}
+        .story-truck svg{width:100%;display:block;overflow:visible}
+        .story-stage[data-state="blind"] .story-truck{filter:grayscale(1);opacity:.5}
+        .truck-bob{animation:truckBob 1s ease-in-out infinite alternate}
+        .story-stage[data-state="calls"] .truck-bob{animation:truckShake .45s linear infinite}
+        @keyframes truckBob{from{transform:translateY(0)}to{transform:translateY(-3px)}}
+        @keyframes truckShake{0%,100%{transform:translate(0,0) rotate(0)}25%{transform:translate(-1.5px,-2px) rotate(-.7deg)}75%{transform:translate(1.5px,1px) rotate(.6deg)}}
+        .wheel{animation:wheelSpin .8s linear infinite;transform-box:fill-box;transform-origin:center}
+        .story-stage[data-state="solved"] .wheel{animation-duration:.4s}
+        @keyframes wheelSpin{to{transform:rotate(360deg)}}
+        .truck-shadow{animation:shadowSquash 1s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:center}
+        @keyframes shadowSquash{from{transform:scaleX(1);opacity:.16}to{transform:scaleX(.93);opacity:.11}}
+        .truck-glow{position:absolute;left:50%;bottom:4px;width:72%;height:28px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(closest-side,color-mix(in srgb,var(--color-primary) 55%,transparent),transparent);filter:blur(8px);opacity:0;transition:opacity .6s ease}
+        .story-stage[data-state="solved"] .truck-glow{opacity:.9}
+
+        .fx{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .5s ease;z-index:4}
+        .story-stage[data-state="business"] .fx-business,
+        .story-stage[data-state="calls"] .fx-calls,
+        .story-stage[data-state="blind"] .fx-blind,
+        .story-stage[data-state="papers"] .fx-papers,
+        .story-stage[data-state="solved"] .fx-solved{opacity:1}
+
+        .fx-call{position:absolute;display:flex;align-items:center;gap:.55rem;background:var(--color-surface-container-lowest);border:1px solid var(--color-border-subtle);border-radius:.9rem;padding:.55rem .8rem;box-shadow:0 10px 28px rgba(2,20,15,.16);animation:callFloat 3.2s ease-in-out infinite;font-size:.72rem;font-weight:700;color:var(--color-on-surface)}
+        .fx-call svg{width:16px;height:16px;color:#ef4444;animation:ringWiggle .8s ease-in-out infinite;flex-shrink:0}
+        .call-badge{background:#ef4444;color:#fff;border-radius:999px;font-size:.62rem;padding:.1rem .45rem}
+        .fx-call.k1{top:15%;left:10%}
+        .fx-call.k2{top:24%;right:9%;animation-delay:-1.1s}
+        .fx-call.k3{top:47%;left:17%;animation-delay:-2.2s}
+        @keyframes callFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+        @keyframes ringWiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-14deg)}65%{transform:rotate(12deg)}}
+
+        .fx-route{position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);width:min(560px,86%)}
+        .ping{position:absolute;width:74px;height:74px;border:3px solid #ef4444;border-radius:50%;opacity:0;animation:pingOut 1.7s ease-out infinite}
+        .ping.p1{left:24%;bottom:190px}
+        .ping.p2{right:20%;bottom:250px;animation-delay:.85s}
+        @keyframes pingOut{0%{transform:scale(.25);opacity:.85}100%{transform:scale(1.5);opacity:0}}
+
+        .fx-shop{position:absolute;left:7%;bottom:168px;width:116px;height:102px;background:var(--color-surface-container-lowest);border:2px solid var(--color-border-subtle);border-radius:12px;box-shadow:0 14px 30px rgba(2,20,15,.16);overflow:hidden}
+        .fx-shop::before{content:"";display:block;height:26px;background:var(--color-primary);opacity:.9}
+        .fx-shop span{position:absolute;left:0;right:0;top:52%;text-align:center;font-size:.58rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--color-secondary)}
+        .loadbox{position:absolute;width:32px;height:32px;border-radius:7px;background:#e8b06b;border:2px solid #c68a3f;box-shadow:inset 0 -7px 0 rgba(146,96,38,.35);opacity:0;animation:loadHop 3.6s ease-in-out infinite}
+        .loadbox.b1{left:15%;bottom:206px}
+        .loadbox.b2{left:18%;bottom:212px;animation-delay:1.2s}
+        .loadbox.b3{left:21%;bottom:218px;animation-delay:2.4s}
+        @keyframes loadHop{0%{opacity:0;transform:translate(0,0) rotate(0)}10%{opacity:1}42%{transform:translate(150px,-54px) rotate(-16deg)}58%{transform:translate(240px,10px) rotate(8deg)}70%{opacity:0;transform:translate(300px,26px) rotate(0)}100%{opacity:0}}
+        .fx-note{position:absolute;right:9%;top:18%;width:148px;height:176px;background:#fffbe8;border:1px solid #e7dfc2;border-left:5px solid #ef4444;border-radius:8px;box-shadow:0 14px 30px rgba(2,20,15,.16);padding:20px 14px;animation:noteWobble 4.5s ease-in-out infinite}
+        .fx-note i{display:block;height:7px;border-radius:4px;background:#d7cdb0;width:0;animation:writeLine 3.2s ease-in-out infinite}
+        .fx-note i:nth-child(1){--w:88%}
+        .fx-note i:nth-child(2){--w:70%;animation-delay:.55s}
+        .fx-note i:nth-child(3){--w:80%;background:#f3b9b9;animation-delay:1.1s}
+        .fx-note i:nth-child(4){--w:60%;animation-delay:1.65s}
+        .fx-note i:nth-child(5){--w:75%;animation-delay:2.2s}
+        @keyframes writeLine{0%{width:0}60%,100%{width:var(--w,85%)}}
+        @keyframes noteWobble{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
+        .cust-bubble{position:absolute;top:13%;right:8%;display:flex;align-items:center;gap:.6rem;background:var(--color-surface-container-lowest);border:1px solid var(--color-border-subtle);border-bottom-right-radius:.25rem;border-radius:1rem;padding:.6rem .9rem;box-shadow:0 12px 28px rgba(2,20,15,.16);font-size:.78rem;font-weight:700;color:var(--color-on-surface);animation:bubblePop 3.2s ease-in-out infinite}
+        .cust-bubble svg{width:30px;height:30px;flex-shrink:0}
+        @keyframes bubblePop{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+
+        .paper{position:absolute;width:76px;height:98px;border-radius:6px;background:#fff;box-shadow:0 12px 28px rgba(15,23,42,.2);padding:12px 10px;animation:paperFloat 4.2s ease-in-out infinite}
+        .paper i{display:block;height:6px;border-radius:3px;background:#e2e8f0;margin-bottom:7px}
+        .paper i:nth-child(2){width:80%}
+        .paper i:nth-child(3){width:65%}
+        .paper i:nth-child(4){width:72%;background:#fecaca}
+        .paper.pa1{top:14%;left:14%;--rot:-10deg}
+        .paper.pa2{top:22%;right:13%;--rot:8deg;animation-delay:-.9s}
+        .paper.pa3{top:44%;left:24%;--rot:-6deg;animation-delay:-1.7s}
+        .paper.pa4{top:38%;right:23%;--rot:12deg;animation-delay:-2.5s}
+        .paper.pa5{top:58%;left:46%;--rot:-14deg;animation-delay:-3.3s}
+        @keyframes paperFloat{0%,100%{transform:translateY(0) rotate(var(--rot,0deg))}50%{transform:translateY(-16px) rotate(calc(var(--rot,0deg) + 7deg))}}
+
+        .coin,.drop{position:absolute;animation:fallAway 1.5s ease-in infinite}
+        .coin{width:24px;height:24px;border-radius:50%;background:#f59e0b;color:#78350f;font-size:.66rem;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 -3px 0 rgba(120,53,15,.35)}
+        .drop{width:12px;height:17px;background:#334155;border-radius:50% 50% 50% 50%/62% 62% 38% 38%}
+        @keyframes fallAway{0%{transform:translateY(-10px);opacity:0}18%{opacity:1}100%{transform:translateY(200px);opacity:0}}
+        .lk1{top:34%;left:44%}
+        .lk2{top:29%;left:51%;animation-delay:.35s}
+        .lk3{top:36%;left:57%;animation-delay:.7s}
+        .lk4{top:32%;left:47%;animation-delay:1s}
+        .lk5{top:35%;left:53%;animation-delay:1.2s}
+        .loss-chip{position:absolute;top:52%;left:50%;transform:translateX(-50%);background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:999px;padding:.35rem .8rem;font-size:.72rem;font-weight:800;animation:lossPulse 2s ease-in-out infinite;white-space:nowrap}
+        @keyframes lossPulse{0%,100%{opacity:.75}50%{opacity:1}}
+
+        .zip{position:absolute;height:4px;border-radius:2px;background:var(--color-primary);opacity:0;animation:speedZip .8s linear infinite}
+        .zp1{width:34px;top:56%;left:26%}
+        .zp2{width:44px;top:62%;left:21%;animation-delay:.25s}
+        .zp3{width:28px;top:68%;left:28%;animation-delay:.5s}
+        @keyframes speedZip{0%{opacity:0;transform:translateX(0)}25%{opacity:.85}100%{opacity:0;transform:translateX(-46px)}}
+
+        .checkchip{position:absolute;width:38px;height:38px;border-radius:50%;background:var(--color-status-success,#059669);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 24px rgba(5,150,105,.4);transform:scale(0);transition:transform .5s cubic-bezier(.34,1.56,.64,1)}
+        .story-stage[data-state="solved"] .checkchip{transform:scale(1)}
+        .checkchip.ck1{top:38%;left:30%;transition-delay:.25s}
+        .checkchip.ck2{top:28%;right:29%;transition-delay:.5s}
+        .fx-dash{position:absolute;right:5%;bottom:118px;width:min(330px,84vw);background:color-mix(in srgb,var(--color-surface-container-lowest) 94%,transparent);backdrop-filter:blur(10px);border:1px solid var(--color-border-subtle);border-radius:1rem;box-shadow:0 26px 60px rgba(2,20,15,.28);overflow:hidden;transform:translateY(36px);transition:transform .65s cubic-bezier(.22,.61,.36,1) .15s}
+        .story-stage[data-state="solved"] .fx-dash{transform:translateY(0)}
+        .dash-head{display:flex;align-items:center;gap:.45rem;padding:.6rem .9rem;border-bottom:1px solid var(--color-border-subtle)}
+        .dash-dot{width:9px;height:9px;border-radius:50%}
+        .dash-title{font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--color-secondary)}
+        .dash-live{margin-left:auto;display:inline-flex;align-items:center;gap:.3rem;font-size:.6rem;font-weight:800;color:var(--color-status-success,#059669)}
+        .dash-live::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulseDot 1.4s ease-in-out infinite}
+        @keyframes pulseDot{0%,100%{opacity:1}50%{opacity:.35}}
+        .dash-row{display:flex;align-items:center;gap:.55rem;padding:.55rem .9rem;font-size:.74rem;font-weight:600;color:var(--color-on-surface);border-top:1px solid color-mix(in srgb,var(--color-border-subtle) 60%,transparent)}
+        .dash-row svg{width:14px;height:14px;color:var(--color-primary);flex-shrink:0}
+        .dash-pill{margin-left:auto;font-size:.6rem;font-weight:800;border-radius:999px;padding:.12rem .5rem;background:color-mix(in srgb,var(--color-status-success,#059669) 14%,transparent);color:var(--color-status-success,#059669);white-space:nowrap}
+        .dash-bars{display:flex;align-items:flex-end;gap:6px;height:54px;padding:.7rem .9rem .9rem}
+        .dash-bars b{flex:1;border-radius:3px 3px 0 0;background:color-mix(in srgb,var(--color-primary) 65%,transparent);transform:scaleY(.08);transform-origin:bottom;transition:transform .7s cubic-bezier(.22,.61,.36,1)}
+        .dash-bars b:nth-child(1){--h:.45;transition-delay:.1s}
+        .dash-bars b:nth-child(2){--h:.7;transition-delay:.2s}
+        .dash-bars b:nth-child(3){--h:.55;transition-delay:.3s}
+        .dash-bars b:nth-child(4){--h:.9;transition-delay:.4s}
+        .dash-bars b:nth-child(5){--h:.65;transition-delay:.5s}
+        .dash-bars b:nth-child(6){--h:1;transition-delay:.6s}
+        .story-stage[data-state="solved"] .dash-bars b{transform:scaleY(var(--h,.6))}
+
+        .story-chapter{position:relative;z-index:2;min-height:118vh;display:flex;align-items:center;padding:0 7vw}
+        .story-chapter.align-right{justify-content:flex-end}
+        .story-card{max-width:26rem;background:color-mix(in srgb,var(--color-surface-container-lowest) 90%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--color-border-subtle);border-radius:1.25rem;padding:1.9rem;box-shadow:0 26px 70px rgba(2,20,15,.22)}
+        .step-chip{display:inline-flex;align-items:center;gap:.55rem;font-size:.68rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--color-primary);margin-bottom:.9rem}
+        .step-chip b{width:26px;height:26px;border-radius:8px;background:color-mix(in srgb,var(--color-primary) 12%,transparent);display:inline-flex;align-items:center;justify-content:center;font-size:.8rem}
+        .story-card h3{font-family:'Outfit','Satoshi','Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.45rem;line-height:1.25;color:var(--color-on-surface);margin-bottom:.7rem}
+        .story-card p{font-size:.92rem;line-height:1.6;color:var(--color-secondary);margin:0}
+        .pain-tags{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:1.1rem}
+        .pain-tags span{font-size:.68rem;font-weight:700;color:var(--color-secondary);border:1px solid var(--color-border-subtle);border-radius:999px;padding:.25rem .65rem;background:color-mix(in srgb,var(--color-surface-container-lowest) 70%,transparent)}
+        .chapter-solved .story-card{border-color:color-mix(in srgb,var(--color-primary) 50%,transparent);box-shadow:0 30px 80px color-mix(in srgb,var(--color-primary) 22%,transparent)}
+        .solved-points{list-style:none;margin:1.1rem 0 0;padding:0;display:grid;gap:.5rem}
+        .solved-points li{display:flex;gap:.55rem;align-items:flex-start;font-size:.85rem;color:var(--color-on-surface);font-weight:600}
+        .solved-points li::before{content:"✓";flex-shrink:0;width:20px;height:20px;border-radius:50%;background:color-mix(in srgb,var(--color-primary) 14%,transparent);color:var(--color-primary);font-size:.72rem;font-weight:900;display:inline-flex;align-items:center;justify-content:center;margin-top:.1rem}
+        .cta-row{display:flex;flex-wrap:wrap;gap:.8rem;margin-top:1.4rem}
+
+        @media (max-width:640px){
+            .scene-skyline{height:70px}
+            .lane-dashes{top:50px}
+            .story-chapter{align-items:flex-end;padding-bottom:12vh;min-height:108vh}
+            .story-card{padding:1.4rem}
+            .ping.p2,.paper.pa5,.loadbox.b3{display:none}
+            .cust-bubble{right:4%}
+            .fx-note{right:5%;top:14%;width:120px;height:150px}
+            .scene-roadside{display:none}
+            .fx-call.k2{right:4%}
+            .fx-dash{right:50%;transform:translate(50%,36px)}
+            .story-stage[data-state="solved"] .fx-dash{transform:translate(50%,0)}
+        }
+
+        @media (prefers-reduced-motion:reduce){
+            .hero-enter{opacity:1;animation:none}
+            .pill-float{animation:none}
+            .reveal{opacity:1;transform:none;transition:none}
+            .story-stage *,.story-stage *::before,.story-stage *::after{animation:none!important;transition:none!important}
+            .story-progress-bar{display:none}
+        }
+
     </style>
     <script>
         document.documentElement.style.opacity = "1";
@@ -169,15 +391,15 @@
                     AVANDAB OPERATIONS PLATFORM
                 </div>
 
-                <h1 class="font-display font-black text-4xl sm:text-5xl lg:text-6xl text-on-surface tracking-tight leading-[1.15]">
+                <h1 class="hero-enter d2 font-display font-black text-4xl sm:text-5xl lg:text-6xl text-on-surface tracking-tight leading-[1.15]">
                     Fleet operations managed with clarity and control.
                 </h1>
 
-                <p class="text-secondary text-lg sm:text-xl font-normal leading-relaxed max-w-2xl mx-auto lg:mx-0">
+                <p class="hero-enter d3 text-secondary text-lg sm:text-xl font-normal leading-relaxed max-w-2xl mx-auto lg:mx-0">
                     A clean, high-performance platform for organizing drivers, routes, trips, and invoices without complex hardware or bloated workflows.
                 </p>
 
-                <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
+                <div class="hero-enter d4 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
                     <a href="/login" style="background-color: var(--color-primary) !important; color: var(--color-surface-container-lowest) !important;" class="w-full sm:w-auto px-7 py-3.5 rounded-md text-on-primary font-bold text-sm shadow-md transition-all duration-150 flex items-center justify-center gap-2">
                         <span style="color: var(--color-surface-container-lowest) !important;">Get Started</span>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
@@ -189,7 +411,7 @@
             </div>
 
             <!-- Right Cockpit Screen Frame -->
-            <div class="lg:col-span-5">
+            <div class="lg:col-span-5 hero-enter d5">
                 <div class="ecasb-card p-3 shadow-xl">
                     <div class="flex items-center justify-between px-3 py-2 border-b border-border-subtle mb-2">
                         <div class="flex items-center gap-1.5">
@@ -207,7 +429,7 @@
                         <img src="/static/img/avandab_hero.jpg" alt="Avandab Operations Cockpit" class="w-full h-auto object-cover">
                         
                         <!-- Floating Live Status Pill 1 -->
-                        <div class="absolute top-4 left-4 bg-surface-container-lowest/95 backdrop-blur-md border border-border-subtle rounded-lg px-3.5 py-2 shadow-lg flex items-center gap-3 hidden sm:flex">
+                        <div class="pill-float absolute top-4 left-4 bg-surface-container-lowest/95 backdrop-blur-md border border-border-subtle rounded-lg px-3.5 py-2 shadow-lg flex items-center gap-3 hidden sm:flex">
                             <div class="w-8 h-8 rounded-md bg-status-success/10 text-status-success flex items-center justify-center font-bold">
                                 <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="w-5 h-5"><path d="M3 5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h1v2a1 1 0 0 0 2 0v-2h9v2a1 1 0 0 0 2 0v-2h2a1 1 0 0 0 1-1v-7l-4-4H3Zm11 4h3l2 2v2h-5V9Z"/></svg>
                             </div>
@@ -221,7 +443,7 @@
                         </div>
 
                         <!-- Floating Live Status Pill 2 -->
-                        <div class="absolute bottom-4 right-4 bg-surface-container-lowest/95 backdrop-blur-md border border-border-subtle rounded-lg px-3.5 py-2 shadow-lg flex items-center gap-3 hidden sm:flex">
+                        <div class="pill-float pd absolute bottom-4 right-4 bg-surface-container-lowest/95 backdrop-blur-md border border-border-subtle rounded-lg px-3.5 py-2 shadow-lg flex items-center gap-3 hidden sm:flex">
                             <div class="w-8 h-8 rounded-md bg-primary/10 text-primary flex items-center justify-center font-bold">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h2"/><path d="M8 17h2"/><path d="M14 13h2"/><path d="M14 17h2"/></svg>
                             </div>
@@ -252,110 +474,376 @@
         </div>
     </section>
 
-    <!-- ECASB Mini Features Section (Optimized Card Sizing & Responsive Grid) -->
-    <section id="benefits" class="ecasb-mini-features" dir="ltr">
-        <div class="container">
-            <h3 class="mini-title">
-                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="w-6 h-6"><path d="M3 5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h1v2a1 1 0 0 0 2 0v-2h9v2a1 1 0 0 0 2 0v-2h2a1 1 0 0 0 1-1v-7l-4-4H3Zm11 4h3l2 2v2h-5V9Z"/></svg>
-                Avandab benefits for fleet operators
-            </h3>
-            <div class="mini-grid">
-                <div class="mini-item">
-                    <div class="mini-icon-wrap">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="M9 12h6"/></svg>
-                    </div>
-                    <div>
-                        <h4>Driver management</h4>
-                        <p>Real-time driver assignments, compliance, and license tracking</p>
-                    </div>
+    <!-- Scroll Story: fleet pains to Avandab relief -->
+    <section class="story" id="story">
+        <div class="story-stage" id="story-stage" data-state="business" aria-hidden="true">
+            <div class="story-progress"><div class="story-progress-bar"></div></div>
+            <div class="scene-sky"></div>
+            <div class="scene-glow"></div>
+            <div class="cloud c1"></div>
+            <div class="cloud c2"></div>
+            <div class="cloud c3"></div>
+            <div class="scene-skyline">
+                <svg viewBox="0 0 1200 90" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <g id="skyline-set" fill="currentColor" fill-opacity="0.08">
+                            <rect x="0" y="32" width="34" height="58"/>
+                            <rect x="40" y="8" width="42" height="82"/>
+                            <rect x="88" y="44" width="30" height="46"/>
+                            <rect x="124" y="20" width="38" height="70"/>
+                            <rect x="168" y="50" width="28" height="40"/>
+                            <rect x="202" y="2" width="40" height="88"/>
+                            <rect x="248" y="36" width="34" height="54"/>
+                            <rect x="288" y="16" width="36" height="74"/>
+                            <rect x="330" y="46" width="30" height="44"/>
+                            <rect x="366" y="28" width="40" height="62"/>
+                            <rect x="412" y="6" width="34" height="84"/>
+                            <rect x="452" y="40" width="30" height="50"/>
+                            <rect x="488" y="22" width="38" height="68"/>
+                            <rect x="532" y="34" width="30" height="56"/>
+                            <rect x="568" y="14" width="32" height="76"/>
+                        </g>
+                    </defs>
+                <use href="#skyline-set" x="0"/>
+                <use href="#skyline-set" x="600"/>
+            </svg>
+            </div>
+            <div class="scene-roadside">
+                <svg viewBox="0 0 600 70" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <g id="rs-set" fill="currentColor" fill-opacity=".12">
+                            <rect x="36" y="34" width="7" height="30"/>
+                            <circle cx="39.5" cy="24" r="16"/>
+                            <path d="M150 64h26l-4-14h-18Z"/>
+                            <rect x="158" y="58" width="10" height="6"/>
+                            <rect x="268" y="6" width="5" height="58"/>
+                            <rect x="252" y="0" width="44" height="20" rx="3"/>
+                            <circle cx="392" cy="52" r="12"/>
+                            <circle cx="404" cy="56" r="9"/>
+                            <rect x="500" y="10" width="5" height="54"/>
+                            <rect x="486" y="4" width="40" height="17" rx="3"/>
+                        </g>
+                    </defs>
+                    <use href="#rs-set" x="0"/>
+                    <use href="#rs-set" x="600"/>
+                </svg>
+            </div>
+
+            <div class="fx fx-business">
+                <div class="fx-shop"><span>Shree Traders</span></div>
+                <span class="loadbox b1"></span>
+                <span class="loadbox b2"></span>
+                <span class="loadbox b3"></span>
+            </div>
+
+            <div class="fx fx-calls">
+                <div class="fx-call k1">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    <span>"Truck chahiye kal subah"</span><span class="call-badge">×4</span>
                 </div>
-                <div class="mini-item">
-                    <div class="mini-icon-wrap">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-2.8a.5.5 0 0 0-.45-.3H3a.5.5 0 0 0-.45.3L1.14 12.2a1.5 1.5 0 0 0 0 1.6L2.6 16.6A.5.5 0 0 0 3.05 17H18"/></svg>
-                    </div>
-                    <div>
-                        <h4>Vehicle tracking</h4>
-                        <p>Track maintenance cycles, registration, and fleet readiness</p>
-                    </div>
+                <div class="fx-call k2">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    <span>Driver calling</span><span class="call-badge">×7</span>
                 </div>
-                <div class="mini-item">
-                    <div class="mini-icon-wrap">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>
-                    </div>
-                    <div>
-                        <h4>Route &amp; dispatch control</h4>
-                        <p>Schedule trips and automate dispatch to delivery workflows</p>
-                    </div>
+                <div class="fx-note"><i></i><i></i><i></i><i></i><i></i></div>
+            </div>
+
+            <div class="fx fx-blind">
+                <div class="cust-bubble">
+                    <svg viewBox="0 0 40 40"><circle cx="20" cy="14" r="8" fill="var(--color-primary)" opacity=".85"/><path d="M6 36c2-8 8-12 14-12s12 4 14 12" fill="var(--color-primary)" opacity=".85"/></svg>
+                    <span>"Where is my load?"</span>
                 </div>
-                <div class="mini-item">
-                    <div class="mini-icon-wrap">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
+                <svg class="fx-route" viewBox="0 0 480 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M24 140C120 30 250 190 456 34" stroke="#94a3b8" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 16"/>
+                    <circle cx="24" cy="140" r="9" fill="#ef4444"/>
+                    <circle cx="24" cy="140" r="17" stroke="#ef4444" stroke-opacity=".35" stroke-width="3"/>
+                    <circle cx="456" cy="34" r="9" fill="#94a3b8"/>
+                    <text x="228" y="104" font-size="64" font-weight="800" fill="#94a3b8" font-family="Outfit, sans-serif" text-anchor="middle">?</text>
+                </svg>
+                <span class="ping p1"></span>
+                <span class="ping p2"></span>
+            </div>
+
+            <div class="fx fx-papers">
+                <div class="paper pa1"><i></i><i></i><i></i><i></i></div>
+                <div class="paper pa2"><i></i><i></i><i></i><i></i></div>
+                <div class="paper pa3"><i></i><i></i><i></i><i></i></div>
+                <div class="paper pa4"><i></i><i></i><i></i><i></i></div>
+                <div class="paper pa5"><i></i><i></i><i></i><i></i></div>
+                <span class="coin lk1">₹</span>
+                <span class="coin lk2">₹</span>
+                <span class="drop lk3"></span>
+                <div class="loss-chip">Payments slip through the cracks</div>
+            </div>
+
+            <div class="fx fx-solved">
+                <span class="zip zp1"></span>
+                <span class="zip zp2"></span>
+                <span class="zip zp3"></span>
+                <div class="checkchip ck1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="m5 13 4 4L19 7"/></svg></div>
+                <div class="checkchip ck2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="m5 13 4 4L19 7"/></svg></div>
+                <div class="fx-dash">
+                    <div class="dash-head">
+                        <span class="dash-dot" style="background:#f87171"></span>
+                        <span class="dash-dot" style="background:#fbbf24"></span>
+                        <span class="dash-dot" style="background:#34d399"></span>
+                        <span class="dash-title">Ops Console</span>
+                        <span class="dash-live">LIVE</span>
                     </div>
-                    <div>
-                        <h4>Secure audit logging</h4>
-                        <p>Granular access control and full operational history logging</p>
+                    <div class="dash-row">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h1v2a1 1 0 0 0 2 0v-2h9v2a1 1 0 0 0 2 0v-2h2a1 1 0 0 0 1-1v-7l-4-4H3Zm11 4h3l2 2v2h-5V9Z"/></svg>
+                        <span>TRP-1042 · Nashik → Pune</span><span class="dash-pill">En Route</span>
                     </div>
-                </div>
-                <div class="mini-item">
-                    <div class="mini-icon-wrap">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                    <div class="dash-row">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        <span>INV-2210 · Shree Traders</span><span class="dash-pill">Auto-sent</span>
                     </div>
-                    <div>
-                        <h4>Performance analytics</h4>
-                        <p>Enhanced visibility into trip completion rates and margins</p>
+                    <div class="dash-row">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="15" y2="22"/><line x1="4" y1="9" x2="14" y2="9"/><path d="M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18"/><path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5"/></svg>
+                        <span>Diesel 38.4 L · Trip-linked</span><span class="dash-pill">Logged</span>
                     </div>
+                    <div class="dash-bars"><b></b><b></b><b></b><b></b><b></b><b></b></div>
                 </div>
             </div>
 
-            <h3 class="mini-title">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 5h2a2 2 0 0 1 2 2v2"/><path d="M3 7h18"/></svg>
-                Avandab benefits for customers &amp; shippers
-            </h3>
-            <div class="mini-grid">
-                <div class="mini-item">
-                    <div class="mini-icon-wrap">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/></svg>
-                    </div>
-                    <div>
-                        <h4>Direct trip booking</h4>
-                        <p>Book trips directly with verified drivers and fleet units</p>
-                    </div>
+            <div class="vehicle-track">
+                <div class="story-truck">
+                    <div class="truck-glow"></div>
+                    <svg viewBox="0 0 340 180" style="overflow:visible" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="tg-body" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0" stop-color="#ffffff"/>
+                                <stop offset="1" stop-color="#dde5ee"/>
+                            </linearGradient>
+                            <linearGradient id="tg-cab" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0" style="stop-color:var(--color-primary)"/>
+                                <stop offset="1" style="stop-color:color-mix(in srgb,var(--color-primary) 62%,#06251f)"/>
+                            </linearGradient>
+                            <linearGradient id="tg-glass" x1="0" y1="0" x2="1" y2="1">
+                                <stop offset="0" stop-color="#e0f2fe"/>
+                                <stop offset="1" stop-color="#7dd3fc"/>
+                            </linearGradient>
+                            <clipPath id="tg-box"><rect x="14" y="22" width="190" height="104" rx="10"/></clipPath>
+                            <clipPath id="tg-win"><rect x="216" y="46" width="30" height="24" rx="4"/></clipPath>
+                        </defs>
+                        <ellipse class="truck-shadow" cx="170" cy="171" rx="150" ry="5.5" fill="#000"/>
+                        <g class="truck-bob">
+                            <circle class="puff p1" cx="212" cy="14" r="5" fill="#cbd5e1"/>
+                            <circle class="puff p2" cx="206" cy="8" r="4" fill="#cbd5e1"/>
+                            <circle class="puff p3" cx="200" cy="2" r="3" fill="#cbd5e1"/>
+                            <rect x="207" y="16" width="6" height="86" rx="3" fill="#64748b"/>
+                            <rect x="205" y="14" width="10" height="5" rx="2.5" fill="#475569"/>
+                            <rect x="14" y="22" width="190" height="104" rx="10" fill="url(#tg-body)" stroke="#cbd5e1" stroke-width="1.5"/>
+                            <g clip-path="url(#tg-box)">
+                                <path d="M34 22v104M54 22v104M74 22v104M94 22v104M114 22v104M134 22v104M154 22v104M174 22v104M194 22v104" stroke="#e5ebf2" stroke-width="4"/>
+                            </g>
+                            <rect x="14" y="22" width="190" height="7" rx="3.5" fill="#94a3b8" opacity=".55"/>
+                            <rect x="14" y="112" width="190" height="14" fill="var(--color-primary)"/>
+                            <rect x="14" y="126" width="190" height="2.5" fill="#0f172a" opacity=".14"/>
+                            <rect x="52" y="46" width="114" height="36" rx="7" fill="#fff" stroke="#e2e8f0"/>
+                            <text x="109" y="66" text-anchor="middle" font-family="Outfit, sans-serif" font-size="17" font-weight="800" letter-spacing="2.5" fill="var(--color-primary)">AVANDAB</text>
+                            <text x="109" y="77" text-anchor="middle" font-family="Outfit, sans-serif" font-size="6.5" font-weight="700" letter-spacing="3.5" fill="#64748b">FLEET OPERATIONS</text>
+                            <rect x="188" y="30" width="3" height="88" rx="1.5" fill="#cbd5e1"/>
+                            <rect x="196" y="30" width="3" height="88" rx="1.5" fill="#cbd5e1"/>
+                            <rect x="8" y="106" width="6" height="14" rx="2" fill="#ef4444"/>
+                            <rect x="14" y="128" width="250" height="10" rx="3" fill="#334155"/>
+                            <rect x="118" y="137" width="44" height="17" rx="8.5" fill="#7c8ba1"/>
+                            <rect x="124" y="135" width="5" height="21" rx="2" fill="#475569"/>
+                            <rect x="150" y="135" width="5" height="21" rx="2" fill="#475569"/>
+                            <circle cx="158" cy="141" r="3" fill="#cbd5e1"/>
+                            <rect x="168" y="139" width="20" height="14" rx="3" fill="#475569"/>
+                            <path d="M210 40h44c5 0 9.8 2 13.3 5.6L296 74a16 16 0 0 1 4.7 11.3V132a4 4 0 0 1-4 4H210V40Z" fill="url(#tg-cab)"/>
+                            <circle cx="234" cy="31" r="3" fill="#94a3b8"/>
+                            <rect x="232" y="33" width="4" height="8" fill="#64748b"/>
+                            <path d="M254 46l34 30v4h-34V46Z" fill="url(#tg-glass)" opacity=".95"/>
+                            <path d="M258 50l22 22" stroke="#fff" stroke-width="3" opacity=".45"/>
+                            <rect x="216" y="46" width="30" height="24" rx="4" fill="url(#tg-glass)" opacity=".95"/>
+                            <g clip-path="url(#tg-win)">
+                                <circle cx="230" cy="57" r="5" fill="#334155"/>
+                                <path d="M221 72c2-7 6-9 9-9s7 2 9 9v-4h-18Z" fill="#334155"/>
+                            </g>
+                            <path d="M248 44v86" stroke="#0f172a" stroke-opacity=".16" stroke-width="2"/>
+                            <rect x="238" y="82" width="9" height="3.5" rx="1.75" fill="#0f172a" opacity=".35"/>
+                            <path d="M250 50l11-3" stroke="#334155" stroke-width="3"/>
+                            <rect x="259" y="41" width="6" height="15" rx="2.5" fill="#334155"/>
+                            <rect x="288" y="80" width="13" height="11" rx="3" fill="#fef9c3" stroke="#f59e0b"/>
+                            <circle cx="294" cy="97" r="3.5" fill="#fb923c"/>
+                            <circle cx="292" cy="110" r="4" fill="#e2e8f0" stroke="#94a3b8"/>
+                            <rect x="278" y="117" width="22" height="11" rx="2" fill="#fff" stroke="#94a3b8"/>
+                            <text x="289" y="125" text-anchor="middle" font-family="monospace" font-size="6.5" font-weight="700" fill="#334155">MH12</text>
+                            <rect x="286" y="128" width="16" height="9" rx="3" fill="#475569"/>
+                            <rect x="214" y="136" width="16" height="4" rx="2" fill="#475569"/>
+                            <rect x="214" y="142" width="16" height="4" rx="2" fill="#475569"/>
+                            <rect x="40" y="144" width="16" height="15" rx="2" fill="#1e293b"/>
+                            <rect x="238" y="144" width="16" height="15" rx="2" fill="#1e293b"/>
+                        </g>
+                        <g transform="translate(64 150)">
+                            <g class="wheel">
+                                <circle r="20" fill="#111827"/>
+                                <circle r="17" fill="none" stroke="#374151" stroke-width="3" stroke-dasharray="4 6"/>
+                                <circle r="12.5" fill="#e5e7eb"/>
+                                <g fill="#94a3b8">
+                                    <rect x="-1.75" y="-11.5" width="3.5" height="23" rx="1.75"/>
+                                    <rect x="-1.75" y="-11.5" width="3.5" height="23" rx="1.75" transform="rotate(60)"/>
+                                    <rect x="-1.75" y="-11.5" width="3.5" height="23" rx="1.75" transform="rotate(-60)"/>
+                                </g>
+                                <circle r="5.5" fill="#475569"/>
+                                <circle r="2" fill="#cbd5e1"/>
+                            </g>
+                        </g>
+                        <g transform="translate(102 150)">
+                            <g class="wheel">
+                                <circle r="20" fill="#111827"/>
+                                <circle r="17" fill="none" stroke="#374151" stroke-width="3" stroke-dasharray="4 6"/>
+                                <circle r="12.5" fill="#e5e7eb"/>
+                                <g fill="#94a3b8">
+                                    <rect x="-1.75" y="-11.5" width="3.5" height="23" rx="1.75"/>
+                                    <rect x="-1.75" y="-11.5" width="3.5" height="23" rx="1.75" transform="rotate(60)"/>
+                                    <rect x="-1.75" y="-11.5" width="3.5" height="23" rx="1.75" transform="rotate(-60)"/>
+                                </g>
+                                <circle r="5.5" fill="#475569"/>
+                                <circle r="2" fill="#cbd5e1"/>
+                            </g>
+                        </g>
+                        <g transform="translate(264 150)">
+                            <g class="wheel">
+                                <circle r="20" fill="#111827"/>
+                                <circle r="17" fill="none" stroke="#374151" stroke-width="3" stroke-dasharray="4 6"/>
+                                <circle r="12.5" fill="#e5e7eb"/>
+                                <g fill="#94a3b8">
+                                    <rect x="-1.75" y="-11.5" width="3.5" height="23" rx="1.75"/>
+                                    <rect x="-1.75" y="-11.5" width="3.5" height="23" rx="1.75" transform="rotate(60)"/>
+                                    <rect x="-1.75" y="-11.5" width="3.5" height="23" rx="1.75" transform="rotate(-60)"/>
+                                </g>
+                                <circle r="5.5" fill="#475569"/>
+                                <circle r="2" fill="#cbd5e1"/>
+                            </g>
+                        </g>
+                    </svg>
                 </div>
-                <div class="mini-item">
-                    <div class="mini-icon-wrap">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
-                    </div>
-                    <div>
-                        <h4>Automated invoicing</h4>
-                        <p>Instant invoice generation with itemized trip breakdowns</p>
-                    </div>
+            </div>
+
+            <div class="scene-road">
+                <div class="road-base"></div>
+                <div class="lane-dashes"></div>
+            </div>
+        </div>
+
+        <div class="story-chapter" data-scene="business">
+            <div class="story-card reveal">
+                <div class="step-chip"><b>1</b>First, your world</div>
+                <h3>You move goods from one city to another. That is the whole business.</h3>
+                <p>A customer needs a load carried. Your truck picks it up, a driver takes it there. Simple — until it isn't.</p>
+                <div class="pain-tags"><span>Your trucks</span><span>Your drivers</span><span>Your customers</span></div>
+            </div>
+        </div>
+
+        <div class="story-chapter align-right" data-scene="calls">
+            <div class="story-card reveal">
+                <div class="step-chip"><b>2</b>The booking scramble</div>
+                <h3>"Truck chahiye kal subah." One call becomes ten.</h3>
+                <p>You ring drivers, compare rates, scribble prices on paper scraps and forward addresses on WhatsApp. Every booking lives in five different places — mostly in your head.</p>
+                <div class="pain-tags"><span>Phone calls</span><span>Paper scraps</span><span>All in memory</span></div>
+            </div>
+        </div>
+
+        <div class="story-chapter" data-scene="blind">
+            <div class="story-card reveal">
+                <div class="step-chip"><b>3</b>"Where is my load?"</div>
+                <h3>The customer asks. You honestly don't know yet.</h3>
+                <p>Until the driver answers his phone, nobody knows if the truck is in traffic, parked at a dhaba, or lost. One truck is easy to track in your head. Twenty is chaos.</p>
+                <div class="pain-tags"><span>No live location</span><span>Repeat follow-ups</span><span>Broken trust</span></div>
+            </div>
+        </div>
+
+        <div class="story-chapter align-right" data-scene="papers">
+            <div class="story-card reveal">
+                <div class="step-chip"><b>4</b>The month-end mountain</div>
+                <h3>The trip finished — the paperwork didn't.</h3>
+                <p>Invoices wait to be made, fuel receipts vanish, and one payment quietly slips through the cracks. Multiply that by every trip this month.</p>
+                <div class="pain-tags"><span>Pending invoices</span><span>Lost receipts</span><span>Forgotten payments</span></div>
+            </div>
+        </div>
+
+        <div class="story-chapter chapter-solved" data-scene="solved">
+            <div class="story-card reveal">
+                <div class="step-chip"><b>✓</b>The Avandab way</div>
+                <h3>Avandab puts your transport business on one screen.</h3>
+                <p>Book a trip, assign a driver, share a live tracking link, get paid — each step flows into the next, automatically.</p>
+                <ul class="solved-points">
+                    <li>Dispatch a driver in seconds</li>
+                    <li>Customer watches the trip live</li>
+                    <li>Invoice creates itself after delivery</li>
+                    <li>Every rupee in and out, recorded</li>
+                </ul>
+                <div class="cta-row">
+                    <a href="/login" style="background-color: var(--color-primary) !important; color: var(--color-surface-container-lowest) !important;" class="px-7 py-3.5 rounded-md font-bold text-sm shadow-md transition-all duration-150 flex items-center justify-center gap-2">
+                        Take the wheel
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    </a>
+                    <a href="#benefits" class="px-7 py-3.5 rounded-md border border-border-subtle bg-surface-container-lowest text-on-surface-variant font-bold text-sm hover:bg-surface-container-low transition-all duration-150 shadow-xs flex items-center justify-center">
+                        See all features
+                    </a>
                 </div>
-                <div class="mini-item">
-                    <div class="mini-icon-wrap">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
-                    </div>
-                    <div>
-                        <h4>Transparent billing</h4>
-                        <p>Clear rate breakdown with pending payment status tracking</p>
-                    </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ECASB Mini Features Section (Optimized Card Sizing & Responsive Grid) -->
+    <section id="benefits" class="ecasb-mini-features" dir="ltr">
+        <div class="container">
+            <div class="feat-intro reveal">
+                <div>
+                    <h3 class="mini-title">
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="w-6 h-6"><path d="M3 5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h1v2a1 1 0 0 0 2 0v-2h9v2a1 1 0 0 0 2 0v-2h2a1 1 0 0 0 1-1v-7l-4-4H3Zm11 4h3l2 2v2h-5V9Z"/></svg>
+                        Every module. One login.
+                    </h3>
+                    <p style="color:var(--color-secondary);font-size:.95rem;margin:.5rem 0 0;">No add-ons, no per-feature pricing — the complete toolkit ships together.</p>
                 </div>
-                <div class="mini-item">
-                    <div class="mini-icon-wrap">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>
+                <span class="feat-count">✓ 30+ modules included</span>
+            </div>
+            <div class="feat-groups">
+                <div class="feat-group reveal">
+                    <div class="fg-head">
+                        <div class="fg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg></div>
+                        <h4>Run daily operations</h4>
                     </div>
-                    <div>
-                        <h4>Real-time route visibility</h4>
-                        <p>Live trip progress tracking from origin to destination</p>
-                    </div>
+                    <div class="fg-chips"><span>Bookings</span><span>Trips &amp; routes</span><span>Driver management</span><span>Vehicle records</span><span>Customer CRM</span><span>Maintenance scheduler</span></div>
                 </div>
-                <div class="mini-item">
-                    <div class="mini-icon-wrap">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+                <div class="feat-group reveal">
+                    <div class="fg-head">
+                        <div class="fg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></div>
+                        <h4>See everything live</h4>
                     </div>
-                    <div>
-                        <h4>Historical reporting</h4>
-                        <p>Export complete transport history, invoices, and payment records</p>
+                    <div class="fg-chips"><span>Live map</span><span>Trip tracking &amp; ETA</span><span>Geofences</span><span>Telemetry devices</span><span>Alerts &amp; ops alerts</span><span>Notifications</span></div>
+                </div>
+                <div class="feat-group reveal">
+                    <div class="fg-head">
+                        <div class="fg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M6 3h12"/><path d="M6 8h12"/><path d="m6 13 8.5 8"/><path d="M6 13h3"/><path d="M9 13c6.667 0 6.667-10 0-10"/></svg></div>
+                        <h4>Money, closed loop</h4>
                     </div>
+                    <div class="fg-chips"><span>Invoices</span><span>Payment tracking</span><span>Kharcha ledger</span><span>Settlements</span><span>Fuel audit</span><span>PnL reports</span></div>
+                </div>
+                <div class="feat-group reveal">
+                    <div class="fg-head">
+                        <div class="fg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg></div>
+                        <h4>Compliance built-in</h4>
+                    </div>
+                    <div class="fg-chips"><span>E-way bill</span><span>FASTag</span><span>Audit trail</span><span>User roles &amp; permissions</span><span>Driver scorecard</span></div>
+                </div>
+                <div class="feat-group reveal">
+                    <div class="fg-head">
+                        <div class="fg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+                        <h4>For your customers</h4>
+                    </div>
+                    <div class="fg-chips"><span>Self-service portal</span><span>My Shipments live view</span><span>Direct invoices</span><span>Support access</span></div>
+                </div>
+                <div class="feat-group reveal">
+                    <div class="fg-head">
+                        <div class="fg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg></div>
+                        <h4>Extras that compound</h4>
+                    </div>
+                    <div class="fg-chips"><span>Mobile driver app</span><span>E-PoD signatures</span><span>AI assistant</span><span>REST API</span><span>Experiments lab</span><span>Self-host option</span></div>
                 </div>
             </div>
         </div>
@@ -364,13 +852,13 @@
     <!-- Key Modules -->
     <section id="features" class="py-20 border-t border-border-subtle bg-background">
         <div class="max-w-6xl mx-auto px-6">
-            <div class="mb-12 space-y-2 text-center sm:text-left">
+            <div class="mb-12 space-y-2 text-center sm:text-left reveal">
                 <h2 class="font-display font-bold text-2xl sm:text-3xl text-on-surface">Essential operations, refined</h2>
                 <p class="text-secondary text-sm sm:text-base">Everything needed to run daily transport and dispatch logistics.</p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="ecasb-card p-7 space-y-4">
+                <div class="ecasb-card p-7 space-y-4 reveal">
                     <div class="w-12 h-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="M9 12h6"/></svg>
                     </div>
@@ -378,7 +866,7 @@
                     <p class="text-secondary text-sm leading-relaxed">Manage driver assignments, active shifts, and license compliance in real time.</p>
                 </div>
 
-                <div class="ecasb-card p-7 space-y-4">
+                <div class="ecasb-card p-7 space-y-4 reveal">
                     <div class="w-12 h-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-2.8a.5.5 0 0 0-.45-.3H3a.5.5 0 0 0-.45.3L1.14 12.2a1.5 1.5 0 0 0 0 1.6L2.6 16.6A.5.5 0 0 0 3.05 17H18"/></svg>
                     </div>
@@ -386,7 +874,7 @@
                     <p class="text-secondary text-sm leading-relaxed">Track registrations, maintenance cycles, and vehicle readiness across your fleet.</p>
                 </div>
 
-                <div class="ecasb-card p-7 space-y-4">
+                <div class="ecasb-card p-7 space-y-4 reveal">
                     <div class="w-12 h-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>
                     </div>
@@ -400,7 +888,7 @@
     <!-- Competitor Comparison -->
     <section id="comparison" class="py-20 border-t border-border-subtle bg-surface-container-lowest">
         <div class="max-w-6xl mx-auto px-6">
-            <div class="mb-12 space-y-2 text-center sm:text-left">
+            <div class="mb-12 space-y-2 text-center sm:text-left reveal">
                 <h2 class="font-display font-bold text-2xl sm:text-3xl text-on-surface">How Avandab compares</h2>
                 <p class="text-secondary text-sm sm:text-base">Built for speed, simplicity, and complete operational efficiency.</p>
             </div>
@@ -446,5 +934,62 @@
 
     {{template "cookie-consent" .}}
     <script src="/static/js/theme.js?v={{if .Version}}{{.Version}}{{else}}20260820{{end}}"></script>
+    <script>
+        (function () {
+            var els = Array.prototype.slice.call(document.querySelectorAll(".reveal"));
+            if (!els.length) return;
+            var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            if (reduce || !("IntersectionObserver" in window)) {
+                els.forEach(function (el) { el.classList.add("is-visible"); });
+                return;
+            }
+            var io = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add("is-visible");
+                        io.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
+            els.forEach(function (el) { io.observe(el); });
+        })();
+        (function () {
+            var stage = document.getElementById("story-stage");
+            if (!stage) return;
+            var chapters = document.querySelectorAll(".story-chapter");
+            var bar = document.querySelector(".story-progress-bar");
+            var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            if ("IntersectionObserver" in window && chapters.length) {
+                var io = new IntersectionObserver(function (entries) {
+                    entries.forEach(function (entry) {
+                        if (entry.isIntersecting) {
+                            stage.setAttribute("data-state", entry.target.getAttribute("data-scene"));
+                        }
+                    });
+                }, { rootMargin: "-42% 0px -42% 0px", threshold: 0 });
+                chapters.forEach(function (c) { io.observe(c); });
+            }
+            if (bar && !reduce && chapters.length) {
+                var story = document.getElementById("story");
+                var ticking = false;
+                var update = function () {
+                    ticking = false;
+                    var rect = story.getBoundingClientRect();
+                    var total = rect.height - window.innerHeight;
+                    var p = total > 0 ? Math.min(1, Math.max(0, -rect.top / total)) : 1;
+                    bar.style.transform = "scaleX(" + p + ")";
+                    var travel = window.innerWidth * 0.18;
+                    var tx = -travel * 0.33 + p * travel;
+                    stage.style.setProperty("--truck-x", tx.toFixed(1) + "px");
+                };
+                window.addEventListener("scroll", function () {
+                    if (!ticking) { ticking = true; requestAnimationFrame(update); }
+                }, { passive: true });
+                update();
+            } else if (bar) {
+                bar.style.display = "none";
+            }
+        })();
+    </script>
 </body>
 </html>

@@ -5,27 +5,27 @@
     <form method="POST" action="/customer/feedback" class="space-y-4 bg-surface-container-lowest border border-border-subtle rounded-lg p-6 shadow-sm">
         <input type="hidden" name="trip_id" value="{{if .TripID}}{{.TripID}}{{else}}{{if .Trip}}{{if .Trip.ID}}{{.Trip.ID}}{{end}}{{end}}{{end}}" />
         <div>
-            <label class="block text-sm font-medium text-on-surface mb-2">Rating</label>
+            <label class="block text-xs font-bold uppercase tracking-wider text-secondary mb-1.5">Rating</label>
             <div class="flex items-center gap-1" id="star-rating">
                 <label class="flex items-center gap-1 cursor-pointer">
                     <input type="radio" name="rating" value="1" class="sr-only peer" required />
-                    <span class="text-2xl peer-checked:text-amber-500 text-border-subtle hover:text-amber-400 transition-colors">★</span>
+                    <span class="text-2xl peer-checked:text-primary text-border-subtle hover:text-primary/70 transition-colors">★</span>
                 </label>
                 <label class="flex items-center gap-1 cursor-pointer">
                     <input type="radio" name="rating" value="2" class="sr-only peer" />
-                    <span class="text-2xl peer-checked:text-amber-500 text-border-subtle hover:text-amber-400 transition-colors">★</span>
+                    <span class="text-2xl peer-checked:text-primary text-border-subtle hover:text-primary/70 transition-colors">★</span>
                 </label>
                 <label class="flex items-center gap-1 cursor-pointer">
                     <input type="radio" name="rating" value="3" class="sr-only peer" />
-                    <span class="text-2xl peer-checked:text-amber-500 text-border-subtle hover:text-amber-400 transition-colors">★</span>
+                    <span class="text-2xl peer-checked:text-primary text-border-subtle hover:text-primary/70 transition-colors">★</span>
                 </label>
                 <label class="flex items-center gap-1 cursor-pointer">
                     <input type="radio" name="rating" value="4" class="sr-only peer" />
-                    <span class="text-2xl peer-checked:text-amber-500 text-border-subtle hover:text-amber-400 transition-colors">★</span>
+                    <span class="text-2xl peer-checked:text-primary text-border-subtle hover:text-primary/70 transition-colors">★</span>
                 </label>
                 <label class="flex items-center gap-1 cursor-pointer">
                     <input type="radio" name="rating" value="5" class="sr-only peer" />
-                    <span class="text-2xl peer-checked:text-amber-500 text-border-subtle hover:text-amber-400 transition-colors">★</span>
+                    <span class="text-2xl peer-checked:text-primary text-border-subtle hover:text-primary/70 transition-colors">★</span>
                 </label>
                 <span class="ml-2 text-xs text-text-muted">Select 1–5 stars</span>
             </div>
@@ -37,16 +37,16 @@
         </div>
 
         <div>
-            <label for="fb-comment" class="block text-sm font-medium text-on-surface mb-1">Comment (optional)</label>
+            <label for="fb-comment" class="block text-xs font-bold uppercase tracking-wider text-secondary mb-1.5">Comment (optional)</label>
             <textarea id="fb-comment" name="comment" rows="4" maxlength="2000" placeholder="How was your delivery experience? Any issues with timing, handling, or driver communication?" class="w-full bg-surface-container-low border border-border-subtle rounded-md py-2 px-3 text-sm text-on-surface placeholder-text-muted focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"></textarea>
             <p class="text-[11px] text-text-muted mt-1">Max 2000 characters. Your feedback is linked to trip {{if .TripID}}{{.TripID}}{{else}}—{{end}} and visible to ops.</p>
         </div>
 
         <div class="flex items-center gap-3 pt-2">
-            <button type="submit" class="px-5 py-2 rounded-md bg-primary text-on-primary text-sm font-semibold hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors">
+            <button type="submit" class="inline-flex items-center gap-2 rounded-md bg-primary text-on-primary px-4 py-2 text-sm font-medium hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all">
                 Submit Feedback
             </button>
-            <a href="/customer/bookings" class="px-4 py-2 rounded-md bg-surface-container border border-border-subtle text-sm font-medium text-on-surface hover:bg-surface-container-low transition-colors">Cancel</a>
+            <a href="/customer/bookings" class="inline-flex items-center rounded-md bg-surface-container-low border border-border-subtle px-4 py-2 text-sm font-medium text-on-surface hover:bg-surface-container transition-colors">Cancel</a>
         </div>
 
         <p class="text-[11px] text-text-muted">By submitting, you agree your rating is stored in <code>trip_feedback</code> per Spec 21 §3.</p>
@@ -73,8 +73,8 @@ Content-Type: application/json
     inputs.forEach(function(inp, idx){
         inp.addEventListener('change', function(){
             stars.forEach(function(s, si){
-                if(si <= idx) s.classList.add('text-amber-500');
-                else s.classList.remove('text-amber-500');
+                if(si <= idx) s.classList.add('text-primary');
+                else s.classList.remove('text-primary');
             });
         });
     });

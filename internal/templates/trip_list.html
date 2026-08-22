@@ -1,6 +1,6 @@
 {{template "page_header.html" (dict "Title" "Trips" "Subtitle" "Track transport assignments, departure schedules, and dispatch status" "ActionHref" "/trips/new" "ActionIcon" "add" "ActionLabel" "New Trip")}}
 
-<div class="bg-surface-container-lowest border border-border-subtle rounded shadow-sm flex flex-col h-full overflow-hidden">
+<div class="bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm flex flex-col overflow-hidden">
     <!-- Sticky Filter Bar (Stitch Screen 3 Exact Layout) -->
     <form method="GET" action="/trips" class="px-4 py-2 border-b border-border-subtle flex flex-wrap items-center gap-2 bg-surface-container-lowest sticky top-0 z-10">
         <span class="text-xs font-medium text-secondary mr-2">Filters:</span>

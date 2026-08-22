@@ -91,6 +91,10 @@ import (
 	"transport-app/internal/shared/uow"
 
 	"github.com/pressly/goose/v3"
+	cachepkg "transport-app/internal/cache"
+	appdb "transport-app/internal/database"
+	"transport-app/internal/leader"
+	"transport-app/internal/metrics"
 )
 
 // Version is set via ldflags during build
@@ -140,45 +144,25 @@ func main() {
 	}
 	logger.Info("Starting MVTMS server", "env", cfg.AppEnv, "port", cfg.Port)
 
-	// Open database with optimized PRAGMAs for high concurrency
-	database, err := sql.Open("sqlite", cfg.DatabaseURL)
+	ctx := context.Background()
+
+	// Open the configured DB engine (sqlite | postgres | mysql) via the
+	// config-driven factory — switching engines never touches this file.
+	database, err := appdb.Open(ctx, &cfg.Database, logger)
 	if err != nil {
 		logger.Error("Failed to open database", "error", err)
 		os.Exit(1)
 	}
 	defer func() { _ = database.Close() }()
 
-	database.SetMaxOpenConns(64)
-	database.SetMaxIdleConns(32)
-	database.SetConnMaxLifetime(15 * time.Minute)
-
-	// Execute WAL mode & performance pragmas. synchronous=NORMAL keeps
-	// WAL durability while avoiding the FULL sync penalty on every commit.
-	pragmas := []string{
-		"PRAGMA journal_mode=WAL;",
-		"PRAGMA synchronous=NORMAL;",
-		"PRAGMA busy_timeout=10000;",
-		"PRAGMA cache_size=-131072;",  // 128MB cache
-		"PRAGMA mmap_size=536870912;", // 512MB memory-mapped file I/O
-		"PRAGMA locking_mode=NORMAL;",
-		"PRAGMA foreign_keys=ON;",
-		"PRAGMA temp_store=MEMORY;",
-	}
-	for _, p := range pragmas {
-		if _, err := database.Exec(p); err != nil {
-			logger.Warn("Failed to execute pragma", "pragma", p, "error", err)
-		}
-	}
-
-	// Run migrations from embedded filesystem
-	ctx := context.Background()
+	// Run migrations from embedded filesystem using the engine's dialect
 	migrations, err := fs.Sub(dbmigr.Migrations, "migrations")
 	if err != nil {
 		logger.Error("Failed to read embedded migrations", "error", err)
 		os.Exit(1)
 	}
 
-	provider, err := goose.NewProvider(goose.DialectSQLite3, database, migrations)
+	provider, err := goose.NewProvider(appdb.GooseDialect(cfg.Database.Driver), database, migrations)
 	if err != nil {
 		logger.Error("Failed to create migration provider", "error", err)
 		os.Exit(1)
@@ -193,6 +177,13 @@ func main() {
 
 	// Initialize repository
 	repo := sqlite.NewRepository(database)
+
+	// Config-selected cache backend (none | memory | redis). Attached to the
+	// handler app so hot reads can be served without knowing the backend.
+	appCache := cachepkg.MustNew(ctx, &cfg.Cache, logger)
+	if closer, ok := appCache.(cachepkg.Closer); ok {
+		defer func() { _ = closer.Close() }()
+	}
 
 	// Single shared in-memory event bus: services, automation subscribers,
 	// the outbox relay, and founder handlers all publish/listen on the SAME
@@ -266,6 +257,7 @@ func main() {
 	// Initialize handlers app
 	resetTokens := auth.NewResetTokenStore(0)
 	app := handlers.NewApp(services, cfg, authStore, database, authSvc, resetTokens)
+	app.Cache = appCache
 
 	// E-Way Bill and FASTag services (Spec 07)
 	integCfg := integration.LoadConfig()
@@ -293,6 +285,7 @@ func main() {
 	app.Accounting = handlers.NewAccountingHandlers(app, accountingConsumer, authSvc)
 	app.Settlements = handlers.NewSettlementHandlers(app, services.Settlements, authSvc)
 	app.Documents = handlers.NewDocumentHandlers(app, services.Documents, authSvc)
+	app.FilesAPI = handlers.NewFilesAPIHandlers(app, services.Files, authSvc)
 
 	// ── Ops: error reporting, login audit, dashboard ─────────────────────
 	notifSvc := notifications.NewService()
@@ -373,9 +366,14 @@ func main() {
 
 	// Setup router
 	r := chi.NewRouter()
+	r.NotFound(app.NotFoundHandler)
+	r.MethodNotAllowed(app.MethodNotAllowedHandler)
 	r.Use(middleware.RequestID)
 	r.Use(middleware.SecurityHeaders)
 	r.Use(apiversion.Middleware)
+	// Golden-signal request metrics (count, latency, status per route) for
+	// the Prometheus exposition mounted at GET /metrics below.
+	r.Use(metrics.Middleware)
 	r.Use(middleware.Logger)
 	// Exempt the SSE streams from the global 60s request timeout (Spec 04 §1.2, Spec 12 §5.1):
 	// long-lived EventSource connections must outlive the deadline. REST polling
@@ -406,6 +404,9 @@ func main() {
 	r.Get("/healthz", healthChecker.LivenessHandler)
 	r.Get("/health", healthChecker.HealthHandler)
 	r.Get("/readyz", healthChecker.ReadinessHandler)
+	// Prometheus scrape endpoint (probe-style, no auth — bind the port to an
+	// internal interface or firewall it in production if exposure is a concern).
+	r.Get("/metrics", metrics.Handler().ServeHTTP)
 
 	// Direct SEO Endpoints
 	r.Get("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
@@ -594,7 +595,11 @@ func main() {
 				logger.Warn("RAG: no embedding API key configured, using hash-based embeddings (lower quality)")
 			}
 			ragSvc := rag.NewService(embedder, ragStore, cfg.RAG.ChunkSize, cfg.RAG.ChunkOverlap, cfg.UploadDir)
-			ragHandler = rag.NewHandler(ragSvc).WithAllowedDirs(cfg.RAG.IndexDirs)
+			ragHandler = rag.NewHandler(ragSvc).WithAllowedDirs(cfg.RAG.IndexDirs).
+				WithPermissionGuards(
+					middleware.RequirePermission(authSvc, "rag", "read"),
+					middleware.RequirePermission(authSvc, "rag", "write"),
+				)
 
 			// Auto-index on startup if dirs configured
 			if len(cfg.RAG.IndexDirs) > 0 {
@@ -614,19 +619,19 @@ func main() {
 	}
 
 	// Public: token endpoint (no auth required) — rate-limited against brute force
-	authAPIHandler.Register(r.With(middleware.RateLimit(10)))
+	authAPIHandler.Register(r.With(middleware.RateLimitDistributed(appCache, 10)))
 
 	// ── AI Agent (operations assistant) — built after RAG below ─────────
 	var agentAPI *agent.Handler
 	var approvalSvc *agent.ApprovalService
 
 	// Public: Razorpay webhook — signature-verified, rate-limited against flood attacks
-	r.With(middleware.RateLimit(30)).Post("/api/v1/payments/razorpay-webhook", paymentAPIHandler.RazorpayWebhook)
+	r.With(middleware.RateLimitDistributed(appCache, 30)).Post("/api/v1/payments/razorpay-webhook", paymentAPIHandler.RazorpayWebhook)
 
 	// Public: device GPS ingestion (own hardware + mobile app) — authenticated via
 	// X-Device-Token header (HMAC-SHA256), not session/Bearer token.
 	if cfg.Telemetry.Enabled {
-		httpHandler.RegisterRoutes(r.With(middleware.RateLimit(30)))
+		httpHandler.RegisterRoutes(r.With(middleware.RateLimitDistributed(appCache, 30)))
 	}
 
 	// SSE hub (single-process, in-memory fan-out, Spec 04 §1.2)
@@ -893,13 +898,13 @@ func main() {
 			_, _ = w.Write([]byte(sitemap))
 		})
 		r.Get("/login", app.Auth.LoginPage)
-		r.With(middleware.RateLimit(10)).Post("/login", app.Auth.Login)
+		r.With(middleware.RateLimitDistributed(appCache, 10)).Post("/login", app.Auth.Login)
 		r.Get("/register", app.Auth.RegisterPage)
-		r.With(middleware.RateLimit(10)).Post("/register", app.Auth.Register)
+		r.With(middleware.RateLimitDistributed(appCache, 10)).Post("/register", app.Auth.Register)
 		r.Get("/forgot-password", app.Auth.ForgotPasswordPage)
-		r.Post("/forgot-password", app.Auth.SubmitForgotPassword)
+		r.With(middleware.RateLimitDistributed(appCache, 10)).Post("/forgot-password", app.Auth.SubmitForgotPassword)
 		r.Get("/reset-password", app.Auth.ResetPasswordPage)
-		r.Post("/reset-password", app.Auth.SubmitResetPassword)
+		r.With(middleware.RateLimitDistributed(appCache, 10)).Post("/reset-password", app.Auth.SubmitResetPassword)
 		r.Post("/logout", app.Auth.Logout)
 
 		// Public Contact & Status Tracking
@@ -919,9 +924,10 @@ func main() {
 		// Public live trip share links (Spec 04 §4) — login-free
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.ContentSecurityPolicy(cfg.LiveMap.CSPEnabled))
-			r.With(middleware.RateLimit(20), middleware.NoCache).Get("/share/{token}", app.Share.ViewShare)
-			r.With(middleware.RateLimit(10)).Post("/share/{token}/verify", app.Share.VerifyPIN)
-			r.With(middleware.RateLimit(30), middleware.NoCache).Get("/share/{token}/data", app.Share.ShareData)
+			r.Get("/share", app.Share.HandleShareIndex)
+			r.With(middleware.RateLimitDistributed(appCache, 20), middleware.NoCache).Get("/share/{token}", app.Share.ViewShare)
+			r.With(middleware.RateLimitDistributed(appCache, 10)).Post("/share/{token}/verify", app.Share.VerifyPIN)
+			r.With(middleware.RateLimitDistributed(appCache, 30), middleware.NoCache).Get("/share/{token}/data", app.Share.ShareData)
 		})
 
 		// Protected routes
@@ -1043,6 +1049,9 @@ func main() {
 			if app.Documents != nil {
 				app.Documents.Mount(r)
 			}
+			if app.FilesAPI != nil {
+				app.FilesAPI.Mount(r)
+			}
 			if app.Compliance != nil {
 				app.Compliance.Mount(r)
 			}
@@ -1090,19 +1099,54 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	// ── Background worker leadership ─────────────────────────────────────
+	// Every cron/sweeper below runs on exactly one replica when
+	// WORKER_LEADER_LOCK=true (default): a DB lease table elects a leader.
+	// Single-instance deployments are unaffected — the claim is trivial.
+	// sseHub.Run stays per-replica: SSE fan-out must live where the
+	// connections are.
+	var runLeadered func(name string, fn func(context.Context))
+	if cfg.WorkerLeaderLock {
+		leaderMgr := leader.NewManager(database, "", 0, logger)
+		runLeadered = func(name string, fn func(context.Context)) { go leaderMgr.RunAsLeader(ctx, name, fn) }
+	} else {
+		logger.Warn("WORKER_LEADER_LOCK=false: background workers will duplicate across replicas")
+		runLeadered = func(name string, fn func(context.Context)) { go fn(ctx) }
+	}
+
+	// SQLite WAL checkpoint hygiene: the WAL grew unbounded (>500MB observed)
+	// without periodic truncation. Hourly TRUNCATE checkpoints cap it. Only
+	// meaningful for the sqlite driver; skipped for network engines.
+	if cfg.Database.Driver == "" || cfg.Database.Driver == "sqlite" {
+		go func() {
+			ticker := time.NewTicker(time.Hour)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+					if _, err := database.ExecContext(ctx, "PRAGMA wal_checkpoint(TRUNCATE);"); err != nil {
+						logger.Warn("WAL checkpoint failed", "error", err)
+					}
+				}
+			}
+		}()
+	}
+
 	// ── Outbox relay & founder notifications ──────────────────────────
 	// NOTE: eventBus is the SAME instance injected into services above.
 	founderSvc := founder.NewFounderService(newFounderNotifier(logger))
 	founderSvc.RegisterEventHandlers(eventBus)
 	if founderConfigured() {
-		go runDailyDigest(ctx, founderSvc, logger)
+		runLeadered("founder_digest", func(ctx context.Context) { runDailyDigest(ctx, founderSvc, logger) })
 	}
 	outboxRelay := outbox.NewRelay(database, eventBus, logger)
-	go outboxRelay.Run(ctx)
-	go sseHub.Run(ctx)
+	runLeadered("outbox_relay", outboxRelay.Run)
+	go sseHub.Run(ctx) // per-replica: SSE fan-out must live where connections are
 
 	if dwellWorker != nil {
-		go dwellWorker.Run(ctx)
+		runLeadered("geofence_dwell", dwellWorker.Run)
 	}
 	if fuelEngine != nil {
 		// Incremental scorecard trigger (Spec 03 §4.3): after each engine
@@ -1130,14 +1174,14 @@ func main() {
 				}
 			})
 		}
-		go fuelEngine.Run(ctx)
+		runLeadered("fuel_engine", fuelEngine.Run)
 	}
 
 	// Nightly scorecard sweep (Spec 03 §4.3): recompute every driver with
 	// behaviour events in the window so decayed scores stay fresh even when
 	// no new engine events arrive.
 	if services.Scorecard != nil {
-		go func() {
+		runLeadered("scorecard_sweep", func(ctx context.Context) {
 			ticker := time.NewTicker(24 * time.Hour)
 			defer ticker.Stop()
 			if err := services.Scorecard.RecomputeAllDrivers(ctx); err != nil && !errors.Is(err, context.Canceled) {
@@ -1153,14 +1197,14 @@ func main() {
 					}
 				}
 			}
-		}()
+		})
 	}
 
 	// Nightly PNL daily snapshot (Spec 16 §2): runs every 24 h, first fires
 	// ~1 minute after startup then on a 24 h ticker. Snapshots yesterday for
 	// all active tenants. Idempotent — safe to re-run.
 	if services.PNL != nil {
-		go func() {
+		runLeadered("pnl_snapshot", func(ctx context.Context) {
 			// Fire once shortly after boot (catches a missed cron on restarts).
 			select {
 			case <-ctx.Done():
@@ -1193,14 +1237,14 @@ func main() {
 					runPNLSnapshot()
 				}
 			}
-		}()
+		})
 	}
 
 	// Fuel claim audit pass (Spec 03 §3.2 step 2): runs on its own 5-minute
 	// ticker rather than inside the engine tick so the audit service stays
 	// independent of the anomaly engine (and avoids an internal/fuel →
 	// internal/service import cycle).
-	go func() {
+	runLeadered("fuel_audit_pass", func(ctx context.Context) {
 		ticker := time.NewTicker(5 * time.Minute)
 		defer ticker.Stop()
 		if _, err := services.FuelAudit.AuditPendingClaims(ctx); err != nil && !errors.Is(err, context.Canceled) {
@@ -1216,7 +1260,7 @@ func main() {
 				}
 			}
 		}
-	}()
+	})
 
 	// Preventive maintenance worker (Spec 04 §6, §9)
 	if cfg.LiveMap.PMEnabled {
@@ -1224,12 +1268,12 @@ func main() {
 		if app.Maintenance != nil {
 			app.Maintenance.SetWorker(maintWorker)
 		}
-		go maintWorker.Run(ctx)
+		runLeadered("preventive_maintenance", maintWorker.Run)
 	}
 
 	// Operational alerts escalation and storm batch flusher (Spec 05 §4)
-	go alertEscalator.Run(ctx)
-	go alertFlusher.Run(ctx)
+	runLeadered("alerts_escalator", alertEscalator.Run)
+	runLeadered("alerts_flusher", alertFlusher.Run)
 
 	// E-Way Bill lifecycle worker (Spec 05 §7, Spec 07)
 	var ewbWorker *ewaybill.Worker
@@ -1241,16 +1285,16 @@ func main() {
 			ExtensionLeadSeconds: cfg.EWayBill.ExtensionLeadSeconds,
 			MinInvoiceValue:      cfg.EWayBill.MinInvoiceValue,
 		})
-		go ewbWorker.Run(ctx)
+		runLeadered("ewaybill_worker", ewbWorker.Run)
 	}
 
 	// E-Way Bill expiry monitor (Spec 07 §2.8)
 	ewbMonitor := ewaybill.NewMonitor(ewbService, ewbCfg)
-	go ewbMonitor.Run(ctx)
+	runLeadered("ewaybill_monitor", ewbMonitor.Run)
 
 	// ETA history cleanup + monthly aggregation crons (Spec 18 Wave A — 90-day retention)
-	go etaService.RunCleanupCron(ctx, 24*time.Hour, logger)
-	go etaService.RunAggregationCron(ctx, 24*time.Hour, logger)
+	runLeadered("eta_cleanup", func(c context.Context) { etaService.RunCleanupCron(c, 24*time.Hour, logger) })
+	runLeadered("eta_aggregation", func(c context.Context) { etaService.RunAggregationCron(c, 24*time.Hour, logger) })
 
 	go func() {
 		logger.Info("Server listening", "address", addr)

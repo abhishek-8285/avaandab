@@ -4,9 +4,9 @@
             <tr>
                 <th class="th-cell">Source</th>
                 <th class="th-cell">Destination</th>
-                <th class="th-cell">Distance (km)</th>
-                <th class="th-cell">Est. Duration</th>
-                <th class="th-cell">Standard Fare (₹)</th>
+                <th class="th-cell-right">Distance (km)</th>
+                <th class="th-cell-right">Est. Duration</th>
+                <th class="th-cell-right">Standard Fare (₹)</th>
                 <th class="th-cell-right">Actions</th>
             </tr>
         </thead>
@@ -16,12 +16,20 @@
             <tr class="hover:bg-surface-container-low transition-colors group">
                 <td class="td-cell-strong">{{.Source}}</td>
                 <td class="td-cell">{{.Destination}}</td>
-                <td class="td-cell font-mono text-xs" data-numeric>{{.Distance}} km</td>
-                <td class="td-cell" data-numeric>{{.EstimatedHours}} hrs</td>
-                <td class="td-cell font-mono text-xs" data-numeric>₹{{printf "%.2f" .StandardFare}}</td>
+                <td class="td-cell-num font-mono" data-numeric>{{.Distance}} km</td>
+                <td class="td-cell-num" data-numeric>{{.EstimatedHours}} hrs</td>
+                <td class="td-cell-num font-mono" data-numeric>₹{{printf "%.2f" .StandardFare}}</td>
                 <td class="td-cell-actions">
-                    <a href="/routes/{{.ID}}" class="action-view mr-2">View</a>
-                    <a href="/routes/{{.ID}}/edit" class="action-edit">Edit</a>
+                    <div class="flex items-center justify-end gap-3">
+                        <a href="/routes/{{.ID}}" class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                            View
+                        </a>
+                        <a href="/routes/{{.ID}}/edit" class="inline-flex items-center gap-1 text-sm font-medium text-secondary hover:text-primary transition-colors">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M21.174 6.812a1 1 0 0 1 0 1.376L12.546 16.9a2 2 0 0 1-1.414.586H8v-3.132a2 2 0 0 1 .586-1.414l8.712-8.628a1 1 0 0 1 1.376 0z"/><path d="m18 5 .5-.5a2.122 2.122 0 1 1 3 3L21 11"/></svg>
+                            Edit
+                        </a>
+                    </div>
                 </td>
             </tr>
             {{end}}

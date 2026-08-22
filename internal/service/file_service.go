@@ -91,8 +91,12 @@ func (s *FileService) UploadFile(ctx context.Context, header *multipart.FileHead
 		subdir = "drivers"
 	case "vehicle_insurance", "vehicle_permit", "vehicle_rc", "vehicle_fitness", "vehicle_puc":
 		subdir = "vehicles"
-	case "company_logo":
+	case "company_logo", "logo":
 		subdir = "company"
+	case "trip_pod":
+		subdir = "trips"
+	case "expense_receipt":
+		subdir = "expenses"
 	default:
 		subdir = "misc"
 	}

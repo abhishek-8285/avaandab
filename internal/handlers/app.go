@@ -19,6 +19,7 @@ import (
 	"transport-app/internal/alerts/repository"
 	alertsqlite "transport-app/internal/alerts/repository/sqlite"
 	"transport-app/internal/auth"
+	"transport-app/internal/cache"
 	"transport-app/internal/config"
 	"transport-app/internal/domain"
 	"transport-app/internal/experiments"
@@ -41,6 +42,10 @@ type App struct {
 
 	// ResetTokens issues and verifies single-use password-reset tokens.
 	ResetTokens *auth.ResetTokenStore
+
+	// Cache is the config-selected cache backend (none | memory | redis).
+	// Hot reads should go through it instead of hitting the DB directly.
+	Cache cache.Cache
 
 	// Experiments records A/B experiment events (best-effort).
 	Experiments *experiments.Recorder
@@ -96,6 +101,8 @@ type App struct {
 	Settlements *SettlementHandlers
 	// Document vault handler (Spec 08 §2.3).
 	Documents *DocumentHandlers
+	// FilesAPI powers the Fleetbase-style generic file/image upload API.
+	FilesAPI *FilesAPIHandlers
 	// PNL daily snapshot handler (Spec 16 §2).
 	PNL *PNLHandlers
 	// Operational alerts handler (Spec 16 §4).
@@ -217,11 +224,13 @@ func parseTemplates(authSrv auth.AuthorizationService) (*template.Template, erro
 		"date_only": func(t time.Time) string {
 			return t.Format("2006-01-02")
 		},
-		"lower":    strings.ToLower,
-		"upper":    strings.ToUpper,
-		"replace":  func(s, old, new string, n int) string { return strings.Replace(s, old, new, n) },
-		"join":     strings.Join,
-		"safeHTML": func(s string) template.HTML { return template.HTML(s) },
+		"lower":         strings.ToLower,
+		"upper":         strings.ToUpper,
+		"replace":       func(s, old, new string, n int) string { return strings.Replace(s, old, new, n) },
+		"join":          strings.Join,
+		"safeHTML":      func(s string) template.HTML { return template.HTML(s) },
+		"icon":          icon,
+		"iconWithClass": iconWithClass,
 		"json": func(v interface{}) template.JS {
 			b, err := json.Marshal(v)
 			if err != nil {
@@ -812,14 +821,124 @@ func isValidFileID(id string) bool {
 	return !strings.ContainsAny(id, `/\`) && !strings.Contains(id, "..")
 }
 
-// renderError renders a friendly user-facing error screen using error.html and layout.html.
-func (a *App) renderError(w http.ResponseWriter, statusCode int, title string, message string, user *auth.SessionData) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(statusCode)
+// ErrorInfo encapsulates full diagnostic context for error rendering and API responses.
+type ErrorInfo struct {
+	StatusCode int
+	Title      string
+	Message    string
+	ErrorCode  string
+	Model      string
+	Path       string
+	RequestID  string
+	User       *auth.SessionData
+}
 
-	escapedTitle := html.EscapeString(title)
-	escapedMessage := html.EscapeString(message)
-	fallback := fmt.Sprintf("<!DOCTYPE html><html><head><title>%d - %s</title></head><body><h1>%d - %s</h1><p>%s</p></body></html>", statusCode, escapedTitle, statusCode, escapedTitle, escapedMessage)
+func defaultErrorCode(statusCode int, model string) string {
+	prefix := "ERR_"
+	if model != "" {
+		sanitized := strings.ToUpper(strings.ReplaceAll(strings.TrimSpace(model), " ", "_"))
+		prefix = "ERR_" + sanitized + "_"
+	}
+	switch statusCode {
+	case http.StatusBadRequest:
+		if model != "" {
+			return prefix + "INVALID"
+		}
+		return "ERR_BAD_REQUEST"
+	case http.StatusUnauthorized:
+		return "ERR_UNAUTHORIZED"
+	case http.StatusForbidden:
+		return "ERR_FORBIDDEN"
+	case http.StatusNotFound:
+		if model != "" {
+			return prefix + "NOT_FOUND"
+		}
+		return "ERR_NOT_FOUND"
+	case http.StatusMethodNotAllowed:
+		return "ERR_METHOD_NOT_ALLOWED"
+	case http.StatusConflict:
+		if model != "" {
+			return prefix + "CONFLICT"
+		}
+		return "ERR_CONFLICT"
+	case http.StatusGone:
+		if model != "" {
+			return prefix + "EXPIRED"
+		}
+		return "ERR_GONE"
+	case http.StatusTooManyRequests:
+		return "ERR_RATE_LIMITED"
+	default:
+		if model != "" {
+			return prefix + "ERROR"
+		}
+		return "ERR_INTERNAL_SERVER"
+	}
+}
+
+func isAPIRequest(r *http.Request) bool {
+	if r == nil {
+		return false
+	}
+	if strings.HasPrefix(r.URL.Path, "/api/") {
+		return true
+	}
+	accept := r.Header.Get("Accept")
+	if strings.Contains(accept, "application/json") && !strings.Contains(accept, "text/html") {
+		return true
+	}
+	return false
+}
+
+// renderErrorInfo renders an error with full error identification (code, model, request ID).
+func (a *App) renderErrorInfo(w http.ResponseWriter, r *http.Request, info ErrorInfo) {
+	if info.StatusCode == 0 {
+		info.StatusCode = http.StatusInternalServerError
+	}
+	if info.Title == "" {
+		info.Title = http.StatusText(info.StatusCode)
+	}
+	if info.ErrorCode == "" {
+		info.ErrorCode = defaultErrorCode(info.StatusCode, info.Model)
+	}
+	if info.RequestID == "" && r != nil {
+		if reqID, ok := r.Context().Value(auth.ContextReqID).(string); ok {
+			info.RequestID = reqID
+		}
+	}
+	if info.Path == "" && r != nil {
+		info.Path = r.URL.Path
+	}
+	if info.User == nil && r != nil {
+		info.User, _ = a.getUserFromContext(r)
+	}
+
+	// API / JSON clients
+	if r != nil && isAPIRequest(r) {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(info.StatusCode)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"error": map[string]any{
+				"code":        info.ErrorCode,
+				"model":       info.Model,
+				"message":     info.Message,
+				"status_code": info.StatusCode,
+				"path":        info.Path,
+				"request_id":  info.RequestID,
+				"timestamp":   time.Now().UTC().Format(time.RFC3339),
+			},
+		})
+		return
+	}
+
+	// HTML clients
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(info.StatusCode)
+
+	escapedTitle := html.EscapeString(info.Title)
+	escapedMessage := html.EscapeString(info.Message)
+	fallback := fmt.Sprintf("<!DOCTYPE html><html><head><title>%d - %s</title></head><body><h1>%d - %s</h1><p>%s</p><p><small>Error ID: %s | Request ID: %s</small></p></body></html>",
+		info.StatusCode, escapedTitle, info.StatusCode, escapedTitle, escapedMessage, info.ErrorCode, info.RequestID)
 
 	errTmpl := a.Templates.Lookup("error.html")
 	if errTmpl == nil {
@@ -829,11 +948,16 @@ func (a *App) renderError(w http.ResponseWriter, statusCode int, title string, m
 
 	var buf strings.Builder
 	if err := errTmpl.Execute(&buf, map[string]interface{}{
-		"StatusCode": statusCode,
-		"Title":      title,
-		"Message":    message,
+		"StatusCode": info.StatusCode,
+		"Title":      info.Title,
+		"Message":    info.Message,
+		"ErrorCode":  info.ErrorCode,
+		"Model":      info.Model,
+		"Path":       info.Path,
+		"RequestID":  info.RequestID,
+		"User":       info.User,
 	}); err != nil {
-		slog.Error("error template execution failed", "statusCode", statusCode, "title", title, "error", err)
+		slog.Error("error template execution failed", "statusCode", info.StatusCode, "title", info.Title, "error", err)
 		_, _ = w.Write([]byte(fallback))
 		return
 	}
@@ -863,16 +987,74 @@ func (a *App) renderError(w http.ResponseWriter, statusCode int, title string, m
 		PWAEnabled    bool
 		Extra         map[string]interface{}
 	}{
-		Title:      title,
+		Title:      info.Title,
 		Content:    template.HTML(buf.String()),
-		User:       user,
+		User:       info.User,
 		Version:    AppVersion,
 		PWAEnabled: pwaEnabled,
 		Extra:      map[string]interface{}{},
 	}); err != nil {
-		slog.Error("error layout execution failed", "statusCode", statusCode, "title", title, "error", err)
+		slog.Error("error layout execution failed", "statusCode", info.StatusCode, "title", info.Title, "error", err)
 		_, _ = w.Write([]byte(fallback))
 	}
+}
+
+// renderError renders a friendly user-facing error screen using error.html and layout.html.
+func (a *App) renderError(w http.ResponseWriter, statusCode int, title string, message string, user *auth.SessionData) {
+	a.renderErrorInfo(w, nil, ErrorInfo{
+		StatusCode: statusCode,
+		Title:      title,
+		Message:    message,
+		User:       user,
+	})
+}
+
+// RenderErrorWithContext renders an error with full request context (path, reqID, model, error code).
+func (a *App) RenderErrorWithContext(w http.ResponseWriter, r *http.Request, statusCode int, title, message, model, errCode string) {
+	a.renderErrorInfo(w, r, ErrorInfo{
+		StatusCode: statusCode,
+		Title:      title,
+		Message:    message,
+		Model:      model,
+		ErrorCode:  errCode,
+	})
+}
+
+// NotFoundHandler is the global 404 handler mounted on the router.
+func (a *App) NotFoundHandler(w http.ResponseWriter, r *http.Request) {
+	reqID, _ := r.Context().Value(auth.ContextReqID).(string)
+	user, _ := a.getUserFromContext(r)
+
+	msg := fmt.Sprintf("The requested URL %q could not be found.", r.URL.Path)
+	if r.URL.Path == "/share" {
+		msg = "Live trip tracking requires a valid share token (e.g., /share/{token}). If you are looking for managed share links, please navigate to Shares."
+	}
+
+	a.renderErrorInfo(w, r, ErrorInfo{
+		StatusCode: http.StatusNotFound,
+		Title:      "Page Not Found",
+		Message:    msg,
+		ErrorCode:  "ERR_PAGE_NOT_FOUND",
+		Path:       r.URL.Path,
+		RequestID:  reqID,
+		User:       user,
+	})
+}
+
+// MethodNotAllowedHandler is the global 405 handler mounted on the router.
+func (a *App) MethodNotAllowedHandler(w http.ResponseWriter, r *http.Request) {
+	reqID, _ := r.Context().Value(auth.ContextReqID).(string)
+	user, _ := a.getUserFromContext(r)
+
+	a.renderErrorInfo(w, r, ErrorInfo{
+		StatusCode: http.StatusMethodNotAllowed,
+		Title:      "Method Not Allowed",
+		Message:    fmt.Sprintf("HTTP method %s is not supported for %q.", r.Method, r.URL.Path),
+		ErrorCode:  "ERR_METHOD_NOT_ALLOWED",
+		Path:       r.URL.Path,
+		RequestID:  reqID,
+		User:       user,
+	})
 }
 
 // MountPWARoutes mounts the web manifest and service worker if PWA is enabled.

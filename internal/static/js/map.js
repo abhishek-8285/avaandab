@@ -3,11 +3,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!mapEl || typeof L === 'undefined') return;
 
     // Initialize Leaflet map centered on India
-    const map = L.map('map').setView([20.5937, 78.9629], 5);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
+    const map = L.map('map', { attributionControl: false }).setView([20.5937, 78.9629], 5);
+
+    const googleUrl = 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&gl=IN';
+    const osmUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    const googleLayer = L.tileLayer(googleUrl, { maxZoom: 20, attribution: '' });
+    const osmLayer = L.tileLayer(osmUrl, { maxZoom: 19, attribution: '' });
+
+    googleLayer.addTo(map);
+    googleLayer.on('tileerror', function () {
+        if (map.hasLayer(googleLayer)) {
+            map.removeLayer(googleLayer);
+            osmLayer.addTo(map);
+        }
+    });
 
     const markers = {};
     const countEl = document.getElementById('map-vehicle-count');

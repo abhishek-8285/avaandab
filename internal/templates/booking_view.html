@@ -1,71 +1,81 @@
-<div class="max-w-3xl mx-auto">
-    <div class="bg-surface-container-lowest rounded-lg shadow p-6">
-        <div class="flex justify-between items-start mb-4">
-            <div>
-                <h2 class="text-2xl font-bold text-on-surface">{{.Booking.BookingNumber}}</h2>
-                <span class="px-2 py-1 text-xs rounded-full {{statusBadge .Booking.Status}}">{{.Booking.Status}}</span>
+<div class="max-w-5xl mx-auto">
+    <div class="flex items-start justify-between gap-4 mb-6 flex-wrap">
+        <div>
+            <h1 class="text-xl font-semibold text-on-surface font-display">{{.Booking.BookingNumber}}</h1>
+            <p class="text-sm text-text-muted">Booking details and lifecycle</p>
+        </div>
+        <span class="status-badge {{statusBadge .Booking.Status}}">{{.Booking.Status}}</span>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm p-6">
+            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                <div>
+                    <dt class="text-xs font-bold uppercase tracking-wider text-text-muted">Customer</dt>
+                    <dd class="text-sm font-medium text-on-surface mt-0.5">{{.Booking.CustomerName}}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-bold uppercase tracking-wider text-text-muted">Route</dt>
+                    <dd class="text-sm font-medium text-on-surface mt-0.5">{{.Booking.RouteSource}} → {{.Booking.RouteDestination}}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-bold uppercase tracking-wider text-text-muted">Pickup Date</dt>
+                    <dd class="text-sm font-medium text-on-surface mt-0.5">{{datetime .Booking.PickupDate}}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-bold uppercase tracking-wider text-text-muted">Vehicle Type</dt>
+                    <dd class="text-sm font-medium text-on-surface mt-0.5">{{.Booking.VehicleType}}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-bold uppercase tracking-wider text-text-muted">Passengers</dt>
+                    <dd class="text-sm font-medium text-on-surface mt-0.5" data-numeric>{{.Booking.Passengers}}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-bold uppercase tracking-wider text-text-muted">Cargo Weight</dt>
+                    <dd class="text-sm font-medium text-on-surface tabular-nums mt-0.5" data-numeric>{{if .Booking.CargoWeight}}{{.Booking.CargoWeight}}{{end}}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-bold uppercase tracking-wider text-text-muted">Price</dt>
+                    <dd class="text-sm font-medium text-on-surface tabular-nums mt-0.5" data-numeric>{{printf "%.2f" .Booking.Price}}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-bold uppercase tracking-wider text-text-muted">Created</dt>
+                    <dd class="text-sm font-medium text-on-surface mt-0.5">{{datetime .Booking.CreatedAt}}</dd>
+                </div>
+            </dl>
+
+            {{if .Booking.Notes}}
+            <div class="mt-6 pt-4 border-t border-border-subtle">
+                <dt class="text-xs font-bold uppercase tracking-wider text-text-muted">Notes</dt>
+                <dd class="text-sm font-medium text-on-surface mt-1">{{nullString .Booking.Notes}}</dd>
             </div>
-            <div class="flex flex-wrap gap-2 items-start mt-2 sm:mt-0">
+            {{end}}
+        </div>
+
+        <aside class="bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm p-6 h-fit">
+            <h2 class="flex items-center gap-2 text-sm font-semibold text-on-surface font-display mb-4">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                Actions
+            </h2>
+            <div class="flex flex-col gap-2 items-stretch">
                 {{if eq .Booking.Status "pending"}}
-                <form method="POST" action="/bookings/{{.Booking.ID}}/confirm" class="inline">
-                    {{template "btn.html" (dict "Variant" "primary" "Size" "sm" "Type" "submit" "Label" "Confirm" "Class" "min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2")}}
+                <form method="POST" action="/bookings/{{.Booking.ID}}/confirm">
+                    {{template "btn.html" (dict "Variant" "primary" "Size" "sm" "Type" "submit" "Label" "Confirm" "Class" "min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 w-full")}}
                 </form>
                 {{end}}
                 {{if or (eq .Booking.Status "pending") (eq .Booking.Status "confirmed")}}
-                <form method="POST" action="/bookings/{{.Booking.ID}}/cancel" class="inline">
-                    {{template "btn.html" (dict "Variant" "danger" "Size" "sm" "Type" "submit" "Label" "Cancel" "Class" "min-h-[44px] focus:outline-none focus:ring-2 focus:ring-status-alert focus:ring-offset-2")}}
+                <form method="POST" action="/bookings/{{.Booking.ID}}/cancel">
+                    {{template "btn.html" (dict "Variant" "danger" "Size" "sm" "Type" "submit" "Label" "Cancel" "Class" "min-h-[44px] focus:outline-none focus:ring-2 focus:ring-status-alert focus:ring-offset-2 w-full")}}
                 </form>
-                {{template "btn.html" (dict "Variant" "secondary" "Size" "sm" "Href" (printf "/bookings/%v/edit" .Booking.ID) "Label" "Edit" "Class" "min-h-[44px] focus:outline-none focus:ring-2 focus:ring-border-subtle focus:ring-offset-2")}}
+                {{template "btn.html" (dict "Variant" "secondary" "Size" "sm" "Href" (printf "/bookings/%v/edit" .Booking.ID) "Label" "Edit" "Class" "min-h-[44px] focus:outline-none focus:ring-2 focus:ring-border-subtle focus:ring-offset-2 w-full")}}
                 {{end}}
                 {{if eq .Booking.Status "confirmed"}}
-                <form method="POST" action="/bookings/{{.Booking.ID}}/complete" class="inline">
-                    {{template "btn.html" (dict "Variant" "primary" "Size" "sm" "Type" "submit" "Label" "Complete" "Class" "min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2")}}
+                <form method="POST" action="/bookings/{{.Booking.ID}}/complete">
+                    {{template "btn.html" (dict "Variant" "primary" "Size" "sm" "Type" "submit" "Label" "Complete" "Class" "min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 w-full")}}
                 </form>
-                {{template "btn.html" (dict "Variant" "primary" "Size" "sm" "Href" (printf "/trips/new?booking=%v" .Booking.ID) "Label" "Create Trip" "Class" "min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2")}}
+                {{template "btn.html" (dict "Variant" "primary" "Size" "sm" "Href" (printf "/trips/new?booking=%v" .Booking.ID) "Label" "Create Trip" "Class" "min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 w-full")}}
                 {{end}}
             </div>
-        </div>
-
-        <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <div>
-                <dt class="field-label text-text-muted">Customer</dt>
-                <dd class="text-sm font-medium text-on-surface">{{.Booking.CustomerName}}</dd>
-            </div>
-            <div>
-                <dt class="field-label text-text-muted">Route</dt>
-                <dd class="text-sm font-medium text-on-surface">{{.Booking.RouteSource}} → {{.Booking.RouteDestination}}</dd>
-            </div>
-            <div>
-                <dt class="field-label text-text-muted">Pickup Date</dt>
-                <dd class="text-sm font-medium text-on-surface">{{datetime .Booking.PickupDate}}</dd>
-            </div>
-            <div>
-                <dt class="field-label text-text-muted">Vehicle Type</dt>
-                <dd class="text-sm font-medium text-on-surface">{{.Booking.VehicleType}}</dd>
-            </div>
-            <div>
-                <dt class="field-label text-text-muted">Passengers</dt>
-                <dd class="text-sm font-medium text-on-surface">{{.Booking.Passengers}}</dd>
-            </div>
-            <div>
-                <dt class="field-label text-text-muted">Cargo Weight</dt>
-                <dd class="text-sm font-medium text-on-surface" data-numeric>{{if .Booking.CargoWeight}}{{.Booking.CargoWeight}}{{end}}</dd>
-            </div>
-            <div>
-                <dt class="field-label text-text-muted">Price</dt>
-                <dd class="text-sm font-medium text-on-surface" data-numeric>{{printf "%.2f" .Booking.Price}}</dd>
-            </div>
-            <div>
-                <dt class="field-label text-text-muted">Created</dt>
-                <dd class="text-sm font-medium text-on-surface">{{datetime .Booking.CreatedAt}}</dd>
-            </div>
-        </dl>
-
-        {{if .Booking.Notes}}
-        <div class="mt-4">
-            <dt class="field-label text-text-muted">Notes</dt>
-            <dd class="text-sm font-medium text-on-surface">{{nullString .Booking.Notes}}</dd>
-        </div>
-        {{end}}
+        </aside>
     </div>
 </div>

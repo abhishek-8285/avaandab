@@ -3,34 +3,34 @@
 <div class="overflow-x-auto">
 <table class="w-full text-sm">
     <thead>
-        <tr class="bg-surface-container-low text-left">
-            <th class="px-4 py-2 text-xs font-medium uppercase text-text-muted">Driver</th>
-            <th class="px-4 py-2 text-xs font-medium uppercase text-text-muted">Trip</th>
-            <th class="px-4 py-2 text-xs font-medium uppercase text-text-muted">Vehicle</th>
-            <th class="px-4 py-2 text-xs font-medium uppercase text-text-muted text-right">Claimed</th>
-            <th class="px-4 py-2 text-xs font-medium uppercase text-text-muted text-right">Expected</th>
-            <th class="px-4 py-2 text-xs font-medium uppercase text-text-muted">Variance</th>
-            <th class="px-4 py-2 text-xs font-medium uppercase text-text-muted">Audit</th>
-            <th class="px-4 py-2 text-xs font-medium uppercase text-text-muted">Date</th>
-            <th class="px-4 py-2 text-xs font-medium uppercase text-text-muted text-right">Review</th>
+        <tr>
+            <th class="th-cell">Driver</th>
+            <th class="th-cell">Trip</th>
+            <th class="th-cell">Vehicle</th>
+            <th class="th-cell-right">Claimed</th>
+            <th class="th-cell-right">Expected</th>
+            <th class="th-cell">Variance</th>
+            <th class="th-cell">Audit</th>
+            <th class="th-cell">Date</th>
+            <th class="th-cell-right">Review</th>
         </tr>
     </thead>
     <tbody class="divide-y divide-border-subtle">
         {{range .AuditClaims}}
         <tr class="hover:bg-surface-container-low transition-colors">
-            <td class="px-4 py-2 font-medium text-on-surface">
+            <td class="px-4 py-2.5 text-sm font-medium text-on-surface">
                 {{.DriverName}}
-                {{if .ReviewNote}}<span class="block text-xs text-text-muted truncate max-w-[160px]" title="{{.ReviewNote}}">note: {{.ReviewNote}}</span>{{end}}
+                {{if .ReviewNote}}<span class="block text-xs text-text-muted truncate max-w-40" title="{{.ReviewNote}}">note: {{.ReviewNote}}</span>{{end}}
             </td>
-            <td class="px-4 py-2 text-text-muted font-mono text-xs">{{.TripNumber}}</td>
-            <td class="px-4 py-2 text-text-muted text-xs">{{.VehicleReg}}</td>
-            <td class="px-4 py-2 text-right font-semibold text-on-surface tabular-nums">
+            <td class="px-4 py-2.5 text-sm text-text-muted font-mono">{{.TripNumber}}</td>
+            <td class="px-4 py-2.5 text-sm text-text-muted">{{.VehicleReg}}</td>
+            <td class="px-4 py-2.5 text-sm text-right font-semibold text-on-surface tabular-nums" data-numeric>
                 {{if .FuelLitres}}{{printf "%.1f" .FuelLitres}} L{{else}}—{{end}}
             </td>
-            <td class="px-4 py-2 text-right text-secondary tabular-nums">
+            <td class="px-4 py-2.5 text-sm text-right text-secondary tabular-nums" data-numeric>
                 {{if gt .ExpectedBest 0.0}}{{printf "%.1f" .ExpectedBest}} L{{else}}—{{end}}
             </td>
-            <td class="px-4 py-2">
+            <td class="px-4 py-2.5 text-sm" data-numeric>
                 {{if gt .ExpectedBest 0.0}}
                 <span class="px-2 py-1 rounded-full text-xs font-semibold {{auditBadge .Result}}"
                       title="Claimed {{printf "%.1f" .FuelLitres}}L, Expected {{printf "%.1f" .ExpectedBest}}L ±{{printf "%.1f" .VariancePct}}%">
@@ -40,11 +40,11 @@
                 <span class="text-xs text-text-muted">no evidence</span>
                 {{end}}
             </td>
-            <td class="px-4 py-2">
+            <td class="px-4 py-2.5 text-sm">
                 <span class="px-2 py-1 rounded-full text-xs font-medium {{auditBadge .Result}}">{{.Result}}</span>
             </td>
-            <td class="px-4 py-2 text-text-muted text-xs">{{datetime .CreatedAt}}</td>
-            <td class="px-4 py-2 text-right">
+            <td class="px-4 py-2.5 text-sm text-text-muted" data-numeric>{{datetime .CreatedAt}}</td>
+            <td class="px-4 py-2.5 text-sm text-right">
                 <a href="/fuel/audit/{{.ExpenseID}}"
                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-surface-container-low hover:bg-primary/10 text-secondary hover:text-primary text-xs font-semibold rounded-lg transition border border-border-subtle">
                     REVIEW

@@ -1,12 +1,15 @@
 {{if .Jobs}}
 <div class="space-y-2">
   {{range .Jobs}}
-  <div class="flex items-center justify-between border border-border-subtle rounded px-3 py-2 bg-surface-container-low">
+  <div class="flex items-center justify-between border border-border-subtle rounded-md px-3 py-2 bg-surface-container-low hover:bg-surface-container transition-colors">
     <div>
-      <div class="font-mono text-xs">{{slice .ID 0 8}}…</div>
-      <div class="text-[11px] text-text-muted">{{.Provider}} · {{.Status}} · {{.CreatedAt}}</div>
+      <div class="font-mono text-xs text-on-surface">{{slice .ID 0 8}}…</div>
+      <div class="text-[11px] text-text-muted mt-0.5">{{.Provider}} · {{.Status}} · {{.CreatedAt}}</div>
     </div>
-    <a href="/routes/optimize/jobs/{{.ID}}" class="text-xs text-primary hover:underline">View</a>
+    <a href="/routes/optimize/jobs/{{.ID}}" class="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline shrink-0">
+      View
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+    </a>
   </div>
   {{end}}
 </div>

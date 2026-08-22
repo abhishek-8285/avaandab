@@ -1,4 +1,4 @@
-<div class="bg-surface-container-lowest border border-border-subtle rounded shadow-sm flex flex-col h-full overflow-hidden">
+<div class="bg-surface-container-lowest border border-border-subtle rounded-lg shadow-sm flex flex-col h-full overflow-hidden">
     <!-- Filter / Action Bar -->
     <form method="GET" action="/telemetry/devices" class="px-4 py-2 border-b border-border-subtle flex flex-wrap items-center gap-2 bg-surface-container-lowest sticky top-0 z-10">
         <span class="text-xs font-medium text-secondary mr-2">Filters:</span>
@@ -19,14 +19,14 @@
     <!-- Device Table -->
     <div class="flex-1 overflow-x-auto">
         <table class="w-full text-left border-collapse">
-            <thead class="sticky top-0 bg-surface-container-lowest z-10 border-b border-border-subtle font-label-caps text-[11px] text-secondary uppercase tracking-wider">
+            <thead class="sticky top-0 z-10">
                 <tr>
-                    <th class="py-3 px-6 font-semibold">IMEI</th>
-                    <th class="py-3 px-6 font-semibold">Status</th>
-                    <th class="py-3 px-6 font-semibold">Vehicle</th>
-                    <th class="py-3 px-6 font-semibold">Type</th>
-                    <th class="py-3 px-6 font-semibold">Last Seen</th>
-                    <th class="py-3 px-6 font-semibold text-right">Actions</th>
+                    <th class="th-cell">IMEI</th>
+                    <th class="th-cell">Status</th>
+                    <th class="th-cell">Vehicle</th>
+                    <th class="th-cell">Type</th>
+                    <th class="th-cell">Last Seen</th>
+                    <th class="th-cell-right">Actions</th>
                 </tr>
             </thead>
             <tbody id="telemetry-device-rows" class="divide-y divide-border-subtle text-sm text-on-surface">

@@ -1,23 +1,23 @@
 {{define "kharcha_ledger_rows.html"}}
 {{if .LedgerEntries}}
 <div class="overflow-x-auto">
-<table class="w-full text-sm">
+<table class="min-w-full divide-y divide-border-subtle text-sm">
     <thead>
-        <tr class="bg-surface-container-low text-left">
-            <th class="px-4 py-2 text-xs font-medium uppercase text-text-muted">Driver</th>
-            <th class="px-4 py-2 text-xs font-medium uppercase text-text-muted">Category</th>
-            <th class="px-4 py-2 text-xs font-medium uppercase text-text-muted">Trip</th>
-            <th class="px-4 py-2 text-xs font-medium uppercase text-text-muted">Description</th>
-            <th class="px-4 py-2 text-xs font-medium uppercase text-text-muted text-right">Amount</th>
-            <th class="px-4 py-2 text-xs font-medium uppercase text-text-muted">Status</th>
-            <th class="px-4 py-2 text-xs font-medium uppercase text-text-muted">Date</th>
+        <tr>
+            <th class="th-cell">Driver</th>
+            <th class="th-cell">Category</th>
+            <th class="th-cell">Trip</th>
+            <th class="th-cell">Description</th>
+            <th class="th-cell-right">Amount</th>
+            <th class="th-cell">Status</th>
+            <th class="th-cell">Date</th>
         </tr>
     </thead>
     <tbody class="divide-y divide-border-subtle">
         {{range .LedgerEntries}}
         <tr class="hover:bg-surface-container-low transition-colors">
-            <td class="px-4 py-2 font-medium text-on-surface">{{.DriverName}}</td>
-            <td class="px-4 py-2">
+            <td class="px-4 py-2.5 text-sm font-medium text-on-surface">{{.DriverName}}</td>
+            <td class="px-4 py-2.5">
                 <span class="px-2 py-1 rounded-full text-xs font-medium
                     {{if eq .Category "advance"}}bg-status-info/10 text-status-info
                     {{else if eq .Category "fuel"}}bg-status-warning/10 text-status-warning
@@ -28,15 +28,15 @@
                     {{.Category}}
                 </span>
             </td>
-            <td class="px-4 py-2 text-text-muted font-mono text-xs">{{.TripNumber}}</td>
-            <td class="px-4 py-2 text-text-muted max-w-xs truncate">{{.Description}}</td>
-            <td class="px-4 py-2 text-right font-semibold text-on-surface tabular-nums" data-numeric>₹{{priceFormat .Amount}}</td>
-            <td class="px-4 py-2">
+            <td class="px-4 py-2.5 text-sm text-text-muted font-mono text-xs">{{.TripNumber}}</td>
+            <td class="px-4 py-2.5 text-sm text-text-muted max-w-xs truncate">{{.Description}}</td>
+            <td class="px-4 py-2.5 text-sm text-right font-medium text-on-surface tabular-nums" data-numeric>₹{{priceFormat .Amount}}</td>
+            <td class="px-4 py-2.5">
                 <span class="px-2 py-1 rounded-full text-xs font-medium {{statusBadge .Status}}">
                     {{.Status}}
                 </span>
             </td>
-            <td class="px-4 py-2 text-text-muted text-xs">{{datetime .CreatedAt}}</td>
+            <td class="px-4 py-2.5 text-sm text-text-muted text-xs">{{datetime .CreatedAt}}</td>
         </tr>
         {{end}}
     </tbody>

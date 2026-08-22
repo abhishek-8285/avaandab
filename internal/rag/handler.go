@@ -14,10 +14,22 @@ import (
 type Handler struct {
 	service     *Service
 	allowedDirs []string
+	readGuard   func(http.Handler) http.Handler
+	writeGuard  func(http.Handler) http.Handler
 }
 
 func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
+}
+
+// WithPermissionGuards attaches authorization middleware to API routes:
+// readGuard protects search/stats, writeGuard protects index/reindex/
+// teach/upload. Passing nil for either leaves those routes unguarded
+// (useful for tests); production wiring must supply both.
+func (h *Handler) WithPermissionGuards(read, write func(http.Handler) http.Handler) *Handler {
+	h.readGuard = read
+	h.writeGuard = write
+	return h
 }
 
 // WithAllowedDirs restricts which directories /api/rag/index and
@@ -68,12 +80,19 @@ func (h *Handler) Service() *Service {
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
-	r.Post("/api/rag/search", h.handleSearch)
-	r.Post("/api/rag/index", h.handleIndex)
-	r.Get("/api/rag/stats", h.handleStats)
-	r.Post("/api/rag/reindex", h.handleReindex)
-	r.Post("/api/rag/teach", h.handleTeach)
-	r.Post("/api/rag/upload", h.handleUpload)
+	guard := func(g func(http.Handler) http.Handler, fn http.HandlerFunc) http.HandlerFunc {
+		if g == nil {
+			return fn
+		}
+		wrapped := g(fn)
+		return wrapped.ServeHTTP
+	}
+	r.Post("/api/rag/search", guard(h.readGuard, h.handleSearch))
+	r.Get("/api/rag/stats", guard(h.readGuard, h.handleStats))
+	r.Post("/api/rag/index", guard(h.writeGuard, h.handleIndex))
+	r.Post("/api/rag/reindex", guard(h.writeGuard, h.handleReindex))
+	r.Post("/api/rag/teach", guard(h.writeGuard, h.handleTeach))
+	r.Post("/api/rag/upload", guard(h.writeGuard, h.handleUpload))
 }
 
 type searchRequest struct {

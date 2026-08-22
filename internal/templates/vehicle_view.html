@@ -1,91 +1,116 @@
-<div class="bg-surface-container-lowest rounded-lg shadow p-6">
-    <div class="flex justify-between items-start mb-4">
-        <div>
-            <h2 class="text-2xl font-bold text-on-surface">{{.Vehicle.VehicleNumber}}</h2>
-            <p class="text-secondary">Reg: {{.Vehicle.RegistrationNumber}}</p>
-        </div>
-        <div class="flex space-x-2">
-            {{template "btn.html" (dict "Label" "Edit" "Href" "/vehicles/{{.Vehicle.ID}}/edit" "Variant" "secondary" "Size" "sm" "Icon" "edit")}}
-            <form method="POST" action="/vehicles/{{.Vehicle.ID}}/delete" class="inline">
-                {{template "btn.html" (dict "Label" "Delete" "Type" "submit" "Variant" "danger" "Size" "sm" "Icon" "delete")}}
-            </form>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+    <div class="lg:col-span-2">
+        <div class="bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm p-6">
+            <div class="flex justify-between items-start mb-4 gap-4 flex-wrap">
+                <div>
+                    <h2 class="text-lg font-semibold text-on-surface font-display">{{.Vehicle.VehicleNumber}}</h2>
+                    <p class="text-sm text-text-muted mt-0.5">Reg: {{.Vehicle.RegistrationNumber}}</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    {{template "btn.html" (dict "Label" "Edit" "Href" "/vehicles/{{.Vehicle.ID}}/edit" "Variant" "secondary" "Size" "sm" "Icon" "edit")}}
+                    <form method="POST" action="/vehicles/{{.Vehicle.ID}}/delete" class="inline">
+                        {{template "btn.html" (dict "Label" "Delete" "Type" "submit" "Variant" "danger" "Size" "sm" "Icon" "delete")}}
+                    </form>
+                </div>
+            </div>
+
+            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 mt-4">
+                <div>
+                    <dt class="text-xs font-bold uppercase tracking-wider text-text-muted">Type</dt>
+                    <dd class="text-sm font-medium text-on-surface mt-1 capitalize">{{.Vehicle.VehicleType}}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-bold uppercase tracking-wider text-text-muted">Capacity</dt>
+                    <dd class="text-sm font-medium text-on-surface mt-1">{{print .Vehicle.Capacity}}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-bold uppercase tracking-wider text-text-muted">Fuel Type</dt>
+                    <dd class="text-sm font-medium text-on-surface mt-1 capitalize">{{.Vehicle.FuelType}}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-bold uppercase tracking-wider text-text-muted">Status</dt>
+                    <dd class="text-sm font-medium text-on-surface mt-1">
+                        <span class="px-2 py-1 text-xs rounded-full {{statusBadge .Vehicle.Status}}">{{.Vehicle.Status}}</span>
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-bold uppercase tracking-wider text-text-muted">Insurance Expiry</dt>
+                    <dd class="text-sm font-medium text-on-surface mt-1">{{date_only .Vehicle.InsuranceExpiry}}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-bold uppercase tracking-wider text-text-muted">Fitness Expiry</dt>
+                    <dd class="text-sm font-medium text-on-surface mt-1">{{date_only .Vehicle.FitnessExpiry}}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-bold uppercase tracking-wider text-text-muted">Permit Expiry</dt>
+                    <dd class="text-sm font-medium text-on-surface mt-1">{{date_only .Vehicle.PermitExpiry}}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-bold uppercase tracking-wider text-text-muted">Current Mileage</dt>
+                    <dd class="text-sm font-medium text-on-surface mt-1 tabular-nums" data-numeric>{{print .Vehicle.CurrentMileage}} km</dd>
+                </div>
+            </dl>
+
+            <div class="mt-6 pt-4 border-t border-border-subtle">
+                <dt class="text-xs font-bold uppercase tracking-wider text-text-muted">Maintenance Due</dt>
+                <dd class="text-sm font-medium text-on-surface mt-1">
+                    {{if .IsMaintenanceDue}}
+                    <span class="px-2 py-1 text-xs rounded-full bg-status-warning/10 text-status-warning font-bold">Due Since: {{.MaintenanceDue}}</span>
+                    {{else}}
+                    <span class="inline-flex items-center gap-1 text-sm text-status-success font-medium">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+                        Up to date
+                    </span>
+                    {{end}}
+                </dd>
+            </div>
         </div>
     </div>
 
-    <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-        <div>
-            <dt class="text-sm text-text-muted">Type</dt>
-            <dd class="text-sm font-medium">{{.Vehicle.VehicleType}}</dd>
-        </div>
-        <div>
-            <dt class="text-sm text-text-muted">Capacity</dt>
-            <dd class="text-sm font-medium">{{.Vehicle.Capacity}}</dd>
-        </div>
-        <div>
-            <dt class="text-sm text-text-muted">Fuel Type</dt>
-            <dd class="text-sm font-medium">{{.Vehicle.FuelType}}</dd>
-        </div>
-        <div>
-            <dt class="text-sm text-text-muted">Status</dt>
-            <dd class="text-sm font-medium">
-                <span class="px-2 py-1 text-xs rounded-full {{statusBadge .Vehicle.Status}}">{{.Vehicle.Status}}</span>
-            </dd>
-        </div>
-        <div>
-            <dt class="text-sm text-text-muted">Insurance Expiry</dt>
-            <dd class="text-sm font-medium">{{date_only .Vehicle.InsuranceExpiry}}</dd>
-        </div>
-        <div>
-            <dt class="text-sm text-text-muted">Fitness Expiry</dt>
-            <dd class="text-sm font-medium">{{date_only .Vehicle.FitnessExpiry}}</dd>
-        </div>
-        <div>
-            <dt class="text-sm text-text-muted">Permit Expiry</dt>
-            <dd class="text-sm font-medium">{{date_only .Vehicle.PermitExpiry}}</dd>
-        </div>
-        <div>
-            <dt class="text-sm text-text-muted">Current Mileage</dt>
-            <dd class="text-sm font-medium">{{print .Vehicle.CurrentMileage}} km</dd>
-        </div>
-        <div>
-            <dt class="text-sm text-text-muted">Maintenance Due</dt>
-            <dd class="text-sm font-medium">
-                {{if .IsMaintenanceDue}}
-                <span class="px-2 py-1 text-xs rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold">Due Since: {{.MaintenanceDue}}</span>
-                {{else}}
-                <span class="text-emerald-600 dark:text-emerald-400 text-sm">Up to date</span>
-                {{end}}
-            </dd>
-        </div>
-    </dl>
-
-    {{if .IsMaintenanceDue}}
-    <div class="mt-6 pt-4 border-t border-border-subtle bg-surface-container-low/40 p-4 rounded-lg">
-        <div class="flex items-center justify-between mb-2">
-            <h3 class="text-sm font-bold text-on-surface flex items-center gap-1.5">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+    <div>
+        <div class="bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm p-6">
+            <h3 class="text-base font-semibold text-on-surface font-display mb-3 flex items-center gap-1.5">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
                 Maintenance Status
             </h3>
-            {{if can .User "maintenance" "create"}}
-            <a href="/maintenance/records/new?vehicle_id={{.Vehicle.ID}}" class="text-xs text-primary hover:underline font-medium">Record Completed Work</a>
+
+            {{if .IsMaintenanceDue}}
+            <div class="space-y-3">
+                {{if .IsMaintenanceOverridden}}
+                <div class="p-3 rounded-md bg-status-info/10 border border-status-info/30 text-xs text-status-info">
+                    <strong>Dispatch Override Active:</strong> Overridden by {{.MaintenanceOverrideBy}} (Reason: {{.MaintenanceOverrideReason}})
+                </div>
+                {{else}}
+                <div class="p-3 rounded-md bg-status-alert/10 border border-status-alert/30 text-xs text-status-alert">
+                    <strong>Dispatch Blocked:</strong> This vehicle cannot be assigned to trips until maintenance is performed or an override is granted.
+                </div>
+                {{end}}
+
+                {{if can .User "maintenance" "create"}}
+                <a href="/maintenance/records/new?vehicle_id={{.Vehicle.ID}}" class="inline-flex items-center gap-2 rounded-md bg-primary text-on-primary px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-all">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><path d="M10 9H8"/></svg>
+                    Record Completed Work
+                </a>
+                {{end}}
+
+                {{if not .IsMaintenanceOverridden}}
+                {{if can .User "maintenance" "update"}}
+                <form method="POST" action="/maintenance/vehicles/{{.Vehicle.ID}}/override" class="flex flex-col sm:flex-row gap-2 sm:items-center pt-2 border-t border-border-subtle">
+                    <input type="text" name="reason" placeholder="Reason for dispatch override..." required
+                        class="flex-1 w-full bg-surface-container-low border border-border-subtle rounded-md px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all">
+                    <button type="submit" class="shrink-0 inline-flex items-center justify-center gap-2 rounded-md bg-primary text-on-primary px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-all cursor-pointer">
+                        Grant Override
+                    </button>
+                </form>
+                {{end}}
+                {{end}}
+            </div>
+            {{else}}
+            <p class="text-sm text-secondary flex items-center gap-1.5">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0 text-status-success"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+                Preventive maintenance is up to date.
+            </p>
             {{end}}
         </div>
-
-        {{if .IsMaintenanceOverridden}}
-        <div class="p-3 bg-blue-500/10 border border-blue-500/20 rounded-md text-xs text-blue-700 dark:text-blue-300">
-            <strong>Dispatch Override Active:</strong> Overridden by {{.MaintenanceOverrideBy}} (Reason: {{.MaintenanceOverrideReason}})
-        </div>
-        {{else}}
-        <div class="p-3 bg-red-500/10 border border-red-500/20 rounded-md text-xs text-red-700 dark:text-red-300 mb-3">
-            <strong>Dispatch Blocked:</strong> This vehicle cannot be assigned to trips until maintenance is performed or an override is granted.
-        </div>
-        {{if can .User "maintenance" "update"}}
-        <form method="POST" action="/maintenance/vehicles/{{.Vehicle.ID}}/override" class="flex gap-2 items-center">
-            <input type="text" name="reason" placeholder="Reason for dispatch override..." required class="text-xs px-3 py-1.5 border border-border-subtle rounded flex-1 bg-surface-container-lowest">
-            <button type="submit" class="px-3 py-1.5 bg-amber-600 text-white rounded text-xs font-medium hover:bg-amber-700 transition-colors">Grant Override</button>
-        </form>
-        {{end}}
-        {{end}}
     </div>
-    {{end}}
 </div>

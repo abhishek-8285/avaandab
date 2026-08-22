@@ -359,7 +359,7 @@ func (h *AuthHandlers) SubmitForgotPassword(w http.ResponseWriter, r *http.Reque
 		token, err := h.App.ResetTokens.Create(email)
 		if err == nil {
 			link := fmt.Sprintf("%s://%s/reset-password?token=%s", requestScheme(r), r.Host, token)
-			slog.Info("password reset link generated", "email", email, "link", link)
+			slog.Info("password reset link generated", "email", email)
 			// Development convenience: show the link on-page since no mailer
 			// is wired up. Production should email this instead.
 			if h.Config.IsDevelopment() {

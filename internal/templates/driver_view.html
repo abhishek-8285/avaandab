@@ -1,12 +1,12 @@
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
     <div class="lg:col-span-2">
-        <div class="bg-surface-container-lowest rounded-lg shadow p-6">
-            <div class="flex justify-between items-start mb-4">
+        <div class="bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm p-6">
+            <div class="flex justify-between items-start mb-4 gap-4 flex-wrap">
                 <div>
-                    <h2 class="text-2xl font-bold text-on-surface">{{.Driver.FirstName}} {{.Driver.LastName}}</h2>
-                    <p class="text-secondary">ID: {{.Driver.DriverID}}</p>
+                    <h2 class="text-lg font-semibold text-on-surface font-display">{{.Driver.FirstName}} {{.Driver.LastName}}</h2>
+                    <p class="text-sm text-text-muted mt-0.5">ID: {{.Driver.DriverID}}</p>
                 </div>
-                <div class="flex space-x-2">
+                <div class="flex items-center gap-2">
                     {{template "btn.html" (dict "Label" "Edit" "Href" "/drivers/{{.Driver.ID}}/edit" "Variant" "secondary" "Size" "sm" "Icon" "edit")}}
                     <form method="POST" action="/drivers/{{.Driver.ID}}/delete" class="inline">
                         {{template "btn.html" (dict "Label" "Delete" "Type" "submit" "Variant" "danger" "Size" "sm" "Icon" "delete")}}
@@ -14,59 +14,62 @@
                 </div>
             </div>
 
-            <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 mt-4">
                 <div>
-                    <dt class="text-sm text-text-muted">Phone</dt>
-                    <dd class="text-sm font-medium">{{.Driver.Phone}}</dd>
+                    <dt class="text-xs font-bold uppercase tracking-wider text-text-muted">Phone</dt>
+                    <dd class="text-sm font-medium text-on-surface mt-1">{{.Driver.Phone}}</dd>
                 </div>
                 <div>
-                    <dt class="text-sm text-text-muted">Email</dt>
-                    <dd class="text-sm font-medium">{{nullString .Driver.Email}}</dd>
+                    <dt class="text-xs font-bold uppercase tracking-wider text-text-muted">Email</dt>
+                    <dd class="text-sm font-medium text-on-surface mt-1">{{nullString .Driver.Email}}</dd>
                 </div>
                 <div>
-                    <dt class="text-sm text-text-muted">License Number</dt>
-                    <dd class="text-sm font-medium">{{.Driver.LicenseNumber}}</dd>
+                    <dt class="text-xs font-bold uppercase tracking-wider text-text-muted">License Number</dt>
+                    <dd class="text-sm font-mono font-medium text-on-surface mt-1">{{.Driver.LicenseNumber}}</dd>
                 </div>
                 <div>
-                    <dt class="text-sm text-text-muted">License Expiry</dt>
-                    <dd class="text-sm font-medium">{{date_only .Driver.LicenseExpiry}}</dd>
+                    <dt class="text-xs font-bold uppercase tracking-wider text-text-muted">License Expiry</dt>
+                    <dd class="text-sm font-medium text-on-surface mt-1">{{date_only .Driver.LicenseExpiry}}</dd>
                 </div>
                 <div>
-                    <dt class="text-sm text-text-muted">Experience</dt>
-                    <dd class="text-sm font-medium">{{.Driver.ExperienceYears}} years</dd>
+                    <dt class="text-xs font-bold uppercase tracking-wider text-text-muted">Experience</dt>
+                    <dd class="text-sm font-medium text-on-surface mt-1">{{.Driver.ExperienceYears}} years</dd>
                 </div>
                 <div>
-                    <dt class="text-sm text-text-muted">Status</dt>
-                    <dd class="text-sm font-medium">
+                    <dt class="text-xs font-bold uppercase tracking-wider text-text-muted">Status</dt>
+                    <dd class="text-sm font-medium text-on-surface mt-1">
                         <span class="px-2 py-1 text-xs rounded-full {{statusBadge .Driver.Status}}">{{.Driver.Status}}</span>
                     </dd>
                 </div>
                 <div>
-                    <dt class="text-sm text-text-muted">Emergency Contact</dt>
-                    <dd class="text-sm font-medium">{{nullString .Driver.EmergencyContactName}} / {{nullString .Driver.EmergencyContactPhone}}</dd>
+                    <dt class="text-xs font-bold uppercase tracking-wider text-text-muted">Emergency Contact</dt>
+                    <dd class="text-sm font-medium text-on-surface mt-1">{{nullString .Driver.EmergencyContactName}} / {{nullString .Driver.EmergencyContactPhone}}</dd>
                 </div>
                 <div>
-                    <dt class="text-sm text-text-muted">Address</dt>
-                    <dd class="text-sm font-medium">{{nullString .Driver.Address}}</dd>
+                    <dt class="text-xs font-bold uppercase tracking-wider text-text-muted">Address</dt>
+                    <dd class="text-sm font-medium text-on-surface mt-1">{{nullString .Driver.Address}}</dd>
                 </div>
             </dl>
 
-            <div class="mt-4">
-                <dt class="text-sm text-text-muted">Notes</dt>
-                <dd class="text-sm font-medium mt-1">{{nullString .Driver.Notes}}</dd>
+            <div class="mt-6 pt-4 border-t border-border-subtle">
+                <dt class="text-xs font-bold uppercase tracking-wider text-text-muted">Notes</dt>
+                <dd class="text-sm font-medium text-on-surface mt-1">{{nullString .Driver.Notes}}</dd>
             </div>
         </div>
     </div>
 
     <div>
-        <div class="bg-surface-container-lowest rounded-lg shadow p-6">
-            <h3 class="text-subsection font-semibold text-on-surface mb-3">Uploaded Documents</h3>
+        <div class="bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm p-6">
+            <h3 class="text-base font-semibold text-on-surface font-display mb-3">Uploaded Documents</h3>
             {{if .Files}}
             <ul class="space-y-2">
                 {{range .Files}}
                 <li class="text-sm">
-                    <a href="/files/{{.ID}}" target="_blank" class="text-primary hover:text-primary/80 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded">{{.OriginalName}}</a>
-                    <span class="text-text-muted">({{fileExt .Filename}})</span>
+                    <a href="/files/{{.ID}}" target="_blank" class="inline-flex items-center gap-1.5 text-primary hover:text-primary/80 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded font-medium break-all">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+                        {{.OriginalName}}
+                    </a>
+                    <span class="text-xs text-text-muted ml-1">({{fileExt .Filename}})</span>
                 </li>
                 {{end}}
             </ul>

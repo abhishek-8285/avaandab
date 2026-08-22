@@ -2,12 +2,12 @@
 <div class="space-y-6">
 
     <!-- Page Header -->
-    <div class="flex items-center justify-between flex-wrap gap-3">
+    <div class="flex items-start justify-between gap-4 mb-6 flex-wrap">
         <div>
-            <h1 class="text-2xl font-bold text-on-surface tracking-tight">Fuel Claim Audit</h1>
+            <h1 class="text-xl font-semibold text-on-surface font-display">Fuel Claim Audit</h1>
             <p class="text-sm text-secondary mt-1">Reconcile fuel claims against telemetry evidence · checks A/B/C</p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
             {{if .AuditStats.EnforceMode}}
             <span class="px-3 py-1.5 rounded-full text-xs font-bold bg-status-alert/10 text-status-alert border border-status-alert/30" title="fuel.audit_enforce=true — needs_review claims are un-approvable">
                 ENFORCE MODE
@@ -21,7 +21,7 @@
                 hx-post="/fuel/audit/run"
                 hx-target="#audit-run-result"
                 hx-swap="innerHTML"
-                class="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/90 text-on-primary text-xs font-semibold rounded-lg transition shadow-sm shadow-primary/20">
+                class="inline-flex items-center gap-2 rounded-md bg-primary text-on-primary px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-all">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                 RUN AUDIT
             </button>
@@ -31,35 +31,35 @@
 
     <!-- Stats Row -->
     <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4 mb-6">
-        <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center">
-            <div class="text-stat text-status-warning tabular-nums text-xl sm:text-2xl font-bold">{{.AuditStats.PendingCount}}</div>
+        <div class="bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm p-3 sm:p-4 text-center">
+            <div class="text-stat text-status-warning tabular-nums text-xl sm:text-2xl font-bold" data-numeric>{{.AuditStats.PendingCount}}</div>
             <div class="text-xs sm:text-sm text-secondary">Pending</div>
             <div class="text-xs text-text-muted mt-0.5">awaiting audit</div>
         </div>
-        <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center">
-            <div class="text-stat text-status-alert tabular-nums text-xl sm:text-2xl font-bold">{{.AuditStats.NeedsReviewCount}}</div>
+        <div class="bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm p-3 sm:p-4 text-center">
+            <div class="text-stat text-status-alert tabular-nums text-xl sm:text-2xl font-bold" data-numeric>{{.AuditStats.NeedsReviewCount}}</div>
             <div class="text-xs sm:text-sm text-secondary">Needs Review</div>
             <div class="text-xs text-text-muted mt-0.5">flagged by checks</div>
         </div>
-        <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center">
-            <div class="text-stat text-status-success tabular-nums text-xl sm:text-2xl font-bold">{{.AuditStats.PassedCount}}</div>
+        <div class="bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm p-3 sm:p-4 text-center">
+            <div class="text-stat text-status-success tabular-nums text-xl sm:text-2xl font-bold" data-numeric>{{.AuditStats.PassedCount}}</div>
             <div class="text-xs sm:text-sm text-secondary">Passed</div>
             <div class="text-xs text-text-muted mt-0.5">within tolerance</div>
         </div>
-        <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center">
-            <div class="text-stat text-status-alert tabular-nums text-xl sm:text-2xl font-bold">{{.AuditStats.FailedCount}}</div>
+        <div class="bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm p-3 sm:p-4 text-center">
+            <div class="text-stat text-status-alert tabular-nums text-xl sm:text-2xl font-bold" data-numeric>{{.AuditStats.FailedCount}}</div>
             <div class="text-xs sm:text-sm text-secondary">Failed</div>
             <div class="text-xs text-text-muted mt-0.5">admin verdict</div>
         </div>
-        <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center">
-            <div class="text-stat text-primary tabular-nums text-xl sm:text-2xl font-bold">{{printf "%.1f" .AuditStats.AvgVariancePct}}%</div>
+        <div class="bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm p-3 sm:p-4 text-center">
+            <div class="text-stat text-primary tabular-nums text-xl sm:text-2xl font-bold" data-numeric>{{printf "%.1f" .AuditStats.AvgVariancePct}}%</div>
             <div class="text-xs sm:text-sm text-secondary">Avg Variance</div>
             <div class="text-xs text-text-muted mt-0.5">claimed vs expected</div>
         </div>
     </div>
 
     <!-- Audit Queue -->
-    <div class="bg-surface-container-lowest rounded-lg shadow-sm">
+    <div class="bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm">
         <div class="px-4 py-3 border-b flex items-center justify-between">
             <div>
                 <h3 class="text-sm font-semibold text-on-surface">Audit Queue</h3>
@@ -70,7 +70,7 @@
                   hx-trigger="every 30s"
                   hx-target="#fuel-audit-queue"
                   hx-swap="innerHTML">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span class="w-2 h-2 rounded-full bg-status-success animate-pulse"></span>
                 LIVE · auto-refreshes
             </span>
         </div>

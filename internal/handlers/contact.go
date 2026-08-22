@@ -9,6 +9,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+
+	"transport-app/internal/middleware"
 )
 
 // ContactHandlers handles public contact inquiries and ticket status tracking.
@@ -18,7 +20,7 @@ type ContactHandlers struct {
 
 func (h *ContactHandlers) Routes(r chi.Router) {
 	r.Get("/", h.Page)
-	r.Post("/submit", h.Submit)
+	r.With(middleware.RateLimit(10)).Post("/submit", h.Submit)
 	r.Get("/status", h.StatusCheck)
 }
 

@@ -8,10 +8,10 @@
     </div>
 
     <!-- Main Setup Container Card -->
-    <div class="bg-surface-container-lowest rounded-2xl shadow-lg border border-border-subtle p-8 sm:p-10">
+    <div class="bg-surface-container-lowest rounded-lg shadow-sm border border-border-subtle p-6 sm:p-10">
         <!-- Welcome Header -->
         <div class="text-center mb-8">
-            <h1 class="font-headline-lg text-2xl sm:text-3xl font-extrabold text-on-surface">
+            <h1 class="text-xl sm:text-2xl font-semibold text-on-surface font-display">
                 Welcome, {{if .UserDetail}}{{.UserDetail.Name}}{{else if .User}}{{.User.Name}}{{else}}there{{end}}!
             </h1>
             <p class="text-sm text-text-muted mt-1">Please complete your profile details to unlock full access.</p>
@@ -21,7 +21,7 @@
 
         <!-- Required Steps Section -->
         <div class="mb-8">
-            <h2 class="font-headline-sm text-base font-bold text-on-surface mb-4">Required Steps</h2>
+            <h2 class="text-base font-semibold text-on-surface font-display mb-4">Required Steps</h2>
             <div class="space-y-3">
                 <!-- Profile Picture -->
                 <a href="/profile" class="flex items-center justify-between p-4 bg-surface-container-lowest border border-border-subtle hover:border-primary rounded-xl transition-all shadow-sm hover:shadow group text-decoration-none">
@@ -54,7 +54,7 @@
 
         <!-- Submitted Steps Section -->
         <div class="mb-10">
-            <h2 class="font-headline-sm text-base font-bold text-on-surface mb-4">Submitted Steps</h2>
+            <h2 class="text-base font-semibold text-on-surface font-display mb-4">Submitted Steps</h2>
             <div class="space-y-3">
                 <!-- Government ID (Submitted) -->
                 <div class="flex items-center justify-between p-4 bg-surface-container-low/70 border border-border-subtle/80 rounded-xl">
@@ -69,7 +69,7 @@
 
         <!-- Continue Button -->
         <div>
-            <a href="/dashboard" class="w-full py-3.5 px-6 bg-primary hover:bg-primary/90 text-on-primary font-bold text-base rounded-full shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 text-decoration-none">
+            <a href="/dashboard" class="w-full py-3 px-6 bg-primary hover:bg-primary/90 text-on-primary font-medium text-sm rounded-md shadow-sm transition-all inline-flex items-center justify-center gap-2 text-decoration-none">
                 Continue
             </a>
         </div>

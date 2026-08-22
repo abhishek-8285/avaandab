@@ -330,7 +330,7 @@ func (h *TripHandlers) TripComplianceFragment(w http.ResponseWriter, r *http.Req
 
 	buf.WriteString(`<div class="flex items-center gap-2 font-semibold text-sm">`)
 	if compErr != nil || res.Blocked {
-		buf.WriteString(`<span class="material-symbols-outlined text-red-600">gpp_bad</span>`)
+		buf.WriteString(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0 text-red-600"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 9 6 6"/><path d="m15 9-6 6"/></svg>`)
 		buf.WriteString(fmt.Sprintf(`<span>Dispatch Blocked: %s</span>`, func() string {
 			if compErr != nil {
 				return compErr.Error()
@@ -338,10 +338,10 @@ func (h *TripHandlers) TripComplianceFragment(w http.ResponseWriter, r *http.Req
 			return res.Reason
 		}()))
 	} else if len(res.Alerts) > 0 {
-		buf.WriteString(`<span class="material-symbols-outlined text-amber-600">warning</span>`)
+		buf.WriteString(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0 text-amber-600"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>`)
 		buf.WriteString(`<span>Compliance Warnings Active</span>`)
 	} else {
-		buf.WriteString(`<span class="material-symbols-outlined text-emerald-600">verified_user</span>`)
+		buf.WriteString(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0 text-emerald-600"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>`)
 		buf.WriteString(`<span>All 5 Dispatch Compliance Documents Verified</span>`)
 	}
 	buf.WriteString(`</div>`)

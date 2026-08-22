@@ -3,71 +3,71 @@
 {{end}}
 
 
-<!-- Exact Stitch Main Content Structure -->
+<!-- Main Content -->
 <main class="flex-grow pt-4 pb-12 px-4 max-w-6xl mx-auto w-full">
 <!-- Hero Section -->
 <section class="mb-12 text-center md:text-left">
-    <div class="inline-flex items-center gap-2 text-primary font-label-caps text-label-caps uppercase mb-4">
+    <div class="inline-flex items-center gap-2 text-primary text-xs font-bold uppercase tracking-wider mb-4">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M3 11h3a8 8 0 0 1 8 8v3"/><path d="M11.6 16.8a3 3 0 1 1-5.8 1.8"/><path d="M18 12a6 6 0 0 0-6-6H6"/><circle cx="12" cy="12" r="2"/></svg>
         Avandab Support &amp; Inquiries
     </div>
-    <h1 class="font-display text-display text-on-surface mb-4">Get in Touch with Our Team</h1>
-    <p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">Have a question about our fleet operations, route dispatches, or enterprise pricing? Submit your inquiry or track an existing ticket below.</p>
+    <h1 class="font-display text-2xl sm:text-3xl font-bold text-on-surface mb-4 tracking-tight">Get in Touch with Our Team</h1>
+    <p class="text-sm text-on-surface-variant leading-relaxed max-w-2xl mx-auto md:mx-0">Have a question about our fleet operations, route dispatches, or enterprise pricing? Submit your inquiry or track an existing ticket below.</p>
 </section>
 
 {{if .SubmittedNum}}
 <!-- Success Alert Banner with Ticket Number -->
-<div class="bg-status-success/10 border border-status-success/30 rounded-none p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+<div class="bg-status-success/10 border border-status-success/30 rounded-lg p-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
     <div class="flex items-start gap-3.5">
-        <div class="w-10 h-10 rounded-none bg-status-success text-on-primary flex items-center justify-center font-bold shrink-0">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+        <div class="w-10 h-10 rounded-lg bg-status-success text-on-primary flex items-center justify-center font-bold shrink-0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
         </div>
         <div>
-            <h4 class="font-display font-bold text-base text-status-success">Inquiry Submitted Successfully!</h4>
+            <h4 class="font-display font-semibold text-base text-status-success">Inquiry Submitted Successfully!</h4>
             <p class="text-xs text-status-success mt-0.5">
                 Your reference ticket number is <strong class="font-mono font-bold underline">{{.SubmittedNum}}</strong>. Save this number to check your status updates anytime.
             </p>
         </div>
     </div>
-    <a href="/contact-us?ticket={{.SubmittedNum}}{{if .SubmittedEmail}}&amp;email={{.SubmittedEmail}}{{end}}" class="px-4 py-2 bg-status-success hover:bg-status-success text-on-primary font-bold text-xs uppercase tracking-wider rounded-none transition-colors shrink-0">
+    <a href="/contact-us?ticket={{.SubmittedNum}}{{if .SubmittedEmail}}&amp;email={{.SubmittedEmail}}{{end}}" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-status-success text-on-primary font-medium text-sm rounded-md hover:bg-status-success/90 transition-all shrink-0">
         View Ticket Status
     </a>
 </div>
 {{end}}
 
-<!-- Two Column Layout (Exact 7 / 5 Grid from Stitch) -->
+<!-- Two Column Layout -->
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
 <!-- Left Column: Form (7 cols) -->
-<div class="lg:col-span-7 bg-surface-container-lowest border border-border-subtle p-6 md:p-8">
-<div class="flex items-center gap-2 mb-6 border-b border-border-subtle pb-4">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-<h2 class="font-headline-lg text-headline-lg text-on-surface m-0">Submit an Operational Inquiry</h2>
+<div class="lg:col-span-7 bg-surface-container-lowest border border-border-subtle rounded-lg shadow-sm p-6 md:p-8">
+<div class="flex items-center gap-2 mb-6 border-b border-border-subtle pb-4 text-primary">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+<h2 class="text-lg font-semibold text-on-surface font-display m-0">Submit an Operational Inquiry</h2>
 </div>
-<p class="font-body-md text-body-md text-on-surface-variant mb-6">Fill in the details below and our logistics support team will respond promptly.</p>
+<p class="text-sm text-on-surface-variant leading-relaxed mb-6">Fill in the details below and our logistics support team will respond promptly.</p>
 <form class="space-y-4" method="POST" action="/contact-us/submit">
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 <div>
-<label class="block font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Your Full Name *</label>
-<input name="name" class="w-full bg-surface-bright border-outline-variant focus:border-brand-teal-deep focus:ring-1 focus:ring-brand-teal-deep text-on-surface font-body-md p-2 rounded-none" required="" type="text" placeholder="Alex Morgan">
+<label class="block text-xs font-bold uppercase tracking-wider text-secondary mb-1.5">Your Full Name *</label>
+<input name="name" class="w-full bg-surface-container-low border border-border-subtle rounded-md px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-text-muted" required="" type="text" placeholder="Alex Morgan">
 </div>
 <div>
-<label class="block font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Email Address *</label>
-<input name="email" class="w-full bg-surface-bright border-outline-variant focus:border-brand-teal-deep focus:ring-1 focus:ring-brand-teal-deep text-on-surface font-body-md p-2 rounded-none" required="" type="email" placeholder="alex@company.com">
+<label class="block text-xs font-bold uppercase tracking-wider text-secondary mb-1.5">Email Address *</label>
+<input name="email" class="w-full bg-surface-container-low border border-border-subtle rounded-md px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-text-muted" required="" type="email" placeholder="alex@company.com">
 </div>
 </div>
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 <div>
-<label class="block font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Phone Number</label>
-<input name="phone" class="w-full bg-surface-bright border-outline-variant focus:border-brand-teal-deep focus:ring-1 focus:ring-brand-teal-deep text-on-surface font-body-md p-2 rounded-none" type="tel" placeholder="+91 8285336507">
+<label class="block text-xs font-bold uppercase tracking-wider text-secondary mb-1.5">Phone Number</label>
+<input name="phone" class="w-full bg-surface-container-low border border-border-subtle rounded-md px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-text-muted" type="tel" placeholder="+91 8285336507">
 </div>
 <div>
-<label class="block font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Company / Organization</label>
-<input name="company_name" class="w-full bg-surface-bright border-outline-variant focus:border-brand-teal-deep focus:ring-1 focus:ring-brand-teal-deep text-on-surface font-body-md p-2 rounded-none" type="text" placeholder="Fleet Logistics LLC">
+<label class="block text-xs font-bold uppercase tracking-wider text-secondary mb-1.5">Company / Organization</label>
+<input name="company_name" class="w-full bg-surface-container-low border border-border-subtle rounded-md px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-text-muted" type="text" placeholder="Fleet Logistics LLC">
 </div>
 </div>
 <div>
-<label class="block font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Inquiry Category *</label>
-<select name="category" class="w-full bg-surface-bright border-outline-variant focus:border-brand-teal-deep focus:ring-1 focus:ring-brand-teal-deep text-on-surface font-body-md p-2 rounded-none" required="">
+<label class="block text-xs font-bold uppercase tracking-wider text-secondary mb-1.5">Inquiry Category *</label>
+<select name="category" class="w-full bg-surface-container-low border border-border-subtle rounded-md px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" required="">
 <option value="">Select a category</option>
 <option value="support">General Support</option>
 <option value="fleet">Fleet Carrier Onboarding</option>
@@ -77,15 +77,15 @@
 </select>
 </div>
 <div>
-<label class="block font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Subject *</label>
-<input name="subject" class="w-full bg-surface-bright border-outline-variant focus:border-brand-teal-deep focus:ring-1 focus:ring-brand-teal-deep text-on-surface font-body-md p-2 rounded-none" required="" type="text" placeholder="Brief subject of inquiry">
+<label class="block text-xs font-bold uppercase tracking-wider text-secondary mb-1.5">Subject *</label>
+<input name="subject" class="w-full bg-surface-container-low border border-border-subtle rounded-md px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-text-muted" required="" type="text" placeholder="Brief subject of inquiry">
 </div>
 <div>
-<label class="block font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Detailed Message *</label>
-<textarea name="message" class="w-full bg-surface-bright border-outline-variant focus:border-brand-teal-deep focus:ring-1 focus:ring-brand-teal-deep text-on-surface font-body-md p-2 rounded-none" required="" rows="4" placeholder="Describe your request in detail..."></textarea>
+<label class="block text-xs font-bold uppercase tracking-wider text-secondary mb-1.5">Detailed Message *</label>
+<textarea name="message" class="w-full bg-surface-container-low border border-border-subtle rounded-md px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-text-muted" required="" rows="4" placeholder="Describe your request in detail..."></textarea>
 </div>
 <div class="pt-4">
-<button class="bg-brand-teal-deep text-on-primary font-label-caps text-label-caps uppercase px-6 py-3 w-full md:w-auto inline-flex justify-center items-center gap-2 hover:bg-surface-tint transition-colors cursor-pointer" type="submit">
+<button class="inline-flex justify-center items-center gap-2 w-full md:w-auto rounded-md bg-primary text-on-primary px-4 py-2.5 text-sm font-medium hover:bg-primary/90 transition-all cursor-pointer" type="submit">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
                             Submit Inquiry &amp; Generate Ticket
                         </button>
@@ -95,36 +95,36 @@
 <!-- Right Column: Info & Status (5 cols) -->
 <div class="lg:col-span-5 space-y-6">
 <!-- Ticket Status -->
-<div class="bg-surface-container-lowest border border-border-subtle p-6">
-<div class="flex items-center gap-2 mb-4">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
-<h3 class="font-headline-md text-headline-md text-on-surface m-0">Check Contact Ticket Status</h3>
+<div class="bg-surface-container-lowest border border-border-subtle rounded-lg shadow-sm p-6">
+<div class="flex items-center gap-2 mb-4 text-primary">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+<h3 class="text-lg font-semibold text-on-surface font-display m-0">Check Contact Ticket Status</h3>
 </div>
-<p class="font-body-sm text-body-sm text-on-surface-variant mb-4">Track real-time progress of your submitted support ticket.</p>
-<form method="GET" action="/contact-us" class="flex gap-2">
-<input name="ticket" value="{{.SearchQuery}}" class="flex-grow bg-surface-bright border-outline-variant focus:border-brand-teal-deep focus:ring-1 focus:ring-brand-teal-deep text-on-surface font-body-md p-2 rounded-none" placeholder="Ticket ID (e.g. TKT-123)" type="text">
-<input name="email" value="{{.SearchEmail}}" class="flex-grow bg-surface-bright border-outline-variant focus:border-brand-teal-deep focus:ring-1 focus:ring-brand-teal-deep text-on-surface font-body-md p-2 rounded-none" placeholder="Email used at submission" type="email">
-<button type="submit" class="bg-secondary text-on-primary px-4 py-2 font-label-caps text-label-caps uppercase hover:bg-outline transition-colors inline-flex items-center gap-1 cursor-pointer">
+<p class="text-sm text-on-surface-variant leading-relaxed mb-4">Track real-time progress of your submitted support ticket.</p>
+<form method="GET" action="/contact-us" class="flex flex-col sm:flex-row gap-2">
+<input name="ticket" value="{{.SearchQuery}}" class="flex-grow w-full bg-surface-container-low border border-border-subtle rounded-md px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-text-muted" placeholder="Ticket ID (e.g. TKT-123)" type="text">
+<input name="email" value="{{.SearchEmail}}" class="flex-grow w-full bg-surface-container-low border border-border-subtle rounded-md px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-text-muted" placeholder="Email used at submission" type="email">
+<button type="submit" class="inline-flex items-center justify-center gap-1 rounded-md border border-border-subtle bg-surface-container-lowest text-secondary px-4 py-2.5 text-sm font-medium hover:bg-surface-container-low transition-all cursor-pointer shrink-0">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg> Check
                         </button>
 </form>
 
 {{if .Ticket}}
-<div class="mt-4 bg-surface-bright border border-border-subtle p-4 space-y-3">
+<div class="mt-4 bg-surface-container-low border border-border-subtle rounded-md p-4 space-y-3">
     <div class="flex items-center justify-between border-b border-border-subtle pb-2">
         <div>
-            <span class="text-[10px] font-bold text-on-surface-variant uppercase">Ticket Number</span>
-            <div class="font-data-mono font-bold text-sm text-primary">{{.Ticket.TicketNumber}}</div>
+            <span class="block text-[10px] font-bold uppercase tracking-wider text-text-muted">Ticket Number</span>
+            <div class="font-mono font-bold text-sm text-primary">{{.Ticket.TicketNumber}}</div>
         </div>
         <div>
             {{if eq .Ticket.Status "pending"}}
-            <span class="px-2 py-0.5 text-xs bg-status-warning/10 text-status-warning font-semibold">Pending Review</span>
+            <span class="px-2 py-0.5 text-xs bg-status-warning/10 text-status-warning font-semibold rounded-full">Pending Review</span>
             {{else if eq .Ticket.Status "in_progress"}}
-            <span class="px-2 py-0.5 text-xs bg-status-info/10 text-status-info font-semibold">In Progress</span>
+            <span class="px-2 py-0.5 text-xs bg-status-info/10 text-status-info font-semibold rounded-full">In Progress</span>
             {{else if eq .Ticket.Status "resolved"}}
-            <span class="px-2 py-0.5 text-xs bg-status-success/10 text-status-success font-semibold">Resolved</span>
+            <span class="px-2 py-0.5 text-xs bg-status-success/10 text-status-success font-semibold rounded-full">Resolved</span>
             {{else}}
-            <span class="px-2 py-0.5 text-xs bg-surface-container text-on-surface-variant font-semibold">Closed</span>
+            <span class="px-2 py-0.5 text-xs bg-surface-container text-on-surface-variant font-semibold rounded-full">Closed</span>
             {{end}}
         </div>
     </div>
@@ -136,36 +136,36 @@
 {{end}}
 </div>
 <!-- Direct Channels -->
-<div class="bg-surface-container-lowest border border-border-subtle p-6">
-<div class="flex items-center gap-2 mb-6 border-b border-border-subtle pb-2">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 16c0 3-2 3-2 3-2 0-2-3-2-3s2-1.5 2-3.5c0-1 .23-2 .66-2.85"/></svg>
-<h3 class="font-headline-md text-headline-md text-on-surface m-0">Direct Operating Channels</h3>
+<div class="bg-surface-container-lowest border border-border-subtle rounded-lg shadow-sm p-6">
+<div class="flex items-center gap-2 mb-6 border-b border-border-subtle pb-2 text-primary">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 16c0 3-2 3-2 3-2 0-2-3-2-3s2-1.5 2-3.5c0-1 .23-2 .66-2.85"/></svg>
+<h3 class="text-lg font-semibold text-on-surface font-display m-0">Direct Operating Channels</h3>
 </div>
 <div class="space-y-6">
 <div class="flex gap-4 items-start">
-<div class="bg-surface-container p-2 flex items-center justify-center text-primary">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+<div class="bg-surface-container-low border border-border-subtle rounded-md p-2.5 flex items-center justify-center text-primary">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
 </div>
 <div>
-<div class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">24/7 Fleet Dispatch Hotline</div>
-<div class="font-data-mono text-data-mono text-on-surface">+91 8285336507-AVANDAB</div>
+<div class="text-xs font-bold uppercase tracking-wider text-text-muted mb-1">24/7 Fleet Dispatch Hotline</div>
+<div class="font-mono text-sm text-on-surface">+91 8285336507-AVANDAB</div>
 </div>
 </div>
 <div class="flex gap-4 items-start">
-<div class="bg-surface-container p-2 flex items-center justify-center text-primary">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h9"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/><path d="M16 19a5 5 0 0 0 2-4"/><path d="m19 19-2-2"/></svg>
+<div class="bg-surface-container-low border border-border-subtle rounded-md p-2.5 flex items-center justify-center text-primary">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h9"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/><path d="M16 19a5 5 0 0 0 2-4"/><path d="m19 19-2-2"/></svg>
 </div>
 <div>
-<div class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Support Email</div>
-<div class="font-data-mono text-data-mono text-on-surface">support@avandab.com</div>
+<div class="text-xs font-bold uppercase tracking-wider text-text-muted mb-1">Support Email</div>
+<div class="font-mono text-sm text-on-surface">support@avandab.com</div>
 </div>
 </div>
 </div>
 </div>
 <!-- Quick Links -->
-<div class="bg-surface-container-lowest border border-border-subtle p-6">
-<h3 class="font-headline-md text-headline-md text-on-surface mb-4">Quick Support</h3>
-<ul class="space-y-3 font-body-sm text-body-sm">
+<div class="bg-surface-container-lowest border border-border-subtle rounded-lg shadow-sm p-6">
+<h3 class="text-lg font-semibold text-on-surface font-display mb-4">Quick Support</h3>
+<ul class="space-y-3 text-sm text-on-surface-variant">
   <li class=""><a class="text-primary hover:underline flex items-center gap-1" href="/features/dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg> Help Center</a></li>
   <li class=""><a class="text-primary hover:underline flex items-center gap-1" href="/features/invoices"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg> Invoices &amp; Receipts</a></li>
   <li class=""><a class="text-primary hover:underline flex items-center gap-1" href="/features/audit-logs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg> Audit Logs</a></li>

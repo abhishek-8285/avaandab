@@ -1,67 +1,71 @@
 <div class="max-w-full">
-    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-start justify-between gap-4 mb-6 flex-wrap">
         <div>
-            <h1 class="text-xl font-bold text-on-surface m-0">Trip Share Links</h1>
-            <p class="text-sm text-text-muted m-0">Live customer tracking links generated for active and completed trips.</p>
+            <h1 class="text-xl font-semibold text-on-surface font-display m-0">Trip Share Links</h1>
+            <p class="text-sm text-text-muted m-0 mt-0.5">Live customer tracking links generated for active and completed trips.</p>
         </div>
     </div>
 
-    <div class="bg-surface rounded-xl border border-border-subtle overflow-hidden shadow-sm">
+    <div class="bg-surface-container-lowest rounded-lg border border-border-subtle overflow-hidden shadow-sm">
         <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse text-xs">
+            <table class="w-full text-left border-collapse">
                 <thead>
-                    <tr class="border-b border-border-subtle bg-surface-container text-text-muted font-medium">
-                        <th class="py-3 px-4">Trip Number</th>
-                        <th class="py-3 px-4">Created By</th>
-                        <th class="py-3 px-4">Created At</th>
-                        <th class="py-3 px-4">Expires At</th>
-                        <th class="py-3 px-4 text-center">Views</th>
-                        <th class="py-3 px-4 text-center">PIN</th>
-                        <th class="py-3 px-4 text-center">Status</th>
-                        <th class="py-3 px-4 text-right">Actions</th>
+                    <tr>
+                        <th class="th-cell">Trip Number</th>
+                        <th class="th-cell">Created By</th>
+                        <th class="th-cell">Created At</th>
+                        <th class="th-cell">Expires At</th>
+                        <th class="th-cell-right" data-numeric>Views</th>
+                        <th class="th-cell">PIN</th>
+                        <th class="th-cell">Status</th>
+                        <th class="th-cell-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-border-subtle">
                     {{range .Shares}}
-                    <tr class="hover:bg-surface-container transition">
-                        <td class="py-3 px-4 font-semibold text-on-surface">
+                    <tr class="hover:bg-surface-container transition-colors">
+                        <td class="px-4 py-2.5 text-sm text-on-surface font-semibold whitespace-nowrap">
                             <a href="/trips/{{.TripID}}" class="text-primary hover:underline">{{.TripNumber}}</a>
                         </td>
-                        <td class="py-3 px-4 text-text-muted">{{.CreatorName}}</td>
-                        <td class="py-3 px-4 text-text-muted">{{datetime .CreatedAt}}</td>
-                        <td class="py-3 px-4 text-text-muted">{{datetime .ExpiresAt}}</td>
-                        <td class="py-3 px-4 text-center font-medium text-on-surface">{{.ViewCount}}</td>
-                        <td class="py-3 px-4 text-center">
+                        <td class="px-4 py-2.5 text-sm text-on-surface whitespace-nowrap">
+                            <span class="text-secondary">{{.CreatorName}}</span>
+                        </td>
+                        <td class="px-4 py-2.5 text-sm text-on-surface whitespace-nowrap text-xs text-text-muted">{{datetime .CreatedAt}}</td>
+                        <td class="px-4 py-2.5 text-sm text-on-surface whitespace-nowrap text-xs text-text-muted">{{datetime .ExpiresAt}}</td>
+                        <td class="px-4 py-2.5 text-sm text-on-surface whitespace-nowrap text-right" data-numeric>
+                            <span class="font-medium text-on-surface">{{.ViewCount}}</span>
+                        </td>
+                        <td class="px-4 py-2.5 text-sm text-on-surface whitespace-nowrap">
                             {{if .HasPIN}}
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800">Protected</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-status-warning/10 text-status-warning border border-status-warning/30">Protected</span>
                             {{else}}
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-600">Open</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-surface-container text-text-muted border border-border-subtle">Open</span>
                             {{end}}
                         </td>
-                        <td class="py-3 px-4 text-center">
+                        <td class="px-4 py-2.5 text-sm text-on-surface whitespace-nowrap">
                             {{if eq .Status "active"}}
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800">Active</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-status-success/10 text-status-success border border-status-success/30">Active</span>
                             {{else if eq .Status "revoked"}}
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-800">Revoked</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-status-alert/10 text-status-alert border border-status-alert/30">Revoked</span>
                             {{else}}
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-600">Expired</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-surface-container text-text-muted border border-border-subtle">Expired</span>
                             {{end}}
                         </td>
-                        <td class="py-3 px-4 text-right">
+                        <td class="px-4 py-2.5 text-sm text-on-surface whitespace-nowrap text-right">
                             {{if eq .Status "active"}}
                             <form action="/shares/{{.ID}}/revoke" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to revoke this share link?');">
-                                <button type="submit" class="px-2.5 py-1 rounded bg-rose-50 text-rose-600 hover:bg-rose-100 font-medium transition text-[11px]">
+                                <button type="submit" class="inline-flex items-center gap-1.5 rounded-md bg-status-alert text-on-primary px-3 py-1.5 text-xs font-medium hover:opacity-90 transition-all cursor-pointer">
                                     Revoke
                                 </button>
                             </form>
                             {{else}}
-                            <span class="text-gray-400 text-[11px]">—</span>
+                            <span class="text-text-muted text-[11px]">—</span>
                             {{end}}
                         </td>
                     </tr>
                     {{else}}
                     <tr>
-                        <td colspan="8" class="py-8 text-center text-text-muted">
+                        <td colspan="8" class="py-8 text-center text-text-muted text-sm">
                             No share links found. You can generate share links from any trip detail page.
                         </td>
                     </tr>

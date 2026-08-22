@@ -21,7 +21,7 @@
     <header class="bg-white border-b border-gray-200 px-4 py-3 sm:px-6 shadow-sm">
         <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
             <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-sm">
+                <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
                     FF
                 </div>
                 <div>
@@ -76,18 +76,25 @@
         Powered by FlyFleet / Avandab TMS · Live Telemetry
     </footer>
 
+    <script id="share-page-data" type="application/json">
+    {
+        "mapConfig": {{json .MapConfig}},
+        "dataEndpoint": {{json .DataEndpoint}}
+    }
+    </script>
     <script>
     (function () {
-        var cfg = {{json .MapConfig}};
-        var dataEndpoint = {{json .DataEndpoint}};
+        var pageData = JSON.parse(document.getElementById('share-page-data').textContent || '{}');
+        var cfg = pageData.mapConfig || {};
+        var dataEndpoint = pageData.dataEndpoint || '';
         var pollInterval = (cfg.PollSec > 0 ? cfg.PollSec : 30) * 1000;
 
-        var map = L.map('share-map').setView([20.5937, 78.9629], 5);
+        var map = L.map('share-map', { attributionControl: false }).setView([20.5937, 78.9629], 5);
 
         var googleUrl = 'https://mt1.google.com/vt/lyrs=' + (cfg.GoogleStyle || 'm') + '&x={x}&y={y}&z={z}&gl=' + (cfg.GL || 'IN');
         var osmUrl = cfg.OSMUrl || 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-        var googleLayer = L.tileLayer(googleUrl, { maxZoom: 20, attribution: 'Map data © Google' });
-        var osmLayer = L.tileLayer(osmUrl, { maxZoom: 19, attribution: '© OpenStreetMap contributors' });
+        var googleLayer = L.tileLayer(googleUrl, { maxZoom: 20, attribution: '' });
+        var osmLayer = L.tileLayer(osmUrl, { maxZoom: 19, attribution: '' });
         var currentTile = null;
 
         function useTiles(layer) {
@@ -127,8 +134,44 @@
         function fmtTime(iso) {
             if (!iso) return '—';
             var d = new Date(iso);
-            if (isNaN(d.getTime())) return iso;
+            if (Number.isNaN(d.getTime())) return iso;
             return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function setText(id, val) {
+            var el = document.getElementById(id);
+            if (el) el.textContent = val;
+        }
+
+        function updateShareUI(data) {
+            setText('trip-status-badge', data.status || '—');
+            setText('vehicle-label', data.vehicle_label || '—');
+            setText('metric-speed', data.speed != null ? Number(data.speed).toFixed(0) + ' km/h' : '—');
+            setText('metric-fuel', data.fuel_level != null ? Number(data.fuel_level).toFixed(0) + '%' : '—');
+            setText('metric-odometer', data.odometer != null ? Number(data.odometer).toFixed(1) + ' km' : '—');
+            setText('metric-last-seen', fmtTime(data.last_seen));
+
+            if (data.eta_min && data.eta_max) {
+                setText('eta-value', fmtTime(data.eta_min) + ' – ' + fmtTime(data.eta_max));
+            }
+            setText('last-updated-text', 'Updated ' + new Date().toLocaleTimeString());
+        }
+
+        function updateShareMarker(data) {
+            if (data.lat == null || data.lng == null) return;
+            var latlng = [data.lat, data.lng];
+            if (marker) {
+                marker.setLatLng(latlng);
+                marker.setIcon(markerIcon(data.speed || 0));
+            } else {
+                marker = L.marker(latlng, { icon: markerIcon(data.speed || 0) });
+                marker.bindPopup('<b>Trip ' + (data.trip_number || '') + '</b><br>Vehicle: ' + (data.vehicle_label || '—'));
+                marker.addTo(map);
+            }
+            if (!hasCentered) {
+                map.setView(latlng, 13);
+                hasCentered = true;
+            }
         }
 
         function poll() {
@@ -144,51 +187,8 @@
                 })
                 .then(function (data) {
                     if (!data) return;
-
-                    // Update UI elements
-                    var badge = document.getElementById('trip-status-badge');
-                    if (badge) {
-                        badge.textContent = data.status || '—';
-                    }
-                    var vLabel = document.getElementById('vehicle-label');
-                    if (vLabel) vLabel.textContent = data.vehicle_label || '—';
-
-                    var speedEl = document.getElementById('metric-speed');
-                    if (speedEl) speedEl.textContent = data.speed != null ? Number(data.speed).toFixed(0) + ' km/h' : '—';
-
-                    var fuelEl = document.getElementById('metric-fuel');
-                    if (fuelEl) fuelEl.textContent = data.fuel_level != null ? Number(data.fuel_level).toFixed(0) + '%' : '—';
-
-                    var odoEl = document.getElementById('metric-odometer');
-                    if (odoEl) odoEl.textContent = data.odometer != null ? Number(data.odometer).toFixed(1) + ' km' : '—';
-
-                    var seenEl = document.getElementById('metric-last-seen');
-                    if (seenEl) seenEl.textContent = fmtTime(data.last_seen);
-
-                    var etaVal = document.getElementById('eta-value');
-                    if (etaVal && data.eta_min && data.eta_max) {
-                        etaVal.textContent = fmtTime(data.eta_min) + ' – ' + fmtTime(data.eta_max);
-                    }
-
-                    var lastUpd = document.getElementById('last-updated-text');
-                    if (lastUpd) lastUpd.textContent = 'Updated ' + new Date().toLocaleTimeString();
-
-                    // Update map marker
-                    if (data.lat != null && data.lng != null) {
-                        var latlng = [data.lat, data.lng];
-                        if (marker) {
-                            marker.setLatLng(latlng);
-                            marker.setIcon(markerIcon(data.speed || 0));
-                        } else {
-                            marker = L.marker(latlng, { icon: markerIcon(data.speed || 0) });
-                            marker.bindPopup('<b>Trip ' + (data.trip_number || '') + '</b><br>Vehicle: ' + (data.vehicle_label || '—'));
-                            marker.addTo(map);
-                        }
-                        if (!hasCentered) {
-                            map.setView(latlng, 13);
-                            hasCentered = true;
-                        }
-                    }
+                    updateShareUI(data);
+                    updateShareMarker(data);
                 })
                 .catch(function (err) {
                     var lastUpd = document.getElementById('last-updated-text');

@@ -13,8 +13,8 @@
     <link href="https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&display=swap" rel="stylesheet">
     <script src="/static/js/loader.js?v=20260818"></script>
     <script type="module" src="/static/js/datastar.js?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}" defer></script>
-    <link rel="stylesheet" href="/static/css/tailwind.css?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}">
-    <link rel="stylesheet" href="/static/css/app.css?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}">
+    <link rel="stylesheet" href="/static/css/tailwind.css?v={{if .Version}}{{.Version}}{{else}}20260821{{end}}">
+    <link rel="stylesheet" href="/static/css/app.css?v={{if .Version}}{{.Version}}{{else}}20260821{{end}}">
     {{if .PWAEnabled}}
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.webmanifest">
@@ -36,8 +36,8 @@
     <link rel="stylesheet" href="/static/css/leaflet/leaflet.css?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}">
     <link rel="stylesheet" href="/static/css/leaflet.markercluster/MarkerCluster.css?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}">
     <link rel="stylesheet" href="/static/css/leaflet.markercluster/MarkerCluster.Default.css?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}">
-    <script src="/static/js/leaflet/leaflet.js?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}" defer></script>
-    <script src="/static/js/leaflet.markercluster/leaflet.markercluster.js?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}" defer></script>
+    <script src="/static/js/leaflet/leaflet.js?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}"></script>
+    <script src="/static/js/leaflet.markercluster/leaflet.markercluster.js?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}"></script>
     {{end}}{{end}}
     <style>
         body {
@@ -45,6 +45,9 @@
             line-height: 1.5;
             background-color: var(--color-background);
             color: var(--color-on-surface);
+        }
+        .leaflet-control-attribution {
+            display: none !important;
         }
         .font-display { font-family: 'Satoshi', 'Plus Jakarta Sans', sans-serif; }
         .material-symbols-outlined {
@@ -54,20 +57,6 @@
         td[data-numeric] { font-feature-settings: "tnum" 1; font-variant-numeric: tabular-nums; }
         dt { font-size: 0.75rem; line-height: 1; }
 
-        /* Direct Sidebar Navigation Hover Guarantee */
-        #sidebar-nav a {
-            transition: all 150ms ease-in-out !important;
-        }
-        #sidebar-nav a:hover {
-            background-color: var(--color-surface-container-low) !important;
-            color: var(--color-primary) !important;
-            transform: translateX(4px) !important;
-        }
-        #sidebar-nav a.active {
-            background-color: color-mix(in srgb, var(--color-primary) 10%, transparent) !important;
-            color: var(--color-primary) !important;
-            font-weight: 600 !important;
-        }
     </style>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
@@ -81,205 +70,210 @@
         <div id="mobile-overlay" class="fixed inset-0 z-40 bg-black/50 opacity-0 invisible transition-opacity duration-300 md:hidden"></div>
 
         <!-- Sidebar (Stitch Design) -->
-        <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-surface-container-lowest border-r border-border-subtle flex flex-col transform -translate-x-full md:translate-x-0 md:relative md:z-0 transition-transform duration-300 ease-in-out sidebar-scroll shrink-0 shadow-sm">
-            <div class="h-16 flex items-center px-6 border-b border-border-subtle shrink-0 bg-surface-container-lowest">
+        <!-- Sidebar (Fleetbase-style ops shell — dark slate in both themes) -->
+        <aside id="sidebar" class="sidebar-shell fixed inset-y-0 left-0 z-50 w-64 flex flex-col transform -translate-x-full md:translate-x-0 md:relative md:z-0 transition-transform duration-300 ease-in-out sidebar-scroll shrink-0">
+            <div class="sidebar-brand-row h-16 flex items-center px-5 shrink-0">
                 <a href="/dashboard" class="flex items-center gap-3 group text-decoration-none">
-                    <div class="logo-icon-box">
-                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="w-6 h-6"><path d="M3 5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h1v2a1 1 0 0 0 2 0v-2h9v2a1 1 0 0 0 2 0v-2h2a1 1 0 0 0 1-1v-7l-4-4H3Zm11 4h3l2 2v2h-5V9Z"/></svg>
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-white bg-blue-600 group-hover:bg-blue-500 transition-colors shadow-sm">
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="w-5 h-5"><path d="M3 5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h1v2a1 1 0 0 0 2 0v-2h9v2a1 1 0 0 0 2 0v-2h2a1 1 0 0 0 1-1v-7l-4-4H3Zm11 4h3l2 2v2h-5V9Z"/></svg>
                     </div>
-                    <span class="text-2xl font-black text-primary font-display tracking-tight group-hover:text-primary transition-colors">Avandab</span>
+                    <span class="text-lg font-black font-display tracking-tight text-slate-50">Avandab</span>
                 </a>
             </div>
-            <nav id="sidebar-nav" class="flex-1 py-4 flex flex-col gap-1 overflow-y-auto px-2">
-                <a href="/dashboard" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Dashboard"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+            <nav id="sidebar-nav" class="flex-1 py-2 flex flex-col overflow-y-auto px-2 pb-6">
+                <div class="nav-section-label">Overview</div>
+                <a href="/dashboard" class="nav-item {{if eq .Title "Dashboard"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
                     <span>Dashboard</span>
                 </a>
                 {{if can .User "trips" "read"}}
-                <a href="/tracking" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Live Tracking"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" x2="9" y1="3" y2="18"/><line x1="15" x2="15" y1="6" y2="21"/></svg>
+                <a href="/tracking" class="nav-item {{if eq .Title "Live Tracking"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" x2="9" y1="3" y2="18"/><line x1="15" x2="15" y1="6" y2="21"/></svg>
                     <span>Live Tracking</span>
                 </a>
+                <a href="/map" class="nav-item {{if eq .Title "Live Fleet Map"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/></svg>
+                    <span>Live Map</span>
+                </a>
                 {{end}}
+                <div class="nav-section-label">Operations</div>
+                {{if can .User "bookings" "read"}}
+                <a href="/bookings" class="nav-item {{if eq .Title "Bookings"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><line x1="8" x2="16" y1="8" y2="8"/><line x1="8" x2="16" y1="12" y2="12"/><line x1="8" x2="12" y1="16" y2="16"/></svg>
+                    <span>Bookings</span>
+                </a>
+                {{end}}
+                {{if can .User "trips" "read"}}
+                <a href="/trips" class="nav-item {{if eq .Title "Trips"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="3" rx="2"/><path d="M4 11h16"/><circle cx="8" cy="15" r="1"/><circle cx="16" cy="15" r="1"/></svg>
+                    <span>Trips</span>
+                </a>
+                {{end}}
+                {{if can .User "customer_portal" "read"}}
+                <a href="/customer/bookings" class="nav-item {{if eq .Title "My Shipments"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
+                    <span>My Shipments</span>
+                </a>
+                {{end}}
+                {{if or (can .User "bookings" "read") (can .User "trips" "read") (can .User "customer_portal" "read")}}<div class="nav-section-label">Fleet &amp; Assets</div>{{end}}
                 {{if can .User "drivers" "read"}}
-                <a href="/drivers" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Drivers"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <a href="/drivers" class="nav-item {{if eq .Title "Drivers"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     <span>Drivers</span>
                 </a>
                 {{end}}
                 {{if can .User "vehicles" "read"}}
-                <a href="/vehicles" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Vehicles"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
+                <a href="/vehicles" class="nav-item {{if eq .Title "Vehicles"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
                     <span>Vehicles</span>
                 </a>
                 {{end}}
+                {{if can .User "maintenance" "read"}}
+                <a href="/maintenance" class="nav-item {{if eq .Title "Maintenance"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                    <span>Maintenance</span>
+                </a>
+                {{end}}
+                {{if can .User "geofences" "read"}}
+                <a href="/geofences" class="nav-item {{if eq .Title "Geofences"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <span>Geofences</span>
+                </a>
+                {{end}}
+                {{if can .User "telemetry" "read"}}
+                <a href="/telemetry/devices" class="nav-item {{if eq .Title "Telemetry Devices"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><path d="M19.1 4.9c3.9 3.9 3.9 10.2 0 14.1"/><path d="M4.9 19.1c-3.9-3.9-3.9-10.2 0-14.1"/></svg>
+                    <span>Telemetry Devices</span>
+                </a>
+                <a href="/telemetry/quarantine" class="nav-item {{if eq .Title "Quarantine Queue"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+                    <span>Quarantine</span>
+                </a>
+                {{end}}
+                {{if or (can .User "customers" "read") (can .User "routes" "read") (can .User "invoices" "read") (can .User "ewaybill" "read") (can .User "payments" "read") (can .User "settlements" "read")}}<div class="nav-section-label">Commerce &amp; Finance</div>{{end}}
                 {{if can .User "customers" "read"}}
-                <a href="/customers" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Customers"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><rect width="6" height="8" x="16" y="13" rx="1"/></svg>
+                <a href="/customers" class="nav-item {{if eq .Title "Customers"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><rect width="6" height="8" x="16" y="13" rx="1"/></svg>
                     <span>Customers</span>
                 </a>
                 {{end}}
                 {{if can .User "routes" "read"}}
-                <a href="/routes" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Routes"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>
+                <a href="/routes" class="nav-item {{if eq .Title "Routes"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>
                     <span>Routes</span>
                 </a>
                 {{end}}
-                {{if can .User "bookings" "read"}}
-                <a href="/bookings" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Bookings"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><line x1="8" x2="16" y1="8" y2="8"/><line x1="8" x2="16" y1="12" y2="12"/><line x1="8" x2="12" y1="16" y2="16"/></svg>
-                    <span>Bookings</span>
-                </a>
-                {{end}}
-                {{if can .User "customer_portal" "read"}}
-                <a href="/customer/bookings" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "My Shipments"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
-                    <span>My Shipments</span>
-                </a>
-                {{end}}
-                {{if can .User "trips" "read"}}
-                <a href="/trips" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Trips"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><rect width="16" height="16" x="4" y="3" rx="2"/><path d="M4 11h16"/><circle cx="8" cy="15" r="1"/><circle cx="16" cy="15" r="1"/></svg>
-                    <span>Trips</span>
-                </a>
-                {{end}}
                 {{if can .User "invoices" "read"}}
-                <a href="/invoices" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Invoices"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
+                <a href="/invoices" class="nav-item {{if eq .Title "Invoices"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
                     <span>Invoices</span>
                 </a>
                 {{end}}
                 {{if can .User "ewaybill" "read"}}
-                <a href="/ewaybill" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "E-Way Bills"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><rect width="14" height="10" x="2" y="7" rx="1"/><path d="M16 11h4l2 3v3h-6v-6Z"/><circle cx="6" cy="17" r="2"/><circle cx="18" cy="17" r="2"/></svg>
+                <a href="/ewaybill" class="nav-item {{if eq .Title "E-Way Bills"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="10" x="2" y="7" rx="1"/><path d="M16 11h4l2 3v3h-6v-6Z"/><circle cx="6" cy="17" r="2"/><circle cx="18" cy="17" r="2"/></svg>
                     <span>E-Way Bills</span>
                 </a>
                 {{end}}
                 {{if can .User "payments" "read"}}
-                <a href="/payments" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Payments"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+                <a href="/payments" class="nav-item {{if eq .Title "Payments"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
                     <span>Payments</span>
                 </a>
                 {{end}}
                 {{if or (can .User "trips" "read") (can .User "payments" "read")}}
-                <a href="/kharcha" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Kharcha Ledger"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>
+                <a href="/kharcha" class="nav-item {{if eq .Title "Kharcha Ledger"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>
                     <span>Kharcha Ledger</span>
                 </a>
                 {{end}}
+                {{if can .User "settlements" "read"}}
+                <a href="/settlements" class="nav-item {{if eq .Title "Settlements"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M3 10h18"/><path d="M5 6l7-3 7 3"/><path d="M4 10v11"/><path d="M20 10v11"/><path d="M8 14v4"/><path d="M12 14v4"/><path d="M16 14v4"/></svg>
+                    <span>Settlements</span>
+                </a>
+                {{end}}
+                {{if or (can .User "fuel" "read") (can .User "scorecard" "read") (can .User "reports" "read") (can .User "pnl" "read")}}<div class="nav-section-label">Insights</div>{{end}}
                 {{if can .User "fuel" "read"}}
-                <a href="/fuel/audit" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Fuel Audit"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><path d="M3 22V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v17"/><path d="M15 10h2.5a2.5 2.5 0 0 1 2.5 2.5V17a2 2 0 0 1-2 2h-1"/><circle cx="9" cy="9" r="2"/><path d="M3 22h12"/></svg>
+                <a href="/fuel/audit" class="nav-item {{if eq .Title "Fuel Audit"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v17"/><path d="M15 10h2.5a2.5 2.5 0 0 1 2.5 2.5V17a2 2 0 0 1-2 2h-1"/><circle cx="9" cy="9" r="2"/><path d="M3 22h12"/></svg>
                     <span>Fuel Audit</span>
                 </a>
                 {{end}}
                 {{if can .User "scorecard" "read"}}
-                <a href="/scorecard" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Driver Scorecard"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/><line x1="2" x2="22" y1="20" y2="20"/></svg>
+                <a href="/scorecard" class="nav-item {{if eq .Title "Driver Scorecard"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/><line x1="2" x2="22" y1="20" y2="20"/></svg>
                     <span>Driver Scorecard</span>
                 </a>
                 {{end}}
-                {{if can .User "maintenance" "read"}}
-                <a href="/maintenance" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Maintenance"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-                    <span>Maintenance</span>
-                </a>
-                {{end}}
                 {{if can .User "reports" "read"}}
-                <a href="/reports" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Reports"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><line x1="18" x2="18" y1="20" y2="4"/><line x1="12" x2="12" y1="20" y2="10"/><line x1="6" x2="6" y1="20" y2="16"/><line x1="2" x2="22" y1="20" y2="20"/></svg>
+                <a href="/reports" class="nav-item {{if eq .Title "Reports"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="18" y1="20" y2="4"/><line x1="12" x2="12" y1="20" y2="10"/><line x1="6" x2="6" y1="20" y2="16"/><line x1="2" x2="22" y1="20" y2="20"/></svg>
                     <span>Reports</span>
                 </a>
                 {{end}}
-                {{if can .User "settlements" "read"}}
-                <a href="/settlements" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Settlements"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><path d="M3 21h18"/><path d="M3 10h18"/><path d="M5 6l7-3 7 3"/><path d="M4 10v11"/><path d="M20 10v11"/><path d="M8 14v4"/><path d="M12 14v4"/><path d="M16 14v4"/></svg>
-                    <span>Settlements</span>
+                {{if can .User "pnl" "read"}}
+                <a href="/pnl/dashboard" class="nav-item {{if eq .Title "Profit & Loss"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    <span>P&amp;L</span>
                 </a>
                 {{end}}
-                {{if can .User "trips" "read"}}
-                <a href="/map" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Live Fleet Map"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" x2="9" y1="3" y2="18"/><line x1="15" x2="15" y1="6" y2="21"/></svg>
-                    <span>Live Map</span>
-                </a>
-                {{end}}
-                {{if can .User "settings" "read"}}
-                <a href="/settings" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Settings"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                    <span>Settings</span>
+                {{if or (can .User "alerts" "read") (can .User "users" "read") (can .User "audit_logs" "read") (can .User "settings" "read") (can .User "founder" "read") (can .User "ops_alerts" "read") (can .User "experiments" "read")}}<div class="nav-section-label">Administration</div>{{end}}
+                {{if can .User "alerts" "read"}}
+                <a href="/alerts" class="nav-item {{if eq .Title "Operational Alerts"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><line x1="12" x2="12" y1="8" y2="12"/></svg>
+                    <span>Alerts</span>
+                    {{if .HasUnread}}<span class="nav-badge">{{.UnreadCount}}</span>{{end}}
                 </a>
                 {{end}}
                 {{if can .User "users" "read"}}
-                <a href="/users" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "User Management"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></svg>
+                <a href="/users" class="nav-item {{if eq .Title "User Management"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></svg>
                     <span>User Management</span>
                 </a>
                 {{end}}
                 {{if can .User "audit_logs" "read"}}
-                <a href="/audit-logs" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Audit Logs"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><polyline points="12 7 12 12 15 15"/></svg>
+                <a href="/audit-logs" class="nav-item {{if eq .Title "Audit Logs"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><polyline points="12 7 12 12 15 15"/></svg>
                     <span>Audit Logs</span>
                 </a>
                 {{end}}
-                {{if can .User "telemetry" "read"}}
-                <a href="/telemetry/devices" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Telemetry Devices"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><path d="M19.1 4.9c3.9 3.9 3.9 10.2 0 14.1"/><path d="M4.9 19.1c-3.9-3.9-3.9-10.2 0-14.1"/></svg>
-                    <span>Telemetry Devices</span>
-                </a>
-                <a href="/telemetry/quarantine" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Quarantine Queue"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
-                    <span>Quarantine</span>
-                </a>
-                {{end}}
-                {{if can .User "geofences" "read"}}
-                <a href="/geofences" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Geofences"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-                    <span>Geofences</span>
-                </a>
-                {{end}}
-                {{if can .User "alerts" "read"}}
-                <a href="/alerts" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Operational Alerts"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><line x1="12" x2="12" y1="8" y2="12"/></svg>
-                    <span>Alerts</span>
-                    {{if .HasUnread}}<span class="ml-auto bg-red-500 text-white rounded-full px-2 py-0.5 text-[10px] font-bold">{{.UnreadCount}}</span>{{end}}
+                {{if can .User "settings" "read"}}
+                <a href="/settings" class="nav-item {{if eq .Title "Settings"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    <span>Settings</span>
                 </a>
                 {{end}}
                 {{if can .User "founder" "read"}}
-                <a href="/founder/dashboard" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Founder Dashboard"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+                <a href="/founder/dashboard" class="nav-item {{if eq .Title "Founder Dashboard"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
                     <span>Founder</span>
                 </a>
                 {{end}}
                 {{if can .User "ops_alerts" "read"}}
-                <a href="/ops-alerts" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Ops Alerts"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+                <a href="/ops-alerts" class="nav-item {{if eq .Title "Ops Alerts"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
                     <span>Ops Alerts</span>
                 </a>
                 {{end}}
-                {{if can .User "pnl" "read"}}
-                <a href="/pnl/dashboard" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "Profit & Loss"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                    <span>P&amp;L</span>
-                </a>
-                {{end}}
                 {{if can .User "experiments" "read"}}
-                <a href="/experiments" class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-md text-secondary hover:bg-surface-container-low hover:text-primary hover:translate-x-1 transition-all duration-150 font-medium text-sm {{if eq .Title "A/B Experiments"}}active bg-primary/10 text-primary font-semibold relative after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-1 after:bg-primary after:rounded-l{{end}}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><path d="M10 2v7.31L4.62 18.27A2 2 0 0 0 6.34 21h11.32a2 2 0 0 0 1.72-2.73L14 9.31V2"/><line x1="8.5" x2="15.5" y1="2" y2="2"/><line x1="14" x2="7.5" y1="15" y2="15"/></svg>
+                <a href="/experiments" class="nav-item {{if eq .Title "A/B Experiments"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.31L4.62 18.27A2 2 0 0 0 6.34 21h11.32a2 2 0 0 0 1.72-2.73L14 9.31V2"/><line x1="8.5" x2="15.5" y1="2" y2="2"/><line x1="14" x2="7.5" y1="15" y2="15"/></svg>
                     <span>Experiments</span>
                 </a>
                 {{end}}
             </nav>
-            <div class="mt-auto p-4 border-t border-border-subtle flex flex-col gap-3">
+            <div class="sidebar-footer-block mt-auto p-3 flex flex-col gap-3 shrink-0">
                 <form method="POST" action="/logout">
-                    <button type="submit" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-md text-status-alert hover:bg-status-alert/10 hover:text-status-alert hover:translate-x-1 transition-all duration-150 cursor-pointer border-0 bg-transparent font-medium text-sm">
+                    <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 rounded-md text-red-400 hover:bg-white/5 hover:text-red-300 transition-all duration-150 cursor-pointer border-0 bg-transparent font-medium text-sm">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
                         <span>Logout</span>
                     </button>
                 </form>
                 {{if .Version}}
-                <div class="pt-2 border-t border-border-subtle flex items-center justify-between px-2 text-[11px] text-text-muted font-mono">
+                <div class="pt-2 border-t border-white/10 flex items-center justify-between px-1 text-[11px] text-slate-500 font-mono">
                     <span>Build Version</span>
-                    <span class="bg-surface-container text-secondary px-2 py-0.5 rounded font-semibold">v{{slice .Version 0 10}}</span>
+                    <span class="bg-white/5 text-slate-300 px-2 py-0.5 rounded font-semibold">v{{slice .Version 0 10}}</span>
                 </div>
                 {{end}}
             </div>
@@ -301,7 +295,8 @@
                 <div class="flex items-center gap-4 sm:gap-6 ml-auto">
                     <form method="GET" action="/audit-logs" class="relative hidden sm:block">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                        <input type="text" name="q" value="{{.Query}}" class="bg-surface-container-low border border-border-subtle rounded-md py-2 pl-9 pr-4 text-sm text-on-surface placeholder-text-text-muted w-64 md:w-80 focus:outline-none focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Search logs, vehicles, drivers..." />
+                        <label for="global-search-input" class="sr-only">Search logs, vehicles, drivers</label>
+                        <input id="global-search-input" type="text" name="q" value="{{.Query}}" class="bg-surface-container-low border border-border-subtle rounded-md py-2 pl-9 pr-4 text-sm text-on-surface placeholder-text-text-muted w-64 md:w-80 focus:outline-none focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Search logs, vehicles, drivers..." />
                     </form>
 
                     <!-- 3-Way Theme Switcher (Day / Night / System) -->
@@ -326,7 +321,7 @@
                             </button>
                             <button type="button" data-theme-choice="dark" class="w-full text-left px-2.5 py-2 text-xs rounded-lg hover:bg-surface-container-low flex items-center justify-between text-on-surface border-0 bg-transparent cursor-pointer transition-colors">
                                 <div class="flex items-center gap-2">
-                                    <svg class="w-4 h-4 text-indigo-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                                    <svg class="w-4 h-4 text-blue-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
                                     <span class="font-medium">Night (Dark)</span>
                                 </div>
                                 <span class="hidden" data-theme-check="dark"><svg class="w-3.5 h-3.5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
@@ -390,11 +385,11 @@
                     <!-- Help & Support Dropdown -->
                     <div class="relative group">
                         <button type="button" class="hover:bg-surface-container p-2 rounded-lg transition-colors text-secondary hover:text-primary border-0 bg-transparent cursor-pointer flex items-center justify-center" aria-label="Help & Support">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><circle cx="12" cy="12" r="10"/><path d="9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
                         </button>
                         <div class="absolute right-0 top-full mt-2 w-56 bg-surface-container-lowest border border-border-subtle rounded-xl shadow-xl z-50 overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 py-1.5 text-on-surface-variant text-xs">
                             <a href="/contact-us" class="flex items-center gap-3 px-4 py-2 hover:bg-surface-container-low hover:text-primary transition-colors text-decoration-none">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-text-muted shrink-0"><circle cx="12" cy="12" r="10"/><path d="9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-text-muted shrink-0"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
                                 <span>Help & Support</span>
                             </a>
                             <a href="/contact-us" class="flex items-center gap-3 px-4 py-2 hover:bg-surface-container-low hover:text-primary transition-colors text-decoration-none">
@@ -551,11 +546,11 @@
                     var btn = form.querySelector('button[type="submit"]');
                     if (!btn || btn.disabled) return;
                     btn.disabled = true;
-                    btn.setAttribute('data-loading', 'true');
+                    btn.dataset.loading = 'true';
                     var originalHTML = btn.innerHTML;
                     btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-1"></span>' + btn.innerHTML;
                     // Restore on navigation error (keep original in case)
-                    btn.setAttribute('data-original-html', originalHTML);
+                    btn.dataset.originalHtml = originalHTML;
                 });
             });
         });
@@ -564,14 +559,11 @@
         document.addEventListener('DOMContentLoaded', function() {
             var currentPath = window.location.pathname;
             var navLinks = document.querySelectorAll('#sidebar-nav a');
-            var matched = false;
             
             navLinks.forEach(function(link) {
                 var href = link.getAttribute('href');
                 if (href && (href === currentPath || (href !== '/' && currentPath.startsWith(href)))) {
-                    link.classList.add('bg-primary/10', 'text-primary', 'font-semibold', 'relative', 'after:content-[\'\']', 'after:absolute', 'after:right-0', 'after:top-0', 'after:bottom-0', 'after:w-1', 'after:bg-primary', 'after:rounded-l');
-                    link.classList.remove('text-secondary');
-                    matched = true;
+                    link.classList.add('active');
                 }
             });
         });
@@ -627,58 +619,83 @@
                     .catch(function() {});
             }, 30000);
         });
-        // Fallback: replace any remaining material-symbols spans (dynamic {{.Icon}} etc.) with inline SVG if font fails
+        // Fallback: replace any remaining material-symbols spans (dynamic .Icon etc.) with inline SVG if font fails
         document.addEventListener('DOMContentLoaded', function() {
             var iconMap = {
-                'search':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4 shrink-0\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg>',
-                'notifications':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-5 h-5\"><path d=\"M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9\"/><path d=\"M10.3 21a1.94 1.94 0 0 0 3.4 0\"/></svg>',
-                'close':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4\"><path d=\"M18 6 6 18\"/><path d=\"m6 6 12 12\"/></svg>',
-                'menu':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-5 h-5\"><line x1=\"4\" x2=\"20\" y1=\"12\" y2=\"12\"/><line x1=\"4\" x2=\"20\" y1=\"6\" y2=\"6\"/><line x1=\"4\" x2=\"20\" y1=\"18\" y2=\"18\"/></svg>',
-                'receipt_long':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4\"><path d=\"M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z\"/></svg>',
-                'lock':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4\"><rect width=\"18\" height=\"11\" x=\"3\" y=\"11\" rx=\"2\"/><path d=\"M7 11V7a5 5 0 0 1 10 0v4\"/></svg>',
-                'commute':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4\"><path d=\"M8 6v6\"/><path d=\"M15 6v6\"/><path d=\"M2 12h19.6\"/></svg>',
-                'history':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4\"><path d=\"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8\"/><path d=\"M3 3v5h5\"/><path d=\"M12 7v5l4 2\"/></svg>',
-                'groups':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4\"><path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"/><circle cx=\"9\" cy=\"7\" r=\"4\"/><path d=\"M22 21v-2a4 4 0 0 0-3-3.87\"/></svg>',
-                'check_circle':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4\"><path d=\"M22 11.08V12a10 10 0 1 1-5.93-9.14\"/><path d=\"m9 11 3 3L22 4\"/></svg>',
-                'verified':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4\"><path d=\"M22 11.08V12a10 10 0 1 1-5.93-9.14\"/><path d=\"m9 11 3 3L22 4\"/></svg>',
-                'public':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M2 12h20\"/></svg>',
-                'grid_view':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4\"><rect width=\"7\" height=\"7\" x=\"3\" y=\"3\" rx=\"1\"/><rect width=\"7\" height=\"7\" x=\"14\" y=\"3\" rx=\"1\"/><rect width=\"7\" height=\"7\" x=\"14\" y=\"14\" rx=\"1\"/><rect width=\"7\" height=\"7\" x=\"3\" y=\"14\" rx=\"1\"/></svg>',
-                'chevron_right':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4\"><path d=\"m9 18 6-6-6-6\"/></svg>',
-                'chevron_left':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4\"><path d=\"m15 18-6-6 6-6\"/></svg>',
-                'arrow_forward':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg>',
-                'arrow_back':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4\"><path d=\"m12 19-7-7 7-7\"/><path d=\"M19 12H5\"/></svg>',
-                'add':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg>',
-                'support_agent':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4\"><path d=\"M3 11h3a8 8 0 0 1 8 8v3\"/><path d=\"M11.6 16.8a3 3 0 1 1-5.8 1.8\"/></svg>',
-                'mail':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4\"><rect width=\"20\" height=\"16\" x=\"2\" y=\"4\" rx=\"2\"/><path d=\"m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7\"/></svg>',
-                'send':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4\"><path d=\"m22 2-7 20-4-9-9-4Z\"/></svg>',
-                'schedule':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><circle cx="12\" cy=\"12\" r=\"10\"/><polyline points=\"12 6 12 12 16 14\"/></svg>',
-                'error_outline':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><circle cx="12\" cy=\"12\" r=\"10\"/><line x1="12\" x2=\"12\" y1="8\" y2="12\"/><line x1="12\" x2=\"12.01\" y1="16\" y2="16\"/></svg>',
-                'payments':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><rect width="20\" height=\"14\" x=\"2\" y=\"5\" rx=\"2\"/><line x1="2\" x2="22\" y1="10\" y2="10\"/></svg>',
-                'directions_bus':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class="w-4 h-4"><path d="M8 6v6\"/><path d="M15 6v6\"/><path d="M2 12h19.6\"/></svg>',
-                'badge':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class="w-4 h-4"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z\"/></svg>',
-                'local_shipping':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class="w-4 h-4"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2\"/><circle cx="7\" cy=\"18\" r=\"2\"/><circle cx="17\" cy=\"18\" r=\"2\"/></svg>',
-                'people':'<svg viewBox="0 0 24 24" fill="none\" stroke="currentColor\" stroke-width="2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class="w-4 h-4"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"/><circle cx="9\" cy=\"7\" r=\"4\"/></svg>',
-                'hourglass_empty':'<svg viewBox="0 0 24 24" fill="none\" stroke="currentColor\" stroke-width="2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class="w-4 h-4"><path d="M5 22h14\"/><path d="M5 2h14\"/><path d="M17 22v-6.172a2 2 0 0 0-.586-1.414L12 10l-4.414 4.414A2 2 0 0 0 7 15.828V22\"/></svg>',
-                'fact_check':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class="w-4 h-4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\"/><polyline points="14 2 14 8 20 8\"/></svg>',
-                'call':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class="w-4 h-4"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6\"/></svg>',
-                'route':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class="w-4 h-4"><circle cx="6\" cy=\"19\" r=\"3\"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15\"/></svg>',
-                'verified_user':'<svg viewBox="0 0 24 24" fill="none\" stroke="currentColor\" stroke-width="2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class="w-4 h-4"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10\"/><path d="m9 12 2 2 4-4\"/></svg>',
-                'inventory_2':'<svg viewBox="0 0 24 24" fill="none\" stroke="currentColor\" stroke-width="2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class="w-4 h-4"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z\"/></svg>',
-                'description':'<svg viewBox="0 0 24 24" fill="none\" stroke="currentColor\" stroke-width="2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class="w-4 h-4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\"/><polyline points="14 2 14 8 20 8\"/></svg>',
-                'sync':'<svg viewBox="0 0 24 24" fill="none\" stroke="currentColor\" stroke-width="2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class="w-4 h-4"><path d="M3 12a9 9 0 0 1 15.59-6.59\"/><path d="M21 12a9 9 0 0 1-15.59 6.59\"/></svg>',
-                'security':'<svg viewBox="0 0 24 24" fill="none\" stroke="currentColor\" stroke-width="2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class="w-4 h-4"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10\"/></svg>',
-                'task_alt':'<svg viewBox="0 0 24 24" fill="none\" stroke="currentColor\" stroke-width="2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class="w-4 h-4"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14\"/><path d="m9 11 3 3L22 4\"/></svg>',
-                'monitoring':'<svg viewBox="0 0 24 24" fill="none\" stroke="currentColor\" stroke-width="2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class="w-4 h-4"><path d="M3 3v18h18\"/><path d="m19 9-5 5-4-4-3 3\"/></svg>',
-                'settings':'<svg viewBox="0 0 24 24" fill="none\" stroke="currentColor\" stroke-width="2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class="w-4 h-4"><circle cx="12\" cy=\"12\" r=\"3\"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82\"/></svg>',
-                'account_circle':'<svg viewBox="0 0 24 24" fill="none\" stroke="currentColor\" stroke-width="2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class="w-4 h-4"><circle cx="12\" cy=\"12\" r=\"10\"/><circle cx="12\" cy=\"10\" r=\"3\"/><path d="M7 18c1.5-2 3.5-3 5-3s3.5 1 5 3\"/></svg>',
-                'key':'<svg viewBox="0 0 24 24" fill="none\" stroke="currentColor\" stroke-width="2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class="w-4 h-4"><circle cx="7.5\" cy=\"15.5\" r=\"5.5\"/><path d="m21 2-9.6 9.6\"/></svg>',
-                'gps_fixed':'<svg viewBox="0 0 24 24" fill="none\" stroke="currentColor\" stroke-width="2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class="w-4 h-4"><circle cx="12\" cy=\"12\" r=\"3\"/><path d="M12 2v4\"/></svg>'
+                'search':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>',
+                'notifications':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>',
+                'close':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+                'menu':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>',
+                'receipt_long':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/></svg>',
+                'lock':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+                'commute':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/></svg>',
+                'history':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>',
+                'groups':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>',
+                'check_circle':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>',
+                'verified':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>',
+                'public':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/></svg>',
+                'grid_view':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>',
+                'chevron_right':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="m9 18 6-6-6-6"/></svg>',
+                'chevron_left':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="m15 18-6-6 6-6"/></svg>',
+                'arrow_forward':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>',
+                'arrow_back':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>',
+                'add':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M5 12h14"/><path d="M12 5v14"/></svg>',
+                'support_agent':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M3 11h3a8 8 0 0 1 8 8v3"/><path d="M11.6 16.8a3 3 0 1 1-5.8 1.8"/></svg>',
+                'mail':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>',
+                'send':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="m22 2-7 20-4-9-9-4Z"/></svg>',
+                'schedule':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+                'error_outline':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>',
+                'payments':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>',
+                'directions_bus':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/></svg>',
+                'badge':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/></svg>',
+                'local_shipping':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>',
+                'people':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>',
+                'hourglass_empty':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-6.172a2 2 0 0 0-.586-1.414L12 10l-4.414 4.414A2 2 0 0 0 7 15.828V22"/></svg>',
+                'fact_check':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+                'call':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6"/></svg>',
+                'route':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/></svg>',
+                'verified_user':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>',
+                'inventory_2':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/></svg>',
+                'description':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+                'sync':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M3 12a9 9 0 0 1 15.59-6.59"/><path d="M21 12a9 9 0 0 1-15.59 6.59"/></svg>',
+                'security':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>',
+                'task_alt':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>',
+                'monitoring':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>',
+                'settings':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82"/></svg>',
+                'account_circle':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 18c1.5-2 3.5-3 5-3s3.5 1 5 3"/></svg>',
+                'key':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/></svg>',
+                'gps_fixed':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><circle cx="12" cy="12" r="3"/><path d="M12 2v4"/></svg>',
+                'account_balance':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M3 21h18"/><path d="M3 10h18"/><path d="M5 6l7-3 7 3"/><path d="M4 10v11"/><path d="M20 10v11"/><path d="M8 14v4"/><path d="M12 14v4"/><path d="M16 14v4"/></svg>',
+                'account_balance_wallet':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>',
+                'cancel':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>',
+                'contact_support':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>',
+                'dashboard':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>',
+                'delete':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>',
+                'edit':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>',
+                'gpp_bad':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 9 6 6"/><path d="m15 9-6 6"/></svg>',
+                'group':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>',
+                'how_to_reg':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></svg>',
+                'lock_reset':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/><path d="M12 18v-2"/></svg>',
+                'manage_accounts':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><circle cx="16" cy="11" r="3"/><path d="m18 13 1 1 2-2"/></svg>',
+                'pending':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-6.172a2 2 0 0 0-.586-1.414L12 10l-4.414 4.414A2 2 0 0 0 7 15.828V22"/><path d="M7 2v6.172a2 2 0 0 0 .586 1.414L12 14l4.414-4.414A2 2 0 0 0 17 8.172V2"/></svg>',
+                'published_with_changes':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M21 12a9 9 0 0 0-9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M21 21v-5h-5"/></svg>',
+                'save':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M15.2 3a2 2 0 0 1 1.4.58l3.82 3.83a2 2 0 0 1 .58 1.41V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M15 3v6H9"/><path d="M10 21v-6h4"/></svg>',
+                'shield':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>',
+                'thumb_up':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3z"/></svg>',
+                'visibility':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
+                'visibility_off':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.59 9.59 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>',
+                'warning':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>'
             };
             function replaceIcons(root){
                 (root||document).querySelectorAll('.material-symbols-outlined, .material-icons').forEach(function(el){
                     var name = (el.textContent||'').trim();
-                    if(iconMap[name]){
-                        var tmp=document.createElement('div'); tmp.innerHTML=iconMap[name];
+                    var svgStr = iconMap[name];
+                    if(!svgStr && name){
+                        // fallback generic dot prevents raw ligature text flash
+                        svgStr = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><circle cx="12" cy="12" r="3"/></svg>';
+                    }
+                    if(svgStr){
+                        var tmp=document.createElement('div'); tmp.innerHTML=svgStr;
                         var svg=tmp.firstChild; if(svg){ svg.className=el.className; el.parentNode.replaceChild(svg, el); }
                     }
                 });
@@ -692,6 +709,9 @@
     </script>
 
     <script src="/static/js/theme.js?v={{if .Version}}{{.Version}}{{else}}20260820{{end}}"></script>
+    {{if .User}}
+    <script src="/static/js/session-guard.js?v={{if .Version}}{{.Version}}{{else}}20260821{{end}}"></script>
+    {{end}}
 </body>
 </html>
 

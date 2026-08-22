@@ -397,7 +397,7 @@ func (r *MaintenanceRepository) ListDueVehicles(ctx context.Context, tenantID st
 		SELECT v.id, v.registration_number, v.vehicle_number, v.vehicle_type,
 		       v.maintenance_due, v.maintenance_override_by, v.maintenance_override_at, v.maintenance_override_reason
 		FROM vehicles v
-		WHERE (v.tenant_id = ? OR v.tenant_id = '1') AND v.maintenance_due IS NOT NULL
+		WHERE v.tenant_id = ? AND v.maintenance_due IS NOT NULL
 		ORDER BY v.maintenance_due ASC`, tenantID)
 	if err != nil {
 		return nil, err

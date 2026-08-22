@@ -188,24 +188,77 @@ textarea {
     transition: background-color 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out, box-shadow 150ms ease-out, transform 150ms ease-out;
 }
 
-/* Sidebar Navigation Hover System */
-#sidebar-nav a {
-    transition: all 150ms ease-in-out !important;
+/* ── Fleetbase-style Ops Sidebar (always dark slate, both themes) ───── */
+#sidebar.sidebar-shell {
+    background-color: #0f172a;
+    border-right: 1px solid rgba(148, 163, 184, 0.12);
 }
-
-#sidebar-nav a:hover,
+.sidebar-shell .sidebar-brand-row {
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+    background-color: #0f172a;
+}
+.nav-section-label {
+    font-size: 10px;
+    line-height: 16px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: #64748b;
+    padding: 0.75rem 0.875rem 0.25rem;
+}
+#sidebar-nav .nav-item,
+aside#sidebar nav a {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    margin: 1px 0.5rem;
+    border-radius: 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #94a3b8;
+    text-decoration: none;
+    position: relative;
+    transition: background-color 130ms ease, color 130ms ease;
+}
+#sidebar-nav .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.85; }
+#sidebar-nav .nav-item:hover,
 aside#sidebar nav a:hover {
-    background-color: var(--color-surface-container-low) !important;
-    color: var(--color-primary) !important;
-    transform: translateX(4px) !important;
+    background-color: rgba(148, 163, 184, 0.09);
+    color: #f1f5f9;
 }
-
-#sidebar-nav a.active,
+#sidebar-nav .nav-item.active,
 aside#sidebar nav a.active {
-    background-color: var(--color-primary-container) !important;
-    color: var(--color-primary) !important;
-    font-weight: 600 !important;
+    background-color: rgba(37, 99, 235, 0.22);
+    color: #dbeafe;
+    font-weight: 600;
 }
+#sidebar-nav .nav-item.active::before,
+aside#sidebar nav a.active::before {
+    content: "";
+    position: absolute;
+    left: -0.5rem;
+    top: 20%;
+    bottom: 20%;
+    width: 3px;
+    border-radius: 9999px;
+    background-color: #3b82f6;
+}
+#sidebar-nav .nav-badge {
+    margin-left: auto;
+    background-color: #dc2626;
+    color: #ffffff;
+    border-radius: 9999px;
+    padding: 0 0.4rem;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 16px;
+}
+.sidebar-footer-block {
+    border-top: 1px solid rgba(148, 163, 184, 0.12);
+    background-color: #0f172a;
+}
+.sidebar-shell .text-muted-dark { color: #64748b; }
 
 /* Table Row Hover Highlight */
 tbody tr {
@@ -822,3 +875,67 @@ button:disabled:hover {
             outline: 2px solid var(--color-primary);
             outline-offset: 1px;
         }
+
+/* ── Ops density & polish layer (Fleetbase-like) ─────────────────────── */
+
+/* Cards: crisper borders, tighter radius scale */
+.bg-surface-container-lowest.rounded-lg,
+.bg-surface-container-lowest.rounded-xl {
+    border: 1px solid var(--color-border-subtle);
+    box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+}
+
+/* Dense operational tables */
+.table-ops th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+tbody tr:hover td {
+    background-color: var(--color-surface-container-low);
+}
+td {
+    font-size: 0.8125rem;
+}
+
+/* Status dot pulse for live indicators */
+.status-dot-live {
+    position: relative;
+}
+.status-dot-live::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: 9999px;
+    border: 2px solid currentColor;
+    opacity: 0.35;
+    animation: statusPulse 2s ease-out infinite;
+}
+@keyframes statusPulse {
+    0% { transform: scale(0.7); opacity: 0.5; }
+    80%, 100% { transform: scale(1.4); opacity: 0; }
+}
+
+/* Global focus ring — ops blue */
+a:focus-visible, button:focus-visible, input:focus-visible,
+select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 1px;
+}
+
+/* Slim scrollbars in content area */
+#main-content::-webkit-scrollbar { width: 8px; height: 8px; }
+#main-content::-webkit-scrollbar-thumb {
+    background-color: var(--color-outline);
+    border-radius: 4px;
+}
+#main-content::-webkit-scrollbar-track { background: transparent; }
+
+/* Sidebar scrollbar on dark */
+.sidebar-scroll { scrollbar-color: #334155 transparent; }
+.sidebar-scroll::-webkit-scrollbar-thumb { background-color: #334155; }
+
+/* Dark-sidebar-aware mobile overlay shadow */
+@media (min-width: 768px) {
+    #sidebar.sidebar-shell { box-shadow: none; }
+}

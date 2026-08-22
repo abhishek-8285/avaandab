@@ -237,6 +237,23 @@ func (h *ShareHandlers) CreateShare(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(res)
 }
 
+// HandleShareIndex handles GET /share (without a specific token).
+func (h *ShareHandlers) HandleShareIndex(w http.ResponseWriter, r *http.Request) {
+	user, ok := h.getUserFromContext(r)
+	if ok && user != nil {
+		http.Redirect(w, r, "/shares", http.StatusSeeOther)
+		return
+	}
+	h.renderErrorInfo(w, r, ErrorInfo{
+		StatusCode: http.StatusNotFound,
+		Title:      "Share Link Required",
+		Message:    "Live trip tracking requires a valid share token (e.g., /share/{token}). If you are looking for your shares list, please log in first.",
+		ErrorCode:  "ERR_SHARE_TOKEN_MISSING",
+		Model:      "ShareLink",
+		Path:       r.URL.Path,
+	})
+}
+
 // ViewShare renders the public tracking map or the PIN verification form (Spec 04 §4).
 func (h *ShareHandlers) ViewShare(w http.ResponseWriter, r *http.Request) {
 	token := chi.URLParam(r, "token")
@@ -265,11 +282,25 @@ func (h *ShareHandlers) ViewShare(w http.ResponseWriter, r *http.Request) {
 
 	// 404 for unknown token (uniform, no existence oracle)
 	if err == sql.ErrNoRows {
-		http.Error(w, "Share link not found", http.StatusNotFound)
+		h.renderErrorInfo(w, r, ErrorInfo{
+			StatusCode: http.StatusNotFound,
+			Title:      "Share Link Not Found",
+			Message:    "The requested live tracking link was not found or is invalid.",
+			ErrorCode:  "ERR_SHARE_LINK_NOT_FOUND",
+			Model:      "ShareLink",
+			Path:       r.URL.Path,
+		})
 		return
 	}
 	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		h.renderErrorInfo(w, r, ErrorInfo{
+			StatusCode: http.StatusInternalServerError,
+			Title:      "Internal Server Error",
+			Message:    "Failed to retrieve the live tracking link details.",
+			ErrorCode:  "ERR_INTERNAL_SERVER",
+			Model:      "ShareLink",
+			Path:       r.URL.Path,
+		})
 		return
 	}
 
@@ -277,7 +308,14 @@ func (h *ShareHandlers) ViewShare(w http.ResponseWriter, r *http.Request) {
 
 	// 410 for expired or revoked link
 	if revokedAt.Valid || expiresAt.Before(now) {
-		http.Error(w, "Share link has expired or been revoked", http.StatusGone)
+		h.renderErrorInfo(w, r, ErrorInfo{
+			StatusCode: http.StatusGone,
+			Title:      "Share Link Expired",
+			Message:    "This live tracking link has expired or has been revoked.",
+			ErrorCode:  "ERR_SHARE_LINK_EXPIRED",
+			Model:      "ShareLink",
+			Path:       r.URL.Path,
+		})
 		return
 	}
 

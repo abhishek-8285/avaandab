@@ -2,25 +2,27 @@
 <div class="space-y-6">
 
     <!-- Page Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex items-start justify-between gap-4 mb-6 flex-wrap">
         <div>
-            <h1 class="text-2xl font-black text-on-surface font-display">Agent Approval Queue</h1>
+            <h1 class="text-xl font-semibold text-on-surface font-display">Agent Approval Queue</h1>
             <p class="text-sm text-text-muted mt-0.5">Actions proposed by the AI assistant — nothing mutating runs until you approve</p>
         </div>
-        <span class="text-[10px] font-bold text-text-muted flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-status-success animate-pulse"></span>
-            LIVE
-        </span>
-        <button onclick="location.reload()"
-                class="px-3 py-1.5 text-xs font-bold text-secondary hover:bg-surface-container rounded-lg transition border border-border-subtle">
-            Refresh
-        </button>
+        <div class="flex items-center gap-3">
+            <span class="text-[10px] font-bold text-text-muted flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-status-success animate-pulse"></span>
+                LIVE
+            </span>
+            <button onclick="location.reload()"
+                    class="inline-flex items-center gap-2 rounded-md bg-surface-container-low text-on-surface border border-border-subtle px-4 py-2 text-sm font-medium hover:bg-surface-container transition-all">
+                Refresh
+            </button>
+        </div>
     </div>
 
     <!-- Pending Queue -->
-    <div class="bg-surface-container-lowest rounded-xl border border-border-subtle overflow-hidden shadow-sm">
+    <div class="bg-surface-container-lowest rounded-lg border border-border-subtle overflow-hidden shadow-sm">
         <div class="px-6 py-4 border-b border-border-subtle">
-            <h2 class="text-base font-extrabold text-on-surface">Pending Approvals</h2>
+            <h2 class="text-base font-semibold text-on-surface font-display">Pending Approvals</h2>
             <p class="text-xs text-text-muted mt-0.5">Review the tool, arguments and requesting operator before deciding</p>
         </div>
 
@@ -34,18 +36,18 @@
                         <span class="text-[11px] font-semibold text-text-muted">{{.CreatedAt}}</span>
                         <span class="text-[11px] font-semibold text-text-muted">by {{.RequestedBy}}</span>
                     </div>
-                    <p class="text-sm font-bold text-on-surface mt-2">{{.Summary}}</p>
+                    <p class="text-sm font-medium text-on-surface mt-2">{{.Summary}}</p>
                     <pre class="mt-2 text-[11px] leading-relaxed text-text-muted bg-surface-container-low rounded-lg p-3 border border-border-subtle overflow-x-auto">{{.ArgsJSON}}</pre>
                 </div>
-                <div class="flex items-center gap-2 shrink-0">
+                <div class="flex items-center gap-2 shrink-0 flex-wrap">
                     <form method="POST" action="/agent-actions/{{.ID}}/approve">
                         <button type="submit"
-                                class="px-4 py-2 bg-status-success hover:bg-status-success/90 text-on-primary text-sm font-extrabold rounded-lg transition">
+                                class="inline-flex items-center gap-2 rounded-md bg-status-success text-on-primary px-4 py-2 text-sm font-medium hover:opacity-90 transition-all">
                             Approve
                         </button>
                     </form>
                     <button type="button" onclick="openRejectModal('{{.ID}}', '{{.ToolName}}')"
-                            class="px-4 py-2 bg-status-alert hover:bg-status-alert/90 text-on-primary text-sm font-extrabold rounded-lg transition">
+                            class="inline-flex items-center gap-2 rounded-md bg-status-alert text-on-primary px-4 py-2 text-sm font-medium hover:opacity-90 transition-all">
                         Reject
                     </button>
                 </div>
@@ -54,7 +56,9 @@
         </div>
         {{else}}
         <div class="p-10 text-center">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+            <div class="w-12 h-12 mx-auto rounded-full bg-surface-container-low border border-border-subtle flex items-center justify-center">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 shrink-0 text-status-success"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+            </div>
             <p class="text-sm font-semibold text-text-muted mt-3">No pending actions. The queue is clear.</p>
         </div>
         {{end}}
@@ -64,20 +68,20 @@
 <!-- Reject Modal -->
 <div id="reject-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
     <div id="reject-backdrop" class="absolute inset-0 bg-surface-container-highest/50 backdrop-blur-sm" onclick="closeRejectModal()"></div>
-    <div class="relative bg-surface-container-lowest rounded-2xl w-full max-w-md p-6 shadow-2xl animate-fade-in border border-border-subtle">
-        <h3 class="text-lg font-extrabold text-on-surface">Reject Agent Action</h3>
+    <div class="relative bg-surface-container-lowest rounded-lg w-full max-w-md p-6 shadow-2xl animate-fade-in border border-border-subtle">
+        <h3 class="text-base font-semibold text-on-surface font-display">Reject Agent Action</h3>
         <p class="text-sm text-text-muted mt-1">Rejecting <strong id="reject-tool" class="text-on-surface"></strong></p>
         <form id="reject-form" method="POST" class="mt-4">
             <textarea name="reason" id="reject-reason" rows="3"
-                      class="w-full border border-border-subtle rounded-lg p-3 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-status-alert/30 resize-none"
+                      class="w-full bg-surface-container-low border border-border-subtle rounded-md px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none"
                       placeholder="Reason for rejection (required)..." required></textarea>
             <div class="flex justify-end gap-3 mt-4">
                 <button type="button" onclick="closeRejectModal()"
-                        class="px-4 py-2 text-sm font-bold text-text-muted hover:bg-surface-container rounded-lg transition">
+                        class="inline-flex items-center gap-2 rounded-md bg-surface-container-low text-on-surface border border-border-subtle px-4 py-2 text-sm font-medium hover:bg-surface-container transition-all">
                     Cancel
                 </button>
                 <button type="submit"
-                        class="px-5 py-2 bg-status-alert hover:bg-status-alert/90 text-on-primary text-sm font-extrabold rounded-lg transition">
+                        class="inline-flex items-center gap-2 rounded-md bg-status-alert text-on-primary px-4 py-2 text-sm font-medium hover:opacity-90 transition-all">
                     Reject Action
                 </button>
             </div>

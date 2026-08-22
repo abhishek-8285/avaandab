@@ -1,40 +1,40 @@
 <div class="overflow-x-auto">
-    <table class="w-full text-left text-sm text-on-surface">
-        <thead class="bg-surface-container-high text-xs uppercase text-text-muted">
+    <table class="min-w-full divide-y divide-border-subtle text-sm text-on-surface">
+        <thead>
             <tr>
-                <th class="px-4 py-3">Timestamp</th>
-                <th class="px-4 py-3">Vehicle / Tag</th>
-                <th class="px-4 py-3">Toll Plaza</th>
-                <th class="px-4 py-3">Amount</th>
-                <th class="px-4 py-3">Trip Matched</th>
-                <th class="px-4 py-3">Status</th>
+                <th class="th-cell">Timestamp</th>
+                <th class="th-cell">Vehicle / Tag</th>
+                <th class="th-cell">Toll Plaza</th>
+                <th class="th-cell-right">Amount</th>
+                <th class="th-cell">Trip Matched</th>
+                <th class="th-cell">Status</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-border-subtle">
             {{range .}}
-            <tr class="hover:bg-surface-container-highest/50">
-                <td class="px-4 py-3 text-xs">{{.TxnTimeStr}}</td>
-                <td class="px-4 py-3 font-mono font-medium">{{.VehicleNumber}} <span class="text-xs text-text-muted">({{.TagID}})</span></td>
-                <td class="px-4 py-3">{{.PlazaName}} <span class="text-xs text-text-muted">({{.PlazaID}})</span></td>
-                <td class="px-4 py-3 font-semibold text-primary">₹{{printf "%.2f" .Amount}}</td>
-                <td class="px-4 py-3 text-xs">
+            <tr class="hover:bg-surface-container-low transition-colors">
+                <td class="px-4 py-2.5 text-sm text-text-muted text-xs whitespace-nowrap">{{.TxnTimeStr}}</td>
+                <td class="px-4 py-2.5 text-sm font-mono font-medium text-on-surface">{{.VehicleNumber}} <span class="text-xs text-text-muted">({{.TagID}})</span></td>
+                <td class="px-4 py-2.5 text-sm text-on-surface">{{.PlazaName}} <span class="text-xs text-text-muted">({{.PlazaID}})</span></td>
+                <td class="px-4 py-2.5 text-sm font-medium text-primary tabular-nums text-right" data-numeric>₹{{printf "%.2f" .Amount}}</td>
+                <td class="px-4 py-2.5 text-sm text-xs">
                     {{if .TripID}}
                         <a href="/trips/{{.TripID}}" class="text-primary hover:underline font-mono">{{.TripID}}</a>
                     {{else}}
                         <span class="text-text-muted">Unassigned</span>
                     {{end}}
                 </td>
-                <td class="px-4 py-3">
+                <td class="px-4 py-2.5">
                     {{if .Reconciled}}
                         <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-status-success/20 text-status-success">Reconciled</span>
                     {{else}}
-                        <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-status-warn/20 text-status-warn">Pending</span>
+                        <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-status-warning/20 text-status-warning">Pending</span>
                     {{end}}
                 </td>
             </tr>
             {{else}}
             <tr>
-                <td colspan="6" class="px-4 py-6 text-center text-text-muted">No FASTag transactions found.</td>
+                <td colspan="6" class="px-4 py-6 text-center text-text-muted text-sm">No FASTag transactions found.</td>
             </tr>
             {{end}}
         </tbody>

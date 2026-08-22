@@ -12,8 +12,8 @@
     <link href="https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&display=swap" rel="stylesheet">
     <script src="/static/js/loader.js?v=20260818"></script>
     <script type="module" src="/static/js/datastar.js?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}" defer></script>
-    <link rel="stylesheet" href="/static/css/tailwind.css?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}">
-    <link rel="stylesheet" href="/static/css/app.css?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}">
+    <link rel="stylesheet" href="/static/css/tailwind.css?v={{if .Version}}{{.Version}}{{else}}20260821{{end}}">
+    <link rel="stylesheet" href="/static/css/app.css?v={{if .Version}}{{.Version}}{{else}}20260821{{end}}">
 
 
     <style>
@@ -34,13 +34,15 @@
         function togglePassword(inputId, btn) {
             var input = document.getElementById(inputId);
             if (!input) return;
-            var icon = btn.querySelector('.material-symbols-outlined') || btn;
-            if (input.type === 'password') {
+            var visSVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
+            var visOffSVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.59 9.59 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>';
+            var isHidden = input.type === 'password';
+            if (isHidden) {
                 input.type = 'text';
-                if (icon) icon.textContent = 'visibility_off';
+                btn.innerHTML = visOffSVG;
             } else {
                 input.type = 'password';
-                if (icon) icon.textContent = 'visibility';
+                btn.innerHTML = visSVG;
             }
         }
     </script>

@@ -60,6 +60,7 @@ func RegisterTelemetryRoutes(r chi.Router, ing *Ingestor, db *sql.DB, staleMin t
 	r.Post("/api/v1/telemetry/sync", HandleTelemetrySync(ing))
 	r.Post("/api/v1/telemetry/snapshots", HandleTelemetrySnapshots(ing))
 	r.Get("/api/v1/telemetry/live", LiveHandler(db, staleMin, etaSvc...))
+	r.Get("/api/v1/telemetry/geofences", GeofencesHandler(db))
 }
 
 // HandleTelemetrySync processes a batch of GPS logs from the mobile app.

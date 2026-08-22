@@ -1,19 +1,21 @@
 {{define "ops_alerts_list.html"}}
-<div class="p-6 max-w-7xl mx-auto text-on-surface">
-    <div class="mb-6">
-        <h1 class="text-2xl font-bold text-primary">Operational Alerts</h1>
-        <p class="text-sm text-secondary">Business process alerts requiring attention</p>
+<div class="p-4 sm:p-6 max-w-7xl mx-auto text-on-surface">
+    <div class="flex items-start justify-between gap-4 mb-6 flex-wrap">
+        <div>
+            <h1 class="text-xl font-semibold text-on-surface font-display">Operational Alerts</h1>
+            <p class="text-sm text-text-muted">Business process alerts requiring attention</p>
+        </div>
     </div>
 
-    <div class="flex gap-4 mb-6">
-        <select id="status-filter" class="border border-border-subtle bg-surface-container-lowest text-on-surface rounded px-3 py-2 text-sm focus:outline-none focus:border-primary" onchange="filterAlerts()">
+    <div class="flex flex-wrap gap-2 mb-6">
+        <select id="status-filter" class="bg-surface-container-low border border-border-subtle rounded-md px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" onchange="filterAlerts()">
             <option value="">All Statuses</option>
             <option value="open">Open</option>
             <option value="acknowledged">Acknowledged</option>
             <option value="resolved">Resolved</option>
             <option value="dismissed">Dismissed</option>
         </select>
-        <select id="type-filter" class="border border-border-subtle bg-surface-container-lowest text-on-surface rounded px-3 py-2 text-sm focus:outline-none focus:border-primary" onchange="filterAlerts()">
+        <select id="type-filter" class="bg-surface-container-low border border-border-subtle rounded-md px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" onchange="filterAlerts()">
             <option value="">All Types</option>
             <option value="vehicle_breakdown">Vehicle Breakdown</option>
             <option value="driver_absence">Driver Absence</option>
@@ -29,50 +31,52 @@
         <table class="w-full bg-surface-container-lowest text-on-surface rounded-lg shadow-sm border border-border-subtle overflow-hidden">
             <thead>
                 <tr class="border-b border-border-subtle bg-surface-container-low text-secondary text-xs uppercase font-semibold">
-                    <th class="px-3 py-2.5 text-left">Severity</th>
-                    <th class="px-3 py-2.5 text-left">Type</th>
-                    <th class="px-3 py-2.5 text-left">Title</th>
-                    <th class="px-3 py-2.5 text-left">Status</th>
-                    <th class="px-3 py-2.5 text-left">Created</th>
-                    <th class="px-3 py-2.5 text-left">Actions</th>
+                    <th class="th-cell">Severity</th>
+                    <th class="th-cell">Type</th>
+                    <th class="th-cell">Title</th>
+                    <th class="th-cell">Status</th>
+                    <th class="th-cell">Created</th>
+                    <th class="th-cell-right">Actions</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-border-subtle text-sm">
+            <tbody class="divide-y divide-border-subtle text-sm text-on-surface">
                 {{range .Alerts}}
                 <tr class="hover:bg-surface-container-low transition-colors">
-                    <td class="px-3 py-2">
-                        <span class="px-2 py-0.5 rounded text-xs font-bold
-                            {{if eq .Severity "critical"}}bg-red-500/15 text-red-500
-                            {{else if eq .Severity "high"}}bg-amber-500/15 text-amber-500
-                            {{else if eq .Severity "medium"}}bg-yellow-500/15 text-yellow-500
+                    <td class="px-4 py-2.5 text-sm text-on-surface whitespace-nowrap">
+                        <span class="px-2 py-0.5 rounded-full text-xs font-bold border
+                            {{if eq .Severity "critical"}}bg-status-alert/10 text-status-alert border-status-alert/30
+                            {{else if eq .Severity "high"}}bg-status-warning/10 text-status-warning border-status-warning/30
+                            {{else if eq .Severity "medium"}}bg-status-info/10 text-status-info border-status-info/30
                             {{else}}bg-surface-container-high text-secondary{{end}}">
                             {{.Severity}}
                         </span>
                     </td>
-                    <td class="px-3 py-2 text-xs font-mono text-secondary">{{.AlertType}}</td>
-                    <td class="px-3 py-2 font-medium">{{.Title}}</td>
-                    <td class="px-3 py-2">
-                        <span class="px-2 py-0.5 rounded text-xs font-medium
-                            {{if eq .Status "open"}}bg-red-500/15 text-red-500
-                            {{else if eq .Status "acknowledged"}}bg-primary/15 text-primary
-                            {{else if eq .Status "resolved"}}bg-emerald-500/15 text-emerald-500
+                    <td class="px-4 py-2.5 text-sm text-on-surface text-xs font-mono text-secondary">{{.AlertType}}</td>
+                    <td class="px-4 py-2.5 text-sm text-on-surface font-medium">{{.Title}}</td>
+                    <td class="px-4 py-2.5 text-sm text-on-surface">
+                        <span class="px-2 py-0.5 rounded-full text-xs font-medium border
+                            {{if eq .Status "open"}}bg-status-alert/10 text-status-alert border-status-alert/30
+                            {{else if eq .Status "acknowledged"}}bg-status-info/10 text-status-info border-status-info/30
+                            {{else if eq .Status "resolved"}}bg-status-success/10 text-status-success border-status-success/30
                             {{else}}bg-surface-container-high text-secondary{{end}}">
                             {{.Status}}
                         </span>
                     </td>
-                    <td class="px-3 py-2 text-xs text-text-muted">{{.CreatedAt.Format "2006-01-02 15:04"}}</td>
-                    <td class="px-3 py-2">
+                    <td class="px-4 py-2.5 text-sm text-on-surface text-xs text-text-muted">{{.CreatedAt.Format "2006-01-02 15:04"}}</td>
+                    <td class="px-4 py-2.5 text-sm text-on-surface">
+                        <div class="flex items-center justify-end gap-1 flex-wrap">
                         {{if eq .Status "open"}}
                             {{if can $.User "ops_alerts" "update"}}
-                            <button onclick="acknowledgeAlert('{{.ID}}')" class="px-2 py-1 bg-primary text-on-primary text-xs font-medium rounded hover:bg-primary/90 cursor-pointer border-0">Ack</button>
-                            <button onclick="resolveAlert('{{.ID}}')" class="px-2 py-1 bg-emerald-600 text-white text-xs font-medium rounded hover:bg-emerald-700 ml-1 cursor-pointer border-0">Resolve</button>
-                            <button onclick="dismissAlert('{{.ID}}')" class="px-2 py-1 bg-surface-container-high text-secondary text-xs font-medium rounded hover:bg-surface-container ml-1 cursor-pointer border-0">Dismiss</button>
+                            <button onclick="acknowledgeAlert('{{.ID}}')" class="inline-flex items-center gap-1 rounded-md bg-primary text-on-primary px-3 py-1.5 text-xs font-medium hover:bg-primary/90 transition-all cursor-pointer">Ack</button>
+                            <button onclick="resolveAlert('{{.ID}}')" class="inline-flex items-center gap-1 rounded-md bg-status-success text-on-primary px-3 py-1.5 text-xs font-medium hover:opacity-90 transition-all cursor-pointer">Resolve</button>
+                            <button onclick="dismissAlert('{{.ID}}')" class="inline-flex items-center gap-1 rounded-md bg-surface-container-low text-on-surface border border-border-subtle px-3 py-1.5 text-xs font-medium hover:bg-surface-container transition-all cursor-pointer">Dismiss</button>
                             {{end}}
                         {{else if eq .Status "acknowledged"}}
                             {{if can $.User "ops_alerts" "update"}}
-                            <button onclick="resolveAlert('{{.ID}}')" class="px-2 py-1 bg-emerald-600 text-white text-xs font-medium rounded hover:bg-emerald-700 cursor-pointer border-0">Resolve</button>
+                            <button onclick="resolveAlert('{{.ID}}')" class="inline-flex items-center gap-1 rounded-md bg-status-success text-on-primary px-3 py-1.5 text-xs font-medium hover:opacity-90 transition-all cursor-pointer">Resolve</button>
                             {{end}}
                         {{end}}
+                        </div>
                     </td>
                 </tr>
                 {{end}}

@@ -1,60 +1,62 @@
-<div class="max-w-xl mx-auto space-y-6">
-    <div>
-        <h1 class="text-2xl font-bold text-on-surface">Record Maintenance Work</h1>
-        <p class="text-secondary text-sm">Log completed servicing, update vehicle maintenance history, and clear due blockers.</p>
+<div class="max-w-xl mx-auto">
+    <div class="flex items-start justify-between gap-4 mb-6 flex-wrap">
+        <div>
+            <h1 class="text-xl font-semibold text-on-surface font-display">Record Maintenance Work</h1>
+            <p class="text-sm text-text-muted mt-0.5">Log completed servicing, update vehicle maintenance history, and clear due blockers.</p>
+        </div>
     </div>
 
-    <form method="POST" action="/maintenance/records" class="bg-surface-container-lowest p-6 rounded-xl border border-border-subtle shadow-sm space-y-4">
+    <form method="POST" action="/maintenance/records" class="bg-surface-container-lowest p-6 rounded-lg border border-border-subtle shadow-sm space-y-4">
         <div>
-            <label class="block text-sm font-medium text-on-surface mb-1">Vehicle ID *</label>
+            <label class="block text-xs font-bold uppercase tracking-wider text-secondary mb-1.5">Vehicle ID <span class="text-status-alert">*</span></label>
             <input type="text" name="vehicle_id" value="{{.VehicleID}}" required placeholder="e.g. veh-123"
-                   class="w-full px-3 py-2 bg-surface-container-low border border-border-subtle rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                   class="w-full bg-surface-container-low border border-border-subtle rounded-md px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all">
         </div>
 
         <div>
-            <label class="block text-sm font-medium text-on-surface mb-1">Service Type *</label>
-            <select name="service_type" required class="w-full px-3 py-2 bg-surface-container-low border border-border-subtle rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+            <label class="block text-xs font-bold uppercase tracking-wider text-secondary mb-1.5">Service Type <span class="text-status-alert">*</span></label>
+            <select name="service_type" required class="w-full bg-surface-container-low border border-border-subtle rounded-md px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all">
                 {{range .ServiceTypes}}
                 <option value="{{.}}">{{.}}</option>
                 {{end}}
             </select>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-                <label class="block text-sm font-medium text-on-surface mb-1">Date Performed *</label>
+                <label class="block text-xs font-bold uppercase tracking-wider text-secondary mb-1.5">Date Performed <span class="text-status-alert">*</span></label>
                 <input type="date" name="performed_at" required
-                       class="w-full px-3 py-2 bg-surface-container-low border border-border-subtle rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                       class="w-full bg-surface-container-low border border-border-subtle rounded-md px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all">
             </div>
             <div>
-                <label class="block text-sm font-medium text-on-surface mb-1">Odometer (km)</label>
+                <label class="block text-xs font-bold uppercase tracking-wider text-secondary mb-1.5">Odometer (km)</label>
                 <input type="number" step="any" name="odometer_km" placeholder="e.g. 45200"
-                       class="w-full px-3 py-2 bg-surface-container-low border border-border-subtle rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                       class="w-full bg-surface-container-low border border-border-subtle rounded-md px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all">
             </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-                <label class="block text-sm font-medium text-on-surface mb-1">Cost (₹)</label>
+                <label class="block text-xs font-bold uppercase tracking-wider text-secondary mb-1.5">Cost (₹)</label>
                 <input type="number" step="any" name="cost" placeholder="e.g. 3500"
-                       class="w-full px-3 py-2 bg-surface-container-low border border-border-subtle rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                       class="w-full bg-surface-container-low border border-border-subtle rounded-md px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all">
             </div>
             <div>
-                <label class="block text-sm font-medium text-on-surface mb-1">Vendor / Workshop</label>
+                <label class="block text-xs font-bold uppercase tracking-wider text-secondary mb-1.5">Vendor / Workshop</label>
                 <input type="text" name="vendor" placeholder="e.g. Tata Authorized Service"
-                       class="w-full px-3 py-2 bg-surface-container-low border border-border-subtle rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                       class="w-full bg-surface-container-low border border-border-subtle rounded-md px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all">
             </div>
         </div>
 
         <div>
-            <label class="block text-sm font-medium text-on-surface mb-1">Notes / Description</label>
+            <label class="block text-xs font-bold uppercase tracking-wider text-secondary mb-1.5">Notes / Description</label>
             <textarea name="notes" rows="3" placeholder="Details of parts replaced, oil grade, warranty notes..."
-                      class="w-full px-3 py-2 bg-surface-container-low border border-border-subtle rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
+                      class="w-full bg-surface-container-low border border-border-subtle rounded-md px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"></textarea>
         </div>
 
-        <div class="flex justify-end gap-3 pt-4 border-t border-border-subtle">
-            <a href="/maintenance" class="px-4 py-2 text-sm text-secondary hover:text-on-surface transition-colors">Cancel</a>
-            <button type="submit" class="px-4 py-2 bg-primary text-on-primary rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm">Record Maintenance Work</button>
+        <div class="flex justify-end gap-3 pt-4 border-t border-border-subtle flex-wrap">
+            <a href="/maintenance" class="inline-flex items-center gap-2 rounded-md border border-border-subtle bg-surface-container-low text-on-surface px-4 py-2 text-sm font-medium hover:bg-surface-container transition-all">Cancel</a>
+            <button type="submit" class="inline-flex items-center gap-2 rounded-md bg-primary text-on-primary px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-all cursor-pointer">Record Maintenance Work</button>
         </div>
     </form>
 </div>

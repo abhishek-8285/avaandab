@@ -156,6 +156,10 @@ func TestMapSSE_StreamHeadersAndPayload(t *testing.T) {
 }
 
 func TestMapPage_Render(t *testing.T) {
+	cwd, _ := os.Getwd()
+	if filepath.Base(cwd) == "handlers" {
+		_ = os.Chdir("../..")
+	}
 	authSvc := &mockAuthSvc{}
 	tmpl, err := parseTemplates(authSvc)
 	require.NoError(t, err)
@@ -217,4 +221,45 @@ func TestSkipForPaths_TimeoutBypass(t *testing.T) {
 	r.ServeHTTP(wBypass, reqBypass)
 	assert.Equal(t, http.StatusOK, wBypass.Code)
 	assert.Equal(t, "stream-ok", wBypass.Body.String())
+}
+
+func TestDashboardSSE_ThroughMiddlewareStack(t *testing.T) {
+	db := newRealtimeTestDB(t)
+	repo := sqlite.NewRepository(db)
+	bus := events.NewInMemoryBus()
+	cfg := &config.Config{
+		AppEnv:              "testing",
+		Port:                "8080",
+		DashboardSSEEnabled: false,
+	}
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	services := service.NewServices(repo, cfg, logger, bus)
+
+	authSvc := &mockAuthSvc{}
+	tmpl, err := parseTemplates(authSvc)
+	require.NoError(t, err)
+
+	app := &App{
+		Config:    cfg,
+		Templates: tmpl,
+		AuthSrv:   authSvc,
+		Services:  services,
+	}
+	app.Dashboard = &DashboardHandlers{App: app}
+
+	r := chi.NewRouter()
+	r.Use(middleware.Logger)
+	r.Use(middleware.SPAMiddleware)
+	r.Get("/dashboard/stream", app.Dashboard.Stream)
+
+	req := httptest.NewRequest("GET", "/dashboard/stream", nil)
+	ctx := shared.ContextWithTenantID(req.Context(), shared.DefaultTenant)
+	req = req.WithContext(ctx)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "text/event-stream", w.Header().Get("Content-Type"))
+	assert.Contains(t, w.Body.String(), "event: datastar-merge-signals")
 }

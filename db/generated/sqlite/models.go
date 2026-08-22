@@ -210,6 +210,13 @@ type Customer struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 }
 
+type CustomerUser struct {
+	ID         string `json:"id"`
+	CustomerID string `json:"customer_id"`
+	UserID     string `json:"user_id"`
+	CreatedAt  string `json:"created_at"`
+}
+
 type DeviceQuarantine struct {
 	ID         string         `json:"id"`
 	TenantID   string         `json:"tenant_id"`
@@ -237,6 +244,18 @@ type Dispatch struct {
 	TenantID     sql.NullString `json:"tenant_id"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
+}
+
+type DispatchOverride struct {
+	ID           string         `json:"id"`
+	TenantID     string         `json:"tenant_id"`
+	TripID       string         `json:"trip_id"`
+	VehicleID    sql.NullString `json:"vehicle_id"`
+	DriverID     sql.NullString `json:"driver_id"`
+	BlockedBy    string         `json:"blocked_by"`
+	Reason       string         `json:"reason"`
+	OverriddenBy string         `json:"overridden_by"`
+	CreatedAt    string         `json:"created_at"`
 }
 
 type Driver struct {
@@ -310,6 +329,7 @@ type DriverExpense struct {
 	ApprovedAt     sql.NullTime    `json:"approved_at"`
 	AuditStatus    string          `json:"audit_status"`
 	FuelLitres     sql.NullFloat64 `json:"fuel_litres"`
+	IdempotencyKey sql.NullString  `json:"idempotency_key"`
 }
 
 type DriverScore struct {
@@ -374,6 +394,28 @@ type EngineState struct {
 	LastLat       sql.NullFloat64 `json:"last_lat"`
 	LastLng       sql.NullFloat64 `json:"last_lng"`
 	UpdatedAt     time.Time       `json:"updated_at"`
+}
+
+type EtaHistory struct {
+	ID            string         `json:"id"`
+	TenantID      string         `json:"tenant_id"`
+	TripID        string         `json:"trip_id"`
+	SegmentStart  string         `json:"segment_start"`
+	SegmentEnd    string         `json:"segment_end"`
+	ActualMinutes int64          `json:"actual_minutes"`
+	TrafficTag    sql.NullString `json:"traffic_tag"`
+	DayOfWeek     sql.NullInt64  `json:"day_of_week"`
+	HourOfDay     sql.NullInt64  `json:"hour_of_day"`
+	CreatedAt     time.Time      `json:"created_at"`
+}
+
+type EtaHistoryMonthly struct {
+	TenantID     string  `json:"tenant_id"`
+	SegmentStart string  `json:"segment_start"`
+	SegmentEnd   string  `json:"segment_end"`
+	Month        string  `json:"month"`
+	AvgMinutes   float64 `json:"avg_minutes"`
+	SampleCount  int64   `json:"sample_count"`
 }
 
 type EwayBill struct {
@@ -622,6 +664,17 @@ type HsnSacMaster struct {
 	CreatedAt   sql.NullTime `json:"created_at"`
 }
 
+type I18nKey struct {
+	Key string `json:"key"`
+	En  string `json:"en"`
+	Hi  string `json:"hi"`
+	Ta  string `json:"ta"`
+	Te  string `json:"te"`
+	Kn  string `json:"kn"`
+	Mr  string `json:"mr"`
+	Gu  string `json:"gu"`
+}
+
 type Invoice struct {
 	ID            string         `json:"id"`
 	InvoiceNumber string         `json:"invoice_number"`
@@ -731,6 +784,18 @@ type NotificationsPreference struct {
 	MinSeverity string    `json:"min_severity"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+type OfflineSyncLog struct {
+	ID        string         `json:"id"`
+	TenantID  string         `json:"tenant_id"`
+	UserID    string         `json:"user_id"`
+	Kind      string         `json:"kind"`
+	Payload   string         `json:"payload"`
+	Status    string         `json:"status"`
+	Attempts  int64          `json:"attempts"`
+	LastError sql.NullString `json:"last_error"`
+	CreatedAt string         `json:"created_at"`
 }
 
 type OpsAlert struct {
@@ -844,6 +909,27 @@ type Route struct {
 	DestNormalized      string          `json:"dest_normalized"`
 	Direction           string          `json:"direction"`
 	IsActive            int64           `json:"is_active"`
+}
+
+type RouteConstraint struct {
+	ID             string    `json:"id"`
+	JobID          string    `json:"job_id"`
+	ConstraintType string    `json:"constraint_type"`
+	ConstraintJson string    `json:"constraint_json"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
+type RouteOptimizationJob struct {
+	ID           string         `json:"id"`
+	TenantID     string         `json:"tenant_id"`
+	InputJson    string         `json:"input_json"`
+	Status       string         `json:"status"`
+	ResultJson   sql.NullString `json:"result_json"`
+	ErrorMessage sql.NullString `json:"error_message"`
+	Provider     string         `json:"provider"`
+	CreatedAt    time.Time      `json:"created_at"`
+	CompletedAt  sql.NullTime   `json:"completed_at"`
+	CreatedBy    sql.NullString `json:"created_by"`
 }
 
 type RuleOverride struct {
@@ -1021,6 +1107,10 @@ type Trip struct {
 	MarginHigh            float64         `json:"margin_high"`
 	PnlConfidence         string          `json:"pnl_confidence"`
 	FuelCostStatus        string          `json:"fuel_cost_status"`
+	PodSignatureData      sql.NullString  `json:"pod_signature_data"`
+	PodQuantityShort      sql.NullFloat64 `json:"pod_quantity_short"`
+	PodDamageQty          sql.NullFloat64 `json:"pod_damage_qty"`
+	PodRefusalReason      sql.NullString  `json:"pod_refusal_reason"`
 }
 
 type TripDetention struct {
@@ -1040,6 +1130,16 @@ type TripDetention struct {
 	Status          string         `json:"status"`
 	CreatedAt       time.Time      `json:"created_at"`
 	UpdatedAt       time.Time      `json:"updated_at"`
+}
+
+type TripFeedback struct {
+	ID         string `json:"id"`
+	TenantID   string `json:"tenant_id"`
+	TripID     string `json:"trip_id"`
+	CustomerID string `json:"customer_id"`
+	Rating     int64  `json:"rating"`
+	Comment    string `json:"comment"`
+	CreatedAt  string `json:"created_at"`
 }
 
 type User struct {
@@ -1127,4 +1227,10 @@ type VehicleLatestPosition struct {
 	Odometer    sql.NullFloat64 `json:"odometer"`
 	DriverID    sql.NullString  `json:"driver_id"`
 	TripID      sql.NullString  `json:"trip_id"`
+}
+
+type WorkerLease struct {
+	Name      string `json:"name"`
+	Holder    string `json:"holder"`
+	ExpiresAt int64  `json:"expires_at"`
 }

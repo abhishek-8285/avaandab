@@ -1,7 +1,7 @@
 {{template "page_header.html" (dict "Title" "Drivers" "Subtitle" "Manage transport fleet drivers, licenses, and compliance" "ActionHref" "/drivers/new" "ActionIcon" "add" "ActionLabel" "New Driver")}}
 
-<div class="bg-surface-container-lowest border border-border-subtle rounded shadow-sm flex flex-col h-full overflow-hidden">
-    <!-- Sticky Filter Bar (Stitch Screen 3 Exact Layout) -->
+<div class="bg-surface-container-lowest border border-border-subtle rounded-lg shadow-sm flex flex-col h-full overflow-hidden">
+    <!-- Sticky Filter Bar -->
     <form method="GET" action="/drivers" class="px-4 py-2 border-b border-border-subtle flex flex-wrap items-center gap-2 bg-surface-container-lowest sticky top-0 z-10">
         <span class="text-xs font-medium text-secondary mr-2">Filters:</span>
         <a href="/drivers" class="px-3 py-1 rounded-full border text-xs font-medium transition-colors {{if eq .StatusFilter ""}}border-primary bg-primary text-on-primary{{else}}border-border-subtle bg-surface-container-lowest text-secondary hover:bg-surface-container-low{{end}}">All Drivers</a>

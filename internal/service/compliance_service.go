@@ -15,6 +15,15 @@ import (
 	"transport-app/internal/shared"
 )
 
+// localMidnight returns midnight of today in the server's local timezone.
+// Expiry dates are stored/parsed as calendar dates (local); comparing them
+// against UTC-truncated time.Now() misaligns the two calendars between
+// 00:00 and 05:30 IST and silently unblocks expired documents.
+func localMidnight() time.Time {
+	n := time.Now()
+	return time.Date(n.Year(), n.Month(), n.Day(), 0, 0, 0, 0, n.Location())
+}
+
 // ComplianceService enforces legal and operational compliance across drivers and vehicles (Spec 05 §5).
 type ComplianceService struct {
 	baseService
@@ -118,7 +127,7 @@ func (s *ComplianceService) ValidateDriverCompliance(ctx context.Context, driver
 		return ComplianceCheckResult{Valid: false, Blocked: true, Reason: reason}, nil
 	}
 
-	now := time.Now().Truncate(24 * time.Hour)
+	now := localMidnight()
 
 	// Check License Expiry
 	if !driver.LicenseExpiry.IsZero() {
@@ -182,7 +191,7 @@ func (s *ComplianceService) ValidateVehicleCompliance(ctx context.Context, vehic
 		return ComplianceCheckResult{Valid: false, Blocked: true, Reason: reason}, nil
 	}
 
-	now := time.Now().Truncate(24 * time.Hour)
+	now := localMidnight()
 
 	// Documents list to evaluate: RC/Permit, Fitness, Insurance, PUC
 	type docCheck struct {

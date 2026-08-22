@@ -5,9 +5,9 @@
                 <th class="th-cell">Invoice #</th>
                 <th class="th-cell">Customer</th>
                 <th class="th-cell">Trip #</th>
-                <th class="th-cell">Subtotal (₹)</th>
-                <th class="th-cell">Tax (₹)</th>
-                <th class="th-cell">Total (₹)</th>
+                <th class="th-cell-right">Subtotal (₹)</th>
+                <th class="th-cell-right">Tax (₹)</th>
+                <th class="th-cell-right">Total (₹)</th>
                 <th class="th-cell">Status</th>
                 <th class="th-cell-right">Actions</th>
             </tr>
@@ -19,9 +19,9 @@
                 <td class="td-cell-strong font-mono" data-numeric>{{.InvoiceNumber}}</td>
                 <td class="td-cell">{{.CustomerName}}</td>
                 <td class="td-cell font-mono text-xs">{{if .TripNumber}}{{.TripNumber}}{{else}}-{{end}}</td>
-                <td class="td-cell font-mono text-xs" data-numeric>₹{{printf "%.2f" .Subtotal}}</td>
-                <td class="td-cell font-mono text-xs" data-numeric>₹{{printf "%.2f" .Tax}}</td>
-                <td class="td-cell-strong font-mono" data-numeric>₹{{printf "%.2f" .Total}}</td>
+                <td class="td-cell-num" data-numeric>₹{{printf "%.2f" .Subtotal}}</td>
+                <td class="td-cell-num" data-numeric>₹{{printf "%.2f" .Tax}}</td>
+                <td class="td-cell-strong tabular-nums text-right" data-numeric>₹{{printf "%.2f" .Total}}</td>
                 <td class="td-cell">
                     <span class="status-badge {{statusBadge .PaymentStatus}}">{{.PaymentStatus}}</span>
                 </td>

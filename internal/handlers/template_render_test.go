@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"bytes"
+	"context"
+	"encoding/json"
 	"html/template"
 	"net/http"
 	"net/http/httptest"
@@ -660,4 +662,145 @@ func TestRenderError_LayoutVersion(t *testing.T) {
 	assert.Contains(t, body, "Test Error Title")
 	assert.Contains(t, body, "Detailed error message here")
 	assert.NotContains(t, body, "can't evaluate field Version", "renderError should not produce template Version evaluation error")
+}
+
+func TestNotFoundHandler_HTML(t *testing.T) {
+	if cwd, _ := os.Getwd(); filepath.Base(cwd) == "handlers" {
+		_ = os.Chdir("../..")
+	}
+	tmpl, err := parseTemplates(&mockAuthSvc{})
+	require.NoError(t, err)
+
+	app := &App{Templates: tmpl}
+	req := httptest.NewRequest(http.MethodGet, "/some-non-existent-page", nil)
+	req.Header.Set("Accept", "text/html,application/xhtml+xml")
+	ctx := context.WithValue(req.Context(), auth.ContextReqID, "req-test-404")
+	req = req.WithContext(ctx)
+
+	w := httptest.NewRecorder()
+	app.NotFoundHandler(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	body := w.Body.String()
+	assert.Contains(t, body, "404")
+	assert.Contains(t, body, "Page Not Found")
+	assert.Contains(t, body, "ERR_PAGE_NOT_FOUND")
+	assert.Contains(t, body, "req-test-404")
+	assert.Contains(t, body, "/some-non-existent-page")
+}
+
+func TestNotFoundHandler_API(t *testing.T) {
+	if cwd, _ := os.Getwd(); filepath.Base(cwd) == "handlers" {
+		_ = os.Chdir("../..")
+	}
+	tmpl, err := parseTemplates(&mockAuthSvc{})
+	require.NoError(t, err)
+
+	app := &App{Templates: tmpl}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/unknown-endpoint", nil)
+	ctx := context.WithValue(req.Context(), auth.ContextReqID, "req-api-404")
+	req = req.WithContext(ctx)
+
+	w := httptest.NewRecorder()
+	app.NotFoundHandler(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.Contains(t, w.Header().Get("Content-Type"), "application/json")
+
+	var res map[string]map[string]interface{}
+	err = json.Unmarshal(w.Body.Bytes(), &res)
+	require.NoError(t, err)
+
+	errObj := res["error"]
+	require.NotNil(t, errObj)
+	assert.Equal(t, "ERR_PAGE_NOT_FOUND", errObj["code"])
+	assert.Equal(t, "req-api-404", errObj["request_id"])
+	assert.Equal(t, "/api/v1/unknown-endpoint", errObj["path"])
+}
+
+func TestMethodNotAllowedHandler_HTML(t *testing.T) {
+	if cwd, _ := os.Getwd(); filepath.Base(cwd) == "handlers" {
+		_ = os.Chdir("../..")
+	}
+	tmpl, err := parseTemplates(&mockAuthSvc{})
+	require.NoError(t, err)
+
+	app := &App{Templates: tmpl}
+	req := httptest.NewRequest(http.MethodPatch, "/dashboard", nil)
+	req.Header.Set("Accept", "text/html")
+	ctx := context.WithValue(req.Context(), auth.ContextReqID, "req-405")
+	req = req.WithContext(ctx)
+
+	w := httptest.NewRecorder()
+	app.MethodNotAllowedHandler(w, req)
+
+	assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+	body := w.Body.String()
+	assert.Contains(t, body, "405")
+	assert.Contains(t, body, "Method Not Allowed")
+	assert.Contains(t, body, "ERR_METHOD_NOT_ALLOWED")
+}
+
+func TestRenderErrorInfo_WithModelAndCode(t *testing.T) {
+	if cwd, _ := os.Getwd(); filepath.Base(cwd) == "handlers" {
+		_ = os.Chdir("../..")
+	}
+	tmpl, err := parseTemplates(&mockAuthSvc{})
+	require.NoError(t, err)
+
+	app := &App{Templates: tmpl}
+	req := httptest.NewRequest(http.MethodGet, "/trips/invalid-id", nil)
+	req.Header.Set("Accept", "text/html")
+	ctx := context.WithValue(req.Context(), auth.ContextReqID, "req-trip-err")
+	req = req.WithContext(ctx)
+
+	w := httptest.NewRecorder()
+	app.renderErrorInfo(w, req, ErrorInfo{
+		StatusCode: http.StatusNotFound,
+		Title:      "Trip Not Found",
+		Message:    "The requested trip TRIP-999 was not found in the system.",
+		Model:      "Trip",
+		ErrorCode:  "ERR_TRIP_NOT_FOUND",
+	})
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	body := w.Body.String()
+	assert.Contains(t, body, "Trip Not Found")
+	assert.Contains(t, body, "ERR_TRIP_NOT_FOUND")
+	assert.Contains(t, body, "Trip")
+	assert.Contains(t, body, "req-trip-err")
+}
+
+func TestHandleShareIndex_PublicVsAuth(t *testing.T) {
+	if cwd, _ := os.Getwd(); filepath.Base(cwd) == "handlers" {
+		_ = os.Chdir("../..")
+	}
+	tmpl, err := parseTemplates(&mockAuthSvc{})
+	require.NoError(t, err)
+
+	app := &App{Templates: tmpl}
+	shareH := NewShareHandlers(app, nil)
+
+	// Public visitor visiting /share without token
+	reqGuest := httptest.NewRequest(http.MethodGet, "/share", nil)
+	reqGuest.Header.Set("Accept", "text/html")
+	wGuest := httptest.NewRecorder()
+	shareH.HandleShareIndex(wGuest, reqGuest)
+
+	assert.Equal(t, http.StatusNotFound, wGuest.Code)
+	assert.Contains(t, wGuest.Body.String(), "Share Link Required")
+	assert.Contains(t, wGuest.Body.String(), "ERR_SHARE_TOKEN_MISSING")
+
+	// Authenticated user visiting /share -> redirect to /shares
+	reqAuth := httptest.NewRequest(http.MethodGet, "/share", nil)
+	ctxAuth := context.WithValue(reqAuth.Context(), auth.ContextUser, &auth.SessionData{
+		UserID: "usr-123",
+		Role:   "operator",
+	})
+	reqAuth = reqAuth.WithContext(ctxAuth)
+	wAuth := httptest.NewRecorder()
+	shareH.HandleShareIndex(wAuth, reqAuth)
+
+	assert.Equal(t, http.StatusSeeOther, wAuth.Code)
+	assert.Equal(t, "/shares", wAuth.Header().Get("Location"))
 }

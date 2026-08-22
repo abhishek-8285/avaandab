@@ -150,7 +150,7 @@ func geohash6(lat, lng float64) string {
 				ch = ch<<1 | 1
 				lngMin = mid
 			} else {
-				ch = ch << 1
+				ch <<= 1
 				lngMax = mid
 			}
 		} else {
@@ -159,7 +159,7 @@ func geohash6(lat, lng float64) string {
 				ch = ch<<1 | 1
 				latMin = mid
 			} else {
-				ch = ch << 1
+				ch <<= 1
 				latMax = mid
 			}
 		}

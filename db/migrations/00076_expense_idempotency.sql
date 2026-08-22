@@ -5,5 +5,4 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_driver_expenses_idempotency ON driver_expe
 
 -- +goose Down
 DROP INDEX IF EXISTS idx_driver_expenses_idempotency;
--- SQLite does not support DROP COLUMN directly; recreate without column would require table rebuild — no-op for down.
-SELECT 1;
+ALTER TABLE driver_expenses DROP COLUMN idempotency_key;

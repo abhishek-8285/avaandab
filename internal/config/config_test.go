@@ -77,3 +77,89 @@ func TestLoad_MaxUploadSizeMalformedKeepsDefault(t *testing.T) {
 		t.Fatalf("expected default max upload size %d, got %d", int64(10<<20), cfg.MaxUploadSize)
 	}
 }
+
+func TestValidate_DatabaseDriver(t *testing.T) {
+	t.Run("postgres with DSN valid", func(t *testing.T) {
+		cfg := &config.Config{
+			DatabaseURL: "postgres://user:pass@host/db",
+			Database: config.DatabaseConfig{
+				Driver: "postgres",
+				URL:    "postgres://user:pass@host/db",
+			},
+		}
+		if err := cfg.Validate(); err != nil {
+			t.Errorf("Validate(postgres DSN) = %v, want nil", err)
+		}
+	})
+
+	t.Run("postgresql alias accepted", func(t *testing.T) {
+		cfg := &config.Config{
+			DatabaseURL: "postgres://host/db",
+			Database:    config.DatabaseConfig{Driver: "postgresql", URL: "postgres://host/db"},
+		}
+		if err := cfg.Validate(); err != nil {
+			t.Errorf("Validate(postgresql) = %v, want nil", err)
+		}
+	})
+
+	t.Run("postgres without DSN invalid", func(t *testing.T) {
+		cfg := &config.Config{Database: config.DatabaseConfig{Driver: "postgres"}}
+		err := cfg.Validate()
+		if err == nil || !strings.Contains(err.Error(), "DATABASE_URL") {
+			t.Errorf("Validate = %v, want error mentioning DATABASE_URL", err)
+		}
+	})
+
+	t.Run("unknown driver rejected", func(t *testing.T) {
+		cfg := &config.Config{
+			DatabaseURL: "file:x.db",
+			Database:    config.DatabaseConfig{Driver: "oracle", URL: "file:x.db"},
+		}
+		err := cfg.Validate()
+		if err == nil || !strings.Contains(err.Error(), "DATABASE_DRIVER") {
+			t.Errorf("Validate = %v, want error mentioning DATABASE_DRIVER", err)
+		}
+	})
+}
+
+func TestValidate_CacheDriver(t *testing.T) {
+	valid := []string{"none", "memory", "redis", ""}
+	for _, driver := range valid {
+		cfg := &config.Config{
+			DatabaseURL: "transport.db",
+			Cache:       config.CacheConfig{Driver: driver, RedisAddr: "localhost:6379"},
+		}
+		if err := cfg.Validate(); err != nil {
+			t.Errorf("Validate(cache=%q) = %v, want nil", driver, err)
+		}
+	}
+
+	cfg := &config.Config{
+		DatabaseURL: "transport.db",
+		Cache:       config.CacheConfig{Driver: "memcached"},
+	}
+	if err := cfg.Validate(); err == nil || !strings.Contains(err.Error(), "CACHE_DRIVER") {
+		t.Errorf("Validate(cache=memcached) = %v, want error mentioning CACHE_DRIVER", err)
+	}
+
+	cfg = &config.Config{
+		DatabaseURL: "transport.db",
+		Cache:       config.CacheConfig{Driver: "redis", RedisAddr: ""},
+	}
+	if err := cfg.Validate(); err == nil || !strings.Contains(err.Error(), "REDIS_ADDR") {
+		t.Errorf("Validate(redis without addr) = %v, want error mentioning REDIS_ADDR", err)
+	}
+}
+
+func TestLoad_DatabaseAndCacheDefaults(t *testing.T) {
+	cfg := config.Load()
+	if cfg.Database.Driver != "sqlite" {
+		t.Errorf("default DATABASE_DRIVER = %q, want sqlite", cfg.Database.Driver)
+	}
+	if cfg.DatabaseURL != cfg.Database.URL {
+		t.Errorf("DatabaseURL %q must mirror Database.URL %q", cfg.DatabaseURL, cfg.Database.URL)
+	}
+	if cfg.Cache.Driver != "none" {
+		t.Errorf("default CACHE_DRIVER = %q, want none", cfg.Cache.Driver)
+	}
+}

@@ -121,11 +121,16 @@ func (q *Queries) CreateRoute(ctx context.Context, arg CreateRouteParams) (Creat
 }
 
 const deleteRoute = `-- name: DeleteRoute :exec
-DELETE FROM routes WHERE id = ?
+DELETE FROM routes WHERE id = ? AND tenant_id = ?
 `
 
-func (q *Queries) DeleteRoute(ctx context.Context, id string) error {
-	_, err := q.db.ExecContext(ctx, deleteRoute, id)
+type DeleteRouteParams struct {
+	ID       string `json:"id"`
+	TenantID string `json:"tenant_id"`
+}
+
+func (q *Queries) DeleteRoute(ctx context.Context, arg DeleteRouteParams) error {
+	_, err := q.db.ExecContext(ctx, deleteRoute, arg.ID, arg.TenantID)
 	return err
 }
 
@@ -133,8 +138,13 @@ const getRouteByID = `-- name: GetRouteByID :one
 SELECT id, tenant_id, source, destination, source_normalized, dest_normalized,
        distance, estimated_hours, standard_fare, reverse_distance, reverse_standard_fare,
        direction, is_active, remarks, created_at, updated_at
-FROM routes WHERE id = ?
+FROM routes WHERE id = ? AND tenant_id = ?
 `
+
+type GetRouteByIDParams struct {
+	ID       string `json:"id"`
+	TenantID string `json:"tenant_id"`
+}
 
 type GetRouteByIDRow struct {
 	ID                  string          `json:"id"`
@@ -155,8 +165,8 @@ type GetRouteByIDRow struct {
 	UpdatedAt           time.Time       `json:"updated_at"`
 }
 
-func (q *Queries) GetRouteByID(ctx context.Context, id string) (GetRouteByIDRow, error) {
-	row := q.db.QueryRowContext(ctx, getRouteByID, id)
+func (q *Queries) GetRouteByID(ctx context.Context, arg GetRouteByIDParams) (GetRouteByIDRow, error) {
+	row := q.db.QueryRowContext(ctx, getRouteByID, arg.ID, arg.TenantID)
 	var i GetRouteByIDRow
 	err := row.Scan(
 		&i.ID,
@@ -328,7 +338,7 @@ SET source = ?, destination = ?, source_normalized = ?, dest_normalized = ?,
     reverse_distance = ?, reverse_standard_fare = ?,
     direction = ?, is_active = ?, remarks = ?,
     updated_at = datetime('now')
-WHERE id = ?
+WHERE id = ? AND tenant_id = ?
 RETURNING id, tenant_id, source, destination, source_normalized, dest_normalized,
           distance, estimated_hours, standard_fare, reverse_distance, reverse_standard_fare,
           direction, is_active, remarks, created_at, updated_at
@@ -348,6 +358,7 @@ type UpdateRouteParams struct {
 	IsActive            int64           `json:"is_active"`
 	Remarks             sql.NullString  `json:"remarks"`
 	ID                  string          `json:"id"`
+	TenantID            string          `json:"tenant_id"`
 }
 
 type UpdateRouteRow struct {
@@ -384,6 +395,7 @@ func (q *Queries) UpdateRoute(ctx context.Context, arg UpdateRouteParams) (Updat
 		arg.IsActive,
 		arg.Remarks,
 		arg.ID,
+		arg.TenantID,
 	)
 	var i UpdateRouteRow
 	err := row.Scan(

@@ -24,6 +24,7 @@ import (
 	"transport-app/internal/maintenance"
 	maintsql "transport-app/internal/maintenance/infrastructure/sql"
 	"transport-app/internal/middleware"
+	"transport-app/internal/shared"
 )
 
 type maintAllowAuthSvc struct{}
@@ -86,8 +87,8 @@ func newMaintHandlerApp(t *testing.T, db *sql.DB, authSrv auth.AuthorizationServ
 func insertMaintTestVehicle(t *testing.T, db *sql.DB, id, reg string) {
 	t.Helper()
 	_, err := db.Exec(`INSERT INTO vehicles
-		(id, registration_number, vehicle_number, vehicle_type, capacity, insurance_expiry, fitness_expiry, permit_expiry)
-		VALUES (?, ?, ?, 'truck', 15, date('now','+1 year'), date('now','+1 year'), date('now','+1 year'))`,
+		(id, registration_number, vehicle_number, vehicle_type, capacity, insurance_expiry, fitness_expiry, permit_expiry, tenant_id)
+		VALUES (?, ?, ?, 'truck', 15, date('now','+1 year'), date('now','+1 year'), date('now','+1 year'), '1')`,
 		id, reg, "MH-01-"+reg)
 	require.NoError(t, err)
 }
@@ -105,6 +106,7 @@ func TestMaintenance_Dashboard_Renders(t *testing.T) {
 	r.Get("/maintenance", app.Maintenance.Index)
 
 	req := withSession(httptest.NewRequest("GET", "/maintenance", nil), "user-1", "admin")
+	req = req.WithContext(shared.ContextWithTenantID(req.Context(), shared.DefaultTenant))
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 

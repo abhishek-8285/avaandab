@@ -1,30 +1,51 @@
-<div class="bg-surface-container-lowest rounded-lg shadow p-6">
-    <div class="flex justify-between items-start mb-4">
-        <div>
-            <h2 class="text-2xl font-bold text-on-surface">{{.Route.Source}}</h2>
-            <p class="text-secondary">→ {{.Route.Destination}}</p>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+    <!-- Main: route details -->
+    <div class="lg:col-span-2 bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm p-6">
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+                <h2 class="text-xl font-semibold text-on-surface font-display">{{.Route.Source}}</h2>
+                <p class="text-sm text-secondary mt-0.5 inline-flex items-center gap-1.5">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    {{.Route.Destination}}
+                </p>
+            </div>
+            <div class="flex gap-2">
+                {{template "btn.html" (dict "Label" "Edit" "Href" "/routes/{{.Route.ID}}/edit" "Variant" "secondary" "Size" "sm" "Icon" "edit")}}
+            </div>
         </div>
-        <div class="flex space-x-2">
-            {{template "btn.html" (dict "Label" "Edit" "Href" "/routes/{{.Route.ID}}/edit" "Variant" "secondary" "Size" "sm" "Icon" "edit")}}
-        </div>
+
+        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6 pt-6 border-t border-border-subtle">
+            <div>
+                <dt class="text-[11px] font-semibold text-secondary uppercase tracking-wider">Distance</dt>
+                <dd class="text-sm font-medium text-on-surface font-mono mt-1" data-numeric>{{.Route.Distance}} km</dd>
+            </div>
+            <div>
+                <dt class="text-[11px] font-semibold text-secondary uppercase tracking-wider">Estimated Hours</dt>
+                <dd class="text-sm font-medium text-on-surface font-mono mt-1" data-numeric>{{.Route.EstimatedHours}}</dd>
+            </div>
+            <div>
+                <dt class="text-[11px] font-semibold text-secondary uppercase tracking-wider">Standard Fare</dt>
+                <dd class="text-sm font-semibold text-primary font-mono mt-1" data-numeric>₹{{printf "%.2f" .Route.StandardFare}}</dd>
+            </div>
+            <div class="sm:col-span-2">
+                <dt class="text-[11px] font-semibold text-secondary uppercase tracking-wider">Remarks</dt>
+                <dd class="text-sm font-medium text-on-surface mt-1 leading-relaxed">{{nullString .Route.Remarks}}</dd>
+            </div>
+        </dl>
     </div>
 
-    <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-        <div>
-            <dt class="text-sm text-text-muted">Distance</dt>
-            <dd class="text-sm font-medium">{{.Route.Distance}} km</dd>
-        </div>
-        <div>
-            <dt class="text-sm text-text-muted">Estimated Hours</dt>
-            <dd class="text-sm font-medium">{{.Route.EstimatedHours}}</dd>
-        </div>
-        <div>
-            <dt class="text-sm text-text-muted">Standard Fare</dt>
-            <dd class="text-sm font-medium">{{printf "%.2f" .Route.StandardFare}}</dd>
-        </div>
-        <div>
-            <dt class="text-sm text-text-muted">Remarks</dt>
-            <dd class="text-sm font-medium">{{nullString .Route.Remarks}}</dd>
-        </div>
-    </dl>
+    <!-- Sidebar: tariff summary -->
+    <div class="bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm p-6">
+        <h3 class="text-sm font-semibold text-on-surface font-display mb-4">Tariff Summary</h3>
+        <dl class="space-y-4">
+            <div>
+                <dt class="text-[11px] font-semibold text-secondary uppercase tracking-wider">Lane</dt>
+                <dd class="text-sm text-on-surface mt-1">{{.Route.Source}} → {{.Route.Destination}}</dd>
+            </div>
+            <div>
+                <dt class="text-[11px] font-semibold text-secondary uppercase tracking-wider">Standard Fare</dt>
+                <dd class="text-lg font-semibold text-primary font-mono mt-1" data-numeric>₹{{printf "%.2f" .Route.StandardFare}}</dd>
+            </div>
+        </dl>
+    </div>
 </div>

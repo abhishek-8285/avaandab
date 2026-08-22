@@ -9,13 +9,15 @@
         <a href="/invoices?status=paid" class="px-3 py-1 rounded-full border text-xs font-medium transition-colors {{if eq .StatusFilter "paid"}}border-primary bg-primary text-on-primary{{else}}border-border-subtle bg-surface-container-lowest text-secondary hover:bg-surface-container-low{{end}} font-body-sm font-medium">Paid</a>
         <a href="/invoices?status=partially_paid" class="px-3 py-1 rounded-full border text-xs font-medium transition-colors {{if eq .StatusFilter "partially_paid"}}border-primary bg-primary text-on-primary{{else}}border-border-subtle bg-surface-container-lowest text-secondary hover:bg-surface-container-low{{end}} font-body-sm">Partial</a>
 
-        <div class="ml-auto flex items-center gap-3">
-            <div class="relative min-w-[200px]">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <div class="ml-auto flex items-center gap-2 flex-wrap">
+            <div class="relative min-w-[200px] flex-1 sm:flex-none">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                </span>
                 <input type="text" name="q" value="{{.Query}}" placeholder="Search invoice..."
-                    class="bg-surface-container-lowest border border-border-subtle rounded py-1.5 pl-9 pr-4 text-sm w-full focus:outline-none focus:border-primary transition-colors">
+                    class="bg-surface-container-low border border-border-subtle rounded-md py-2 pl-9 pr-4 text-sm text-on-surface w-full focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all">
             </div>
-            <button type="submit" class="px-3 py-1 rounded bg-primary text-on-primary text-xs font-medium hover:bg-primary/90 transition-colors">
+            <button type="submit" class="inline-flex items-center gap-2 rounded-md bg-primary text-on-primary px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-all cursor-pointer">
                 Search
             </button>
         </div>

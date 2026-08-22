@@ -7,7 +7,7 @@
         {{if .StatusCode}}{{.StatusCode}} - {{end}}{{.Title}}
     </h2>
 
-    <p class="text-secondary max-w-md mb-8 text-base">
+    <p class="text-secondary max-w-md mb-6 text-base">
         {{if .Message}}
             {{.Message}}
         {{else}}
@@ -15,8 +15,41 @@
         {{end}}
     </p>
 
+    {{if or .ErrorCode .Model .RequestID .Path}}
+    <div class="w-full max-w-md bg-surface-container-high/70 border border-outline-variant/70 rounded-xl p-4 mb-8 text-left text-xs font-mono space-y-2 backdrop-blur-sm shadow-xs">
+        {{if .ErrorCode}}
+        <div class="flex items-center justify-between">
+            <span class="text-secondary font-sans font-medium">Error Identifier:</span>
+            <span class="font-semibold text-primary px-2 py-0.5 rounded bg-primary/10 tracking-wide">{{.ErrorCode}}</span>
+        </div>
+        {{end}}
+        {{if .Model}}
+        <div class="flex items-center justify-between">
+            <span class="text-secondary font-sans font-medium">Scope / Model:</span>
+            <span class="text-on-surface font-semibold px-2 py-0.5 rounded bg-surface-container-low">{{.Model}}</span>
+        </div>
+        {{end}}
+        {{if .Path}}
+        <div class="flex items-center justify-between">
+            <span class="text-secondary font-sans font-medium">Path:</span>
+            <span class="text-on-surface truncate max-w-[240px]" title="{{.Path}}">{{.Path}}</span>
+        </div>
+        {{end}}
+        {{if .RequestID}}
+        <div class="flex items-center justify-between">
+            <span class="text-secondary font-sans font-medium">Request ID:</span>
+            <span class="text-secondary select-all font-mono">{{.RequestID}}</span>
+        </div>
+        {{end}}
+    </div>
+    {{end}}
+
     <div class="flex flex-wrap items-center justify-center gap-3">
         {{template "btn.html" (dict "Label" "Go Back" "Href" "javascript:history.back()" "Variant" "secondary" "Icon" "arrow_back")}}
-        {{template "btn.html" (dict "Label" "Return to Dashboard" "Href" "/dashboard" "Icon" "dashboard")}}
+        {{if .User}}
+            {{template "btn.html" (dict "Label" "Return to Dashboard" "Href" "/dashboard" "Icon" "dashboard")}}
+        {{else}}
+            {{template "btn.html" (dict "Label" "Return Home" "Href" "/" "Icon" "home")}}
+        {{end}}
     </div>
 </div>

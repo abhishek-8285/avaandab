@@ -245,7 +245,7 @@ func (h *KharchaHandlers) DeliverWithPOD(w http.ResponseWriter, r *http.Request)
 	// Upload POD photo using existing UploadFile if provided
 	var podPhotoURL string
 	if _, fh, err := r.FormFile("pod_photo"); err == nil {
-		if fileRec, saveErr := h.Services.Files.UploadFile(ctx, fh, "company_logo", tripID); saveErr == nil {
+		if fileRec, saveErr := h.Services.Files.UploadFile(ctx, fh, "trip_pod", tripID); saveErr == nil {
 			podPhotoURL = "/files/" + string(fileRec.ID)
 		} else {
 			writePODJSONError(w, "file upload failed: "+saveErr.Error(), http.StatusBadRequest)

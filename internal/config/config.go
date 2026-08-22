@@ -16,11 +16,58 @@ type RoutingConfig struct {
 	OSRMURL  string // override for self-host
 }
 
+// DatabaseConfig selects the persistence backend. Switching engines is an
+// env-only change: set DATABASE_DRIVER plus DATABASE_URL (and pool sizing)
+// — no code edits required. Drivers are registered by internal/database.
+type DatabaseConfig struct {
+	Driver          string        // sqlite (default) | postgres | mysql
+	URL             string        // engine-specific DSN
+	MaxOpenConns    int           // 0 = engine default; sqlite default 64
+	MaxIdleConns    int           // negative = Go default; sqlite default 32
+	ConnMaxLifetime time.Duration // 0 = reuse forever
+}
+
+func (c *DatabaseConfig) GetDriver() string                 { return c.Driver }
+func (c *DatabaseConfig) GetURL() string                    { return c.URL }
+func (c *DatabaseConfig) GetMaxOpenConns() int              { return c.MaxOpenConns }
+func (c *DatabaseConfig) GetMaxIdleConns() int              { return c.MaxIdleConns }
+func (c *DatabaseConfig) GetConnMaxLifetime() time.Duration { return c.ConnMaxLifetime }
+
+// CacheConfig selects the cache backend used for hot reads (sessions,
+// lookups, rate counters). Switching drivers is env-only, same as the DB.
+// none → no-op cache; memory → in-process TTL cache; redis → shared cluster.
+type CacheConfig struct {
+	Driver        string // none (default) | memory | redis
+	RedisAddr     string // host:port when Driver=redis
+	RedisPassword string
+	RedisDB       int
+	DefaultTTL    time.Duration // applied when Set is called without a TTL
+	KeyPrefix     string        // namespace prefix for all keys
+}
+
+func (c *CacheConfig) GetDriver() string            { return c.Driver }
+func (c *CacheConfig) GetRedisAddr() string         { return c.RedisAddr }
+func (c *CacheConfig) GetRedisPassword() string     { return c.RedisPassword }
+func (c *CacheConfig) GetRedisDB() int              { return c.RedisDB }
+func (c *CacheConfig) GetDefaultTTL() time.Duration { return c.DefaultTTL }
+func (c *CacheConfig) GetKeyPrefix() string         { return c.KeyPrefix }
+
+// StorageConfig selects where uploads/documents live. local keeps files on
+// disk under LocalDir; s3 is reserved for object-storage wiring.
+type StorageConfig struct {
+	Driver   string // local (default) | s3
+	LocalDir string
+}
+
+func (c *StorageConfig) GetDriver() string   { return c.Driver }
+func (c *StorageConfig) GetLocalDir() string { return c.LocalDir }
+
 // Config holds all application configuration.
 type Config struct {
 	AppEnv               string
 	Port                 string
-	DatabaseURL          string
+	DatabaseURL          string // effective DSN; mirrors Database.URL for callers that only need the string
+	Database             DatabaseConfig
 	CookieSecret         string
 	APITokenSecret       string
 	SessionMaxAge        time.Duration
@@ -47,6 +94,9 @@ type Config struct {
 	GSTN                 GSTNConfig
 	FASTag               FASTagConfig
 	Routing              RoutingConfig
+	Cache                CacheConfig
+	Storage              StorageConfig
+	WorkerLeaderLock     bool
 }
 
 // GSTNConfig holds configuration for GSTN / GSP / E-Invoicing (Spec 07).
@@ -194,10 +244,39 @@ func Load() *Config {
 		cookieSecure = v == "true" || v == "1"
 	}
 
+	// Database: driver defaults to sqlite with the legacy file DSN. Setting
+	// DATABASE_DRIVER=postgres|mysql plus a matching DATABASE_URL switches
+	// engines without touching code (pool knobs are optional).
+	dbURL := getEnv("DATABASE_URL", "file:transport.db?mode=rwc&cache=shared&_foreign_keys=on&_journal_mode=WAL")
+	dbDriver := strings.ToLower(getEnv("DATABASE_DRIVER", "sqlite"))
+	maxOpenConns := 0
+	if v := os.Getenv("DB_MAX_OPEN_CONNS"); v != "" {
+		if parsed, err := strconv.Atoi(v); err == nil && parsed > 0 {
+			maxOpenConns = parsed
+		} else {
+			slog.Error("invalid DB_MAX_OPEN_CONNS", "value", v)
+		}
+	}
+	maxIdleConns := -1
+	if v := os.Getenv("DB_MAX_IDLE_CONNS"); v != "" {
+		if parsed, err := strconv.Atoi(v); err == nil && parsed >= 0 {
+			maxIdleConns = parsed
+		} else {
+			slog.Error("invalid DB_MAX_IDLE_CONNS", "value", v)
+		}
+	}
+
 	cfg := &Config{
-		AppEnv:               env,
-		Port:                 getEnv("PORT", "8080"),
-		DatabaseURL:          getEnv("DATABASE_URL", "file:transport.db?mode=rwc&cache=shared&_foreign_keys=on&_journal_mode=WAL"),
+		AppEnv:      env,
+		Port:        getEnv("PORT", "8080"),
+		DatabaseURL: dbURL,
+		Database: DatabaseConfig{
+			Driver:          dbDriver,
+			URL:             dbURL,
+			MaxOpenConns:    maxOpenConns,
+			MaxIdleConns:    maxIdleConns,
+			ConnMaxLifetime: getEnvDuration("DB_CONN_MAX_LIFETIME", 15*time.Minute),
+		},
 		CookieSecret:         getEnv("COOKIE_SECRET", "dev-secret-key-change-in-production-32b!"),
 		APITokenSecret:       getEnv("API_SECRET", ""),
 		SessionMaxAge:        sessionMaxAge,
@@ -329,6 +408,26 @@ func Load() *Config {
 		OSRMURL:  getEnv("OSRM_URL", getEnv("ROUTING_OSRM_URL", "http://osrm.internal:5000")),
 	}
 
+	// Cache backend (none by default; memory for single-instance dev,
+	// redis for shared/multi-instance deployments).
+	cfg.Cache = CacheConfig{
+		Driver:        strings.ToLower(getEnv("CACHE_DRIVER", "none")),
+		RedisAddr:     getEnv("REDIS_ADDR", "localhost:6379"),
+		RedisPassword: os.Getenv("REDIS_PASSWORD"),
+		RedisDB:       getEnvInt("REDIS_DB", 0),
+		DefaultTTL:    getEnvDuration("CACHE_DEFAULT_TTL", 5*time.Minute),
+		KeyPrefix:     getEnv("CACHE_KEY_PREFIX", "mvtms:"),
+	}
+
+	// File storage backend + worker leader election. Leader lock defaults ON:
+	// on a single instance it is a no-op claim; at scale-out it stops
+	// duplicate cron/worker execution automatically.
+	cfg.Storage = StorageConfig{
+		Driver:   strings.ToLower(getEnv("STORAGE_DRIVER", "local")),
+		LocalDir: getEnv("LOCAL_STORAGE_DIR", cfg.UploadDir),
+	}
+	cfg.WorkerLeaderLock = getEnvBool("WORKER_LEADER_LOCK", true)
+
 	if err := cfg.Validate(); err != nil {
 		slog.Error("invalid configuration", "error", err)
 	}
@@ -357,7 +456,44 @@ func validateDatabaseURL(raw string) error {
 
 // Validate checks the configuration for invalid values.
 func (c *Config) Validate() error {
-	return validateDatabaseURL(c.DatabaseURL)
+	// Effective DSN: Database.URL wins, falling back to the legacy flat
+	// field so hand-built configs (tests) keep validating.
+	dsn := c.Database.URL
+	if dsn == "" {
+		dsn = c.DatabaseURL
+	}
+	switch c.Database.Driver {
+	case "", "sqlite":
+		if err := validateDatabaseURL(dsn); err != nil {
+			return err
+		}
+	case "postgres", "postgresql":
+		if strings.TrimSpace(dsn) == "" {
+			return fmt.Errorf("DATABASE_URL: required when DATABASE_DRIVER=postgres")
+		}
+	case "mysql":
+		if strings.TrimSpace(dsn) == "" {
+			return fmt.Errorf("DATABASE_URL: required when DATABASE_DRIVER=mysql")
+		}
+	default:
+		return fmt.Errorf("DATABASE_DRIVER: unsupported driver %q; use sqlite, postgres or mysql", c.Database.Driver)
+	}
+
+	switch c.Cache.Driver {
+	case "", "none", "memory", "redis": // "" = unset = none
+	default:
+		return fmt.Errorf("CACHE_DRIVER: unsupported driver %q; use none, memory or redis", c.Cache.Driver)
+	}
+	if c.Cache.Driver == "redis" && strings.TrimSpace(c.Cache.RedisAddr) == "" {
+		return fmt.Errorf("REDIS_ADDR: required when CACHE_DRIVER=redis")
+	}
+
+	switch c.Storage.Driver {
+	case "", "local", "s3":
+	default:
+		return fmt.Errorf("STORAGE_DRIVER: unsupported driver %q; use local or s3", c.Storage.Driver)
+	}
+	return nil
 }
 
 func getEnv(key, fallback string) string {

@@ -4,7 +4,7 @@
             <tr>
                 <th class="th-cell">Invoice #</th>
                 <th class="th-cell">Payment Date</th>
-                <th class="th-cell">Amount (₹)</th>
+                <th class="th-cell-right">Amount (₹)</th>
                 <th class="th-cell">Method</th>
                 <th class="th-cell">Reference ID</th>
                 <th class="th-cell-right">Actions</th>
@@ -15,10 +15,10 @@
             {{range .Payments}}
             <tr class="hover:bg-surface-container-low transition-colors group">
                 <td class="td-cell-strong font-mono" data-numeric>{{.InvoiceNumber}}</td>
-                <td class="td-cell" data-numeric>{{datetime .PaymentDate}}</td>
-                <td class="td-cell-strong font-mono" data-numeric>₹{{printf "%.2f" .Amount}}</td>
+                <td class="td-cell">{{datetime .PaymentDate}}</td>
+                <td class="td-cell-num font-medium" data-numeric>₹{{printf "%.2f" .Amount}}</td>
                 <td class="td-cell uppercase font-mono text-xs">{{.Method}}</td>
-                <td class="td-cell font-mono text-xs">{{nullString .Reference}}</td>
+                <td class="td-cell font-mono text-xs text-text-muted">{{nullString .Reference}}</td>
                 <td class="td-cell-actions">
                     <a href="/payments/{{.ID}}" class="action-view">View Receipt</a>
                 </td>

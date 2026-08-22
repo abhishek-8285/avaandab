@@ -4,7 +4,7 @@
 {{$variantCls := "bg-primary text-on-primary hover:bg-primary/90"}}{{if eq $v "secondary"}}{{$variantCls = "bg-surface-container-low text-on-surface border border-border-subtle hover:bg-surface-container"}}{{else if eq $v "ghost"}}{{$variantCls = "text-primary hover:bg-primary/10"}}{{else if eq $v "danger"}}{{$variantCls = "bg-status-alert text-on-primary hover:opacity-90"}}{{end}}
 {{$cls := printf "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-all duration-150 active:scale-[0.98] %s %s %s" $variantCls $sizeCls (or .Class "")}} 
 {{if .Href}}
-<a href="{{.Href}}" class="{{$cls}} text-decoration-none">{{if .Icon}}<span class="material-symbols-outlined text-base">{{.Icon}}</span>{{end}}<span>{{.Label}}</span></a>
+<a href="{{.Href}}" class="{{$cls}} text-decoration-none">{{if .Icon}}{{icon .Icon}}{{end}}<span>{{.Label}}</span></a>
 {{else}}
-<button type="{{if .Type}}{{.Type}}{{else}}button{{end}}" class="{{$cls}} cursor-pointer"{{if .Disabled}} disabled{{end}}>{{if .Icon}}<span class="material-symbols-outlined text-base">{{.Icon}}</span>{{end}}<span>{{.Label}}</span></button>
+<button type="{{if .Type}}{{.Type}}{{else}}button{{end}}" class="{{$cls}} cursor-pointer"{{if .Disabled}} disabled{{end}}>{{if .Icon}}{{icon .Icon}}{{end}}<span>{{.Label}}</span></button>
 {{end}}

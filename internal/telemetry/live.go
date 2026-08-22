@@ -15,18 +15,20 @@ import (
 // LiveVehicle is one marker on the tracking map — the latest snapshot per
 // vehicle within the visibility window (Spec 04 §7).
 type LiveVehicle struct {
-	TripID    string     `json:"trip_id,omitempty"`
-	VehicleID string     `json:"vehicle_id"`
-	Lat       float64    `json:"lat"`
-	Lng       float64    `json:"lng"`
-	Speed     float64    `json:"speed"`
-	FuelLevel *float64   `json:"fuel_level,omitempty"`
-	Odometer  *float64   `json:"odometer,omitempty"`
-	Status    string     `json:"status"`
-	EtaMin    *time.Time `json:"eta_min,omitempty"` // wired in Spec 04 3D
-	EtaMax    *time.Time `json:"eta_max,omitempty"` // wired in Spec 04 3D
-	EtaMethod string     `json:"eta_method,omitempty"`
-	Ts        time.Time  `json:"ts"`
+	TripID        string     `json:"trip_id,omitempty"`
+	VehicleID     string     `json:"vehicle_id"`
+	VehicleNumber string     `json:"vehicle_number,omitempty"`
+	Lat           float64    `json:"lat"`
+	Lng           float64    `json:"lng"`
+	Speed         float64    `json:"speed"`
+	Heading       *float64   `json:"heading,omitempty"`
+	FuelLevel     *float64   `json:"fuel_level,omitempty"`
+	Odometer      *float64   `json:"odometer,omitempty"`
+	Status        string     `json:"status"`
+	EtaMin        *time.Time `json:"eta_min,omitempty"` // wired in Spec 04 3D
+	EtaMax        *time.Time `json:"eta_max,omitempty"` // wired in Spec 04 3D
+	EtaMethod     string     `json:"eta_method,omitempty"`
+	Ts            time.Time  `json:"ts"`
 }
 
 // Marker states (priority order, Spec 04 §7): maintenance_due overrides
@@ -59,6 +61,8 @@ type LiveStore struct {
 	// telemetry-only states.
 	hasMaintenanceDue     bool
 	maintenanceDueChecked sync.Once
+	hasHeading            bool
+	headingChecked        sync.Once
 
 	// etaService calculates hybrid ETA for active trips (Spec 04 §5, 3D).
 	etaService *eta.EtaService
@@ -89,28 +93,29 @@ func (s *LiveStore) Live(ctx context.Context, tenantID string, tripID string, no
 	s.maintenanceDueChecked.Do(func() {
 		s.hasMaintenanceDue = columnExists(s.db, "vehicles", "maintenance_due")
 	})
-
-	windowStart := now.Add(-s.visibilityWindow).UTC().Format("2006-01-02 15:04:05")
-
-	// Latest row per vehicle via a MAX(timestamp) join. The inner query can
-	// use idx_telemetry_snapshots_trip when trip_id is filtered; the outer
-	// read uses the windowed join for bounded results.
-	rows, err := s.db.QueryContext(ctx, `
+	s.headingChecked.Do(func() {
+		s.hasHeading = columnExists(s.db, "telemetry_snapshots", "heading")
+	})
+	headingSel := "s.heading"
+	if !s.hasHeading {
+		headingSel = "NULL as heading"
+	}
+	q := `
 		SELECT s.trip_id, s.vehicle_id, s.latitude, s.longitude, s.speed,
-		       s.fuel_level, s.odometer, s.timestamp
+		       s.fuel_level, s.odometer, ` + headingSel + `, s.timestamp,
+		       COALESCE(v.vehicle_number, v.registration_number, '') as vehicle_num
 		FROM telemetry_snapshots s
 		JOIN (
 		    SELECT vehicle_id, MAX(timestamp) AS ts
 		    FROM telemetry_snapshots
-		    WHERE timestamp >= ?
-		      AND latitude IS NOT NULL AND longitude IS NOT NULL
+		    WHERE latitude IS NOT NULL AND longitude IS NOT NULL
 		      AND (? = '' OR trip_id = ?)
 		    GROUP BY vehicle_id
 		) latest ON latest.vehicle_id = s.vehicle_id AND latest.ts = s.timestamp
 		JOIN vehicles v ON v.id = s.vehicle_id AND v.tenant_id = ?
 		WHERE s.latitude IS NOT NULL AND s.longitude IS NOT NULL
-		ORDER BY s.vehicle_id`,
-		windowStart, tripID, tripID, tenantID)
+		ORDER BY s.vehicle_id`
+	rows, err := s.db.QueryContext(ctx, q, tripID, tripID, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -119,17 +124,20 @@ func (s *LiveStore) Live(ctx context.Context, tenantID string, tripID string, no
 	var out []LiveVehicle
 	for rows.Next() {
 		var lv LiveVehicle
-		var tripID, vehicleID sql.NullString
+		var tripID, vehicleID, vehNum sql.NullString
 		var lat, lng, speed sql.NullFloat64
-		var fuel, odo sql.NullFloat64
+		var fuel, odo, heading sql.NullFloat64
 		var ts time.Time
-		if err := rows.Scan(&tripID, &vehicleID, &lat, &lng, &speed, &fuel, &odo, &ts); err != nil {
+		if err := rows.Scan(&tripID, &vehicleID, &lat, &lng, &speed, &fuel, &odo, &heading, &ts, &vehNum); err != nil {
 			return nil, err
 		}
 		if !vehicleID.Valid {
 			continue
 		}
 		lv.VehicleID = vehicleID.String
+		if vehNum.Valid && vehNum.String != "" {
+			lv.VehicleNumber = vehNum.String
+		}
 		if tripID.Valid {
 			lv.TripID = tripID.String
 		}
@@ -147,6 +155,9 @@ func (s *LiveStore) Live(ctx context.Context, tenantID string, tripID string, no
 		}
 		if odo.Valid {
 			lv.Odometer = &odo.Float64
+		}
+		if heading.Valid {
+			lv.Heading = &heading.Float64
 		}
 		lv.Ts = ts.UTC()
 		out = append(out, lv)

@@ -2,11 +2,13 @@ package middleware
 
 import (
 	"hash/fnv"
+	"log/slog"
 	"net/http"
 	"sync"
 	"time"
 
 	"transport-app/internal/auth"
+	"transport-app/internal/cache"
 )
 
 // ipBucket tracks requests for a single client IP within a time window.
@@ -55,11 +57,45 @@ func newRateLimiter(limit int, window time.Duration) *rateLimiter {
 
 // RateLimit returns middleware that limits requests per client IP to
 // `limit` per `window` (default window: 1 minute).
+//
+// In-memory: each replica counts independently, so effective per-IP limit is
+// limit × replicas. Use RateLimitDistributed for exact cross-replica limits.
 func RateLimit(limit int) func(http.Handler) http.Handler {
 	rl := newRateLimiter(limit, time.Minute)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !rl.allow(auth.ClientIP(r), time.Now()) {
+				http.Error(w, "Too many requests", http.StatusTooManyRequests)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// RateLimitDistributed limits per client IP across all replicas using an
+// atomic cache counter (Redis INCR or memory-cache counters). When the
+// backend does not support atomic increments (CACHE_DRIVER=none), it falls
+// back to the local in-memory limiter — never to unlimited.
+func RateLimitDistributed(c cache.Cache, limit int) func(http.Handler) http.Handler {
+	incr, ok := c.(cache.Incrementer)
+	if !ok {
+		return RateLimit(limit)
+	}
+	window := time.Minute
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			key := "ratelimit:" + auth.ClientIP(r)
+			n, err := incr.Increment(r.Context(), key, window)
+			if err != nil {
+				// Backend failure must not open the floodgates: fail closed
+				// but log loudly so the cache outage is visible.
+				slog.Error("distributed rate limit backend error; rejecting request", "error", err)
+				http.Error(w, "Too many requests", http.StatusTooManyRequests)
+				return
+			}
+			if n > int64(limit) {
+				w.Header().Set("Retry-After", "60")
 				http.Error(w, "Too many requests", http.StatusTooManyRequests)
 				return
 			}

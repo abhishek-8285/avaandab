@@ -15,7 +15,7 @@ RETURNING id, tenant_id, source, destination, source_normalized, dest_normalized
 SELECT id, tenant_id, source, destination, source_normalized, dest_normalized,
        distance, estimated_hours, standard_fare, reverse_distance, reverse_standard_fare,
        direction, is_active, remarks, created_at, updated_at
-FROM routes WHERE id = ?;
+FROM routes WHERE id = ? AND tenant_id = ?;
 
 -- name: UpdateRoute :one
 UPDATE routes
@@ -24,13 +24,13 @@ SET source = ?, destination = ?, source_normalized = ?, dest_normalized = ?,
     reverse_distance = ?, reverse_standard_fare = ?,
     direction = ?, is_active = ?, remarks = ?,
     updated_at = datetime('now')
-WHERE id = ?
+WHERE id = ? AND tenant_id = ?
 RETURNING id, tenant_id, source, destination, source_normalized, dest_normalized,
           distance, estimated_hours, standard_fare, reverse_distance, reverse_standard_fare,
           direction, is_active, remarks, created_at, updated_at;
 
 -- name: DeleteRoute :exec
-DELETE FROM routes WHERE id = ?;
+DELETE FROM routes WHERE id = ? AND tenant_id = ?;
 
 -- name: SearchRoutes :many
 SELECT id, tenant_id, source, destination, source_normalized, dest_normalized,

@@ -548,13 +548,6 @@ func (h *CustomerPortalHandlers) Feedback(w http.ResponseWriter, r *http.Request
 			}
 		}
 		req.Comment = r.FormValue("comment")
-		// If JSON body was sent but Content-Type missing, try decoding again directly
-		if req.TripID == "" && req.Rating == 0 {
-			// Attempt json decode from raw body if not already parsed
-			// Need to read body again — but ParseForm may have drained it. Try direct json decode with fallback.
-			// We attempt to decode from r.Body if form values empty and body still readable (small edge).
-			// Best effort: if still empty, return bad request.
-		}
 		// Secondary fallback: try to decode JSON even when not marked json but body contains it
 		if req.TripID == "" {
 			// Peek r.Body for json if not already consumed (if ParseForm didn't consume for json)

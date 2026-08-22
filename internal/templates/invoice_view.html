@@ -1,107 +1,101 @@
 <div class="max-w-4xl mx-auto">
-    <div class="bg-surface-container-lowest rounded-lg shadow p-6">
-        <div class="flex justify-between items-start mb-4">
+    <div class="bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm p-6">
+        <div class="flex items-start justify-between gap-4 mb-6 flex-wrap">
             <div>
-                <h2 class="text-2xl font-bold text-on-surface">{{.Invoice.InvoiceNumber}}</h2>
-                <p class="text-secondary">{{.Invoice.CreatedAt}}</p>
+                <h2 class="text-xl font-semibold text-on-surface font-display">{{.Invoice.InvoiceNumber}}</h2>
+                <p class="text-sm text-text-muted mt-0.5">{{.Invoice.CreatedAt}}</p>
             </div>
-            <div class="flex items-center space-x-3">
-                <a href="/invoices/{{.Invoice.ID}}/line-items"
-                    class="px-4 py-2 bg-surface-container-low text-on-surface font-semibold text-sm rounded-md border border-border-subtle hover:bg-surface-container shadow flex items-center space-x-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                    <span>Manage Line Items</span>
-                </a>
+            <div class="flex flex-wrap items-center gap-2">
+                {{template "btn.html" (dict "Variant" "secondary" "Size" "md" "Href" (printf "/invoices/%v/line-items" .Invoice.ID) "Icon" "edit" "Label" "Manage Line Items")}}
                 <a href="/invoices/{{.Invoice.ID}}/pdf" download
-                    class="px-4 py-2 bg-primary text-on-primary font-semibold rounded-md hover:bg-primary/90 shadow flex items-center space-x-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 2 0 01-2-2V5a2 2 2 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 2 01-2 2z"></path>
+                    class="inline-flex items-center gap-2 rounded-md bg-primary text-on-primary px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-all">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
                     <span>Download PDF Invoice</span>
                 </a>
-                <span class="px-2 py-1 text-xs rounded-full {{statusBadge .Invoice.PaymentStatus}}">{{.Invoice.PaymentStatus}}</span>
+                <span class="status-badge {{statusBadge .Invoice.PaymentStatus}}">{{.Invoice.PaymentStatus}}</span>
             </div>
         </div>
 
-        <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 mb-6">
             <div>
-                <dt class="text-sm text-text-muted">Customer</dt>
-                <dd class="text-sm font-medium">{{.Invoice.CustomerName}}</dd>
+                <dt class="field-label text-text-muted">Customer</dt>
+                <dd class="text-sm font-medium text-on-surface">{{.Invoice.CustomerName}}</dd>
             </div>
             <div>
-                <dt class="text-sm text-text-muted">Booking</dt>
-                <dd class="text-sm font-medium">{{.Invoice.BookingNumber}}</dd>
+                <dt class="field-label text-text-muted">Booking</dt>
+                <dd class="text-sm font-medium text-on-surface font-mono">{{.Invoice.BookingNumber}}</dd>
             </div>
             <div>
-                <dt class="text-sm text-text-muted">Trip</dt>
-                <dd class="text-sm font-medium">{{if .Invoice.TripNumber}}{{.Invoice.TripNumber}}{{else}}-{{end}}</dd>
+                <dt class="field-label text-text-muted">Trip</dt>
+                <dd class="text-sm font-medium text-on-surface">{{if .Invoice.TripNumber}}{{.Invoice.TripNumber}}{{else}}-{{end}}</dd>
             </div>
             <div>
-                <dt class="text-sm text-text-muted">Subtotal / Taxable</dt>
-                <dd class="text-sm font-medium">{{printf "%.2f" .Invoice.Subtotal}}</dd>
+                <dt class="field-label text-text-muted">Subtotal / Taxable</dt>
+                <dd class="text-sm font-medium text-on-surface tabular-nums" data-numeric>{{printf "%.2f" .Invoice.Subtotal}}</dd>
             </div>
             {{if gt .Invoice.CGST 0.0}}
             <div>
-                <dt class="text-sm text-text-muted">CGST</dt>
-                <dd class="text-sm font-medium">{{printf "%.2f" .Invoice.CGST}}</dd>
+                <dt class="field-label text-text-muted">CGST</dt>
+                <dd class="text-sm font-medium text-on-surface tabular-nums" data-numeric>{{printf "%.2f" .Invoice.CGST}}</dd>
             </div>
             <div>
-                <dt class="text-sm text-text-muted">SGST</dt>
-                <dd class="text-sm font-medium">{{printf "%.2f" .Invoice.SGST}}</dd>
+                <dt class="field-label text-text-muted">SGST</dt>
+                <dd class="text-sm font-medium text-on-surface tabular-nums" data-numeric>{{printf "%.2f" .Invoice.SGST}}</dd>
             </div>
             {{end}}
             {{if gt .Invoice.IGST 0.0}}
             <div>
-                <dt class="text-sm text-text-muted">IGST (Inter-State)</dt>
-                <dd class="text-sm font-medium">{{printf "%.2f" .Invoice.IGST}}</dd>
+                <dt class="field-label text-text-muted">IGST (Inter-State)</dt>
+                <dd class="text-sm font-medium text-on-surface tabular-nums" data-numeric>{{printf "%.2f" .Invoice.IGST}}</dd>
             </div>
             {{end}}
             <div>
-                <dt class="text-sm text-text-muted">Tax (Total)</dt>
-                <dd class="text-sm font-medium">{{printf "%.2f" .Invoice.Tax}}</dd>
+                <dt class="field-label text-text-muted">Tax (Total)</dt>
+                <dd class="text-sm font-medium text-on-surface tabular-nums" data-numeric>{{printf "%.2f" .Invoice.Tax}}</dd>
             </div>
             <div>
-                <dt class="text-sm text-text-muted">Discount</dt>
-                <dd class="text-sm font-medium">{{printf "%.2f" .Invoice.Discount}}</dd>
+                <dt class="field-label text-text-muted">Discount</dt>
+                <dd class="text-sm font-medium text-on-surface tabular-nums" data-numeric>{{printf "%.2f" .Invoice.Discount}}</dd>
             </div>
             <div>
-                <dt class="text-sm text-text-muted">Total</dt>
-                <dd class="text-sm font-bold text-lg text-primary">{{printf "%.2f" .Invoice.Total}}</dd>
+                <dt class="field-label text-text-muted">Total</dt>
+                <dd class="text-lg font-bold text-primary tabular-nums" data-numeric>₹{{printf "%.2f" .Invoice.Total}}</dd>
             </div>
             <div>
-                <dt class="text-sm text-text-muted">Balance Due</dt>
-                <dd class="text-sm font-medium">{{printf "%.2f" .Balance}}</dd>
+                <dt class="field-label text-text-muted">Balance Due</dt>
+                <dd class="text-sm font-medium text-on-surface tabular-nums" data-numeric>{{printf "%.2f" .Balance}}</dd>
             </div>
         </dl>
 
-        <div class="mt-6">
+        <div class="mb-6">
             {{template "irn_qr.html" .}}
         </div>
 
-        <div class="mt-6">
-            <div class="flex justify-between items-center mb-3">
-                <h3 class="text-subsection font-semibold text-on-surface">Payments</h3>
-                {{template "btn.html" (dict "Variant" "primary" "Size" "sm" "Href" (printf "/payments/new/%v" .Invoice.ID) "Label" "Record Payment" "Class" "min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2")}}
+        <div>
+            <div class="flex items-center justify-between gap-4 mb-3 flex-wrap">
+                <h3 class="text-base font-semibold text-on-surface">Payments</h3>
+                {{template "btn.html" (dict "Variant" "primary" "Size" "sm" "Href" (printf "/payments/new/%v" .Invoice.ID) "Label" "Record Payment")}}
             </div>
             {{if .Payments}}
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto rounded-md border border-border-subtle">
                 <table class="min-w-full divide-y divide-border-subtle">
                     <thead class="bg-surface-container-low">
                         <tr>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-text-muted uppercase">Date</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-text-muted uppercase">Amount</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-text-muted uppercase">Method</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-text-muted uppercase">Reference</th>
+                            <th class="th-cell">Date</th>
+                            <th class="th-cell-right">Amount (₹)</th>
+                            <th class="th-cell">Method</th>
+                            <th class="th-cell">Reference</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-border-subtle">
                         {{range .Payments}}
                         <tr>
-                            <td class="px-4 py-2 text-sm">{{datetime .PaymentDate}}</td>
-                            <td class="px-4 py-2 text-sm">{{printf "%.2f" .Amount}}</td>
-                            <td class="px-4 py-2 text-sm">{{.Method}}</td>
-                            <td class="px-4 py-2 text-sm">{{nullString .Reference}}</td>
+                            <td class="px-4 py-2.5 text-sm text-on-surface">{{datetime .PaymentDate}}</td>
+                            <td class="px-4 py-2.5 text-sm font-medium text-on-surface tabular-nums text-right" data-numeric>{{printf "%.2f" .Amount}}</td>
+                            <td class="px-4 py-2.5 text-sm text-on-surface uppercase">{{.Method}}</td>
+                            <td class="px-4 py-2.5 text-sm text-on-surface font-mono text-xs">{{nullString .Reference}}</td>
                         </tr>
                         {{end}}
                     </tbody>
