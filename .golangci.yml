@@ -1,95 +1,93 @@
+version: "2"
+
 run:
   timeout: 5m
   tests: true
 
 linters:
+  default: standard
   enable:
-    - gosec          # Security-focused linter (SQL injection, command injection, etc.)
-    - govet          # Standard Go vet
-    - errcheck       # Unchecked errors
-    - staticcheck    # Advanced static analysis
-    - unused         # Dead code
-    - gocritic       # Code style and correctness
-    - revive         # Golint replacement
     - bodyclose      # HTTP response body leaks
+    - gosec          # Security-focused linter (SQL injection, command injection, etc.)
+    - gocritic       # Code style and correctness
     - noctx          # HTTP requests without context
+    - revive         # Golint replacement
     - sqlclosecheck  # SQL rows/stmt leaks
   disable:
-    - gosimple       # Too noisy for this codebase
-    - stylecheck     # Conflicts with existing style
-
-linters-settings:
-  gosec:
-    excludes:
-      - G101  # False positive on constant strings like "Bank - Current"
-      - G104  # Errors unhandled (handled by errcheck)
-      - G115  # Integer conversion
-      - G201  # Dynamic WHERE clause / placeholder formatting with parameterized values
-      - G202  # Placeholder string concatenation
-      - G203  # Template HTML escaping helpers
-      - G304  # File path provided as taint input (false positives in test fixtures)
-      - G401  # SHA1 hash used for deterministic experiment bucketing
-      - G404  # Math rand used for synthetic embedding vectors
-      - G505  # Blocklisted import crypto/sha1 for deterministic experiment bucketing
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - style
-    disabled-checks:
-      - ifElseChain
-      - singleCaseSwitch
-      - unnamedResult
-      - sprintfQuotedString
-      - httpNoBody
-      - paramTypeCombine
-      - emptyStringTest
-      - octalLiteral
-      - exitAfterDefer
-      - whyNoLint
-      - builtinShadow
-      - builtinShadowDecl
-      - unlambda
-  revive:
+    - staticcheck    # v2 merges gosimple/stylecheck here; legacy codebase opts out
+  settings:
+    gosec:
+      excludes:
+        - G101  # False positive on constant strings like "Bank - Current"
+        - G104  # Errors unhandled (handled by errcheck)
+        - G115  # Integer conversion
+        - G201  # Dynamic WHERE clause / placeholder formatting with parameterized values
+        - G202  # Placeholder string concatenation
+        - G203  # Template HTML escaping helpers
+        - G304  # File path provided as taint input (false positives in test fixtures)
+        - G401  # SHA1 hash used for deterministic experiment bucketing
+        - G404  # Math rand used for synthetic embedding vectors
+        - G505  # Blocklisted import crypto/sha1 for deterministic experiment bucketing
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - style
+      disabled-checks:
+        - ifElseChain
+        - singleCaseSwitch
+        - unnamedResult
+        - sprintfQuotedString
+        - httpNoBody
+        - paramTypeCombine
+        - emptyStringTest
+        - octalLiteral
+        - exitAfterDefer
+        - whyNoLint
+        - builtinShadow
+        - builtinShadowDecl
+        - unlambda
+    revive:
+      rules:
+        - name: unused-parameter
+          disabled: true
+        - name: exported
+          disabled: true
+        - name: redefines-builtin-id
+          disabled: true
+        - name: context-as-argument
+          disabled: true
+        - name: var-declaration
+          disabled: true
+    errcheck:
+      exclude-functions:
+        - (*encoding/json.Encoder).Encode
+        - fmt.Sscanf
+        - (*database/sql.Tx).Rollback
+  exclusions:
     rules:
-      - name: unused-parameter
-        disabled: true
-      - name: exported
-        disabled: true
-      - name: redefines-builtin-id
-        disabled: true
-      - name: context-as-argument
-        disabled: true
-      - name: var-declaration
-        disabled: true
-  errcheck:
-    exclude-functions:
-      - (*encoding/json.Encoder).Encode
-      - fmt.Sscanf
-      - (*database/sql.Tx).Rollback
+      - path: _test\.go
+        linters:
+          - errcheck
+          - gosec
+          - gocritic
+          - noctx
+          - revive
+      - path: test/
+        linters:
+          - errcheck
+          - gosec
+          - gocritic
+          - noctx
+          - revive
+      - path: cmd/
+        linters:
+          - errcheck
+          - gosec
+          - noctx
+      - path: internal/handlers/app\.go
+        linters:
+          - unused  # Template rendering functions appear unused to static analysis
 
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - gosec
-        - errcheck
-        - gocritic
-        - revive
-        - noctx
-    - path: test/
-      linters:
-        - gosec
-        - errcheck
-        - gocritic
-        - revive
-        - noctx
-    - path: cmd/
-      linters:
-        - noctx
-        - gosec
-        - errcheck
-    - path: internal/handlers/app\.go
-      linters:
-        - unused  # Template rendering functions appear unused to static analysis

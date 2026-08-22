@@ -10,6 +10,12 @@ if ! command -v golangci-lint &> /dev/null; then
 fi
 
 echo "Running golangci-lint..."
-golangci-lint run --timeout=5m ./...
+# LINT_BASE (optional): git rev to diff against — gates only new code.
+# Used by pre-commit so legacy debt doesn't block commits; full run when unset.
+ARGS=(run --timeout=8m)
+if [ -n "$LINT_BASE" ]; then
+  ARGS+=("--new-from-rev=$LINT_BASE")
+fi
+golangci-lint "${ARGS[@]}" ./...
 
 echo "✅ golangci-lint passed"

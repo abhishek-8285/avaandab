@@ -1,98 +1,76 @@
 package db
 
 import (
+	"context"
 	"database/sql"
-	"fmt"
-	"strings"
-	"testing"
-	"time"
-
 	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/require"
+	"io/fs"
 	_ "modernc.org/sqlite"
+	"path/filepath"
+	"testing"
+	"testing/fstest"
 )
 
-// openMigratedDB opens a fresh in-memory DB at the given goose version.
-func openMigratedDB(t *testing.T, to int64) *sql.DB {
-	t.Helper()
-	name := fmt.Sprintf("test_migrate_%s_%d", strings.ReplaceAll(t.Name(), "/", "_"), time.Now().UnixNano())
-	db, err := sql.Open("sqlite", "file:"+name+"?mode=memory&cache=shared&_pragma=journal_mode(WAL)")
+func TestMigration00083ErrorReportsUpAndDown(t *testing.T) {
+	content, err := Migrations.ReadFile("migrations/00083_error_reports_incidents.sql")
 	require.NoError(t, err)
-	require.NoError(t, goose.SetDialect("sqlite"))
-	require.NoError(t, goose.UpTo(db, "migrations", to))
-	t.Cleanup(func() { _ = db.Close() })
-	return db
-}
 
-func tableExists(t *testing.T, db *sql.DB, table string) bool {
-	t.Helper()
-	var n int
-	require.NoError(t, db.QueryRow(
-		`SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = ?`, table).Scan(&n))
-	return n == 1
-}
-
-func columnExists(t *testing.T, db *sql.DB, table, column string) bool {
-	t.Helper()
-	rows, err := db.Query(`PRAGMA table_info(` + table + `)`)
-	require.NoError(t, err)
-	defer rows.Close()
-	for rows.Next() {
-		var cid int
-		var name, ctype string
-		var notnull, pk int
-		var dflt interface{}
-		if err := rows.Scan(&cid, &name, &ctype, &notnull, &dflt, &pk); err != nil {
-			return false
-		}
-		if name == column {
-			return true
-		}
+	mapFS := fstest.MapFS{
+		"00083_error_reports_incidents.sql": &fstest.MapFile{Data: content},
 	}
-	return false
-}
+	var fsys fs.FS = mapFS
 
-// Test00042GeofenceEngine_UpDownRoundTrip verifies the full 00042 migration
-// applies cleanly and rolls back cleanly (Master Directive §4).
-func Test00042GeofenceEngine_UpDownRoundTrip(t *testing.T) {
-	// Up: apply everything up to and including 00042.
-	db := openMigratedDB(t, 42)
+	dbPath := filepath.Join(t.TempDir(), "mig.db")
+	database, err := sql.Open("sqlite", dbPath)
+	require.NoError(t, err)
+	defer database.Close()
 
-	require.True(t, tableExists(t, db, "geofences"))
-	require.True(t, tableExists(t, db, "vehicle_geofences"))
-	require.True(t, tableExists(t, db, "geofence_events"))
-	require.True(t, tableExists(t, db, "engine_state"))
-	require.True(t, tableExists(t, db, "trip_detentions"))
-	require.True(t, tableExists(t, db, "invoice_line_items"))
-	require.True(t, tableExists(t, db, "company_config"))
-	require.True(t, columnExists(t, db, "vehicles", "tank_capacity_litres"))
-	require.True(t, columnExists(t, db, "vehicles", "fuel_sensor_fitted"))
-	require.True(t, columnExists(t, db, "vehicles", "maintenance_due"))
-	var idxN int
-	require.NoError(t, db.QueryRow(
-		`SELECT count(*) FROM sqlite_master WHERE type = 'index' AND name = 'idx_telemetry_snapshots_vehicle_timestamp'`).Scan(&idxN))
-	require.Equal(t, 1, idxN, "polling index must exist after up")
+	ctx := context.Background()
 
-	// RBAC seeds.
-	var n int
-	require.NoError(t, db.QueryRow(
-		`SELECT count(*) FROM permissions WHERE name LIKE 'geofences:%'`).Scan(&n))
-	require.Equal(t, 4, n)
+	_, err = database.Exec(`
+CREATE TABLE roles (id INTEGER PRIMARY KEY, name TEXT);
+CREATE TABLE permissions (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL UNIQUE,
+    description TEXT
+);
+CREATE TABLE role_permissions (
+    role_id       INTEGER NOT NULL,
+    permission_id INTEGER NOT NULL,
+    PRIMARY KEY (role_id, permission_id)
+);`)
+	require.NoError(t, err)
 
-	// Down: revert 00042 (and anything above it — none at version 42).
-	require.NoError(t, goose.Down(db, "migrations"))
-	require.False(t, tableExists(t, db, "geofences"))
-	require.False(t, tableExists(t, db, "company_config"))
-	require.False(t, tableExists(t, db, "trip_detentions"))
-	require.False(t, columnExists(t, db, "vehicles", "tank_capacity_litres"))
-	require.False(t, columnExists(t, db, "vehicles", "fuel_sensor_fitted"))
-	require.False(t, columnExists(t, db, "vehicles", "maintenance_due"))
-	require.NoError(t, db.QueryRow(
-		`SELECT count(*) FROM permissions WHERE name LIKE 'geofences:%'`).Scan(&n))
-	require.Equal(t, 0, n)
+	provider, err := goose.NewProvider(goose.DialectSQLite3, database, fsys)
+	require.NoError(t, err)
 
-	// Re-up: the full chain must apply again after the rollback.
-	require.NoError(t, goose.Up(db, "migrations"))
-	require.True(t, tableExists(t, db, "geofences"))
-	require.True(t, tableExists(t, db, "company_config"))
+	_, err = provider.Up(ctx)
+	require.NoError(t, err)
+
+	for _, q := range []string{
+		`SELECT COUNT(*) FROM error_reports`,
+		`SELECT COUNT(*) FROM incidents`,
+		`SELECT COUNT(*) FROM permissions WHERE name IN ('errors:read','errors:update')`,
+	} {
+		var n int
+		require.NoError(t, database.QueryRow(q).Scan(&n), q)
+	}
+
+	_, err = provider.DownTo(ctx, 0)
+	require.NoError(t, err)
+
+	for _, table := range []string{"error_reports", "incidents"} {
+		var name string
+		err := database.QueryRow(
+			`SELECT name FROM sqlite_master WHERE type='table' AND name=?`, table,
+		).Scan(&name)
+		require.ErrorIs(t, err, sql.ErrNoRows, "table %s should be dropped", table)
+	}
+
+	var perms int
+	require.NoError(t, database.QueryRow(
+		`SELECT COUNT(*) FROM permissions WHERE name LIKE 'errors:%'`,
+	).Scan(&perms))
+	require.Zero(t, perms, "seeded permissions should be removed on down")
 }

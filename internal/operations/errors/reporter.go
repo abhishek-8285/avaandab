@@ -3,9 +3,9 @@ package errors
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
+	"transport-app/internal/shared"
 	"transport-app/internal/shared/ports"
 )
 
@@ -20,6 +20,7 @@ const (
 
 type ErrorReport struct {
 	ID          string                 `json:"id"`
+	Fingerprint string                 `json:"fingerprint,omitempty"`
 	Timestamp   time.Time              `json:"timestamp"`
 	RequestID   string                 `json:"request_id"`
 	UserID      string                 `json:"user_id"`
@@ -35,11 +36,14 @@ type ErrorReport struct {
 	UserAgent   string                 `json:"user_agent"`
 	IPAddress   string                 `json:"ip_address"`
 	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Occurrences int                    `json:"occurrences,omitempty"`
+	FirstSeen   time.Time              `json:"first_seen,omitempty"`
 }
 
 type Incident struct {
 	ID         string     `json:"id"`
 	ErrorID    string     `json:"error_id"`
+	TenantID   string     `json:"tenant_id"`
 	Status     string     `json:"status"` // OPEN, ASSIGNED, RESOLVED
 	Severity   Severity   `json:"severity"`
 	Created    time.Time  `json:"created"`
@@ -49,18 +53,15 @@ type Incident struct {
 }
 
 type Reporter struct {
-	mu          sync.RWMutex
-	errors      []ErrorReport
-	incidents   []Incident
+	store       Store
 	notifSvc    ports.NotificationService
 	environment string
 	appVersion  string
 }
 
-func NewReporter(notifSvc ports.NotificationService, env, appVersion string) *Reporter {
+func NewReporter(notifSvc ports.NotificationService, store Store, env, appVersion string) *Reporter {
 	return &Reporter{
-		errors:      make([]ErrorReport, 0),
-		incidents:   make([]Incident, 0),
+		store:       store,
 		notifSvc:    notifSvc,
 		environment: env,
 		appVersion:  appVersion,
@@ -68,7 +69,6 @@ func NewReporter(notifSvc ports.NotificationService, env, appVersion string) *Re
 }
 
 func (r *Reporter) Report(ctx context.Context, report ErrorReport) (ErrorReport, error) {
-	r.mu.Lock()
 	if report.ID == "" {
 		report.ID = fmt.Sprintf("err_%d", time.Now().UnixNano())
 	}
@@ -81,55 +81,88 @@ func (r *Reporter) Report(ctx context.Context, report ErrorReport) (ErrorReport,
 	if report.AppVersion == "" {
 		report.AppVersion = r.appVersion
 	}
-	const maxStoredErrors = 500
-	const maxStoredIncidents = 200
-
-	if len(r.errors) >= maxStoredErrors {
-		r.errors = r.errors[1:]
+	if report.Severity == "" {
+		report.Severity = SeverityMedium
 	}
-	r.errors = append(r.errors, report)
-
-	// Automatically create an incident for Critical/High errors
-	if report.Severity == SeverityCritical || report.Severity == SeverityHigh {
-		if len(r.incidents) >= maxStoredIncidents {
-			r.incidents = r.incidents[1:]
-		}
-		inc := Incident{
-			ID:       fmt.Sprintf("inc_%d", time.Now().UnixNano()),
-			ErrorID:  report.ID,
-			Status:   "OPEN",
-			Severity: report.Severity,
-			Created:  time.Now(),
-		}
-		r.incidents = append(r.incidents, inc)
+	if report.TenantID == "" {
+		report.TenantID = string(shared.TenantIDFromContext(ctx))
 	}
-	r.mu.Unlock()
+	if report.TenantID == "" {
+		report.TenantID = string(shared.DefaultTenant)
+	}
+	if r.store == nil {
+		return report, nil
+	}
 
-	// Notify tech team on Critical severity
-	if report.Severity == SeverityCritical && r.notifSvc != nil {
+	fp := Fingerprint(report.Method, report.URL, report.Message, report.TenantID)
+	merged, err := r.store.UpsertError(ctx, report, fp)
+	if err != nil {
+		return report, err
+	}
+	merged.RequestID = report.RequestID
+	merged.UserAgent = report.UserAgent
+	merged.IPAddress = report.IPAddress
+	merged.Metadata = report.Metadata
+	merged.StackTrace = report.StackTrace
+
+	if merged.Severity == SeverityCritical || merged.Severity == SeverityHigh {
+		open, err := r.store.HasOpenIncident(ctx, fp, merged.TenantID)
+		if err == nil && !open {
+			_ = r.store.CreateIncident(ctx, Incident{
+				ID:       fmt.Sprintf("inc_%d", time.Now().UnixNano()),
+				ErrorID:  merged.ID,
+				TenantID: merged.TenantID,
+				Status:   "OPEN",
+				Severity: merged.Severity,
+				Created:  time.Now(),
+			})
+		}
+	}
+
+	if merged.Severity == SeverityCritical && r.notifSvc != nil {
 		_ = r.notifSvc.SendEmail(ctx, ports.NotificationMessage{
 			Recipient: "tech-alerts@flyfleet.io",
 			Subject:   fmt.Sprintf("[CRITICAL ALERT] %s - %s", report.Method, report.URL),
-			Body:      fmt.Sprintf("Error ID: %s\nMessage: %s\nStack Trace:\n%s", report.ID, report.Message, report.StackTrace),
-			Type:      ports.NotificationTypeEmail,
+			Body: fmt.Sprintf("Error ID: %s\nMessage: %s\nStack Trace:\n%s",
+				merged.ID, merged.Message, report.StackTrace),
+			Type: ports.NotificationTypeEmail,
 		})
 	}
 
-	return report, nil
+	return merged, nil
 }
 
-func (r *Reporter) ListErrors() []ErrorReport {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	copied := make([]ErrorReport, len(r.errors))
-	copy(copied, r.errors)
-	return copied
+func (r *Reporter) GetError(ctx context.Context, fingerprint, tenantID string) (ErrorReport, error) {
+	if r.store == nil {
+		return ErrorReport{}, fmt.Errorf("errors: store not configured")
+	}
+	return r.store.GetError(ctx, fingerprint, tenantID)
 }
 
-func (r *Reporter) ListIncidents() []Incident {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	copied := make([]Incident, len(r.incidents))
-	copy(copied, r.incidents)
-	return copied
+func (r *Reporter) ListErrors(ctx context.Context, f ErrorFilter) ([]ErrorReport, error) {
+	if r.store == nil {
+		return []ErrorReport{}, nil
+	}
+	return r.store.ListErrors(ctx, f)
+}
+
+func (r *Reporter) CountErrors(ctx context.Context, f ErrorFilter) (int, error) {
+	if r.store == nil {
+		return 0, nil
+	}
+	return r.store.CountErrors(ctx, f)
+}
+
+func (r *Reporter) ListIncidents(ctx context.Context, f IncidentFilter) ([]Incident, error) {
+	if r.store == nil {
+		return []Incident{}, nil
+	}
+	return r.store.ListIncidents(ctx, f)
+}
+
+func (r *Reporter) ResolveIncident(ctx context.Context, id, tenantID, status, assignedTo, rootCause string) error {
+	if r.store == nil {
+		return nil
+	}
+	return r.store.ResolveIncident(ctx, id, tenantID, status, assignedTo, rootCause)
 }

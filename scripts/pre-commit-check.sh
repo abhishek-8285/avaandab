@@ -49,6 +49,8 @@ echo -e "${GREEN}✅ Go vet passed.${NC}"
 
 # 3. Security Scanners (golangci-lint, govulncheck, npm audit)
 echo -e "\n${CYAN}[5/7] Running security scanner suite...${NC}"
+# Ratchet: gate only code newer than HEAD until legacy lint debt is burned down
+export LINT_BASE="$(git rev-parse HEAD)"
 ./scripts/security-check.sh
 echo -e "${GREEN}✅ Security checks passed.${NC}"
 

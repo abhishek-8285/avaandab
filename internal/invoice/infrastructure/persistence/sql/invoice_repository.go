@@ -14,11 +14,32 @@ import (
 	"transport-app/internal/shared/outbox"
 )
 
-const updateInvoiceExtraFieldsSQL = `
+// updateInvoiceFullSQL writes every invoice column in ONE statement guarded
+// by optimistic concurrency (version from migration 00021). A concurrent
+// writer bumps version, so our UPDATE matches zero rows and we surface a
+// conflict instead of silently overwriting.
+const updateInvoiceFullSQL = `
 UPDATE invoices
-SET status = ?, paid_amount = ?, due_date = ?, cgst = ?, sgst = ?, igst = ?, irn = ?, irn_ack_no = ?, irn_ack_date = ?, signed_qr = ?, ewb_number = ?, updated_at = datetime('now')
+SET invoice_number = ?, booking_id = ?, customer_id = ?, trip_id = ?,
+    subtotal = ?, tax = ?, discount = ?, total = ?, payment_status = ?,
+    status = ?, paid_amount = ?, due_date = ?, cgst = ?, sgst = ?, igst = ?,
+    irn = ?, irn_ack_no = ?, irn_ack_date = ?, signed_qr = ?, ewb_number = ?,
+    version = version + 1, updated_at = datetime('now')
+WHERE id = ? AND tenant_id = ? AND version = ?
+`
+
+// insertInvoiceExtendedSQL persists GST/e-invoice columns on first save.
+// Runs immediately after CreateInvoice inside the same call, so no version
+// guard or bump applies — create pins version at 1.
+const insertInvoiceExtendedSQL = `
+UPDATE invoices
+SET status = ?, paid_amount = ?, due_date = ?, cgst = ?, sgst = ?, igst = ?,
+    irn = ?, irn_ack_no = ?, irn_ack_date = ?, signed_qr = ?, ewb_number = ?,
+    updated_at = datetime('now')
 WHERE id = ? AND tenant_id = ?
 `
+
+var errInvoiceConcurrencyConflict = errors.New("concurrency conflict: invoice modified by another process")
 
 const findInvoiceByIDSQL = `
 SELECT id, invoice_number, booking_id, customer_id, trip_id,
@@ -112,38 +133,43 @@ func (r *invoiceRepository) Save(ctx context.Context, inv *aggregate.InvoiceAggr
 		if err != nil {
 			return err
 		}
-	} else {
-		_, err = r.Q(ctx).UpdateInvoice(ctx, db.UpdateInvoiceParams{
-			InvoiceNumber: inv.InvoiceNumber,
-			BookingID:     inv.BookingID,
-			CustomerID:    inv.CustomerID,
-			TripID:        tripID,
-			Subtotal:      inv.Subtotal,
-			Tax:           inv.Tax,
-			Discount:      inv.Discount,
-			Total:         inv.Total,
-			PaymentStatus: string(inv.PaymentStatus),
-			ID:            string(inv.ID),
-			TenantID:      string(inv.TenantID),
-		})
+		inv.Version = 1
+		// First save may already carry e-invoice/GST fields (IRN, QR, EWB,
+		// taxes). CreateInvoice writes only core columns; the extended write
+		// below must NOT bump version — create pins it at 1.
+		var dueDate0 sql.NullTime
+		if inv.DueDate != nil {
+			dueDate0 = sql.NullTime{Time: *inv.DueDate, Valid: true}
+		}
+		_, err = r.exec(ctx).ExecContext(ctx, insertInvoiceExtendedSQL,
+			string(inv.Status), inv.PaidAmount, dueDate0, inv.Cgst, inv.Sgst, inv.Igst,
+			nullStringPtr(inv.IRN), nullStringPtr(inv.IRNAckNo), nullStringPtr(inv.IRNAckDate),
+			nullStringPtr(inv.SignedQR), nullStringPtr(inv.EwbNumber),
+			string(inv.ID), string(inv.TenantID),
+		)
 		if err != nil {
 			return err
 		}
-	}
-
-	var dueDate sql.NullTime
-	if inv.DueDate != nil {
-		dueDate = sql.NullTime{Time: *inv.DueDate, Valid: true}
-	}
-	_, err = r.exec(ctx).ExecContext(ctx, updateInvoiceExtraFieldsSQL,
-		string(inv.Status), inv.PaidAmount, dueDate,
-		inv.Cgst, inv.Sgst, inv.Igst,
-		nullStringPtr(inv.IRN), nullStringPtr(inv.IRNAckNo), nullStringPtr(inv.IRNAckDate),
-		nullStringPtr(inv.SignedQR), nullStringPtr(inv.EwbNumber),
-		string(inv.ID), string(inv.TenantID),
-	)
-	if err != nil {
-		return err
+	} else {
+		var dueDate sql.NullTime
+		if inv.DueDate != nil {
+			dueDate = sql.NullTime{Time: *inv.DueDate, Valid: true}
+		}
+		res, err := r.exec(ctx).ExecContext(ctx, updateInvoiceFullSQL,
+			inv.InvoiceNumber, inv.BookingID, inv.CustomerID, tripID,
+			inv.Subtotal, inv.Tax, inv.Discount, inv.Total, string(inv.PaymentStatus),
+			string(inv.Status), inv.PaidAmount, dueDate, inv.Cgst, inv.Sgst, inv.Igst,
+			nullStringPtr(inv.IRN), nullStringPtr(inv.IRNAckNo), nullStringPtr(inv.IRNAckDate),
+			nullStringPtr(inv.SignedQR), nullStringPtr(inv.EwbNumber),
+			string(inv.ID), string(inv.TenantID), inv.Version,
+		)
+		if err != nil {
+			return err
+		}
+		if affected, err := res.RowsAffected(); err == nil && affected == 0 {
+			return errInvoiceConcurrencyConflict
+		}
+		inv.Version++
 	}
 
 	err = r.outbox.SaveEvents(ctx, string(inv.ID), "Invoice", inv.Events())

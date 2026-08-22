@@ -60,7 +60,10 @@ Single source of truth for `db/migrations/` version numbers. Repo head is
 | 00078 | RBAC: rag:read / rag:write permissions for /api/rag/* gating | Security audit fix M2 |
 | 00079 | Worker leader-election lease table (worker_leases) | Multi-instance safety |
 | 00080 | Backfill: legacy POD photos company_logo → trip_pod (uploadable_id ∈ trips) | POD privacy fix |
-| 00081+ | future specs (AIS-140/VLT, ERP) | reserved |
+| 00081 | Rebuild `trips` — status CHECK gains reached_pickup/in_transit/delivered (Spec 09 lifecycle) | Spec 13 mobile e-POD E2E fix |
+| 00082 | driver_expenses geo capture (latitude/longitude) | Spec 13 mobile kharcha flow |
+| 00083 | error_reports + incidents DDL (carried over from 00058 gap) — renumbered from duplicate 00081 | Spec 16 §3 |
+| 00084+ | future specs (AIS-140/VLT, ERP) | reserved |
 
 ## Implementation rule
 Pick the number from this table for your feature and update the spec's §3 to

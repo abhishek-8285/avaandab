@@ -2,19 +2,36 @@ package handlers
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
 
+	"transport-app/internal/apperr"
 	bookingapp "transport-app/internal/booking/application"
 	bookingagg "transport-app/internal/booking/domain/aggregate"
+	"transport-app/internal/httpx"
+	"transport-app/internal/logging"
 	"transport-app/internal/middleware"
 	"transport-app/internal/shared"
 	clock "transport-app/internal/shared/clock"
 	id "transport-app/internal/shared/id"
 	uow "transport-app/internal/shared/uow"
 )
+
+func bookingActionFailed(h *BookingHandlers, w http.ResponseWriter, r *http.Request, err error, title string) {
+	msg := "Something went wrong while processing this booking. Please try again."
+	if ae, ok := apperr.From(err); ok {
+		msg = ae.UserMsg
+	}
+	slog.ErrorContext(r.Context(), "booking action failed",
+		slog.String("path", r.URL.Path),
+		slog.String("error", logging.Redact(err.Error())),
+	)
+	session, _ := h.getUserFromContext(r)
+	h.renderError(w, http.StatusBadRequest, title, msg, session)
+}
 
 // BookingHandlers handles booking management.
 type BookingHandlers struct {
@@ -74,7 +91,7 @@ func (h *BookingHandlers) List(w http.ResponseWriter, r *http.Request) {
 		Status:   pp.Status,
 	})
 	if err != nil {
-		http.Error(w, "Failed to list bookings", http.StatusInternalServerError)
+		httpx.Error(w, r, err)
 		return
 	}
 
@@ -111,7 +128,7 @@ func (h *BookingHandlers) New(w http.ResponseWriter, r *http.Request) {
 func (h *BookingHandlers) Create(w http.ResponseWriter, r *http.Request) {
 	h.init()
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.Error(w, r, apperr.New(apperr.CodeValidation).WithCause(err))
 		return
 	}
 
@@ -135,7 +152,13 @@ func (h *BookingHandlers) Create(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		session, _ := h.getUserFromContext(r)
-		h.renderForm(w, r, "booking_edit.html", PageData{Title: "New Booking", User: session, FlashError: err.Error()})
+		flash := "We couldn't save this booking. Please review the details and try again."
+		if ae, ok := apperr.From(err); ok {
+			flash = ae.UserMsg
+		}
+		slog.ErrorContext(r.Context(), "booking create failed",
+			slog.String("error", logging.Redact(err.Error())))
+		h.renderForm(w, r, "booking_edit.html", PageData{Title: "New Booking", User: session, FlashError: flash})
 		return
 	}
 
@@ -190,7 +213,7 @@ func (h *BookingHandlers) Edit(w http.ResponseWriter, r *http.Request) {
 func (h *BookingHandlers) Update(w http.ResponseWriter, r *http.Request) {
 	h.init()
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.Error(w, r, apperr.New(apperr.CodeValidation).WithCause(err))
 		return
 	}
 
@@ -222,10 +245,17 @@ func (h *BookingHandlers) Update(w http.ResponseWriter, r *http.Request) {
 		customers, _, _ := h.Services.Customers.ListCustomers(r.Context(), "", 1000, 0)
 		routes, _, _ := h.Services.Routes.ListRoutes(r.Context(), "", 1000, 0)
 		session, _ := h.getUserFromContext(r)
+		flash := "We couldn't save your changes. Please review the details and try again."
+		if ae, ok := apperr.From(err); ok {
+			flash = ae.UserMsg
+		}
+		slog.ErrorContext(r.Context(), "booking update failed",
+			slog.String("booking_id", id),
+			slog.String("error", logging.Redact(err.Error())))
 		h.renderForm(w, r, "booking_edit.html", PageData{
 			Title:      "Edit Booking",
 			User:       session,
-			FlashError: err.Error(),
+			FlashError: flash,
 			Extra:      map[string]interface{}{"Booking": booking, "Customers": customers, "Routes": routes},
 		})
 		return
@@ -243,7 +273,7 @@ func (h *BookingHandlers) Complete(w http.ResponseWriter, r *http.Request) {
 		TenantID:  tenantID,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		bookingActionFailed(h, w, r, err, "Could Not Complete Booking")
 		return
 	}
 	http.Redirect(w, r, "/bookings/"+id, http.StatusSeeOther)
@@ -258,7 +288,7 @@ func (h *BookingHandlers) Delete(w http.ResponseWriter, r *http.Request) {
 		BookingID: bookingagg.BookingID(id),
 		TenantID:  tenantID,
 	}); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		bookingActionFailed(h, w, r, err, "Could Not Delete Booking")
 		return
 	}
 	http.Redirect(w, r, "/bookings", http.StatusSeeOther)
@@ -274,7 +304,7 @@ func (h *BookingHandlers) Confirm(w http.ResponseWriter, r *http.Request) {
 		TenantID:  tenantID,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		bookingActionFailed(h, w, r, err, "Could Not Confirm Booking")
 		return
 	}
 	http.Redirect(w, r, "/bookings/"+id, http.StatusSeeOther)
@@ -290,7 +320,7 @@ func (h *BookingHandlers) Cancel(w http.ResponseWriter, r *http.Request) {
 		TenantID:  tenantID,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		bookingActionFailed(h, w, r, err, "Could Not Cancel Booking")
 		return
 	}
 	http.Redirect(w, r, "/bookings/"+id, http.StatusSeeOther)

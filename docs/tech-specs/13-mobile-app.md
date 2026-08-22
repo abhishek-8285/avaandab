@@ -28,22 +28,22 @@ Migration owner: none — NO new backend DB tables. All driver identity flows th
 | Expense capture (kharcha) | BUILT BUT UNMOUNTED | `ExpenseScreen.tsx:125` real POST `/api/v1/kharcha/expense`; never registered in any navigator |
 | i18n (7 locales en/hi/ta/te/kn/mr/gu) | BUILT BUT UNWIRED | `src/i18n.ts` + `src/locales/*.json`; no screen imports it |
 
-### 1.1 Known broken / mock remnants (verified)
+### 1.1 Gap register (verified 2026-08-22; fixed in P1/P2 wave same day)
 
-| # | Issue | Evidence | Sev |
-|---|---|---|---|
-| G1 | `ExpenseScreen` unreachable — kharcha flow dead in app | not imported by `App.tsx` | M |
-| G2 | `ForgotPasswordScreen` POSTs `${API}/forgot-password` (web-form route, urlencoded, renders HTML) and shows success on ANY error incl. network fail | `ForgotPasswordScreen.tsx:26,35-39`; route is page+form (`main.go:904-905`, `auth.go:469-470`) | M |
-| G3 | `RegisterScreen` reads nested `data.user?.id`, sets uppercase `'DRIVER'`, silently sends hardcoded plate `MH-12-AB-9942` when empty | `RegisterScreen.tsx:42,62,64` | M |
-| G4 | Silent GPS fake relocated: App.tsx falls back `loc.latitude \|\| DEFAULT_LATITUDE` | `App.tsx:263-264` | M |
-| G5 | ActiveNavigation nav HUD 100% static mock (turn card, speed, stops, ETA, REF#) | `ActiveNavigationScreen.tsx:70-106` | M |
-| G6 | LiveDriverTrackingMap marker labels hardcoded ("Mumbai Port Terminal 2", "#TRK-9942", "Pune Logistics Hub B"); straight-line polyline, no route geometry | `LiveDriverTrackingMap.tsx:24-33,63-77` | L |
-| G7 | Logout does not call `MQTT.disconnect()` nor stop location tracking | `App.tsx:358` only `logout()` | M |
-| G8 | Signature pad missing-native-dep fallback injects `"MOCK SIGN"` base64 | `DeliveryVerificationScreen.tsx:23-30,255-260` | L |
-| G9 | syncEngine DB-path logs omit `accuracy_m` (storage schema lacks column); offlineQueue path sends it | `syncEngine.ts:117-120` vs `offlineQueue.ts:363` | L |
-| G10 | No `mobile/.env.example` committed | file absent | L |
-| G11 | Backend broker TCP-only (`tcp://localhost:1883`, `main.go:550-561`); no WS listener on 9001 → MQTT always fails → HTTP-only telemetry in practice | `network.ts:11-13` expects `ws://127.0.0.1:9001` | M |
-| G12 | DriverStack params fall back `tripId \|\| '1'` — soft mock default | `App.tsx:145,147,156` | L |
+| # | Issue | Evidence | Sev | Status |
+|---|---|---|---|---|
+| G1 | `ExpenseScreen` unreachable — kharcha flow dead in app | not imported by `App.tsx` | M | **FIXED** — registered as `Expenses` route; entry button in dispatch tab w/ active-trip context (`App.tsx`) |
+| G2 | `ForgotPasswordScreen` POSTs web-form `/forgot-password`, fake success on any error | `ForgotPasswordScreen.tsx` | M | **FIXED** — new JSON API `POST /api/v1/auth/forgot-password` + `POST /api/v1/auth/reset-password` (`internal/handlers/auth.go`, public+rate-limited in `main.go`); screen posts JSON, shows real network errors, opens dev `reset_link` |
+| G3 | `RegisterScreen` nested-only parse, uppercase `'DRIVER'`, hardcoded plate `MH-12-AB-9942` | `RegisterScreen.tsx` | M | **FIXED** — accepts nested `user.id` ∨ flat `user_id`, role `'driver'`, `vehicle_number` sent only when provided |
+| G4 | Silent GPS fake `\|\| DEFAULT_LATITUDE` | `App.tsx` requestLocation | M | **FIXED** — null coords → explicit "Location Unavailable" alert; no publish/tracking start |
+| G5 | ActiveNavigation nav HUD 100% static mock (turn card, speed, stops, ETA, REF#) | `ActiveNavigationScreen.tsx:70-106` | M | **FIXED** — HUD fully data-driven via `utils/navState.ts` `deriveNavState()` (leg from real status, real origin/destination names, REF#=tripNumber, GPS km/h speed); fake turn-by-turn/ETA/speed-limit removed; route geometry + true ETA remain P4 under routing-provider decision D4 |
+| G6 | LiveDriverTrackingMap hardcoded marker labels + false "MQTT STREAM" banner | `LiveDriverTrackingMap.tsx` | L | **FIXED** — `pickupLabel`/`destinationLabel`/`vehicleLabel` props fed from real trip; banner now "LIVE · GPS TELEMETRY" |
+| G7 | Logout leaves MQTT client + location watch running | `App.tsx` sign-out | M | **FIXED** — `handleSignOut` runs `MQTT.disconnect()` + `Telemetry.stopLiveLocationTracking()` + `SyncEngine.stopAutoSync()` + `stopNetworkWatcher()` before `logout()` |
+| G8 | Missing-native-dep signature fallback injected `"MOCK SIGN"` base64 | `DeliveryVerificationScreen.tsx` | L | **FIXED** — fallback shows honest message (photo/name paths remain) |
+| G9 | DB-path GPS logs omitted `accuracy_m`; backend payload lacked field | `syncEngine.ts` / `storage.ts` / `internal/telemetry/sync.go` | L | **FIXED END-TO-END** — storage `accuracy` column (+ALTER upgrade), telemetry.ts captures it, syncEngine sends `accuracy_m` (omitted when null), `GPSLogPayload.AccuracyM` added server-side |
+| G10 | No `mobile/.env.example` committed | file absent | L | **FIXED** — committed with dev/prod blocks incl. broker WS note |
+| G11 | Backend broker TCP-only; no WS listener on 9001 → HTTP-only telemetry in practice | `main.go:550-561` vs `network.ts` | M | **RESOLVED IN-REPO** — `config/mosquitto.conf` already declares `listener 9001 protocol websockets` and `docker-compose.yml` publishes it; remaining step is live E2E verify on a deployed broker (no embedded broker in Go server) |
+| G12 | DriverStack params fell back `tripId \|\| '1'` soft mock | `App.tsx` navigators | L | **FIXED** — defaults removed; POD submit + arrive-stop guarded with "No Trip Selected" alerts |
 
 ---
 

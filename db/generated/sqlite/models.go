@@ -330,6 +330,8 @@ type DriverExpense struct {
 	AuditStatus    string          `json:"audit_status"`
 	FuelLitres     sql.NullFloat64 `json:"fuel_litres"`
 	IdempotencyKey sql.NullString  `json:"idempotency_key"`
+	Latitude       sql.NullFloat64 `json:"latitude"`
+	Longitude      sql.NullFloat64 `json:"longitude"`
 }
 
 type DriverScore struct {
@@ -394,6 +396,27 @@ type EngineState struct {
 	LastLat       sql.NullFloat64 `json:"last_lat"`
 	LastLng       sql.NullFloat64 `json:"last_lng"`
 	UpdatedAt     time.Time       `json:"updated_at"`
+}
+
+type ErrorReport struct {
+	ID          string         `json:"id"`
+	Fingerprint string         `json:"fingerprint"`
+	TenantID    string         `json:"tenant_id"`
+	UserID      sql.NullString `json:"user_id"`
+	Url         string         `json:"url"`
+	Method      string         `json:"method"`
+	StatusCode  int64          `json:"status_code"`
+	Severity    string         `json:"severity"`
+	Message     string         `json:"message"`
+	StackTrace  string         `json:"stack_trace"`
+	Environment string         `json:"environment"`
+	AppVersion  string         `json:"app_version"`
+	Occurrences int64          `json:"occurrences"`
+	FirstSeen   string         `json:"first_seen"`
+	LastSeen    string         `json:"last_seen"`
+	CreatedAt   string         `json:"created_at"`
+	RequestID   string         `json:"request_id"`
+	Metadata    string         `json:"metadata"`
 }
 
 type EtaHistory struct {
@@ -673,6 +696,18 @@ type I18nKey struct {
 	Kn  string `json:"kn"`
 	Mr  string `json:"mr"`
 	Gu  string `json:"gu"`
+}
+
+type Incident struct {
+	ID         string         `json:"id"`
+	ErrorID    string         `json:"error_id"`
+	TenantID   string         `json:"tenant_id"`
+	Status     string         `json:"status"`
+	Severity   string         `json:"severity"`
+	AssignedTo string         `json:"assigned_to"`
+	RootCause  string         `json:"root_cause"`
+	Created    string         `json:"created"`
+	ResolvedAt sql.NullString `json:"resolved_at"`
 }
 
 type Invoice struct {
@@ -1078,8 +1113,8 @@ type Trip struct {
 	Remarks               sql.NullString  `json:"remarks"`
 	CreatedAt             time.Time       `json:"created_at"`
 	UpdatedAt             time.Time       `json:"updated_at"`
-	Version               int64           `json:"version"`
 	TenantID              string          `json:"tenant_id"`
+	Version               int64           `json:"version"`
 	StartedAt             sql.NullTime    `json:"started_at"`
 	ReachedPickupAt       sql.NullTime    `json:"reached_pickup_at"`
 	InTransitAt           sql.NullTime    `json:"in_transit_at"`

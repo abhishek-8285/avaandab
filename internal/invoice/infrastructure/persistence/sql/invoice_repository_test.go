@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	_ "modernc.org/sqlite"
 
 	"transport-app/internal/invoice/domain/aggregate"
@@ -225,4 +226,43 @@ func TestInvoiceRepository_FindNonExistent(t *testing.T) {
 
 	_, err := repo.Find(ctx, "does-not-exist", shared.TenantID("1"))
 	assert.ErrorIs(t, err, sql.ErrNoRows)
+}
+
+func TestInvoiceRepository_OptimisticConcurrency(t *testing.T) {
+	dbConn := setupInvoiceDB(t)
+	defer func() { _ = dbConn.Close() }()
+
+	repo := NewInvoiceRepository(dbConn)
+	ctx := context.Background()
+	now := time.Date(2026, 8, 6, 12, 0, 0, 0, time.UTC)
+
+	agg := aggregate.NewInvoiceAggregate(
+		"inv-cc", shared.TenantID("1"), "INV-0099", "bk-1", "cust-1", nil,
+		1000.0, 100.0, 0.0, 1100.0, aggregate.PaymentStatusPending, now,
+	)
+	require.NoError(t, repo.Save(ctx, agg))
+	assert.Equal(t, int64(1), agg.Version, "create pins version at 1")
+
+	writerA, err := repo.Find(ctx, "inv-cc", shared.TenantID("1"))
+	require.NoError(t, err)
+	writerB, err := repo.Find(ctx, "inv-cc", shared.TenantID("1"))
+	require.NoError(t, err)
+	require.Equal(t, int64(1), writerA.Version)
+	require.Equal(t, int64(1), writerB.Version)
+
+	// Writer B commits first.
+	writerB.PaidAmount = 300
+	writerB.PaymentStatus = aggregate.PaymentStatusPartiallyPaid
+	require.NoError(t, repo.Save(ctx, writerB))
+	assert.Equal(t, int64(2), writerB.Version, "successful update bumps version")
+
+	// Writer A still holds version 1 — its save must be rejected, not overwrite B.
+	writerA.PaidAmount = 999
+	err = repo.Save(ctx, writerA)
+	require.ErrorIs(t, err, errInvoiceConcurrencyConflict)
+
+	found, err := repo.Find(ctx, "inv-cc", shared.TenantID("1"))
+	require.NoError(t, err)
+	assert.Equal(t, 300.0, found.PaidAmount, "writer B's data must survive stale write")
+	assert.Equal(t, int64(2), found.Version)
 }

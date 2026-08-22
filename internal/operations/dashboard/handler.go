@@ -5,8 +5,10 @@ import (
 	"net/http"
 	"time"
 
+	"transport-app/internal/httpx"
 	"transport-app/internal/operations/audit"
 	"transport-app/internal/operations/errors"
+	"transport-app/internal/shared"
 )
 
 type DashboardHandler struct {
@@ -43,8 +45,17 @@ type SummaryResponse struct {
 }
 
 func (h *DashboardHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	errs := h.reporter.ListErrors()
-	incidents := h.reporter.ListIncidents()
+	tenantID := string(shared.TenantIDFromContext(r.Context()))
+	errs, err := h.reporter.ListErrors(r.Context(), errors.ErrorFilter{TenantID: tenantID, Limit: 50})
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
+	incidents, err := h.reporter.ListIncidents(r.Context(), errors.IncidentFilter{TenantID: tenantID, Limit: 50})
+	if err != nil {
+		httpx.Error(w, r, err)
+		return
+	}
 
 	openIncidents := 0
 	for _, inc := range incidents {
