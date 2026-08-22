@@ -49,7 +49,7 @@ func GenerateInvoicePDF(inv invoice.Invoice, companyName string) ([]byte, error)
 	pdf.SetFont("Arial", "B", 10)
 	pdf.SetTextColor(30, 30, 30)
 	pdf.CellFormat(120, 8, "Description", "1", 0, "L", true, 0, "")
-	pdf.CellFormat(60, 8, "Amount ($)", "1", 1, "R", true, 0, "")
+	pdf.CellFormat(60, 8, "Amount (Rs.)", "1", 1, "R", true, 0, "")
 
 	// Items
 	pdf.SetFont("Arial", "", 10)

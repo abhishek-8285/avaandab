@@ -82,6 +82,161 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
+  /api/v1/errors:
+    get:
+      tags: [Errors]
+      summary: List error report groups
+      description: Requires `errors:read` permission. Returns deduplicated error groups (fingerprint + tenant scoped).
+      parameters:
+        - name: severity
+          in: query
+          schema: { type: string, enum: [CRITICAL, HIGH, MEDIUM, LOW] }
+        - name: fingerprint
+          in: query
+          schema: { type: string }
+        - name: from
+          in: query
+          description: RFC3339 or YYYY-MM-DD, filters on last_seen.
+          schema: { type: string }
+        - name: to
+          in: query
+          description: RFC3339 or YYYY-MM-DD, filters on last_seen.
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 500, default: 100 }
+        - name: offset
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        '200':
+          description: Error groups with total count.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: array
+                    items: { $ref: '#/components/schemas/ErrorReport' }
+                  total: { type: integer }
+                  limit: { type: string }
+                  offset: { type: string }
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/errors/{fingerprint}:
+    get:
+      tags: [Errors]
+      summary: Get one error report group
+      description: Requires `errors:read` permission. Powers the /ops/errors detail drawer.
+      parameters:
+        - name: fingerprint
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Full error group detail (message, stack trace, metadata, occurrence stats).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorReport' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/errors/incidents:
+    get:
+      tags: [Errors]
+      summary: List incidents
+      description: Requires `errors:read` permission.
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [OPEN, ASSIGNED, RESOLVED] }
+      responses:
+        '200':
+          description: Incident list.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  incidents:
+                    type: array
+                    items: { $ref: '#/components/schemas/Incident' }
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/errors/incidents/{incidentID}/resolve:
+    post:
+      tags: [Errors]
+      summary: Update an incident
+      description: Requires `errors:update` permission. Sets status (OPEN/ASSIGNED/RESOLVED), assignee, and root cause.
+      parameters:
+        - name: incidentID
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [OPEN, ASSIGNED, RESOLVED] }
+                assigned_to: { type: string }
+                root_cause: { type: string }
+      responses:
+        '200':
+          description: Incident updated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/errors/client:
+    post:
+      tags: [Errors]
+      summary: Report a client-side error
+      description: Captures browser errors (message, stack, breadcrumbs, viewport) into the deduplicated error store. Authenticated users get their user id attached.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message: { type: string }
+                stack: { type: string }
+                path: { type: string }
+                user_agent: { type: string }
+                viewport: { type: string }
+                request_id: { type: string }
+                breadcrumbs:
+                  type: array
+                  items: { type: string }
+      responses:
+        '200':
+          description: Report stored; returns error_id + correlation_id.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string }
+                  error_id: { type: string }
+                  correlation_id: { type: string }
+
   /api/v1/bookings:
     get:
       tags: [Bookings]
@@ -737,7 +892,7 @@ paths:
     post:
       tags: [Payments]
       summary: Reverse a payment
-      description: Requires `payments:create` permission.
+      description: Requires `payments:delete` permission.
       parameters:
         - $ref: '#/components/parameters/IDParam'
       requestBody:
@@ -805,8 +960,9 @@ paths:
     post:
       tags: [Telemetry]
       summary: Sync GPS log batch
-      description: Public endpoint for mobile clients to upload buffered GPS logs.
-      security: []
+      description: Requires bearer auth. Mobile clients upload buffered GPS logs here.
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -827,8 +983,9 @@ paths:
     post:
       tags: [Telemetry]
       summary: Submit telemetry snapshot
-      description: Public endpoint for live vehicle telemetry snapshots.
-      security: []
+      description: Requires bearer auth. Live vehicle telemetry snapshots.
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -889,6 +1046,43 @@ components:
       description: Status filter.
 
   schemas:
+    ErrorReport:
+      type: object
+      properties:
+        id: { type: string }
+        fingerprint: { type: string }
+        timestamp: { type: string, format: date-time, description: Last occurrence (last_seen). }
+        request_id: { type: string }
+        user_id: { type: string }
+        tenant_id: { type: string }
+        url: { type: string }
+        method: { type: string }
+        status_code: { type: integer }
+        stack_trace: { type: string }
+        message: { type: string }
+        severity: { type: string, enum: [CRITICAL, HIGH, MEDIUM, LOW] }
+        environment: { type: string }
+        app_version: { type: string }
+        occurrences: { type: integer }
+        first_seen: { type: string, format: date-time }
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Client capture payload (breadcrumbs, viewport, source).
+
+    Incident:
+      type: object
+      properties:
+        id: { type: string }
+        error_id: { type: string }
+        tenant_id: { type: string }
+        status: { type: string, enum: [OPEN, ASSIGNED, RESOLVED] }
+        severity: { type: string, enum: [CRITICAL, HIGH, MEDIUM, LOW] }
+        created: { type: string, format: date-time }
+        assigned_to: { type: string }
+        resolved_at: { type: string, format: date-time, nullable: true }
+        root_cause: { type: string }
+
     TokenRequest:
       type: object
       required: [email, password]
@@ -1390,8 +1584,10 @@ components:
 
     SyncBatchRequest:
       type: object
-      required: [driver_id, logs]
+      required: [device_id, logs]
       properties:
+        device_id:
+          type: string
         driver_id:
           type: string
         logs:

@@ -63,7 +63,7 @@ func (uc *UpdateBookingUseCase) Execute(ctx context.Context, cmd UpdateBookingCo
 		}
 	}
 
-	priceMoney := shared.FloatToMoney(cmd.Price, "USD")
+	priceMoney := shared.FloatToMoney(cmd.Price, "INR")
 
 	return uc.uow.Execute(ctx, func(txCtx ports.TxContext) error {
 		repo, ok := txCtx.Repositories().Bookings().(domain.BookingRepository)

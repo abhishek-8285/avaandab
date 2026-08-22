@@ -60,6 +60,7 @@ export const initDatabase = async (): Promise<void> => {
       latitude REAL NOT NULL,
       longitude REAL NOT NULL,
       timestamp TEXT NOT NULL,
+      accuracy REAL,
       synced INTEGER DEFAULT 0
     );
 
@@ -75,6 +76,13 @@ export const initDatabase = async (): Promise<void> => {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `);
+
+  // Upgrade path for installs created before the accuracy column existed.
+  try {
+    await db.execAsync(`ALTER TABLE offline_gps_logs ADD COLUMN accuracy REAL;`);
+  } catch {
+    // Column already present — expected on every run after first upgrade.
+  }
 };
 
 export const DB = {
@@ -99,22 +107,22 @@ export const DB = {
     return rows;
   },
 
-  async logGPSLocation(lat: number, lng: number): Promise<void> {
+  async logGPSLocation(lat: number, lng: number, accuracy?: number | null): Promise<void> {
     await initDatabase();
     if (!db) return;
 
     await db.runAsync(
-      'INSERT INTO offline_gps_logs (latitude, longitude, timestamp) VALUES (?, ?, ?);',
-      [lat, lng, new Date().toISOString()]
+      'INSERT INTO offline_gps_logs (latitude, longitude, timestamp, accuracy) VALUES (?, ?, ?, ?);',
+      [lat, lng, new Date().toISOString(), accuracy ?? null]
     );
   },
 
-  async getUnsyncedGPSLogs(): Promise<{ id: number; latitude: number; longitude: number; timestamp: string }[]> {
+  async getUnsyncedGPSLogs(): Promise<{ id: number; latitude: number; longitude: number; timestamp: string; accuracy_m: number | null }[]> {
     await initDatabase();
     if (!db) return [];
 
-    const rows = await db.getAllAsync<{ id: number; latitude: number; longitude: number; timestamp: string }>(
-      `SELECT id, latitude, longitude, timestamp FROM offline_gps_logs WHERE synced = 0 ORDER BY id ASC LIMIT 50;`
+    const rows = await db.getAllAsync<{ id: number; latitude: number; longitude: number; timestamp: string; accuracy_m: number | null }>(
+      `SELECT id, latitude, longitude, timestamp, accuracy AS accuracy_m FROM offline_gps_logs WHERE synced = 0 ORDER BY id ASC LIMIT 50;`
     );
     return rows;
   },

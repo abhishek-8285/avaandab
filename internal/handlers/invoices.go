@@ -97,7 +97,7 @@ func (h *InvoiceHandlers) List(w http.ResponseWriter, r *http.Request) {
 	h.renderPage(w, r, "invoice_list.html", PageData{
 		Title: "Invoices",
 		User:  session,
-		Extra: map[string]interface{}{"Invoices": res.Invoices, "Pagination": pd, "Query": pp.Query, "StatusFilter": pp.Status},
+		Extra: map[string]interface{}{"Invoices": res.Invoices, "Pagination": pd, "Query": pp.Query, "StatusFilter": pp.Status, "KPIs": h.invoiceKPIs(r.Context())},
 	})
 }
 

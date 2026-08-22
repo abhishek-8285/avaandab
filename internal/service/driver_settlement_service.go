@@ -157,43 +157,23 @@ func (s *DriverSettlementService) GenerateSettlement(ctx context.Context, tripID
 		netPayout = 0
 	}
 
-	// 7. Persist driver_settlements
+	// 7-8. Persist driver_settlements header + settlement_lines ATOMICALLY:
+	// a crash mid-write must never leave a header without its lines.
 	settlementID := "stl-" + uuid.New().String()
-	rateBasisJSON, _ := json.Marshal(rateResult.RateBasis)
+	rateBasisJSON, err := json.Marshal(rateResult.RateBasis)
+	if err != nil {
+		return nil, fmt.Errorf("marshal rate basis: %w", err)
+	}
 	now := time.Now().UTC()
 
-	// If force and exists, delete existing lines to re-populate
-	if force {
-		var oldID string
-		if err := db.QueryRowContext(ctx, `SELECT id FROM driver_settlements WHERE trip_id = ?`, tripID).Scan(&oldID); err == nil && oldID != "" {
-			settlementID = oldID
-			_, _ = db.ExecContext(ctx, `DELETE FROM settlement_lines WHERE settlement_id = ?`, settlementID)
-			_, _ = db.ExecContext(ctx, `
-				UPDATE driver_settlements
-				SET gross_fare = ?, commission_amount = ?, advances_kharcha = ?, deductions = ?,
-				    performance_bonus = ?, tds_rate = ?, tds_amount = ?, net_payout = ?,
-				    rate_model = ?, rate_basis_json = ?, updated_at = datetime('now')
-				WHERE id = ?
-			`, rateResult.GrossFare, rateResult.Commission, advances, deductions,
-				bonus, tdsRate, tdsAmount, netPayout, rateResult.RateModel, string(rateBasisJSON), settlementID)
-		} else {
-			_, err = db.ExecContext(ctx, `
-				INSERT INTO driver_settlements
-				    (id, trip_id, driver_id, gross_fare, commission_amount, advances_kharcha,
-				     deductions, performance_bonus, tds_rate, tds_amount, net_payout,
-				     rate_model, rate_basis_json, status, created_at, updated_at)
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', datetime('now'), datetime('now'))
-			`, settlementID, tripID, driverID.String, rateResult.GrossFare, rateResult.Commission,
-				advances, deductions, bonus, tdsRate, tdsAmount, netPayout,
-				rateResult.RateModel, string(rateBasisJSON))
-			if err != nil && strings.Contains(err.Error(), "UNIQUE") {
-				return s.findByTripID(ctx, db, tripID)
-			} else if err != nil {
-				return nil, fmt.Errorf("insert settlement: %w", err)
-			}
-		}
-	} else {
-		_, err = db.ExecContext(ctx, `
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin settlement tx: %w", err)
+	}
+	defer tx.Rollback() //nolint:errcheck // no-op after commit
+
+	insertSettlement := func() error {
+		_, e := tx.ExecContext(ctx, `
 			INSERT INTO driver_settlements
 			    (id, trip_id, driver_id, gross_fare, commission_amount, advances_kharcha,
 			     deductions, performance_bonus, tds_rate, tds_amount, net_payout,
@@ -202,25 +182,61 @@ func (s *DriverSettlementService) GenerateSettlement(ctx context.Context, tripID
 		`, settlementID, tripID, driverID.String, rateResult.GrossFare, rateResult.Commission,
 			advances, deductions, bonus, tdsRate, tdsAmount, netPayout,
 			rateResult.RateModel, string(rateBasisJSON))
-		if err != nil {
-			if strings.Contains(err.Error(), "UNIQUE") {
-				return s.findByTripID(ctx, db, tripID)
+		return e
+	}
+
+	if force {
+		var oldID string
+		err = tx.QueryRowContext(ctx, `SELECT id FROM driver_settlements WHERE trip_id = ?`, tripID).Scan(&oldID)
+		switch {
+		case err == nil && oldID != "":
+			settlementID = oldID
+			if _, err := tx.ExecContext(ctx, `DELETE FROM settlement_lines WHERE settlement_id = ?`, settlementID); err != nil {
+				return nil, fmt.Errorf("clear old settlement lines: %w", err)
 			}
+			if _, err := tx.ExecContext(ctx, `
+				UPDATE driver_settlements
+				SET gross_fare = ?, commission_amount = ?, advances_kharcha = ?, deductions = ?,
+				    performance_bonus = ?, tds_rate = ?, tds_amount = ?, net_payout = ?,
+				    rate_model = ?, rate_basis_json = ?, updated_at = datetime('now')
+				WHERE id = ?
+			`, rateResult.GrossFare, rateResult.Commission, advances, deductions,
+				bonus, tdsRate, tdsAmount, netPayout, rateResult.RateModel, string(rateBasisJSON), settlementID); err != nil {
+				return nil, fmt.Errorf("update settlement: %w", err)
+			}
+		case errors.Is(err, sql.ErrNoRows):
+			if err := insertSettlement(); err != nil {
+				return nil, fmt.Errorf("insert settlement: %w", err)
+			}
+		default:
+			return nil, fmt.Errorf("lookup existing settlement: %w", err)
+		}
+	} else {
+		err = insertSettlement()
+		if err != nil && strings.Contains(err.Error(), "UNIQUE") {
+			// Lost a race against another writer: release our tx before
+			// reading their committed row (same-pool lock trap).
+			_ = tx.Rollback()
+			return s.findByTripID(ctx, db, tripID)
+		}
+		if err != nil {
 			return nil, fmt.Errorf("insert settlement: %w", err)
 		}
 	}
 
-	// 8. Insert settlement_lines
 	lines := s.buildLines(settlementID, tripID, rateResult, advances, advanceLines, deductions, deductionLines, tdsRate, tdsAmount, tdsSection, bonus)
 	for _, l := range lines {
 		lineID := "stl-ln-" + uuid.New().String()
-		_, err = db.ExecContext(ctx, `
+		if _, err := tx.ExecContext(ctx, `
 			INSERT INTO settlement_lines (id, settlement_id, trip_id, line_type, label, amount, ref_id, created_at)
 			VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-		`, lineID, settlementID, tripID, l.LineType, l.Label, l.Amount, l.RefID)
-		if err != nil {
+		`, lineID, settlementID, tripID, l.LineType, l.Label, l.Amount, l.RefID); err != nil {
 			return nil, fmt.Errorf("insert settlement line: %w", err)
 		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit settlement: %w", err)
 	}
 
 	// 9. Emit SettlementGenerated Event

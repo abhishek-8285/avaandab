@@ -23,7 +23,10 @@ import (
 	"transport-app/internal/config"
 	"transport-app/internal/domain"
 	"transport-app/internal/experiments"
+	"transport-app/internal/features"
+	"transport-app/internal/i18n"
 	"transport-app/internal/service"
+	"transport-app/internal/shared"
 	"transport-app/internal/telemetry"
 
 	"github.com/go-chi/chi/v5"
@@ -33,12 +36,15 @@ const datastarRequestHeader = "Datastar-Request"
 
 // App holds shared handler dependencies.
 type App struct {
-	Services  *service.Services
-	Config    *config.Config
-	AuthStore *auth.SessionStore
-	DB        *sql.DB
-	Templates *template.Template
-	AuthSrv   auth.AuthorizationService
+	Services    *service.Services
+	Config      *config.Config
+	AuthStore   *auth.SessionStore
+	DB          *sql.DB
+	Templates   *template.Template
+	TemplatesHI *template.Template // Hindi set; nil falls back to Templates
+	// Features is the per-org feature-flag registry; nil disables gating.
+	Features *features.Registry
+	AuthSrv  auth.AuthorizationService
 
 	// ResetTokens issues and verifies single-use password-reset tokens.
 	ResetTokens *auth.ResetTokenStore
@@ -69,6 +75,8 @@ type App struct {
 	Kharcha    *KharchaHandlers
 	Assistant  *AssistantHandlers
 	AgentAdmin *AgentAdminHandlers
+	// OpsErrors powers the /ops/errors triage page + /api/v1/errors API (Spec 16 §4, §5.5).
+	OpsErrors *OpsErrorsHandler
 	// TelemetryDevices powers the device registry / provisioning / quarantine UI.
 	TelemetryDevices *TelemetryDeviceHandlers
 	// Geofences powers the geofence CRUD + drawing UI (Spec 02 §8).
@@ -120,6 +128,11 @@ func NewApp(svc *service.Services, cfg *config.Config, authStore *auth.SessionSt
 		slog.Error("failed to parse templates; serving with minimal template set", "error", err)
 		templates = template.New("")
 	}
+	templatesHI, errHI := parseTemplatesLang(authSrv, "hi")
+	if errHI != nil {
+		slog.Warn("Hindi template set unavailable; web UI stays English", "error", errHI)
+		templatesHI = nil
+	}
 
 	app := &App{
 		Services:    svc,
@@ -127,8 +140,10 @@ func NewApp(svc *service.Services, cfg *config.Config, authStore *auth.SessionSt
 		AuthStore:   authStore,
 		DB:          db,
 		Templates:   templates,
+		TemplatesHI: templatesHI,
 		AuthSrv:     authSrv,
 		ResetTokens: resetTokens,
+		Features:    features.NewRegistry(db, nil),
 	}
 
 	app.Experiments = experiments.NewRecorder(db)
@@ -194,8 +209,16 @@ func NewApp(svc *service.Services, cfg *config.Config, authStore *auth.SessionSt
 }
 
 // parseTemplates loads and parses all HTML templates with custom functions.
+// The English set; parseTemplatesLang builds a set whose `t` func translates
+// into the given language (App keeps one set per language, so the shared
+// *template.Template instances stay read-only and race-free).
 func parseTemplates(authSrv auth.AuthorizationService) (*template.Template, error) {
+	return parseTemplatesLang(authSrv, "en")
+}
+
+func parseTemplatesLang(authSrv auth.AuthorizationService, lang string) (*template.Template, error) {
 	tmpl := template.New("").Funcs(template.FuncMap{
+		"t": func(key string) string { return i18n.T(lang, key) },
 		"can": func(user interface{}, resource string, action string) bool {
 			if user == nil {
 				return false
@@ -219,10 +242,10 @@ func parseTemplates(authSrv auth.AuthorizationService) (*template.Template, erro
 		"formatDateTime": formatDateTime,
 		"formatDate":     formatDate,
 		"datetime": func(t time.Time) string {
-			return t.Format("2006-01-02 15:04")
+			return t.Format("02-01-2006 15:04")
 		},
 		"date_only": func(t time.Time) string {
-			return t.Format("2006-01-02")
+			return t.Format("02-01-2006")
 		},
 		"lower":         strings.ToLower,
 		"upper":         strings.ToUpper,
@@ -360,12 +383,14 @@ func isDatastarRequest(r *http.Request) bool {
 		r.URL.Query().Get("_fragment") == "true"
 }
 
+// Indian display convention: DD-MM-YYYY. Input controls stay ISO (YYYY-MM-DD)
+// so native date pickers and parsing keep working; these helpers are display-only.
 func formatDateTime(t time.Time) string {
-	return t.Format("2006-01-02 15:04")
+	return t.Format("02-01-2006 15:04")
 }
 
 func formatDate(t time.Time) string {
-	return t.Format("2006-01-02")
+	return t.Format("02-01-2006")
 }
 
 // PageData is the base data passed to all page templates.
@@ -480,7 +505,7 @@ func buildTemplateData(data PageData) map[string]interface{} {
 func (a *App) renderPage(w http.ResponseWriter, r *http.Request, name string, data PageData) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
-	layout := a.Templates.Lookup("layout.html")
+	layout := a.templatesFor(r).Lookup("layout.html")
 	if layout == nil {
 		http.Error(w, "layout template not found", http.StatusInternalServerError)
 		return
@@ -504,6 +529,19 @@ func (a *App) renderPage(w http.ResponseWriter, r *http.Request, name string, da
 	data.PWAEnabled = pwaEnabled
 
 	templateData := buildTemplateData(data)
+
+	// Per-org feature snapshot for nav visibility + upsell locks.
+	if a.Features != nil {
+		tid := string(shared.TenantIDFromContext(r.Context()))
+		if tid == "" {
+			tid = string(shared.DefaultTenant)
+		}
+		on := map[string]bool{}
+		for _, e := range a.Features.Snapshot(r.Context(), tid) {
+			on[e.Key] = e.Enabled
+		}
+		templateData["Features"] = on
+	}
 
 	var buf strings.Builder
 	if err := contentTmpl.Execute(&buf, templateData); err != nil {
@@ -556,6 +594,7 @@ func (a *App) renderPage(w http.ResponseWriter, r *http.Request, name string, da
 		FlashSuccess  string
 		Version       string
 		PWAEnabled    bool
+		Features      map[string]bool
 		Extra         map[string]interface{}
 	}{
 		Title:   data.Title,
@@ -570,11 +609,17 @@ func (a *App) renderPage(w http.ResponseWriter, r *http.Request, name string, da
 		Notifications: notifications,
 		UnreadCount:   unreadCount,
 		HasUnread:     unreadCount > 0,
-		FlashError:    data.FlashError,
-		FlashSuccess:  data.FlashSuccess,
-		Version:       AppVersion,
-		PWAEnabled:    pwaEnabled,
-		Extra:         data.Extra,
+		Features: func() map[string]bool {
+			if m, ok := templateData["Features"].(map[string]bool); ok {
+				return m
+			}
+			return nil
+		}(),
+		FlashError:   data.FlashError,
+		FlashSuccess: data.FlashSuccess,
+		Version:      AppVersion,
+		PWAEnabled:   pwaEnabled,
+		Extra:        data.Extra,
 	}
 
 	if err := layout.Execute(w, pd); err != nil {
@@ -631,6 +676,33 @@ func (a *App) renderAuthPage(w http.ResponseWriter, name string, data PageData) 
 }
 
 // renderFragment renders a fragment or template safely.
+// templatesFor picks the template set for the request's language cookie.
+// A nil request (error-render paths) falls back to the default set.
+func (a *App) templatesFor(r *http.Request) *template.Template {
+	if r != nil {
+		if c, err := r.Cookie("lang"); err == nil && i18n.Normalize(c.Value) == "hi" && a.TemplatesHI != nil {
+			return a.TemplatesHI
+		}
+	}
+	return a.Templates
+}
+
+// SetLang switches the web UI language: GET /lang?to=hi&next=/bookings sets a
+// year-long cookie and redirects back. Open redirect is blocked by requiring a
+// same-origin path.
+func (a *App) SetLang(w http.ResponseWriter, r *http.Request) {
+	to := i18n.Normalize(r.URL.Query().Get("to"))
+	next := r.URL.Query().Get("next")
+	if next == "" || next[0] != '/' || strings.HasPrefix(next, "//") {
+		next = "/"
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name: "lang", Value: to, Path: "/", MaxAge: 365 * 24 * 3600,
+		HttpOnly: true, SameSite: http.SameSiteLaxMode,
+	})
+	http.Redirect(w, r, next, http.StatusSeeOther)
+}
+
 func (a *App) renderFragment(w http.ResponseWriter, name string, data interface{}) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	tmpl := a.Templates.Lookup(name)
@@ -962,7 +1034,7 @@ func (a *App) renderErrorInfo(w http.ResponseWriter, r *http.Request, info Error
 		return
 	}
 
-	layout := a.Templates.Lookup("layout.html")
+	layout := a.templatesFor(r).Lookup("layout.html")
 	if layout == nil {
 		_, _ = w.Write([]byte(buf.String()))
 		return

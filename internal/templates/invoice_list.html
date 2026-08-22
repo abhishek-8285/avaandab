@@ -1,9 +1,10 @@
 {{template "page_header.html" (dict "Title" "Invoices" "Subtitle" "Track customer billings, GST breakdown, and payment receipts")}}
+{{template "kpi_grid.html" .}}
 
 <div class="bg-surface-container-lowest border border-border-subtle rounded shadow-sm flex flex-col h-full overflow-hidden">
     <!-- Sticky Filter Bar (Stitch Design) -->
     <form method="GET" action="/invoices" class="px-4 py-2 border-b border-border-subtle flex flex-wrap items-center gap-2 bg-surface-container-lowest sticky top-0 z-10">
-        <span class="text-xs font-medium text-secondary mr-2">Filters:</span>
+        <span class="text-xs font-medium text-secondary mr-2">{{t "common.filters"}}</span>
         <a href="/invoices" class="px-3 py-1 rounded-full border text-xs font-medium transition-colors {{if eq .StatusFilter ""}}border-primary bg-primary text-on-primary{{else}}border-border-subtle bg-surface-container-lowest text-secondary hover:bg-surface-container-low{{end}} font-body-sm">All Invoices</a>
         <a href="/invoices?status=pending" class="px-3 py-1 rounded-full border text-xs font-medium transition-colors {{if eq .StatusFilter "pending"}}border-primary bg-primary text-on-primary{{else}}border-border-subtle bg-surface-container-lowest text-secondary hover:bg-surface-container-low{{end}} font-body-sm">Pending</a>
         <a href="/invoices?status=paid" class="px-3 py-1 rounded-full border text-xs font-medium transition-colors {{if eq .StatusFilter "paid"}}border-primary bg-primary text-on-primary{{else}}border-border-subtle bg-surface-container-lowest text-secondary hover:bg-surface-container-low{{end}} font-body-sm font-medium">Paid</a>

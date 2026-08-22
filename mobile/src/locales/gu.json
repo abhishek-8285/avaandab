@@ -28,5 +28,6 @@
   "common.loading": "લોડ થઈ રહ્યું છે",
   "common.retry": "ફરી પ્રયાસ કરો",
   "common.offline": "ઑફલાઇન",
-  "common.save_offline": "ઑફલાઇન સાચવ્યું — ઓનલાઇન આવતાં સિંક થશે"
+  "common.save_offline": "ઑફલાઇન સાચવ્યું — ઓનલાઇન આવતાં સિંક થશે",
+  "expense.type.bhatta": "ભથ્થું (દૈનિક ભથ્થું)"
 }

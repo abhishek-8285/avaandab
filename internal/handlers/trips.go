@@ -224,6 +224,10 @@ func (h *TripHandlers) View(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Delivery OTP: shown to the operator, relayed to the consignee by phone
+	// until SMS delivery is configured (48h validity, regenerates on expiry).
+	podOTP, _ := h.Services.Trips.EnsurePODOTP(r.Context(), id)
+
 	h.renderPage(w, r, "trip_view.html", PageData{
 		Title: "View Trip",
 		User:  session,
@@ -233,6 +237,7 @@ func (h *TripHandlers) View(w http.ResponseWriter, r *http.Request) {
 			"AvailableVehicles": availableVehicles,
 			"PnL":               tripPnL,
 			"EWayBill":          ewbRecord,
+			"PODOTP":            podOTP,
 		},
 	})
 }

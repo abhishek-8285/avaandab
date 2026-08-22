@@ -77,7 +77,7 @@ func (h *PaymentHandlers) List(w http.ResponseWriter, r *http.Request) {
 	h.renderPage(w, r, "payment_list.html", PageData{
 		Title: "Payments",
 		User:  session,
-		Extra: map[string]interface{}{"Payments": res.Payments, "Pagination": pd, "Method": method},
+		Extra: map[string]interface{}{"Payments": res.Payments, "Pagination": pd, "Method": method, "KPIs": h.paymentKPIs(r.Context())},
 	})
 }
 
@@ -112,7 +112,7 @@ func (h *PaymentHandlers) New(w http.ResponseWriter, r *http.Request) {
 func (h *PaymentHandlers) Create(w http.ResponseWriter, r *http.Request) {
 	h.init()
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		h.failPage(w, r, err, http.StatusBadRequest, "Invalid Form Submission")
 		return
 	}
 

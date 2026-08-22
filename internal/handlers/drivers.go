@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -86,7 +87,7 @@ func (h *DriverHandlers) List(w http.ResponseWriter, r *http.Request) {
 	h.renderPage(w, r, "driver_list.html", PageData{
 		Title: "Drivers",
 		User:  session,
-		Extra: map[string]interface{}{"Drivers": res.Drivers, "Pagination": pd, "Query": pp.Query, "StatusFilter": pp.Status},
+		Extra: map[string]interface{}{"Drivers": res.Drivers, "Pagination": pd, "Query": pp.Query, "StatusFilter": pp.Status, "KPIs": h.driverKPIs(r.Context())},
 	})
 }
 
@@ -160,7 +161,56 @@ func (h *DriverHandlers) View(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	files, _ := h.Services.Files.GetFilesByEntity(r.Context(), "driver_license", id)
-	h.renderPage(w, r, "driver_view.html", PageData{Title: "View Driver", User: session, Extra: map[string]interface{}{"Driver": driver, "Files": files}})
+
+	// Scorecard tier + recent behaviour events (fuel-fraud and, later, driving events).
+	var score sql.NullFloat64
+	var tier sql.NullString
+	_ = h.DB.QueryRowContext(r.Context(),
+		`SELECT score, tier FROM drivers WHERE id = ?`, id).Scan(&score, &tier)
+	type behavEvent struct {
+		EventType   string
+		Severity    string
+		CreatedAt   sql.NullTime
+		Description sql.NullString
+		Resolved    bool
+	}
+	events := []behavEvent{}
+	if rows, err := h.DB.QueryContext(r.Context(), `
+		SELECT event_type, severity, created_at, COALESCE(description,''), COALESCE(resolved,0)
+		FROM driver_behaviour_events WHERE driver_id = ?
+		ORDER BY created_at DESC LIMIT 5`, id); err == nil {
+		defer func() { _ = rows.Close() }()
+		for rows.Next() {
+			var e behavEvent
+			if rows.Scan(&e.EventType, &e.Severity, &e.CreatedAt, &e.Description, &e.Resolved) == nil {
+				events = append(events, e)
+			}
+		}
+	}
+
+	// Recent trips + latest settlement summary.
+	type recentTrip struct {
+		ID, TripNumber, Status string
+		CreatedAt              sql.NullTime
+	}
+	trips := []recentTrip{}
+	if rows, err := h.DB.QueryContext(r.Context(), `
+		SELECT id, trip_number, status, created_at FROM trips
+		WHERE driver_id = ? ORDER BY created_at DESC LIMIT 5`, id); err == nil {
+		defer func() { _ = rows.Close() }()
+		for rows.Next() {
+			var t recentTrip
+			if rows.Scan(&t.ID, &t.TripNumber, &t.Status, &t.CreatedAt) == nil {
+				trips = append(trips, t)
+			}
+		}
+	}
+
+	h.renderPage(w, r, "driver_view.html", PageData{Title: "View Driver", User: session,
+		Extra: map[string]interface{}{
+			"Driver": driver, "Files": files,
+			"Score": score, "Tier": tier, "BehaviourEvents": events, "RecentTrips": trips,
+		}})
 }
 
 func (h *DriverHandlers) Edit(w http.ResponseWriter, r *http.Request) {

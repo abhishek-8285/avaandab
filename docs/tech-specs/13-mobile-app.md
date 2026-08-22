@@ -13,6 +13,27 @@ Migration owner: none — NO new backend DB tables. All driver identity flows th
 
 ## 1. Verified current state (what works TODAY)
 
+### 1.0 Server-side E2E verification (2026-08-22, live server :8099, transport.db)
+Full driver loop executed with curl against a freshly built binary:
+1. `POST /api/v1/auth/token` → flat token+user_id ✅
+2. `GET /api/v1/drivers/me` → driver profile (email-linked) ✅
+3. `GET /api/v1/trips?driver_id=me` → own trips ✅
+4. `POST /api/v1/telemetry/sync` → **real synced_ids** after synthetic-device fix (below) ✅
+5. `POST /api/v1/trips/{id}/start` → started ✅
+6. `POST /api/v1/trips/{id}/deliver-pod` multipart+photo → `{"status":"delivered","pod_url":...}` ✅
+7. `POST /api/v1/auth/forgot-password` → generic ok (+dev reset_link); `/reset-password` redeem + re-login ✅
+
+Fixes this E2E forced into existence:
+- **Migration `00081_trip_status_check_realign.sql`**: legacy trips CHECK (00007) rejected `'delivered'/'in_transit'` — every POD delivery failed at SQL level on real DBs. Rebuild realigns CHECK to domain enum (Spec 09). Override of "no new migrations" rule is deliberate and documented in `00-migration-ownership-index.md`. Up/down proven by `db/migrations_00081_test.go`.
+- **Synthetic device provisioning** (`internal/telemetry/sync.go` `ensureSyntheticDevice`): ingest quarantined unknown IMEIs so driver-synced GPS never got accepted (`synced_ids:[]`). Driver_id now auto-registers as an active `mobile_app` device on first sync (Decision D3 complete).
+- Mobile syncEngine now sends offline log `id` so `synced_ids` map back (previously rows were never marked synced → infinite re-sync).
+
+Additional P4/P5 items now implemented:
+- **Background GPS** (`src/services/backgroundLocation.ts`, expo-task-manager): OS-level updates survive backgrounding; SQLite+MQTT persist per fix; toggle in dispatch tab; app.json location plugin strings.
+- **Dispatch push → in-app alert**: MQTT `onDispatch` listeners; MainScreen alerts + react-query invalidation on trip updates.
+- **START TRIP action** in ActiveNavigation (assigned→started) — required before backend accepts e-POD.
+- **FirstTimeSetup persistence** via AsyncStorage (`@avandab_driver_setup`); fake gov-ID date removed.
+
 | Capability | Status | Evidence |
 |---|---|---|
 | Login vs real backend, flat parse | DONE | `LoginScreen.tsx:32,49-61` parses `data.token && data.user_id`; role `'driver'` client concept |
@@ -282,8 +303,32 @@ Definition of "full working app":
 
 ## 13. Open items / decisions
 
-- **D1 — MQTT WS broker:** ops runs `listener 9001 protocol websockets`, else mobile permanently HTTP-telemetry-only and we delete `mqtt.ts`. Either is fine; decide before P3.
-- **D2 — device identity:** no IMEI on phones → carry `driver_id` as identity in telemetry frames (recommended; aligns spec 01 VERIFY item). Confirm with spec 01 owner.
-- **D3 — forgot-password API shape:** tokenized email link (needs mailer) vs OTP-vs-phone flow. PR 2 blocks on this choice; generic-response anti-enumeration mandatory.
-- **D4 — web e-POD caller:** deliver-pod now mounted under BOTH groups (main.go:679 API + :1074 cookie) — confirm web fragment flow still used; if not, delete :1074 mount.
-- **Routing provider** for turn-by-turn (OSRM free vs Mapbox key) — cost decision before P4.
+- **D1 — MQTT WS broker:** RESOLVED IN-REPO — `config/mosquitto.conf` already declares `listener 9001 protocol websockets`, docker-compose publishes 9001 (Spec 13 §2.7). Remaining: live E2E verify on a deployed broker.
+- **D2/D3 — device identity:** RESOLVED — driver_id IS the device identity; `ensureSyntheticDevice` auto-provisions an active mobile_app device on first sync (00081-era fix, §1.0).
+- **D3 — forgot-password API:** SHIPPED — JSON `/api/v1/auth/forgot-password` + `/reset-password`, anti-enumeration generic response, dev-only reset_link, single-use tokens, policy-enforced.
+- **D4 — routing provider** for turn-by-turn + true ETA: STILL OPEN (OSRM vs Mapbox). HUD is fully data-driven meanwhile (`utils/navState.ts`); no fabricated distances.
+- Remaining polish: i18n rollout to all screens, BookingSchedule/Earnings shells, OS push notifications (expo-notifications), device-level E2E on real hardware.
+- **Screen inventory (2026-08-22):** complete for the driver workflow — Splash, GetStarted, Onboarding×3, Login, Register, ForgotPassword (auth) · Main (TRIPS with ACTIVE/HISTORY filter chips + DISPATCH), ActiveNavigation, DeliveryVerification, Expenses, FirstTimeSetup, **Profile** (real `/drivers/me` data, sign-out, BG-GPS status). **Product decision: Earnings/settlements screen stays a static shell** — owner declined the live settlements API (`drivers/me/earnings` was built then reverted); revisit only if driver payouts become a mobile requirement.
+
+### FleetBase Navigator parity matrix (2026-08-22)
+
+| Navigator capability | MVTMS driver app |
+|---|---|
+| Dispatched orders + push | MQTT in-app alerts + trip list auto-refresh; OS push pending |
+| Accept/reject jobs | N/A — MVTMS dispatches are assignments, not offers; START TRIP advances lifecycle |
+| Turn-by-turn + offline maps | Honest data-driven HUD; routing provider = open decision D4 |
+| Activity steps / waypoints | Trip lifecycle start → arrive → POD; multi-stop manifests pending |
+| POD photo / signature | ✅ offline-queued |
+| POD barcode / QR scan | ✅ `pod_scan_value` (migration 00087), in-app scanner on POD screen |
+| POD SMS OTP | Pending — needs SMS gateway decision |
+| Report issues (+photo) | ✅ `driver_issues` table (migration 00086) + IssuesScreen, live-verified |
+| Fuel reports | Kharcha expense flow (fuel/toll/rto/tyre) with receipt+GPS |
+| Duty status toggle | ✅ `/drivers/me/status` (`available`/`leave`/`inactive`; `on_trip` is system-controlled), Profile toggle |
+| Chat with ops | Not built |
+| Earnings | Static shell by product decision (§13) |
+| Offline-first sync | ✅ stronger than baseline (POD+expenses+GPS queues, dedupe, TTL) |
+
+Migrations owned here now: **00081** (trips CHECK realign), **00086** (driver_issues), **00087** (pod_scan_value). 00084/00085 numbers were released after a concurrent-session collision (see ownership index).
+
+### 🛡️ Migration ownership note
+`00081_trip_status_check_realign.sql` is owned by Spec 13 (mobile e-POD E2E). It intentionally overrides this spec v1's "no new migrations" rule: the legacy trips CHECK made EVERY delivery write fail on migrated databases — verified live 2026-08-22. Index entry added in `00-migration-ownership-index.md`.

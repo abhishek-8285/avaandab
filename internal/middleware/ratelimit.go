@@ -4,6 +4,7 @@ import (
 	"hash/fnv"
 	"log/slog"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -96,6 +97,12 @@ func RateLimitDistributed(c cache.Cache, limit int) func(http.Handler) http.Hand
 			}
 			if n > int64(limit) {
 				w.Header().Set("Retry-After", "60")
+				if strings.Contains(r.Header.Get("Accept"), "text/html") {
+					w.Header().Set("Content-Type", "text/html; charset=utf-8")
+					w.WriteHeader(http.StatusTooManyRequests)
+					_, _ = w.Write([]byte(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Too many attempts</title></head><body style="font-family:system-ui,sans-serif;background:#f6f8fa;color:#0f172a;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0"><main style="text-align:center;padding:2rem"><h1 style="font-size:1.4rem;margin:0 0 .5rem">Too many attempts</h1><p style="color:#64748b;margin:0 0 1.25rem">Please wait about a minute and try again.</p><a href="/" style="color:#2563eb;font-weight:600;text-decoration:none">&#8592; Back to home</a></main></body></html>`))
+					return
+				}
 				http.Error(w, "Too many requests", http.StatusTooManyRequests)
 				return
 			}

@@ -67,6 +67,9 @@ Single source of truth for `db/migrations/` version numbers. Repo head is
 | 00085+ | future specs (AIS-140/VLT, ERP) | reserved |
 | 00086 | `driver_issues` table — mobile Report-Issues screen (FleetBase parity) | Spec 13 |
 | 00087 | `trips.pod_scan_value` — barcode/QR POD proof column | Spec 13 |
+| 00088 | driver_expenses rebuild — category CHECK gains rto/tyre/bhatta (mobile/server parity fix) | India milestone M1 |
+| 00089 | feature_flags table + features:update permission (per-org feature registry) | Plugin/feature-flag milestone |
+| 00090 | trips pod_otp + pod_otp_expires_at (e-POD OTP verification) | E2E completion milestone |
 
 > NOTE: Spec 13 briefly held 00084/00085 for these same migrations during a
 > concurrent-session collision on 2026-08-22; renumbered to 00086/00087 per the

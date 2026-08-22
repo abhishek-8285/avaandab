@@ -31,10 +31,11 @@ func NewComplianceHandlers(app *App, compliance *service.ComplianceService) *Com
 
 // Routes mounts compliance endpoints.
 func (h *ComplianceHandlers) Routes(r chi.Router) {
-	r.Post("/exemptions", h.CreateExemption)
+	// Creating an exemption mutates compliance state — requires update,
+	// not just the read gate wrapping this mount.
+	r.With(middleware.ResourcePermission(h.AuthSrv, "compliance", "update")).Post("/exemptions", h.CreateExemption)
 	r.Get("/exemptions", h.ListExemptions)
 	r.Get("/status", h.Status)
-	r.Get("/dashboard", h.DashboardJSON)
 }
 
 // Mount registers top-level compliance dashboard routes.

@@ -40,7 +40,7 @@ func MapToAggregate(m SQLBookingModel) *aggregate.BookingAggregate {
 		notes = m.Notes.String
 	}
 
-	priceMoney := shared.FloatToMoney(m.Price, "USD")
+	priceMoney := shared.FloatToMoney(m.Price, "INR")
 
 	return &aggregate.BookingAggregate{
 		ID:            aggregate.BookingID(m.ID),

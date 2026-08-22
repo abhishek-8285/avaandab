@@ -51,8 +51,32 @@
         }
 
         fetch(url, fetchOpts)
-            .then(res => res.text())
+            .then(res => {
+                if (!res.ok) {
+                    endProgress();
+                    if (document.body) document.body.style.opacity = '1';
+                    // Parse problem+json envelope for a human message + correlation id
+                    res.text().then(bodyText => {
+                        let msg = 'That page could not be loaded. Please try again.';
+                        let requestId = null;
+                        try {
+                            const p = JSON.parse(bodyText);
+                            if (p && p.message) msg = p.message;
+                            if (p && p.request_id) requestId = p.request_id;
+                        } catch (e) { /* HTML error page or empty body */ }
+                        if (window.ErrorCapture && requestId === null) {
+                            window.ErrorCapture.breadcrumb('nav-error', fetchOpts.method + ' ' + url + ' \u2192 ' + res.status);
+                        }
+                        if (window.FlyToast) {
+                            FlyToast.show(msg, { tone: 'error', requestId: requestId });
+                        }
+                    });
+                    return null; // never body-swap an error response
+                }
+                return res.text();
+            })
             .then(html => {
+                if (html === null || html === undefined) return;
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
 

@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 
@@ -120,6 +121,98 @@ func (h *KharchaHandlers) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/kharcha", http.StatusSeeOther)
+}
+
+// CreateExpenseAPI handles driver expense claims from the mobile app
+// (Spec 13): POST /api/v1/kharcha/expense with Bearer auth.
+// Multipart fields mirror ExpenseScreen.tsx: trip_id, type/expense_type,
+// amount, notes, receipt_photo (file), latitude/longitude (accepted but not
+// persisted — driver_expenses has no geo columns yet).
+func (h *KharchaHandlers) CreateExpenseAPI(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	session, ok := h.getUserFromContext(r)
+	if !ok || session == nil || session.UserID == "" {
+		writePODJSONError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		writePODJSONError(w, "form parse error", http.StatusBadRequest)
+		return
+	}
+
+	tripID := r.FormValue("trip_id")
+	category := r.FormValue("expense_type")
+	if category == "" {
+		category = r.FormValue("type")
+	}
+	description := r.FormValue("notes")
+
+	amount, err := strconv.ParseFloat(r.FormValue("amount"), 64)
+	if err != nil {
+		writePODJSONError(w, "invalid amount", http.StatusBadRequest)
+		return
+	}
+
+	// Resolve the acting driver from the authenticated user (same mapping
+	// as DeliverWithPOD): drivers.id or drivers.driver_id via user email.
+	driverID := session.UserID
+	if h.DB != nil {
+		var dID string
+		_ = h.DB.QueryRowContext(ctx, `
+			SELECT id FROM drivers
+			WHERE id = ? OR email = (SELECT email FROM users WHERE id = ?)
+			LIMIT 1
+		`, session.UserID, session.UserID).Scan(&dID)
+		if dID != "" {
+			driverID = dID
+		}
+	}
+
+	var receiptURL string
+	if _, fh, fErr := r.FormFile("receipt_photo"); fErr == nil {
+		fileRec, saveErr := h.Services.Files.UploadFile(ctx, fh, "expense_receipt", tripID)
+		if saveErr != nil {
+			writePODJSONError(w, "file upload failed: "+saveErr.Error(), http.StatusBadRequest)
+			return
+		}
+		receiptURL = "/files/" + string(fileRec.ID)
+	}
+
+	opts := service.CreateExpenseOpts{
+		TripID:         tripID,
+		DriverID:       driverID,
+		Category:       category,
+		Amount:         amount,
+		Description:    description,
+		ReceiptURL:     receiptURL,
+		IdempotencyKey: r.FormValue("idempotency_key"),
+	}
+	if v, pErr := strconv.ParseFloat(r.FormValue("latitude"), 64); pErr == nil {
+		opts.Latitude = &v
+	}
+	if v, pErr := strconv.ParseFloat(r.FormValue("longitude"), 64); pErr == nil {
+		opts.Longitude = &v
+	}
+
+	expenseID, err := h.Services.Kharcha.CreateExpenseWithOpts(ctx, opts)
+	if err != nil {
+		writePODJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Fuel claims enter the audit queue immediately (parity with web create).
+	if category == "fuel" && h.Services.FuelAudit != nil {
+		_, _ = h.Services.FuelAudit.AuditPendingClaims(ctx)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":     "created",
+		"id":         expenseID,
+		"expense_id": expenseID,
+	})
 }
 
 // POST /kharcha/{id}/approve — HTMX inline swap: approve and replace the row.
@@ -261,6 +354,7 @@ func (h *KharchaHandlers) DeliverWithPOD(w http.ResponseWriter, r *http.Request)
 		Notes:          notes,
 		PODPhotoURL:    podPhotoURL,
 		SignatureURL:   signatureData,
+		OTPCode:        r.FormValue("otp"),
 	}
 
 	tripNum, err := h.Services.Trips.DeliverWithPOD(ctx, tripID, req)
@@ -270,16 +364,18 @@ func (h *KharchaHandlers) DeliverWithPOD(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Persist ePOD signature + delivery discrepancies (Spec 21 §3 00073) — best-effort, never fails delivery
-	if h.DB != nil && (signatureData != "" || quantityShort != 0 || damageQty != 0 || refusalReason != "") {
+	scanValue := strings.TrimSpace(r.FormValue("pod_scan_value"))
+	if h.DB != nil && (signatureData != "" || quantityShort != 0 || damageQty != 0 || refusalReason != "" || scanValue != "") {
 		_, _ = h.DB.ExecContext(ctx,
 			`UPDATE trips SET pod_signature_data = COALESCE(NULLIF(?,''), pod_signature_data),
 			 pod_quantity_short = CASE WHEN ? != 0 THEN ? ELSE pod_quantity_short END,
 			 pod_damage_qty = CASE WHEN ? != 0 THEN ? ELSE pod_damage_qty END,
 			 pod_refusal_reason = COALESCE(NULLIF(?,''), pod_refusal_reason),
 			 pod_consignee_name = COALESCE(NULLIF(?,''), pod_consignee_name),
-			 pod_consignee_phone = COALESCE(NULLIF(?,''), pod_consignee_phone)
+			 pod_consignee_phone = COALESCE(NULLIF(?,''), pod_consignee_phone),
+			 pod_scan_value = CASE WHEN ? != '' THEN ? ELSE pod_scan_value END
 			 WHERE id = ?`,
-			signatureData, quantityShort, quantityShort, damageQty, damageQty, refusalReason, consigneeName, consigneePhone, tripID)
+			signatureData, quantityShort, quantityShort, damageQty, damageQty, refusalReason, consigneeName, consigneePhone, scanValue, scanValue, tripID)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

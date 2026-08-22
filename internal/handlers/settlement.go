@@ -40,8 +40,8 @@ func (h *SettlementHandlers) Mount(r chi.Router) {
 		sub.With(middleware.RequirePermission(h.authSrv, "settlements", "read")).Get("/{id}", h.GetByID)
 		sub.With(middleware.RequirePermission(h.authSrv, "settlements", "read")).Get("/{id}/deductions", h.GetDeductions)
 		sub.With(middleware.RequirePermission(h.authSrv, "settlements", "approve")).Post("/{id}/mark-paid", h.MarkPaid)
-		sub.With(middleware.RequirePermission(h.authSrv, "settlements", "read")).Post("/{id}/confirm", h.Confirm)
-		sub.With(middleware.RequirePermission(h.authSrv, "settlements", "read")).Post("/{id}/dispute", h.Dispute)
+		sub.With(middleware.RequirePermission(h.authSrv, "settlements", "write")).Post("/{id}/confirm", h.Confirm)
+		sub.With(middleware.RequirePermission(h.authSrv, "settlements", "write")).Post("/{id}/dispute", h.Dispute)
 	}
 
 	r.Route("/api/settlements", setupRoutes)
@@ -52,8 +52,8 @@ func (h *SettlementHandlers) Mount(r chi.Router) {
 	r.With(middleware.ResourcePermission(h.authSrv, "settlements", "read")).Get("/settlements/{id}", h.ViewPage)
 	r.With(middleware.ResourcePermission(h.authSrv, "settlements", "write")).Post("/settlements/generate", h.Generate)
 	r.With(middleware.ResourcePermission(h.authSrv, "settlements", "approve")).Post("/settlements/{id}/mark-paid", h.MarkPaid)
-	r.With(middleware.ResourcePermission(h.authSrv, "settlements", "read")).Post("/settlements/{id}/confirm", h.Confirm)
-	r.With(middleware.ResourcePermission(h.authSrv, "settlements", "read")).Post("/settlements/{id}/dispute", h.Dispute)
+	r.With(middleware.ResourcePermission(h.authSrv, "settlements", "write")).Post("/settlements/{id}/confirm", h.Confirm)
+	r.With(middleware.ResourcePermission(h.authSrv, "settlements", "write")).Post("/settlements/{id}/dispute", h.Dispute)
 }
 
 // ListPage renders the driver settlements dashboard list page (Spec 12 §4.5).

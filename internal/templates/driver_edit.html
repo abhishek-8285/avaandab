@@ -16,7 +16,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {{template "field.html" (dict "Label" "First Name" "Name" "first_name" "Value" (and $driver $driver.FirstName) "Required" "true")}}
             {{template "field.html" (dict "Label" "Last Name" "Name" "last_name" "Value" (and $driver $driver.LastName) "Required" "true")}}
-            {{template "field.html" (dict "Label" "Phone" "Name" "phone" "Type" "tel" "Value" (and $driver $driver.Phone) "Required" "true")}}
+            {{template "field.html" (dict "Label" "Phone" "Name" "phone" "Type" "tel" "Value" (and $driver $driver.Phone) "Required" "true" "Pattern" `(\+?91[\s-]?|0)?[6-9][0-9]{4}[\s-]?[0-9]{5}` "Title" "Indian mobile: 9876543210 or +91 98765 43210")}}
             {{template "field.html" (dict "Label" "Email" "Name" "email" "Type" "email" "Value" (and $driver (nullString $driver.Email)))}}
             {{template "field.html" (dict "Label" "License Number" "Name" "license_number" "Value" (and $driver $driver.LicenseNumber) "Required" "true")}}
             {{template "field.html" (dict "Label" "License Expiry" "Name" "license_expiry" "Type" "date" "Value" (and $driver (date_only $driver.LicenseExpiry)) "Required" "true")}}

@@ -1,0 +1,37 @@
+Avandab / MVTMS — Third-Party Notices
+======================================
+
+This product is proprietary software (see LICENSE). It incorporates the
+following third-party components under their respective licenses. This NOTICE
+satisfies attribution requirements; it is not a license to the product itself.
+
+Go dependencies (permissive: MIT / BSD / Apache-2.0)
+-----------------------------------------------------
+github.com/casbin/casbin/v2 (Apache-2.0), github.com/go-chi/chi/v5 (MIT),
+github.com/go-pdf/fpdf (MIT), github.com/google/uuid (BSD-3),
+github.com/gorilla/securecookie (BSD-2), github.com/gorilla/websocket (BSD-2),
+github.com/jackc/pgx/v5 (MIT), github.com/joho/godotenv (MIT),
+github.com/pressly/goose/v3 (MIT), github.com/razorpay/razorpay-go (MIT),
+github.com/redis/go-redis/v9 (BSD-3), github.com/stretchr/testify (MIT),
+github.com/uber-go/atomic (MIT), golang.org/x/{crypto,net,sync,sys,text,tools}
+(BSD-3), gopkg.in/yaml.v3 (MIT), gopkg.in/telebot.v3 (MIT),
+modernc.org/{sqlite,libc,mathutil,memory} (BSD-3).
+
+Copyleft watch-list (fine while used UNMODIFIED — do not patch these inside
+this repository; vendor a fork externally if changes are ever needed):
+  - github.com/eclipse/paho.mqtt.golang — EPL-1.0/EDL-1.0 dual license
+  - github.com/go-sql-driver/mysql     — MPL-2.0 (file-level copyleft)
+
+Vendored frontend assets
+------------------------
+internal/static/js/htmx.min.js                 htmx 2.0.4        BSD-2-Clause (see HTMX-LICENSE)
+internal/static/js/chart.umd.min.js            Chart.js 4.4.9    MIT (see CHARTJS-LICENSE.txt)
+internal/static/js/datastar.js                 Datastar 1.0.2    MIT (see DATASTAR-LICENSE)
+internal/static/js/leaflet/                    Leaflet 1.9.4     BSD-2-Clause (see leaflet/LICENSE.txt)
+internal/static/js/leaflet.markercluster/      plugin 1.5.3      MIT (see its LICENSE.txt)
+internal/static/css/tailwind.css               Tailwind CSS v4   MIT — compiled output
+Fonts (Outfit, Plus Jakarta Sans)              SIL Open Font License 1.1 (see FONTS-OFL.txt)
+Material Icons / Material Symbols woff2        Apache-2.0 (see FONTS-APACHE.txt)
+
+Mobile app (mobile/) — React Native / Expo and all npm dependencies are
+MIT/Apache-2.0 permissive; no copyleft packages are used.

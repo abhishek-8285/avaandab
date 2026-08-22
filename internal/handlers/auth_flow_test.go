@@ -75,6 +75,56 @@ func TestLoginPage_FlashSuccessAndError(t *testing.T) {
 	assert.Contains(t, body2, "Invalid credentials.")
 }
 
+func TestAuthPages_SplitScreenLayoutRenders(t *testing.T) {
+	h := newAuthTestApp(t)
+
+	pages := []struct {
+		name     string
+		url      string
+		handler  func(w http.ResponseWriter, r *http.Request)
+		contains []string
+	}{
+		{
+			name:     "register",
+			url:      "/register",
+			handler:  h.RegisterPage,
+			contains: []string{"Create your operator account", "Register Operator Account", "Already registered?"},
+		},
+		{
+			name:     "forgot_password",
+			url:      "/forgot-password",
+			handler:  h.ForgotPasswordPage,
+			contains: []string{"Forgot password", "Send Reset Link", "Back to Sign In"},
+		},
+		{
+			name:     "reset_password",
+			url:      "/reset-password?token=test-token",
+			handler:  h.ResetPasswordPage,
+			contains: []string{"Reset password", `name="token" value="test-token"`},
+		},
+	}
+
+	for _, p := range pages {
+		t.Run(p.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, p.url, nil)
+			p.handler(w, req)
+
+			assert.Equal(t, http.StatusOK, w.Code)
+			body := w.Body.String()
+			for _, want := range p.contains {
+				assert.Contains(t, body, want)
+			}
+			// Split-screen brand panel shared with the login page.
+			assert.Contains(t, body, "background:#0f172a;", "left brand panel missing")
+			// Responsive: brand panel hidden below lg breakpoint.
+			assert.Contains(t, body, "hidden lg:flex", "responsive brand panel classes missing")
+			// Auth pages are anonymous: theme.js must not sync preferences.
+			assert.Contains(t, body, `data-authenticated="false"`, "anonymous pages must not enable preference sync")
+		})
+	}
+}
+
 func TestChangePassword_MismatchRendersHTML(t *testing.T) {
 	h := newAuthTestApp(t)
 

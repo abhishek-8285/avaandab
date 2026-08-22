@@ -28,5 +28,6 @@
   "common.loading": "लोड होत आहे",
   "common.retry": "पुन्हा प्रयत्न करा",
   "common.offline": "ऑफलाइन",
-  "common.save_offline": "ऑफलाइन जतन केले — ऑनलाइन आल्यावर सिंक होईल"
+  "common.save_offline": "ऑफलाइन जतन केले — ऑनलाइन आल्यावर सिंक होईल",
+  "expense.type.bhatta": "भत्ता (दैनिक भत्ता)"
 }

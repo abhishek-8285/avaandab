@@ -129,6 +129,7 @@ func buildTestRouterWithAuth(app *App, tripAPI *tripapihandlers.APITripHandler, 
 	r.Get("/api/v1/drivers/me", app.Drivers.GetMe)
 	r.Post("/api/v1/trips/{id}/deliver-pod", app.Kharcha.DeliverWithPOD)
 	r.Post("/trips/{id}/deliver-pod", app.Kharcha.DeliverWithPOD)
+	r.Post("/api/v1/kharcha/expense", app.Kharcha.CreateExpenseAPI)
 	tripAPI.Register(r)
 
 	return r
@@ -478,4 +479,203 @@ func TestDeliverPOD_SuccessAndErrors(t *testing.T) {
 	var resp4 map[string]string
 	require.NoError(t, json.Unmarshal(rec4.Body.Bytes(), &resp4))
 	assert.Equal(t, "unauthorized", resp4["error"])
+}
+
+func TestDeliverPOD_OTPVerification(t *testing.T) {
+	dbConn, app, tripAPI := setupMobileAPITestEnv(t)
+	defer dbConn.Close()
+
+	_, err := dbConn.Exec(`
+		INSERT INTO users (id, name, email, password_hash, role_id)
+		VALUES ('u-drv-otp', 'OTP Driver', 'otpd@example.com', 'hash', 5);
+
+		INSERT INTO drivers (id, driver_id, first_name, last_name, phone, email, license_number, license_expiry, status, tenant_id)
+		VALUES ('d-otp', 'DRV-OTP', 'Ravi', 'Patil', '+919820011224', 'otpd@example.com', 'DL-9', '2030-01-01', 'available', '1');
+
+		INSERT INTO routes (id, source, destination, distance, estimated_hours, standard_fare, tenant_id)
+		VALUES ('r-otp', 'Mumbai', 'Nashik', 170.0, 4.0, 6000.0, '1');
+
+		INSERT INTO trips (id, trip_number, driver_id, route_id, departure_time, status, tenant_id, pod_otp, pod_otp_expires_at)
+		VALUES ('t-otp-1', 'TRP-OTP-101', 'd-otp', 'r-otp', '2026-08-19 10:00:00', 'in_transit', '1',
+			'419876', '2099-01-01T00:00:00Z');
+	`)
+	require.NoError(t, err)
+
+	user := &auth.SessionData{UserID: "u-drv-otp", Role: "driver"}
+	router := buildTestRouterWithAuth(app, tripAPI, user)
+
+	post := func(fields map[string]string) *httptest.ResponseRecorder {
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		for k, v := range fields {
+			_ = writer.WriteField(k, v)
+		}
+		_ = writer.Close()
+		req := httptest.NewRequest("POST", "/api/v1/trips/t-otp-1/deliver-pod", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		return w
+	}
+
+	// Missing OTP → rejected
+	w := post(map[string]string{"consignee_name": "Amit"})
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "OTP required")
+
+	// Wrong OTP → rejected
+	w = post(map[string]string{"consignee_name": "Amit", "otp": "000000"})
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	// Correct OTP → delivered + pod_otp_verified finally written
+	w = post(map[string]string{"consignee_name": "Amit", "otp": "419876", "pod_signature_data": "data:image/png;base64,iVBORw0KGgo="})
+	require.Equal(t, http.StatusOK, w.Code, "body: %s", w.Body.String())
+
+	var verified int
+	require.NoError(t, dbConn.QueryRow(`SELECT pod_otp_verified FROM trips WHERE id = 't-otp-1'`).Scan(&verified))
+	assert.Equal(t, 1, verified, "pod_otp_verified must be written on verified delivery")
+}
+
+func TestCreateExpenseAPI_SuccessAndErrors(t *testing.T) {
+	dbConn, app, tripAPI := setupMobileAPITestEnv(t)
+	defer dbConn.Close()
+
+	// Seed driver user + linked driver record
+	_, err := dbConn.Exec(`
+		INSERT INTO users (id, name, email, password_hash, role_id)
+		VALUES ('u-drv-1', 'Rajesh Kumar', 'rajesh@example.com', 'hash', 5);
+
+		INSERT INTO drivers (id, driver_id, first_name, last_name, phone, email, license_number, license_expiry, status, tenant_id)
+		VALUES ('d-1', 'DRV-1', 'Rajesh', 'Kumar', '+919820011223', 'rajesh@example.com', 'DL-1', '2030-01-01', 'available', '1');
+	`)
+	require.NoError(t, err)
+
+	createExpenseRequest := func(fields map[string]string, withFile bool) (*http.Request, error) {
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		for k, v := range fields {
+			_ = writer.WriteField(k, v)
+		}
+		if withFile {
+			part, err := writer.CreateFormFile("receipt_photo", "receipt.png")
+			if err != nil {
+				return nil, err
+			}
+			_, _ = io.Copy(part, bytes.NewReader([]byte("\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82")))
+		}
+		_ = writer.Close()
+		req := httptest.NewRequest("POST", "/api/v1/kharcha/expense", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		return req, nil
+	}
+
+	user := &auth.SessionData{UserID: "u-drv-1", Role: "driver"}
+	r := buildTestRouterWithAuth(app, tripAPI, user)
+
+	// 1. Success: fuel expense with receipt photo
+	req1, err := createExpenseRequest(map[string]string{
+		"trip_id":      "t-1",
+		"type":         "fuel",
+		"expense_type": "fuel",
+		"amount":       "1500.50",
+		"notes":        "Pump bharwai Delhi road",
+		"latitude":     "28.6139",
+		"longitude":    "77.2090",
+	}, true)
+	require.NoError(t, err)
+
+	rec1 := httptest.NewRecorder()
+	r.ServeHTTP(rec1, req1)
+
+	require.Equal(t, http.StatusCreated, rec1.Code, "body: %s", rec1.Body.String())
+	var resp1 map[string]interface{}
+	require.NoError(t, json.Unmarshal(rec1.Body.Bytes(), &resp1))
+	assert.Equal(t, "created", resp1["status"])
+	expenseID1, _ := resp1["id"].(string)
+	assert.NotEmpty(t, expenseID1)
+
+	// Verify DB row: driver resolved from session (d-1), receipt uploaded
+	var dID, category, status string
+	var amount float64
+	require.NoError(t, dbConn.QueryRow(
+		`SELECT driver_id, category, amount, status FROM driver_expenses WHERE id = ?`,
+		expenseID1).Scan(&dID, &category, &amount, &status))
+	assert.Equal(t, "d-1", dID)
+	assert.Equal(t, "fuel", category)
+	assert.InDelta(t, 1500.50, amount, 0.001)
+	assert.Equal(t, "pending", status)
+
+	// GPS captured with the claim (migration 00082 columns)
+	var lat, lng float64
+	require.NoError(t, dbConn.QueryRow(
+		`SELECT latitude, longitude FROM driver_expenses WHERE id = ?`,
+		expenseID1).Scan(&lat, &lng))
+	assert.InDelta(t, 28.6139, lat, 0.0001)
+	assert.InDelta(t, 77.2090, lng, 0.0001)
+
+	var receiptURL string
+	require.NoError(t, dbConn.QueryRow(
+		`SELECT receipt_url FROM driver_expenses WHERE id = ?`, expenseID1).Scan(&receiptURL))
+	assert.NotEmpty(t, receiptURL)
+
+	// 2. Invalid category -> 400 with JSON error
+	req2, _ := createExpenseRequest(map[string]string{
+		"trip_id": "t-1", "type": "booze", "amount": "100",
+	}, false)
+	rec2 := httptest.NewRecorder()
+	r.ServeHTTP(rec2, req2)
+	assert.Equal(t, http.StatusBadRequest, rec2.Code)
+	var resp2 map[string]string
+	require.NoError(t, json.Unmarshal(rec2.Body.Bytes(), &resp2))
+	assert.Contains(t, resp2["error"], "invalid category")
+
+	// 2b. India categories the mobile app sends (rto/tyre/bhatta) must be
+	// accepted — migration 00088 widened the CHECK for exactly this parity.
+	for _, cat := range []string{"rto", "tyre", "bhatta"} {
+		reqCat, _ := createExpenseRequest(map[string]string{
+			"trip_id": "t-1", "type": cat, "expense_type": cat, "amount": "200",
+		}, false)
+		recCat := httptest.NewRecorder()
+		r.ServeHTTP(recCat, reqCat)
+		require.Equal(t, http.StatusCreated, recCat.Code, "category %s rejected: %s", cat, recCat.Body.String())
+	}
+
+	// 3. Amount <= 0 -> 400
+	req3, _ := createExpenseRequest(map[string]string{
+		"trip_id": "t-1", "type": "food", "amount": "-5",
+	}, false)
+	rec3 := httptest.NewRecorder()
+	r.ServeHTTP(rec3, req3)
+	assert.Equal(t, http.StatusBadRequest, rec3.Code)
+
+	// 4. Unauthorized: no session
+	rAnon := buildTestRouterWithAuth(app, tripAPI, nil)
+	req4, _ := createExpenseRequest(map[string]string{
+		"trip_id": "t-1", "type": "food", "amount": "10",
+	}, false)
+	rec4 := httptest.NewRecorder()
+	rAnon.ServeHTTP(rec4, req4)
+	assert.Equal(t, http.StatusUnauthorized, rec4.Code)
+
+	// 5. Idempotent retry returns the same expense id
+	idemKey := "mobile-exp-" + fmt.Sprint(time.Now().UnixNano())
+	req5a, _ := createExpenseRequest(map[string]string{
+		"trip_id": "t-1", "type": "toll", "amount": "200", "idempotency_key": idemKey,
+	}, false)
+	rec5a := httptest.NewRecorder()
+	r.ServeHTTP(rec5a, req5a)
+	require.Equal(t, http.StatusCreated, rec5a.Code)
+	var resp5a map[string]interface{}
+	require.NoError(t, json.Unmarshal(rec5a.Body.Bytes(), &resp5a))
+
+	req5b, _ := createExpenseRequest(map[string]string{
+		"trip_id": "t-1", "type": "toll", "amount": "200", "idempotency_key": idemKey,
+	}, false)
+	rec5b := httptest.NewRecorder()
+	r.ServeHTTP(rec5b, req5b)
+	require.Equal(t, http.StatusCreated, rec5b.Code)
+	var resp5b map[string]interface{}
+	require.NoError(t, json.Unmarshal(rec5b.Body.Bytes(), &resp5b))
+
+	assert.Equal(t, resp5a["id"], resp5b["id"])
 }

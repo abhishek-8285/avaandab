@@ -110,7 +110,7 @@ func (h *BookingHandlers) List(w http.ResponseWriter, r *http.Request) {
 	h.renderPage(w, r, "booking_list.html", PageData{
 		Title: "Bookings",
 		User:  session,
-		Extra: map[string]interface{}{"Bookings": res.Bookings, "Pagination": pd, "Query": pp.Query, "StatusFilter": pp.Status},
+		Extra: map[string]interface{}{"Bookings": res.Bookings, "Pagination": pd, "Query": pp.Query, "StatusFilter": pp.Status, "KPIs": h.bookingKPIs(r.Context())},
 	})
 }
 

@@ -10,6 +10,7 @@ import (
 
 	"transport-app/internal/alerts/domain"
 	"transport-app/internal/alerts/repository"
+	"transport-app/internal/middleware"
 )
 
 // AlertHandlers manages alert viewing, acknowledgment, and resolution.
@@ -30,9 +31,11 @@ func NewAlertHandlers(app *App, repo repository.AlertRepository) *AlertHandlers 
 func (h *AlertHandlers) Routes(r chi.Router) {
 	r.Get("/", h.List)
 	r.Get("/unread", h.UnreadBadgeFragment)
-	r.Post("/{id}/ack", h.Ack)
-	r.Post("/{id}/resolve", h.Resolve)
-	r.Post("/mark-all-read", h.MarkAllRead)
+	// Ack/resolve mutate shared alert state — require update in addition
+	// to the read gate wrapping this mount.
+	r.With(middleware.ResourcePermission(h.App.AuthSrv, "alerts", "update")).Post("/{id}/ack", h.Ack)
+	r.With(middleware.ResourcePermission(h.App.AuthSrv, "alerts", "update")).Post("/{id}/resolve", h.Resolve)
+	r.With(middleware.ResourcePermission(h.App.AuthSrv, "alerts", "update")).Post("/mark-all-read", h.MarkAllRead)
 }
 
 // List renders the operational alerts management page.

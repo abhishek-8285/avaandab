@@ -7,8 +7,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"transport-app/internal/apperr"
 	"transport-app/internal/auth"
 	"transport-app/internal/fastag"
+	"transport-app/internal/httpx"
 	intFastag "transport-app/internal/integration/fastag"
 	"transport-app/internal/middleware"
 )
@@ -88,7 +90,7 @@ func (h *FASTagHandlers) GetBalance(w http.ResponseWriter, r *http.Request) {
 
 	bal, err := h.svc.GetBalance(r.Context(), vehicleNumber)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		httpx.Error(w, r, apperr.Wrap(apperr.CodeNotFound, err))
 		return
 	}
 
@@ -109,7 +111,7 @@ func (h *FASTagHandlers) ListTransactions(w http.ResponseWriter, r *http.Request
 
 	txs, err := h.svc.ListTransactions(r.Context(), vehicleNumber, limit)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httpx.Error(w, r, err)
 		return
 	}
 
@@ -138,7 +140,7 @@ func (h *FASTagHandlers) Reconcile(w http.ResponseWriter, r *http.Request) {
 
 	res, err := h.svc.Reconcile(r.Context(), vehicleNumber, fromDate, toDate)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httpx.Error(w, r, err)
 		return
 	}
 
@@ -165,13 +167,14 @@ func (h *FASTagHandlers) Deduct(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.VehicleNumber == "" && req.TagID == "" {
-		http.Error(w, "vehicle_number or tag_id is required", http.StatusBadRequest)
+		httpx.Error(w, r, apperr.New(apperr.CodeMissingField).
+			WithDetail("vehicle_number or tag_id is required"))
 		return
 	}
 
 	txn, err := h.svc.DeductToll(r.Context(), req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		httpx.Error(w, r, err)
 		return
 	}
 

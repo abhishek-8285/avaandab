@@ -6,8 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
-
 	"transport-app/internal/domain"
 	"transport-app/internal/service"
 	"transport-app/internal/shared"
@@ -535,24 +533,6 @@ func (h *AuthHandlers) UserOnboardingPage(w http.ResponseWriter, r *http.Request
 	}
 
 	h.renderPage(w, r, "user_onboarding.html", pd)
-}
-
-// RegisterRoutes registers auth routes.
-func (h *AuthHandlers) RegisterRoutes(r chi.Router) {
-	r.Get("/login", h.LoginPage)
-	r.Post("/login", h.Login)
-	r.Get("/register", h.RegisterPage)
-	r.Post("/register", h.Register)
-	r.Get("/forgot-password", h.ForgotPasswordPage)
-	r.Post("/forgot-password", h.SubmitForgotPassword)
-	r.Get("/reset-password", h.ResetPasswordPage)
-	r.Post("/reset-password", h.SubmitResetPassword)
-	r.Post("/logout", h.Logout)
-	r.Get("/profile", h.ProfilePage)
-	r.Post("/profile", h.UpdateProfile)
-	r.Get("/change-password", h.ChangePasswordPage)
-	r.Post("/change-password", h.ChangePassword)
-	r.Get("/user/onboard", h.UserOnboardingPage)
 }
 
 // UpdateProfile handles profile updates.

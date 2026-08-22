@@ -2,9 +2,38 @@ import mqtt from 'mqtt';
 import { getMQTTBrokerURL } from '../constants/network';
 import { useAuthStore } from '../stores/authStore';
 
+export interface TripDispatchUpdate {
+  trip_id: string;
+  status: string;
+  time: string;
+}
+
+type DispatchListener = (update: TripDispatchUpdate) => void;
+
 class MQTTTelemetryService {
   private client: mqtt.MqttClient | null = null;
   private isConnected = false;
+  private dispatchListeners: Set<DispatchListener> = new Set();
+
+  /**
+   * Subscribe to in-app dispatch notifications (trip assignments/status
+   * changes pushed over `avandab/trips/drivers/{id}/updates`). Returns an
+   * unsubscribe function.
+   */
+  onDispatch(listener: DispatchListener): () => void {
+    this.dispatchListeners.add(listener);
+    return () => this.dispatchListeners.delete(listener);
+  }
+
+  private emitDispatch(update: TripDispatchUpdate): void {
+    this.dispatchListeners.forEach((fn) => {
+      try {
+        fn(update);
+      } catch {
+        // listener errors never break the MQTT loop
+      }
+    });
+  }
 
   connect(driverId: string): void {
     try {
@@ -39,6 +68,20 @@ class MQTTTelemetryService {
 
       this.client.on('message', (topic, message) => {
         console.log(`[MQTT RECV] Topic: ${topic} Payload: ${message.toString()}`);
+        if (topic.includes('/updates')) {
+          try {
+            const parsed = JSON.parse(message.toString());
+            if (parsed && typeof parsed.trip_id === 'string') {
+              this.emitDispatch({
+                trip_id: parsed.trip_id,
+                status: typeof parsed.status === 'string' ? parsed.status : '',
+                time: typeof parsed.time === 'string' ? parsed.time : '',
+              });
+            }
+          } catch {
+            // non-JSON payload — log only
+          }
+        }
       });
 
       this.client.on('error', (err) => {

@@ -8,6 +8,7 @@
         {{if .ReceiptURL}}
         <a href="{{nullString .ReceiptURL}}" target="_blank" rel="noopener">
             <img src="{{nullString .ReceiptURL}}"
+                  alt="Expense receipt"
                   class="w-12 h-12 rounded-lg object-cover border border-border-subtle shrink-0 hover:opacity-90 transition" />
         </a>
         {{else}}

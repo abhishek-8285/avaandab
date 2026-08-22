@@ -84,14 +84,20 @@
             dd.classList.add('hidden');
         });
 
-        // Synchronize with database when authenticated (FlyFleet Rule 1)
-        try {
-            fetch('/api/v1/users/me/preferences', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ theme: mode })
-            }).catch(function () {});
-        } catch (e) {}
+        // Synchronize with database only when the server rendered an
+        // authenticated page. On public pages there is no session, so the
+        // request would always 401 — cookie + localStorage already persist
+        // the choice and it syncs on the next authenticated page.
+        var isAuthed = document.body && document.body.dataset.authenticated === 'true';
+        if (isAuthed) {
+            try {
+                fetch('/api/v1/users/me/preferences', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ theme: mode })
+                }).catch(function () {});
+            } catch (e) {}
+        }
     }
 
     // Expose global controller

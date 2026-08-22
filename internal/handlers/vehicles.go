@@ -83,7 +83,7 @@ func (h *VehicleHandlers) List(w http.ResponseWriter, r *http.Request) {
 	h.renderPage(w, r, "vehicle_list.html", PageData{
 		Title: "Vehicles",
 		User:  session,
-		Extra: map[string]interface{}{"Vehicles": res.Vehicles, "Pagination": pd, "Query": pp.Query, "StatusFilter": pp.Status},
+		Extra: map[string]interface{}{"Vehicles": res.Vehicles, "Pagination": pd, "Query": pp.Query, "StatusFilter": pp.Status, "KPIs": h.vehicleKPIs(r.Context())},
 	})
 }
 
@@ -95,7 +95,7 @@ func (h *VehicleHandlers) New(w http.ResponseWriter, r *http.Request) {
 func (h *VehicleHandlers) Create(w http.ResponseWriter, r *http.Request) {
 	h.init()
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		h.failPage(w, r, err, http.StatusBadRequest, "Vehicle Update Failed")
 		return
 	}
 
@@ -168,6 +168,64 @@ func (h *VehicleHandlers) View(w http.ResponseWriter, r *http.Request) {
 		SELECT maintenance_due, maintenance_override_by, maintenance_override_at, maintenance_override_reason
 		FROM vehicles WHERE id = ?`, id).Scan(&maintDue, &maintOvBy, &maintOvAt, &maintOvReason)
 
+	// Compliance doc-expiry strip: RC/permit/fitness/insurance/PUCC with days left.
+	type docStatus struct {
+		Name   string
+		Expiry time.Time
+	}
+	docs := []docStatus{
+		{"Insurance", vehicle.InsuranceExpiry},
+		{"Fitness", vehicle.FitnessExpiry},
+		{"Permit", vehicle.PermitExpiry},
+	}
+	var rcExpiry, pucExpiry sql.NullTime
+	_ = h.DB.QueryRowContext(r.Context(),
+		`SELECT rc_expiry, puc_expiry FROM vehicles WHERE id = ?`, id).Scan(&rcExpiry, &pucExpiry)
+	if rcExpiry.Valid {
+		docs = append(docs, docStatus{"RC", rcExpiry.Time})
+	}
+	if pucExpiry.Valid {
+		docs = append(docs, docStatus{"PUCC", pucExpiry.Time})
+	}
+	docCards := make([]map[string]interface{}, 0, len(docs))
+	for _, d := range docs {
+		card := map[string]interface{}{"Name": d.Name, "HasDate": !d.Expiry.IsZero()}
+		if !d.Expiry.IsZero() {
+			card["Expiry"] = d.Expiry.Format("02-01-2006")
+			card["Days"] = int(time.Until(d.Expiry).Hours() / 24)
+		}
+		docCards = append(docCards, card)
+	}
+
+	// Last known telemetry for this vehicle.
+	lastPos := map[string]interface{}{"Has": false}
+	var lat, lng, speed float64
+	var at sql.NullString
+	if err := h.DB.QueryRowContext(r.Context(), `
+		SELECT latitude, longitude, speed, device_time
+		FROM vehicle_latest_position WHERE vehicle_id = ?`, id).
+		Scan(&lat, &lng, &speed, &at); err == nil {
+		lastPos = map[string]interface{}{"Has": true, "Lat": lat, "Lng": lng, "Speed": speed, "At": at.String}
+	}
+
+	// Recent trips for this vehicle.
+	type recentTrip struct {
+		ID, TripNumber, Status string
+		CreatedAt              sql.NullTime
+	}
+	trips := []recentTrip{}
+	if rows, err := h.DB.QueryContext(r.Context(), `
+		SELECT id, trip_number, status, created_at FROM trips
+		WHERE vehicle_id = ? ORDER BY created_at DESC LIMIT 5`, id); err == nil {
+		defer func() { _ = rows.Close() }()
+		for rows.Next() {
+			var t recentTrip
+			if rows.Scan(&t.ID, &t.TripNumber, &t.Status, &t.CreatedAt) == nil {
+				trips = append(trips, t)
+			}
+		}
+	}
+
 	extra := map[string]interface{}{
 		"Vehicle":                   vehicle,
 		"Files":                     files,
@@ -176,6 +234,9 @@ func (h *VehicleHandlers) View(w http.ResponseWriter, r *http.Request) {
 		"MaintenanceOverrideReason": maintOvReason.String,
 		"IsMaintenanceDue":          maintDue.Valid && maintDue.String != "",
 		"IsMaintenanceOverridden":   maintOvBy.Valid && maintOvBy.String != "",
+		"DocCards":                  docCards,
+		"LastPosition":              lastPos,
+		"RecentTrips":               trips,
 	}
 
 	session, _ := h.getUserFromContext(r)
@@ -216,7 +277,7 @@ func (h *VehicleHandlers) Edit(w http.ResponseWriter, r *http.Request) {
 func (h *VehicleHandlers) Update(w http.ResponseWriter, r *http.Request) {
 	h.init()
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		h.failPage(w, r, err, http.StatusBadRequest, "Vehicle Update Failed")
 		return
 	}
 
@@ -264,7 +325,7 @@ func (h *VehicleHandlers) Update(w http.ResponseWriter, r *http.Request) {
 		CurrentMileage:     currentMileage,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		h.failPage(w, r, err, http.StatusBadRequest, "Vehicle Update Failed")
 		return
 	}
 	http.Redirect(w, r, "/vehicles/"+id, http.StatusSeeOther)
@@ -273,7 +334,7 @@ func (h *VehicleHandlers) Update(w http.ResponseWriter, r *http.Request) {
 func (h *VehicleHandlers) Delete(w http.ResponseWriter, r *http.Request) {
 	id := domain.VehicleID(chi.URLParam(r, "id"))
 	if err := h.Services.Vehicles.DeleteVehicle(r.Context(), id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		h.failPage(w, r, err, http.StatusInternalServerError, "Vehicle Action Failed")
 		return
 	}
 	if isDatastarRequest(r) {
@@ -293,7 +354,7 @@ func (h *VehicleHandlers) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 		TenantID: shared.TenantIDFromContext(r.Context()),
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		h.failPage(w, r, err, http.StatusBadRequest, "Vehicle Update Failed")
 		return
 	}
 
@@ -312,7 +373,7 @@ func (h *VehicleHandlers) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 		CurrentMileage:     vehicle.CurrentMileage,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		h.failPage(w, r, err, http.StatusBadRequest, "Vehicle Update Failed")
 		return
 	}
 

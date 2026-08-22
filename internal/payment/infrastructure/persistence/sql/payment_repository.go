@@ -166,7 +166,10 @@ func (r *paymentRepository) exec(ctx context.Context) interface {
 }
 
 // idempotencyKey derives a stable key for duplicate detection: a client-supplied
-// reference when present, otherwise a key built from invoice and amount.
+// reference when present, otherwise a date-aware key built from invoice,
+// amount and payment day. Including the day lets legitimate repeat
+// installments of the same amount on later days record normally, while
+// same-day double-submits stay deduplicated.
 func idempotencyKey(p *aggregate.PaymentAggregate) string {
 	if p.Reference != nil {
 		if ref := strings.TrimSpace(*p.Reference); ref != "" {
@@ -174,7 +177,8 @@ func idempotencyKey(p *aggregate.PaymentAggregate) string {
 		}
 	}
 	amount := shared.FloatToMoney(p.Amount, "INR").MoneyToFloat()
-	return "inv:" + p.InvoiceID + ":amt:" + strconv.FormatFloat(amount, 'f', 2, 64)
+	return "inv:" + p.InvoiceID + ":amt:" + strconv.FormatFloat(amount, 'f', 2, 64) +
+		":d:" + p.PaymentDate.Format("2006-01-02")
 }
 
 func isIdempotencyConflict(err error) bool {

@@ -18,9 +18,11 @@ import (
 	"transport-app/internal/domain"
 	driverapp "transport-app/internal/driver/application"
 	"transport-app/internal/fastag"
+	"transport-app/internal/features"
 	geofencedomain "transport-app/internal/geofence/domain"
 	invoiceapp "transport-app/internal/invoice/application"
 	maintenancedomain "transport-app/internal/maintenance/domain"
+	opserrors "transport-app/internal/operations/errors"
 	"transport-app/internal/service"
 	"transport-app/internal/shared"
 	"transport-app/internal/telemetry"
@@ -566,6 +568,54 @@ func TestAllTemplatesRender(t *testing.T) {
 			"Alerts": []map[string]interface{}{{
 				"ID": "a-1", "AlertType": "fuel_variance", "Severity": "high",
 				"Title": "Fuel variance detected", "Status": "open", "CreatedAt": now,
+			}},
+			"User": user,
+		}},
+		{"errors", "errors.html", map[string]interface{}{
+			"Errors": []opserrors.ErrorReport{{
+				ID: "err-1", Fingerprint: "fp1234567890abcdef", Timestamp: now, RequestID: "req-abc",
+				URL: "/api/v1/bookings", Method: "POST", StatusCode: 500,
+				Message: "insert failed\nat db.go:1", Severity: opserrors.SeverityHigh,
+				Occurrences: 3, FirstSeen: now,
+			}},
+			"Incidents": []opserrors.Incident{{
+				ID: "inc-1", ErrorID: "err-1", Status: "OPEN",
+				Severity: opserrors.SeverityCritical, Created: now,
+			}},
+			"Total": 1, "OpenIncidents": 1, "Severity": "", "Fingerprint": "",
+			"From": "", "To": "",
+			"Pagination": PaginationData{
+				Page: 1, PerPage: 20, Total: 40, TotalPages: 2,
+				HasPrev: false, HasNext: true, BasePath: "/ops/errors",
+			},
+			"User": user,
+		}},
+		{"kpi_grid", "kpi_grid.html", map[string]interface{}{
+			"KPIs": []KPI{
+				{Label: "Total Bookings", Value: "42", Sub: "12 new this month · ₹3.4 L"},
+				{Label: "Pending", Value: "7", Accent: "text-status-warning"},
+				{Label: "Confirmed", Value: "11", Accent: "text-status-info"},
+				{Label: "Completed", Value: "24", Accent: "text-status-success"},
+			},
+		}},
+		{"features_admin", "features_admin.html", map[string]interface{}{
+			"Categories": map[string][]features.SnapshotEntry{
+				"Operations": {
+					{Feature: features.Feature{Key: "telemetry", Name: "GPS Telemetry & Live Tracking", Category: "Operations", Tier: features.TierAddon, EnvFlag: "TELEMETRY_ENABLED"}, Enabled: true},
+					{Feature: features.Feature{Key: "share_links", Name: "Public Trip Share Links", Category: "Operations", Tier: features.TierCore}, Enabled: true},
+				},
+			},
+			"Order": []string{"Operations"},
+			"User":  user,
+		}},
+		{"search_results", "search_results.html", map[string]interface{}{
+			"Query": "MH01",
+			"Sections": []SearchSection{{
+				Key: "vehicles", Label: "Vehicles", Total: 2,
+				Rows: []SearchRow{
+					{ID: "v-1", Title: "MH01AB1234", Sub: "Tata Ace", Href: "/vehicles/v-1"},
+					{ID: "v-2", Title: "MH01CD5678", Sub: "Eicher Pro", Href: "/vehicles/v-2"},
+				},
 			}},
 			"User": user,
 		}},

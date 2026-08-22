@@ -31,16 +31,19 @@ export function RegisterScreen({ onRegisterSuccess, onBackToLogin }: RegisterScr
 
     try {
       const targetUrl = `${getApiBaseURL()}/api/v1/auth/register`;
+      const payload: Record<string, string> = {
+        name: fullName,
+        email,
+        phone,
+        password,
+      };
+      if (vehicleNumber.trim()) {
+        payload.vehicle_number = vehicleNumber.trim();
+      }
       const response = await fetch(targetUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: fullName,
-          email,
-          phone,
-          password,
-          vehicle_number: vehicleNumber || 'MH-12-AB-9942',
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -58,11 +61,21 @@ export function RegisterScreen({ onRegisterSuccess, onBackToLogin }: RegisterScr
         return;
       }
 
+      // Backend returns a NESTED user object on register (unlike the flat
+      // token endpoint). Accept both shapes defensively.
+      const serverUser = data.user || {};
+      const userId = serverUser.id || data.user_id || '';
+      if (!userId) {
+        setLoading(false);
+        Alert.alert('Registration Failed', 'Server response did not include a user id.');
+        return;
+      }
+
       await setAuth(data.token, {
-        id: data.user?.id || '',
-        name: fullName,
-        role: 'DRIVER',
-        email,
+        id: userId,
+        name: serverUser.name || fullName,
+        role: serverUser.role || 'viewer',
+        email: serverUser.email || email,
       });
       setLoading(false);
       onRegisterSuccess();

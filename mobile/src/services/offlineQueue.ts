@@ -29,6 +29,7 @@ export interface QueuedExpense {
   notes: string;
   latitude: number | null;
   longitude: number | null;
+  idempotency_key: string | null;
   created_at: string;
 }
 
@@ -84,6 +85,7 @@ class OfflineQueueService {
         notes TEXT NOT NULL DEFAULT '',
         latitude REAL,
         longitude REAL,
+        idempotency_key TEXT,
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
       );
     `);
@@ -102,6 +104,9 @@ class OfflineQueueService {
     } catch {}
     try {
       await this.db.execAsync(`ALTER TABLE queued_pods ADD COLUMN refusal_reason TEXT`);
+    } catch {}
+    try {
+      await this.db.execAsync(`ALTER TABLE offline_expenses ADD COLUMN idempotency_key TEXT`);
     } catch {}
     // Expire pods older than 7 days
     try {
@@ -172,11 +177,12 @@ class OfflineQueueService {
     notes?: string;
     latitude?: number | null;
     longitude?: number | null;
+    idempotency_key?: string | null;
   }): Promise<void> {
     if (!this.db) await this.init();
     await this.db!.runAsync(
-      `INSERT INTO offline_expenses (trip_id, expense_type, amount, receipt_uri, notes, latitude, longitude)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO offline_expenses (trip_id, expense_type, amount, receipt_uri, notes, latitude, longitude, idempotency_key)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         data.trip_id,
         data.expense_type,
@@ -185,6 +191,7 @@ class OfflineQueueService {
         data.notes || '',
         data.latitude ?? null,
         data.longitude ?? null,
+        data.idempotency_key || null,
       ]
     );
   }
@@ -321,6 +328,10 @@ class OfflineQueueService {
         if (exp.latitude != null && exp.longitude != null) {
           form.append('latitude', String(exp.latitude));
           form.append('longitude', String(exp.longitude));
+        }
+        // Backend dedupes on this key (unique index) — safe across retries
+        if (exp.idempotency_key) {
+          form.append('idempotency_key', exp.idempotency_key);
         }
 
         const res = await fetch(`${getApiBaseURL()}/api/v1/kharcha/expense`, {

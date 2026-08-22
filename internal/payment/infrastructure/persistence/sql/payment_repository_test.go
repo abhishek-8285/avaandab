@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	_ "modernc.org/sqlite"
 
 	paymentagg "transport-app/internal/payment/domain/aggregate"
@@ -135,6 +136,50 @@ func TestPaymentRepository_IdempotencyKey(t *testing.T) {
 	err = dbConn.QueryRow(`SELECT COUNT(*) FROM payments WHERE idempotency_key = 'ref:REF-DUP'`).Scan(&count)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, count)
+}
+
+func TestPaymentRepository_FallbackIdempotency_IsDateAware(t *testing.T) {
+	dbConn := setupPaymentDB(t)
+	defer func() { _ = dbConn.Close() }()
+
+	repo := NewPaymentRepository(dbConn)
+	ctx := context.Background()
+
+	day1 := time.Date(2026, 8, 6, 12, 0, 0, 0, time.UTC)
+	day2 := time.Date(2026, 8, 9, 9, 30, 0, 0, time.UTC)
+
+	// Same invoice, same amount, no reference — two installments on
+	// different days must BOTH be recorded (previously the second was
+	// silently swallowed by the amount-only fallback key).
+	inst1 := paymentagg.NewPaymentAggregate(
+		"pay-inst-1", shared.TenantID("1"), "inv-inst", day1,
+		500.0, paymentagg.PaymentMethodCash, nil, nil, day1,
+	)
+	require.NoError(t, repo.Save(ctx, inst1))
+
+	inst2 := paymentagg.NewPaymentAggregate(
+		"pay-inst-2", shared.TenantID("1"), "inv-inst", day2,
+		500.0, paymentagg.PaymentMethodCash, nil, nil, day2,
+	)
+	require.NoError(t, repo.Save(ctx, inst2))
+	require.NotEqual(t, inst1.ID, inst2.ID, "next-day installment must get its own id")
+
+	var count int
+	err := dbConn.QueryRow(`SELECT COUNT(*) FROM payments WHERE invoice_id = 'inv-inst'`).Scan(&count)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, count)
+
+	// Same-day double-submit stays deduplicated.
+	dup := paymentagg.NewPaymentAggregate(
+		"pay-dup", shared.TenantID("1"), "inv-inst", day1,
+		500.0, paymentagg.PaymentMethodCash, nil, nil, day1,
+	)
+	require.NoError(t, repo.Save(ctx, dup))
+	assert.Equal(t, inst1.ID, dup.ID, "same-day duplicate must collapse onto first payment")
+
+	err = dbConn.QueryRow(`SELECT COUNT(*) FROM payments WHERE invoice_id = 'inv-inst'`).Scan(&count)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, count)
 }
 
 func TestPaymentRepository_FindNonExistent(t *testing.T) {

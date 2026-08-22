@@ -32,7 +32,7 @@
             <div class="text-xs sm:text-sm text-secondary">Pending Payments</div>
         </div>
         <div class="bg-surface-container-lowest rounded-lg shadow-sm p-3 sm:p-4 text-center">
-            <div class="text-stat text-primary tabular-nums text-xl sm:text-2xl font-bold">{{printf "%.2f" .Stats.MonthlyRevenue}}</div>
+            <div class="text-stat text-primary tabular-nums text-xl sm:text-2xl font-bold">{{printf "₹%.2f" .Stats.MonthlyRevenue}}</div>
             <div class="text-xs sm:text-sm text-secondary">Monthly Revenue</div>
         </div>
     </div>
@@ -157,7 +157,7 @@
                 <tbody class="divide-y divide-border-subtle">
                     {{if .Stats.UpcomingTrips}}
                     {{range .Stats.UpcomingTrips}}
-                    <tr data-drill="upcoming-trip" data-href="/trips/{{.ID}}" onclick="if(this.dataset.href)location.href=this.dataset.href" class="cursor-pointer hover:bg-surface-container-low transition-colors">
+                    <tr data-drill="upcoming-trip" data-href="/trips/{{.ID}}" tabindex="0" onclick="if(this.dataset.href)location.href=this.dataset.href" onkeydown="if(event.key==='Enter'||event.key===' '){if(this.dataset.href)location.href=this.dataset.href}" class="cursor-pointer hover:bg-surface-container-low transition-colors">
                         <td class="px-4 py-2 text-sm font-medium text-primary">{{.TripNumber}}</td>
                         <td class="px-4 py-2 text-sm">{{.DriverFirstName}} {{.DriverLastName}}</td>
                         <td class="px-4 py-2 text-sm">{{.VehicleRegistration}}</td>
@@ -258,7 +258,14 @@
     </div>
 
     <!-- Charts -->
-    <script>window.__DASHBOARD_CHARTS__ = {{json .ChartData}};</script>
+    <script id="dashboard-chart-data" type="application/json">{{json .ChartData}}</script>
+    <script>
+        try {
+            window.__DASHBOARD_CHARTS__ = JSON.parse(document.getElementById('dashboard-chart-data').textContent || '{}');
+        } catch (e) {
+            window.__DASHBOARD_CHARTS__ = {};
+        }
+    </script>
     <script src="/static/js/chart.umd.min.js?v={{.Version}}"></script>
     <script src="/static/js/dashboard-charts.js?v={{.Version}}"></script>
 </div>{{else}}

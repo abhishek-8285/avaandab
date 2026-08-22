@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"io/fs"
 	"path/filepath"
+	"strings"
 	"testing"
-	"testing/fstest"
 
 	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/require"
@@ -14,56 +14,50 @@ import (
 )
 
 // TestMigration00081TripStatusCheckRealign proves the trips CHECK rebuild both
-// applies AND rolls back (Prove-It #4). The whole point of 00081: a trip in
-// 'delivered' status must be storable — the pre-00081 CHECK rejected it.
+// applies AND rolls back (Prove-It #4) against the full migration chain.
+// The point of 00081: a trip in 'delivered' status must be storable — the
+// pre-00081 CHECK rejected it.
 func TestMigration00081TripStatusCheckRealign(t *testing.T) {
-	content, err := Migrations.ReadFile("migrations/00081_trip_status_check_realign.sql")
-	require.NoError(t, err)
-
-	mapFS := fstest.MapFS{
-		"00081_trip_status_check_realign.sql": &fstest.MapFile{Data: content},
-	}
-	var fsys fs.FS = mapFS
-
 	dbPath := filepath.Join(t.TempDir(), "mig.db")
 	database, err := sql.Open("sqlite", dbPath)
 	require.NoError(t, err)
 	defer database.Close()
 
 	ctx := context.Background()
-	provider, err := goose.NewProvider(goose.DialectSQLite3, database, fsys)
+	migFS, err := fs.Sub(Migrations, "migrations")
+	require.NoError(t, err)
+	provider, err := goose.NewProvider(goose.DialectSQLite3, database, migFS)
 	require.NoError(t, err)
 
 	_, err = provider.Up(ctx)
 	require.NoError(t, err)
 
-	// Seed minimal parents for FKs.
-	for _, q := range []string{
-		`INSERT INTO routes (id, source, destination, distance, estimated_hours, standard_fare) VALUES ('r1', 'A', 'B', 10.0, 1.0, 100.0)`,
-		`INSERT INTO trips (id, trip_number, route_id, status) VALUES ('t1', 'TR-00081', 'r1', 'assigned')`,
-	} {
-		_, err = database.Exec(q)
-		require.NoError(t, err, q)
+	checkSQL := ""
+	require.NoError(t, database.QueryRow(
+		`SELECT sql FROM sqlite_master WHERE type='table' AND name='trips'`,
+	).Scan(&checkSQL))
+	for _, want := range []string{"reached_pickup", "in_transit", "delivered"} {
+		require.True(t, strings.Contains(checkSQL, want), "CHECK should allow %q after up", want)
 	}
 
 	// The regression this migration fixes: 'delivered' must be writable.
+	_, err = database.Exec(
+		`INSERT INTO trips (id, trip_number, route_id, status, departure_time) VALUES ('t1', 'TR-00081', 'r1', 'assigned', datetime('now'))`,
+	)
+	require.NoError(t, err)
 	_, err = database.Exec(`UPDATE trips SET status = 'delivered' WHERE id = 't1'`)
 	require.NoError(t, err, "'delivered' must pass the realigned CHECK")
 
-	var status string
-	require.NoError(t, database.QueryRow(`SELECT status FROM trips WHERE id = 't1'`).Scan(&status))
-	require.Equal(t, "delivered", status)
-
-	// Down restores the legacy CHECK; newer statuses are mapped to 'completed'.
-	_, err = provider.DownTo(ctx, 0)
+	// Roll back ONLY 00081 (DownTo 80) and verify the legacy behaviour returns.
+	_, err = provider.DownTo(ctx, 80)
 	require.NoError(t, err)
 
+	var status string
 	require.NoError(t, database.QueryRow(`SELECT status FROM trips WHERE id = 't1'`).Scan(&status))
 	require.Equal(t, "completed", status, "down should map delivered → completed")
 
-	var n int
 	require.NoError(t, database.QueryRow(
-		`SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='trips_rebuild_00081'`,
-	).Scan(&n))
-	require.Zero(t, n, "rebuild table should be dropped")
+		`SELECT sql FROM sqlite_master WHERE type='table' AND name='trips'`,
+	).Scan(&checkSQL))
+	require.False(t, strings.Contains(checkSQL, `'in_transit'`), "down should restore legacy CHECK")
 }

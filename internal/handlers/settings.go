@@ -24,6 +24,11 @@ func (h *SettingsHandlers) Routes(r chi.Router) {
 	r.With(middleware.ResourcePermission(h.AuthSrv, "settings", "update")).Post("/update", h.Update)
 	r.With(middleware.ResourcePermission(h.AuthSrv, "settings", "update")).Get("/onboard", h.OnboardPage)
 	r.With(middleware.ResourcePermission(h.AuthSrv, "settings", "update")).Post("/onboard", h.SaveOnboard)
+
+	// Per-org feature flags (plugin-style toggles) — settings admins only.
+	featuresAdmin := &FeaturesAdmin{App: h.App}
+	r.With(middleware.ResourcePermission(h.AuthSrv, "settings", "update")).Get("/features", featuresAdmin.Page)
+	r.With(middleware.ResourcePermission(h.AuthSrv, "settings", "update")).Post("/features/toggle", featuresAdmin.Toggle)
 }
 
 func (h *SettingsHandlers) OnboardPage(w http.ResponseWriter, r *http.Request) {
@@ -71,7 +76,7 @@ func (h *SettingsHandlers) Index(w http.ResponseWriter, r *http.Request) {
 
 func (h *SettingsHandlers) Update(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		h.failPage(w, r, err, http.StatusBadRequest, "Invalid Form Submission")
 		return
 	}
 
@@ -88,7 +93,7 @@ func (h *SettingsHandlers) Update(w http.ResponseWriter, r *http.Request) {
 
 		uploaded, upErr := saveLogo(file, h.Config.UploadDir)
 		if upErr != nil {
-			http.Error(w, upErr.Error(), http.StatusBadRequest)
+			h.failPage(w, r, upErr, http.StatusBadRequest, "Logo Upload Failed")
 			return
 		}
 		logoPath = &uploaded
@@ -115,7 +120,7 @@ func (h *SettingsHandlers) Update(w http.ResponseWriter, r *http.Request) {
 		logoPath,
 	)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		h.failPage(w, r, err, http.StatusBadRequest, "Could Not Save Settings")
 		return
 	}
 
@@ -135,7 +140,7 @@ var logoMimeExt = map[string]string{
 // The file type is validated by magic bytes, never by the client filename.
 func saveLogo(file io.Reader, uploadDir string) (string, error) {
 	subdir := filepath.Join(uploadDir, "company")
-	if err := os.MkdirAll(subdir, 0o755); err != nil {
+	if err := os.MkdirAll(subdir, 0o750); err != nil {
 		return "", err
 	}
 

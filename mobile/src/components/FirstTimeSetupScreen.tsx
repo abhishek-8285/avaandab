@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Font, Radius, Spacing } from '../constants/theme';
 import { useAuthStore } from '../stores/authStore';
+
+const SETUP_STATE_KEY = '@avandab_driver_setup';
 
 interface FirstTimeSetupScreenProps {
   onCompleteSetup: () => void;
@@ -12,7 +15,7 @@ interface FirstTimeSetupScreenProps {
 
 export function FirstTimeSetupScreen({ onCompleteSetup, onBack }: FirstTimeSetupScreenProps) {
   const user = useAuthStore((state) => state.user);
-  const driverName = user?.name ? user.name.split(' ')[0] : 'ESTHER';
+  const driverName = user?.name ? user.name.split(' ')[0] : 'DRIVER';
 
   const [completedSteps, setCompletedSteps] = useState<{ [key: string]: boolean }>({
     profilePicture: false,
@@ -20,10 +23,32 @@ export function FirstTimeSetupScreen({ onCompleteSetup, onBack }: FirstTimeSetup
     drivingDetails: false,
     governmentId: true,
   });
+  const [loaded, setLoaded] = useState(false);
+
+  // Restore persisted checklist so a half-done setup survives app restarts.
+  useEffect(() => {
+    AsyncStorage.getItem(SETUP_STATE_KEY)
+      .then((json) => {
+        if (json) {
+          const saved = JSON.parse(json);
+          if (saved && typeof saved === 'object') {
+            setCompletedSteps((prev) => ({ ...prev, ...saved }));
+          }
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoaded(true));
+  }, []);
+
+  const persist = (next: { [key: string]: boolean }) => {
+    AsyncStorage.setItem(SETUP_STATE_KEY, JSON.stringify(next)).catch(() => {});
+  };
 
   const toggleStep = (stepKey: string, stepTitle: string) => {
     const isCompleted = !completedSteps[stepKey];
-    setCompletedSteps((prev) => ({ ...prev, [stepKey]: isCompleted }));
+    const next = { ...completedSteps, [stepKey]: isCompleted };
+    setCompletedSteps(next);
+    persist(next);
     Alert.alert('Step Updated', `${stepTitle} marked as ${isCompleted ? 'Completed' : 'Pending'}.`);
   };
 
@@ -159,7 +184,7 @@ export function FirstTimeSetupScreen({ onCompleteSetup, onBack }: FirstTimeSetup
               </View>
               <View>
                 <Text style={styles.stepTitle}>Government ID</Text>
-                <Text style={styles.stepMetaSuccess}>VERIFIED · 2024-08-11</Text>
+                <Text style={styles.stepMetaSuccess}>{completedSteps.governmentId ? 'VERIFIED' : 'PENDING'}</Text>
               </View>
             </View>
             <MaterialCommunityIcons name="lock" size={14} color={Colors.textMuted} />

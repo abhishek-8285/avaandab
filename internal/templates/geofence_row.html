@@ -129,7 +129,7 @@
             </a>
             {{end}}
             {{if can $.User "geofences" "delete"}}
-            <form method="POST" action="/geofences/{{.ID}}/delete" class="inline-flex" onsubmit="return confirm('Delete geofence {{.Name}}?')">
+            <form method="POST" action="/geofences/{{.ID}}/delete" data-confirm="Are you sure? This cannot be undone." class="inline-flex" onsubmit="return confirm('Delete geofence {{.Name}}?')">
                 <button type="submit" class="p-1.5 rounded-lg text-secondary hover:text-red-500 hover:bg-surface-container transition-colors cursor-pointer border-0 bg-transparent" title="Delete Geofence">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                 </button>

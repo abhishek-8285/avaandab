@@ -161,6 +161,12 @@
         .fg-chips{display:flex;flex-wrap:wrap;gap:.45rem}
         .fg-chips span{font-size:.72rem;font-weight:700;color:var(--color-secondary);background:var(--color-surface-container-lowest);border:1px solid var(--color-border-subtle);border-radius:9999px;padding:.32rem .72rem;transition:color .15s,border-color .15s;cursor:default}
         .fg-chips span:hover{color:var(--color-primary);border-color:rgba(0,104,95,.4)}
+        .fg-desc{font-size:.82rem;line-height:1.55;color:var(--color-secondary);margin:-0.35rem 0 .9rem}
+        .feat-groups.personas{grid-template-columns:repeat(1,minmax(0,1fr))}
+        @media(min-width:640px){.feat-groups.personas{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        @media(min-width:1024px){.feat-groups.personas{grid-template-columns:repeat(4,minmax(0,1fr))}}
+        #comparison tbody tr{transition:background-color .15s}
+        #comparison tbody tr:hover td{background:color-mix(in srgb,var(--color-primary) 5%,transparent)}
 
         /* Hero entrance */
         .hero-enter{opacity:0;animation:heroUp .7s cubic-bezier(.22,.61,.36,1) forwards}
@@ -174,6 +180,7 @@
         .pill-float{animation:pillFloat 4.5s ease-in-out infinite alternate}
         .pill-float.pd{animation-delay:2.2s}
         @keyframes pillFloat{from{transform:translateY(0)}to{transform:translateY(-7px)}}
+        .hero-trust{font-size:.72rem;font-weight:700;color:var(--color-secondary);border:1px solid var(--color-border-subtle);background:var(--color-surface-container-lowest);border-radius:9999px;padding:.34rem .8rem}
 
         /* Scroll reveal */
         .reveal{opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .6s cubic-bezier(.22,.61,.36,1);transition-delay:var(--rd,0s)}
@@ -242,8 +249,8 @@
         .story-stage[data-state="solved"] .fx-solved{opacity:1}
 
         .fx-call{position:absolute;display:flex;align-items:center;gap:.55rem;background:var(--color-surface-container-lowest);border:1px solid var(--color-border-subtle);border-radius:.9rem;padding:.55rem .8rem;box-shadow:0 10px 28px rgba(2,20,15,.16);animation:callFloat 3.2s ease-in-out infinite;font-size:.72rem;font-weight:700;color:var(--color-on-surface)}
-        .fx-call svg{width:16px;height:16px;color:#ef4444;animation:ringWiggle .8s ease-in-out infinite;flex-shrink:0}
-        .call-badge{background:#ef4444;color:#fff;border-radius:999px;font-size:.62rem;padding:.1rem .45rem}
+        .fx-call svg{width:16px;height:16px;color:#dc2626;animation:ringWiggle .8s ease-in-out infinite;flex-shrink:0}
+        .call-badge{background:#dc2626;color:#fff;border-radius:999px;font-size:.62rem;padding:.1rem .45rem}
         .fx-call.k1{top:15%;left:10%}
         .fx-call.k2{top:24%;right:9%;animation-delay:-1.1s}
         .fx-call.k3{top:47%;left:17%;animation-delay:-2.2s}
@@ -258,7 +265,7 @@
 
         .fx-shop{position:absolute;left:7%;bottom:168px;width:116px;height:102px;background:var(--color-surface-container-lowest);border:2px solid var(--color-border-subtle);border-radius:12px;box-shadow:0 14px 30px rgba(2,20,15,.16);overflow:hidden}
         .fx-shop::before{content:"";display:block;height:26px;background:var(--color-primary);opacity:.9}
-        .fx-shop span{position:absolute;left:0;right:0;top:52%;text-align:center;font-size:.58rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--color-secondary)}
+        .fx-shop span{position:absolute;left:0;right:0;top:52%;text-align:center;font-size:.62rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--color-on-surface)}
         .loadbox{position:absolute;width:32px;height:32px;border-radius:7px;background:#e8b06b;border:2px solid #c68a3f;box-shadow:inset 0 -7px 0 rgba(146,96,38,.35);opacity:0;animation:loadHop 3.6s ease-in-out infinite}
         .loadbox.b1{left:15%;bottom:206px}
         .loadbox.b2{left:18%;bottom:212px;animation-delay:1.2s}
@@ -273,7 +280,7 @@
         .fx-note i:nth-child(5){--w:75%;animation-delay:2.2s}
         @keyframes writeLine{0%{width:0}60%,100%{width:var(--w,85%)}}
         @keyframes noteWobble{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
-        .cust-bubble{position:absolute;top:13%;right:8%;display:flex;align-items:center;gap:.6rem;background:var(--color-surface-container-lowest);border:1px solid var(--color-border-subtle);border-bottom-right-radius:.25rem;border-radius:1rem;padding:.6rem .9rem;box-shadow:0 12px 28px rgba(2,20,15,.16);font-size:.78rem;font-weight:700;color:var(--color-on-surface);animation:bubblePop 3.2s ease-in-out infinite}
+        .cust-bubble{position:absolute;top:13%;right:8%;display:flex;align-items:center;gap:.6rem;background:var(--color-surface-container-lowest);border:1px solid var(--color-border-subtle);border-radius:1rem;border-bottom-right-radius:.25rem;padding:.6rem .9rem;box-shadow:0 12px 28px rgba(2,20,15,.16);font-size:.78rem;font-weight:700;color:var(--color-on-surface);animation:bubblePop 3.2s ease-in-out infinite}
         .cust-bubble svg{width:30px;height:30px;flex-shrink:0}
         @keyframes bubblePop{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
 
@@ -290,7 +297,7 @@
         @keyframes paperFloat{0%,100%{transform:translateY(0) rotate(var(--rot,0deg))}50%{transform:translateY(-16px) rotate(calc(var(--rot,0deg) + 7deg))}}
 
         .coin,.drop{position:absolute;animation:fallAway 1.5s ease-in infinite}
-        .coin{width:24px;height:24px;border-radius:50%;background:#f59e0b;color:#78350f;font-size:.66rem;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 -3px 0 rgba(120,53,15,.35)}
+        .coin{width:24px;height:24px;border-radius:50%;background:#f59e0b;color:#451a03;font-size:.66rem;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 -3px 0 rgba(69,26,3,.35)}
         .drop{width:12px;height:17px;background:#334155;border-radius:50% 50% 50% 50%/62% 62% 38% 38%}
         @keyframes fallAway{0%{transform:translateY(-10px);opacity:0}18%{opacity:1}100%{transform:translateY(200px);opacity:0}}
         .lk1{top:34%;left:44%}
@@ -307,7 +314,7 @@
         .zp3{width:28px;top:68%;left:28%;animation-delay:.5s}
         @keyframes speedZip{0%{opacity:0;transform:translateX(0)}25%{opacity:.85}100%{opacity:0;transform:translateX(-46px)}}
 
-        .checkchip{position:absolute;width:38px;height:38px;border-radius:50%;background:var(--color-status-success,#059669);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 24px rgba(5,150,105,.4);transform:scale(0);transition:transform .5s cubic-bezier(.34,1.56,.64,1)}
+        .checkchip{position:absolute;width:38px;height:38px;border-radius:50%;background:var(--color-status-success,#047857);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 24px rgba(4,120,87,.4);transform:scale(0);transition:transform .5s cubic-bezier(.34,1.56,.64,1)}
         .story-stage[data-state="solved"] .checkchip{transform:scale(1)}
         .checkchip.ck1{top:38%;left:30%;transition-delay:.25s}
         .checkchip.ck2{top:28%;right:29%;transition-delay:.5s}
@@ -332,7 +339,7 @@
         .dash-bars b:nth-child(6){--h:1;transition-delay:.6s}
         .story-stage[data-state="solved"] .dash-bars b{transform:scaleY(var(--h,.6))}
 
-        .story-chapter{position:relative;z-index:2;min-height:118vh;display:flex;align-items:center;padding:0 7vw}
+        .story-chapter{position:relative;z-index:2;min-height:104vh;display:flex;align-items:center;padding:0 7vw}
         .story-chapter.align-right{justify-content:flex-end}
         .story-card{max-width:26rem;background:color-mix(in srgb,var(--color-surface-container-lowest) 90%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--color-border-subtle);border-radius:1.25rem;padding:1.9rem;box-shadow:0 26px 70px rgba(2,20,15,.22)}
         .step-chip{display:inline-flex;align-items:center;gap:.55rem;font-size:.68rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--color-primary);margin-bottom:.9rem}
@@ -352,7 +359,7 @@
             .scene-skyline{height:54px}
             .story-truck{width:clamp(170px,56vw,230px)}
             .vehicle-track{bottom:12px}
-            .story-chapter{align-items:flex-end;padding-bottom:12vh;min-height:108vh}
+            .story-chapter{align-items:flex-end;padding-bottom:12vh;min-height:100vh}
             .story-card{padding:1.3rem;border-radius:1rem}
             .story-card h3{font-size:1.2rem}
             .pain-tags span{font-size:.66rem}
@@ -382,8 +389,7 @@
         }
 
         @media (max-height:600px){
-            .story-stage{min-height:0;--roadH:52px}
-            .scene-skyline,.scene-glow,.cloud,.scene-roadside{display:none}
+            .story-stage{min-height:0;--roadH:52px}            .scene-skyline,.scene-glow,.cloud,.scene-roadside{display:none}
             .story-truck{width:clamp(150px,36vh,220px)}
             .vehicle-track{bottom:8px}
             .story-chapter{min-height:102vh;align-items:flex-end;padding-bottom:9vh}
@@ -443,6 +449,12 @@
                     <a href="#benefits" class="w-full sm:w-auto px-7 py-3.5 rounded-md border border-border-subtle bg-surface-container-lowest text-on-surface-variant font-bold text-sm hover:bg-surface-container-low hover:border-text-text-muted transition-all duration-150 shadow-xs flex items-center justify-center">
                         Explore Benefits
                     </a>
+                </div>
+                <div class="flex flex-wrap items-center justify-center lg:justify-start gap-2 pt-1">
+                    <span class="hero-trust">Live GPS tracking</span>
+                    <span class="hero-trust">Auto invoices &amp; payments</span>
+                    <span class="hero-trust">Kharcha ledger</span>
+                    <span class="hero-trust">Customer tracking link</span>
                 </div>
             </div>
 
@@ -885,37 +897,46 @@
         </div>
     </section>
 
-    <!-- Key Modules -->
+    <!-- Who it's for -->
     <section id="features" class="py-20 border-t border-border-subtle bg-background">
         <div class="max-w-6xl mx-auto px-6">
             <div class="mb-12 space-y-2 text-center sm:text-left reveal">
-                <h2 class="font-display font-bold text-2xl sm:text-3xl text-on-surface">Essential operations, refined</h2>
-                <p class="text-secondary text-sm sm:text-base">Everything needed to run daily transport and dispatch logistics.</p>
+                <h2 class="font-display font-bold text-2xl sm:text-3xl text-on-surface">One platform. Four points of view.</h2>
+                <p class="text-secondary text-sm sm:text-base">Everyone in the operation gets exactly the screen they need — nothing more, nothing missing.</p>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="ecasb-card p-7 space-y-4 reveal">
-                    <div class="w-12 h-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="M9 12h6"/></svg>
+            <div class="feat-groups personas">
+                <div class="feat-group reveal">
+                    <div class="fg-head">
+                        <div class="fg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M12 12h.01"/><path d="M12 2a10 10 0 1 0 10 10"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></div>
+                        <h4>Fleet owner</h4>
                     </div>
-                    <h3 class="font-display font-bold text-lg text-on-surface">Driver Operations</h3>
-                    <p class="text-secondary text-sm leading-relaxed">Manage driver assignments, active shifts, and license compliance in real time.</p>
+                    <p class="fg-desc">Know profit per trip and spot fuel leaks — no spreadsheets, no guessing.</p>
+                    <div class="fg-chips"><span>PnL reports</span><span>Fuel audit</span><span>Driver scorecard</span><span>Settlements</span></div>
                 </div>
-
-                <div class="ecasb-card p-7 space-y-4 reveal">
-                    <div class="w-12 h-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-2.8a.5.5 0 0 0-.45-.3H3a.5.5 0 0 0-.45.3L1.14 12.2a1.5 1.5 0 0 0 0 1.6L2.6 16.6A.5.5 0 0 0 3.05 17H18"/></svg>
+                <div class="feat-group reveal">
+                    <div class="fg-head">
+                        <div class="fg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg></div>
+                        <h4>Dispatch &amp; operations</h4>
                     </div>
-                    <h3 class="font-display font-bold text-lg text-on-surface">Vehicle Tracking</h3>
-                    <p class="text-secondary text-sm leading-relaxed">Track registrations, maintenance cycles, and vehicle readiness across your fleet.</p>
+                    <p class="fg-desc">Book, assign and track every trip from one board — with alerts when something needs attention.</p>
+                    <div class="fg-chips"><span>Bookings</span><span>Trips &amp; routes</span><span>Live map</span><span>Ops alerts</span></div>
                 </div>
-
-                <div class="ecasb-card p-7 space-y-4 reveal">
-                    <div class="w-12 h-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>
+                <div class="feat-group reveal">
+                    <div class="fg-head">
+                        <div class="fg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M12 18h.01"/></svg></div>
+                        <h4>Drivers</h4>
                     </div>
-                    <h3 class="font-display font-bold text-lg text-on-surface">Route & Dispatch</h3>
-                    <p class="text-secondary text-sm leading-relaxed">Organize routes, schedule trips, and automate status progression from dispatch to delivery.</p>
+                    <p class="fg-desc">Trip details on mobile, delivery marked on the spot with a signed proof.</p>
+                    <div class="fg-chips"><span>Mobile driver app</span><span>E-PoD signatures</span><span>Trip status</span></div>
+                </div>
+                <div class="feat-group reveal">
+                    <div class="fg-head">
+                        <div class="fg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+                        <h4>Your customers</h4>
+                    </div>
+                    <p class="fg-desc">Self-serve shipment tracking and invoices — fewer status calls to your office.</p>
+                    <div class="fg-chips"><span>My Shipments portal</span><span>Live tracking link</span><span>Direct invoices</span></div>
                 </div>
             </div>
         </div>
@@ -999,7 +1020,7 @@
                 var io = new IntersectionObserver(function (entries) {
                     entries.forEach(function (entry) {
                         if (entry.isIntersecting) {
-                            stage.setAttribute("data-state", entry.target.getAttribute("data-scene"));
+                            stage.dataset.state = entry.target.dataset.scene;
                         }
                     });
                 }, { rootMargin: "-42% 0px -42% 0px", threshold: 0 });

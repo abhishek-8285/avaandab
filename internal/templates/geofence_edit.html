@@ -85,7 +85,7 @@
 
                     <!-- Shape Mode Toggle -->
                     <div class="pt-2">
-                        <label class="block text-xs font-bold text-on-surface mb-1.5">Geometry Mode</label>
+                        <label for="shape-input" class="block text-xs font-bold text-on-surface mb-1.5">Geometry Mode</label>
                         <input type="hidden" name="shape" id="shape-input" value="{{if .Zone}}{{.Zone.Shape}}{{else}}circle{{end}}">
                         <div class="grid grid-cols-2 gap-2 bg-surface-container-low p-1.5 rounded-xl border border-border-subtle">
                             <button type="button" data-draw-mode="circle"
@@ -152,6 +152,7 @@
                 <div class="p-3.5 border-b border-border-subtle bg-surface-container-low flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                     <div class="relative flex-1">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                        <label for="geocoder-input" class="sr-only">Search Location</label>
                         <input type="text" id="geocoder-input"
                             placeholder="Jump to city, port or address (e.g. Bhiwandi, Delhi Airport, JNPT)..."
                             class="w-full bg-surface-container-lowest border border-border-subtle rounded-xl pl-9 pr-20 py-2 text-xs text-on-surface placeholder-text-muted focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all">

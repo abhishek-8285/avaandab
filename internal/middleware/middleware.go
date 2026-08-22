@@ -16,6 +16,8 @@ import (
 
 	"transport-app/internal/auth"
 	"transport-app/internal/domain"
+	"transport-app/internal/httpx"
+	"transport-app/internal/logging"
 	"transport-app/internal/operations/errors"
 	"transport-app/internal/shared"
 )
@@ -63,6 +65,7 @@ func Recoverer(reporter ...*errors.Reporter) func(http.Handler) http.Handler {
 					stack := debug.Stack()
 					msg := fmt.Sprintf("%v", rec)
 					reqID, _ := r.Context().Value(auth.ContextReqID).(string)
+					tenantID := shared.TenantIDFromContext(r.Context())
 					var userID string
 					if u, ok := r.Context().Value(auth.ContextUser).(domain.User); ok {
 						userID = string(u.ID)
@@ -70,7 +73,8 @@ func Recoverer(reporter ...*errors.Reporter) func(http.Handler) http.Handler {
 
 					slog.Error("panic recovered",
 						slog.String("request_id", reqID),
-						slog.Any("error", rec),
+						slog.String("user_id", userID),
+						slog.String("error", logging.Redact(msg)),
 						slog.String("stack", string(stack)),
 					)
 
@@ -78,7 +82,7 @@ func Recoverer(reporter ...*errors.Reporter) func(http.Handler) http.Handler {
 						_, _ = reporter[0].Report(r.Context(), errors.ErrorReport{
 							RequestID:  reqID,
 							UserID:     userID,
-							TenantID:   "",
+							TenantID:   string(tenantID),
 							URL:        r.URL.String(),
 							Method:     r.Method,
 							StatusCode: http.StatusInternalServerError,
@@ -90,7 +94,7 @@ func Recoverer(reporter ...*errors.Reporter) func(http.Handler) http.Handler {
 						})
 					}
 
-					http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+					httpx.Error(w, r, fmt.Errorf("%s", msg))
 				}
 			}()
 			next.ServeHTTP(w, r)

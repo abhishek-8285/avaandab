@@ -16,6 +16,10 @@ interface LiveDriverTrackingMapProps {
   pickupLongitude?: number;
   destinationLatitude?: number;
   destinationLongitude?: number;
+  /** Real trip labels; falls back to neutral wording when unknown. */
+  pickupLabel?: string;
+  destinationLabel?: string;
+  vehicleLabel?: string;
 }
 
 export function LiveDriverTrackingMap({
@@ -25,6 +29,9 @@ export function LiveDriverTrackingMap({
   pickupLongitude = DEFAULT_LONGITUDE,
   destinationLatitude = DEFAULT_DESTINATION_LATITUDE,
   destinationLongitude = DEFAULT_DESTINATION_LONGITUDE,
+  pickupLabel,
+  destinationLabel,
+  vehicleLabel,
 }: LiveDriverTrackingMapProps) {
   const routeCoordinates = [
     { latitude: pickupLatitude, longitude: pickupLongitude },
@@ -60,13 +67,13 @@ export function LiveDriverTrackingMap({
         <Marker
           coordinate={{ latitude: pickupLatitude, longitude: pickupLongitude }}
           title="Pickup Location"
-          description="Mumbai Port Terminal 2"
+          description={pickupLabel || 'Pickup point (location unknown)'}
           pinColor={Colors.success}
         />
 
         <Marker
           coordinate={{ latitude: driverLatitude, longitude: driverLongitude }}
-          title="Driver (Vehicle #TRK-9942)"
+          title={vehicleLabel ? `Driver (${vehicleLabel})` : 'Driver'}
           description="Live Fleet Position"
           pinColor={Colors.primary}
         />
@@ -74,14 +81,14 @@ export function LiveDriverTrackingMap({
         <Marker
           coordinate={{ latitude: destinationLatitude, longitude: destinationLongitude }}
           title="Destination Warehouse"
-          description="Pune Logistics Hub B"
+          description={destinationLabel || 'Destination (location unknown)'}
           pinColor={Colors.danger}
         />
       </MapView>
 
       <View style={styles.statusBanner}>
         <View style={styles.statusDot} />
-        <Text style={styles.statusText}>LIVE · MQTT STREAM</Text>
+        <Text style={styles.statusText}>LIVE · GPS TELEMETRY</Text>
         <Text style={styles.coordsText}>
           {driverLatitude.toFixed(4)}°N · {driverLongitude.toFixed(4)}°E
         </Text>

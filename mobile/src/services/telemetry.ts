@@ -33,15 +33,19 @@ class TelemetryService {
       }
 
       // Fast location retrieval with timeout fallback
-      let coords: { latitude: number; longitude: number } | null = null;
+      let coords: { latitude: number; longitude: number; accuracy: number | null } | null = null;
 
       try {
         const locationPromise = Location.getLastKnownPositionAsync();
         const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1000));
         const lastKnown = await Promise.race([locationPromise, timeoutPromise]);
-        
+
         if (lastKnown && lastKnown.coords) {
-          coords = { latitude: lastKnown.coords.latitude, longitude: lastKnown.coords.longitude };
+          coords = {
+            latitude: lastKnown.coords.latitude,
+            longitude: lastKnown.coords.longitude,
+            accuracy: lastKnown.coords.accuracy ?? null,
+          };
         }
       } catch {}
 
@@ -50,7 +54,11 @@ class TelemetryService {
         try {
           const current = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
           if (current && current.coords) {
-            coords = { latitude: current.coords.latitude, longitude: current.coords.longitude };
+            coords = {
+              latitude: current.coords.latitude,
+              longitude: current.coords.longitude,
+              accuracy: current.coords.accuracy ?? null,
+            };
           }
         } catch {}
       }
@@ -60,7 +68,7 @@ class TelemetryService {
       }
 
       // Log telemetry event to offline SQLite database
-      await DB.logGPSLocation(coords.latitude, coords.longitude);
+      await DB.logGPSLocation(coords.latitude, coords.longitude, coords.accuracy);
 
       return {
         granted: true,
@@ -73,8 +81,12 @@ class TelemetryService {
     }
   }
 
-  // Subscribe to live continuous GPS updates for trip route tracking
-  async startLiveLocationTracking(onLocationUpdate: (lat: number, lng: number) => void): Promise<void> {
+  // Subscribe to live continuous GPS updates for trip route tracking.
+  // onLocationUpdate receives (lat, lng, speedKmh) — speed is null when the
+  // platform does not report it; callers must not fabricate a value.
+  async startLiveLocationTracking(
+    onLocationUpdate: (lat: number, lng: number, speedKmh?: number | null) => void
+  ): Promise<void> {
     const { status } = await Location.getForegroundPermissionsAsync();
     if (status !== 'granted') return;
 
@@ -86,9 +98,13 @@ class TelemetryService {
       },
       async (loc) => {
         const { latitude, longitude } = loc.coords;
+        const speedKmh =
+          typeof loc.coords.speed === 'number' && loc.coords.speed >= 0
+            ? Math.round(loc.coords.speed * 3.6)
+            : null;
         // Instrument location telemetry: log to SQLite DB
-        await DB.logGPSLocation(latitude, longitude);
-        onLocationUpdate(latitude, longitude);
+        await DB.logGPSLocation(latitude, longitude, loc.coords.accuracy ?? null);
+        onLocationUpdate(latitude, longitude, speedKmh);
       }
     );
   }

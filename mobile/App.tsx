@@ -8,7 +8,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { Colors, Font, Radius, Spacing } from './src/constants/theme';
-import { DEFAULT_LATITUDE, DEFAULT_LONGITUDE, getApiBaseURL } from './src/constants/network';
+import { getApiBaseURL } from './src/constants/network';
 import { TripCard, SkeletonLoader } from './src/components/TripCard';
 import { LiveDriverTrackingMap } from './src/components/LiveDriverTrackingMap';
 import { SplashScreen } from './src/components/SplashScreen';
@@ -22,8 +22,12 @@ import { ForgotPasswordScreen } from './src/components/ForgotPasswordScreen';
 import { FirstTimeSetupScreen } from './src/components/FirstTimeSetupScreen';
 import { DeliveryVerificationScreen } from './src/components/DeliveryVerificationScreen';
 import { ActiveNavigationScreen } from './src/components/ActiveNavigationScreen';
+import { ExpenseScreen } from './src/components/ExpenseScreen';
+import { ProfileScreen } from './src/components/ProfileScreen';
+import { IssuesScreen } from './src/components/IssuesScreen';
 import { DB } from './src/services/storage';
 import { Telemetry } from './src/services/telemetry';
+import { BackgroundGPS } from './src/services/backgroundLocation';
 import { Analytics } from './src/services/analytics';
 import { MQTT } from './src/services/mqtt';
 import { SyncEngine, startNetworkWatcher, stopNetworkWatcher } from './src/services/syncEngine';
@@ -49,8 +53,11 @@ type AuthStackParamList = {
 type DriverStackParamList = {
   Main: undefined;
   FirstTimeSetup: undefined;
-  ActiveNavigation: { tripId?: string } | undefined;
-  DeliveryVerification: { tripId?: string } | undefined;
+  ActiveNavigation: { tripId: string; trip?: Trip } | undefined;
+  DeliveryVerification: { tripId: string } | undefined;
+  Expenses: { tripId?: string } | undefined;
+  Profile: undefined;
+  Issues: { tripId?: string } | undefined;
 };
 
 const AuthStack = createStackNavigator<AuthStackParamList>();
@@ -127,7 +134,10 @@ function DriverNavigator() {
         {({ navigation }) => (
           <MainScreen
             onOpenSetup={() => navigation.navigate('FirstTimeSetup')}
-            onStartNav={(tripId) => navigation.navigate('ActiveNavigation', { tripId })}
+            onStartNav={(trip) => navigation.navigate('ActiveNavigation', { tripId: trip.id, trip })}
+            onOpenExpenses={(tripId) => navigation.navigate('Expenses', { tripId })}
+            onOpenProfile={() => navigation.navigate('Profile')}
+            onOpenIssues={() => navigation.navigate('Issues', {})}
           />
         )}
       </DriverStack.Screen>
@@ -142,10 +152,15 @@ function DriverNavigator() {
       <DriverStack.Screen name="ActiveNavigation">
         {({ navigation, route }) => (
           <ActiveNavigationScreen
-            tripId={route.params?.tripId || '1'}
-            onArriveAtStop={() =>
-              navigation.navigate('DeliveryVerification', { tripId: route.params?.tripId || '1' })
-            }
+            tripId={route.params?.tripId}
+            trip={route.params?.trip}
+            onArriveAtStop={() => {
+              if (!route.params?.tripId) {
+                Alert.alert('No Trip Selected', 'Open a trip from the trip list first.');
+                return;
+              }
+              navigation.navigate('DeliveryVerification', { tripId: route.params.tripId });
+            }}
             onMenuToggle={() => navigation.navigate('Main')}
           />
         )}
@@ -153,7 +168,24 @@ function DriverNavigator() {
       <DriverStack.Screen name="DeliveryVerification">
         {({ navigation, route }) => (
           <DeliveryVerificationScreen
-            tripId={route.params?.tripId || '1'}
+            tripId={route.params?.tripId}
+            onComplete={() => navigation.navigate('Main')}
+            onBack={() => navigation.goBack()}
+          />
+        )}
+      </DriverStack.Screen>
+      <DriverStack.Screen name="Issues">
+        {({ navigation, route }) => (
+          <IssuesScreen tripId={route.params?.tripId} onBack={() => navigation.goBack()} />
+        )}
+      </DriverStack.Screen>
+      <DriverStack.Screen name="Profile">
+        {({ navigation }) => <ProfileScreen onBack={() => navigation.goBack()} />}
+      </DriverStack.Screen>
+      <DriverStack.Screen name="Expenses">
+        {({ navigation, route }) => (
+          <ExpenseScreen
+            tripId={route.params?.tripId}
             onComplete={() => navigation.navigate('Main')}
             onBack={() => navigation.goBack()}
           />
@@ -198,11 +230,15 @@ export default function App() {
 
 interface MainScreenProps {
   onOpenSetup?: () => void;
-  onStartNav?: (tripId: string) => void;
+  onStartNav?: (trip: Trip) => void;
+  onOpenExpenses?: (tripId?: string) => void;
+  onOpenProfile?: () => void;
+  onOpenIssues?: () => void;
 }
 
-function MainScreen({ onOpenSetup, onStartNav }: MainScreenProps) {
+function MainScreen({ onOpenSetup, onStartNav, onOpenExpenses, onOpenProfile, onOpenIssues }: MainScreenProps) {
   const [activeTab, setActiveTab] = useState<'trips' | 'dispatch'>('trips');
+  const [tripFilter, setTripFilter] = useState<'active' | 'history'>('active');
   const [locationState, setLocationState] = useState<{
     granted: boolean;
     latitude: number | null;
@@ -234,7 +270,15 @@ function MainScreen({ onOpenSetup, onStartNav }: MainScreenProps) {
         SyncEngine.startAutoSync(activeId, 15000);
       }
     });
-    return () => SyncEngine.stopAutoSync();
+    // In-app dispatch alerts (trip assignment/status pushed over MQTT)
+    const unsubscribeDispatch = MQTT.onDispatch((u) => {
+      Alert.alert('DISPATCH UPDATE', `Trip ${u.trip_id} · ${u.status || 'update'}`);
+      queryClient.invalidateQueries({ queryKey: ['trips', driverIdentifier, token] });
+    });
+    return () => {
+      unsubscribeDispatch();
+      SyncEngine.stopAutoSync();
+    };
   }, [user?.id, user?.driverId]);
 
   const handleManualSync = async () => {
@@ -258,10 +302,19 @@ function MainScreen({ onOpenSetup, onStartNav }: MainScreenProps) {
       Analytics.track('driver_gps_permission_requested');
       const loc = await Telemetry.requestLocationPermission();
 
+      if (loc.latitude == null || loc.longitude == null) {
+        setLocationState({ granted: false, latitude: null, longitude: null, error: loc.error || 'GPS coordinates unavailable' });
+        Alert.alert(
+          'Location Unavailable',
+          loc.error || 'GPS coordinates unavailable. Enable location services and try again.'
+        );
+        return;
+      }
+
       const finalLoc = {
         granted: true,
-        latitude: loc.latitude || DEFAULT_LATITUDE,
-        longitude: loc.longitude || DEFAULT_LONGITUDE,
+        latitude: loc.latitude,
+        longitude: loc.longitude,
         error: loc.error,
       };
 
@@ -290,7 +343,36 @@ function MainScreen({ onOpenSetup, onStartNav }: MainScreenProps) {
   };
 
   const [showCameraView, setShowCameraView] = useState(false);
+  const [bgGpsOn, setBgGpsOn] = useState(false);
   const [dbLogs, setDbLogs] = useState<{ id: number; latitude: number; longitude: number; timestamp: string }[]>([]);
+
+  useEffect(() => {
+    BackgroundGPS.isRunning().then(setBgGpsOn);
+    return () => BackgroundGPS.setForegroundEcho(null);
+  }, []);
+
+  const handleToggleBackgroundGPS = async () => {
+    if (bgGpsOn) {
+      await BackgroundGPS.stop();
+      setBgGpsOn(false);
+      Alert.alert('Background GPS Off', 'Location tracking now runs only while the app is open.');
+      return;
+    }
+    const res = await BackgroundGPS.start();
+    if (res.started) {
+      setBgGpsOn(true);
+      // Echo OS-level fixes into the same live UI state as foreground tracking.
+      BackgroundGPS.setForegroundEcho((lat, lng) => {
+        setLocationState((prev) => ({ ...prev, granted: true, latitude: lat, longitude: lng }));
+        if (driverIdentifier) {
+          MQTT.publishLocation(driverIdentifier, lat, lng);
+        }
+      });
+      Alert.alert('Background GPS On', 'Trip position keeps streaming when the app is backgrounded.');
+    } else {
+      Alert.alert('Background GPS Unavailable', res.error || 'Could not start background location.');
+    }
+  };
 
   const handleFetchDBLogs = async () => {
     try {
@@ -319,6 +401,15 @@ function MainScreen({ onOpenSetup, onStartNav }: MainScreenProps) {
     }
   };
 
+  const handleSignOut = () => {
+    // Full teardown: no live listeners may survive a logout.
+    MQTT.disconnect();
+    Telemetry.stopLiveLocationTracking();
+    SyncEngine.stopAutoSync();
+    stopNetworkWatcher();
+    logout();
+  };
+
   const { data: trips, isLoading } = useQuery<Trip[]>({
     queryKey: ['trips', driverIdentifier, token],
     queryFn: async () => {
@@ -344,6 +435,10 @@ function MainScreen({ onOpenSetup, onStartNav }: MainScreenProps) {
     enabled: !!token,
   });
 
+  // Trip context for map labels + expense logging: prefer an in-transit trip.
+  const activeTrip =
+    trips?.find((t) => t.status === 'IN_TRANSIT') ?? trips?.find((t) => t.status === 'PENDING') ?? null;
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StatusBar style="light" />
@@ -355,7 +450,7 @@ function MainScreen({ onOpenSetup, onStartNav }: MainScreenProps) {
             <View style={styles.brandDot} />
             <Text style={styles.brandBadgeText}>AVANDAB · OPS</Text>
           </View>
-          <TouchableOpacity onPress={() => logout()}>
+          <TouchableOpacity onPress={handleSignOut}>
             <Text style={styles.headerClock}>SIGN OUT</Text>
           </TouchableOpacity>
         </View>
@@ -389,7 +484,7 @@ function MainScreen({ onOpenSetup, onStartNav }: MainScreenProps) {
           style={[styles.tab, activeTab === 'trips' && styles.activeTab]}
           onPress={() => setActiveTab('trips')}
         >
-          <Text style={[styles.tabText, activeTab === 'trips' && styles.activeTabText]}>ACTIVE TRIPS</Text>
+          <Text style={[styles.tabText, activeTab === 'trips' && styles.activeTabText]}>TRIPS</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'dispatch' && styles.activeTab]}
@@ -399,6 +494,23 @@ function MainScreen({ onOpenSetup, onStartNav }: MainScreenProps) {
         </TouchableOpacity>
       </View>
 
+      {/* Trip filter chips (trips tab only) */}
+      {activeTab === 'trips' && (
+        <View style={styles.filterRow}>
+          {(['active', 'history'] as const).map((f) => (
+            <TouchableOpacity
+              key={f}
+              style={[styles.filterChip, tripFilter === f && styles.filterChipActive]}
+              onPress={() => setTripFilter(f)}
+            >
+              <Text style={[styles.filterChipText, tripFilter === f && styles.filterChipTextActive]}>
+                {f === 'active' ? 'ACTIVE' : 'HISTORY'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
       {/* Content */}
       <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
         {activeTab === 'trips' ? (
@@ -407,27 +519,40 @@ function MainScreen({ onOpenSetup, onStartNav }: MainScreenProps) {
               <SkeletonLoader />
               <SkeletonLoader />
             </>
-          ) : !trips || trips.length === 0 ? (
-            <View style={styles.infoCard}>
-              <Text style={styles.infoTitle}>NO ACTIVE TRIPS</Text>
-              <Text style={styles.infoBody}>
-                You currently have no dispatched trips assigned. Contact dispatch or check back later.
-              </Text>
-            </View>
           ) : (
-            trips.map((trip) => (
-              <TouchableOpacity key={trip.id} activeOpacity={0.9} onPress={() => onStartNav && onStartNav(trip.id)}>
-                <TripCard
-                  tripNumber={trip.tripNumber}
-                  driverName={trip.driverName}
-                  vehiclePlate={trip.vehiclePlate}
-                  origin={trip.origin}
-                  destination={trip.destination}
-                  status={trip.status}
-                  startTime={trip.startTime}
-                />
-              </TouchableOpacity>
-            ))
+            (() => {
+              // ACTIVE: pending/in-progress work. HISTORY: delivered/completed/cancelled.
+              const visibleTrips = (trips ?? []).filter((t) =>
+                tripFilter === 'active'
+                  ? t.status === 'PENDING' || t.status === 'IN_TRANSIT'
+                  : t.status === 'COMPLETED' || t.status === 'CANCELLED'
+              );
+              if (visibleTrips.length === 0) {
+                return (
+                  <View style={styles.infoCard}>
+                    <Text style={styles.infoTitle}>{tripFilter === 'active' ? 'NO ACTIVE TRIPS' : 'NO TRIP HISTORY'}</Text>
+                    <Text style={styles.infoBody}>
+                      {tripFilter === 'active'
+                        ? 'You currently have no dispatched trips assigned. Contact dispatch or check back later.'
+                        : 'Completed and cancelled trips will appear here.'}
+                    </Text>
+                  </View>
+                );
+              }
+              return visibleTrips.map((trip) => (
+                <TouchableOpacity key={trip.id} activeOpacity={0.9} onPress={() => onStartNav && onStartNav(trip)}>
+                  <TripCard
+                    tripNumber={trip.tripNumber}
+                    driverName={trip.driverName}
+                    vehiclePlate={trip.vehiclePlate}
+                    origin={trip.origin}
+                    destination={trip.destination}
+                    status={trip.status}
+                    startTime={trip.startTime}
+                  />
+                </TouchableOpacity>
+              ));
+            })()
           )
         ) : (
           <View style={styles.infoCard}>
@@ -438,6 +563,17 @@ function MainScreen({ onOpenSetup, onStartNav }: MainScreenProps) {
             <Text style={styles.infoBody}>
               Request native permissions and monitor instrumented GPS location & camera state.
             </Text>
+
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.actionBtnTeal, { marginTop: 0, marginBottom: 8 }]}
+              onPress={() => onOpenExpenses && onOpenExpenses(activeTrip?.id)}
+              disabled={!activeTrip}
+            >
+              <MaterialCommunityIcons name="receipt" size={14} color={Colors.textOnPrimary} />
+              <Text style={styles.actionBtnText}>
+                {activeTrip ? `LOG EXPENSE · ${activeTrip.tripNumber}` : 'LOG EXPENSE (NO ACTIVE TRIP)'}
+              </Text>
+            </TouchableOpacity>
 
             {/* Telemetry Status Grid */}
             <View style={styles.telemetrySection}>
@@ -466,11 +602,24 @@ function MainScreen({ onOpenSetup, onStartNav }: MainScreenProps) {
                     <Text style={styles.gpsSuccessText}>SQLITE · MQTT STREAM</Text>
                   </View>
 
-                  {/* Uber-Style Live Interactive Map */}
-                  <LiveDriverTrackingMap
-                    driverLatitude={locationState.latitude}
-                    driverLongitude={locationState.longitude || DEFAULT_LONGITUDE}
-                  />
+                  <TouchableOpacity
+                    style={[styles.dbFetchBtn, bgGpsOn ? styles.bgGpsOnBtn : styles.bgGpsOffBtn, { marginTop: 8 }]}
+                    onPress={handleToggleBackgroundGPS}
+                  >
+                    <MaterialCommunityIcons name={bgGpsOn ? 'shield-check-outline' : 'shield-off-outline'} size={12} color={Colors.textOnPrimary} />
+                    <Text style={styles.dbFetchBtnText}>{bgGpsOn ? 'BACKGROUND GPS · ON' : 'BACKGROUND GPS · OFF'}</Text>
+                  </TouchableOpacity>
+
+                  {/* Uber-Style Live Interactive Map — only with real fix, no fake fallback */}
+                  {locationState.longitude != null && activeTrip && (
+                    <LiveDriverTrackingMap
+                      driverLatitude={locationState.latitude}
+                      driverLongitude={locationState.longitude}
+                      pickupLabel={activeTrip.origin}
+                      destinationLabel={activeTrip.destination}
+                      vehicleLabel={activeTrip.vehiclePlate ? `Vehicle #${activeTrip.vehiclePlate}` : undefined}
+                    />
+                  )}
 
                   <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
                     <TouchableOpacity style={[styles.dbFetchBtn, { flex: 1 }]} onPress={handleFetchDBLogs}>
@@ -660,6 +809,34 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.borderLight,
   },
+  filterRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+  },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 9999,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  filterChipActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  filterChipText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+    color: Colors.textSecondary,
+    fontFamily: Font.mono,
+  },
+  filterChipTextActive: {
+    color: Colors.textOnPrimary,
+  },
   tab: {
     flex: 1,
     paddingVertical: Spacing.md,
@@ -805,6 +982,14 @@ const styles = StyleSheet.create({
   },
   dbSyncBtn: {
     backgroundColor: Colors.primary,
+  },
+  bgGpsOnBtn: {
+    backgroundColor: Colors.success,
+  },
+  bgGpsOffBtn: {
+    backgroundColor: Colors.chrome,
+    borderWidth: 1,
+    borderColor: Colors.chromeBorder,
   },
   dbFetchBtnText: {
     color: Colors.textOnPrimary,

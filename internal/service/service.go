@@ -203,7 +203,9 @@ func (s *Services) initEventHandlers() {
 		if !ok {
 			return nil
 		}
-		_, _ = s.Invoices.GenerateInvoiceFromTrip(ctx, evt.TripID)
+		if _, err := s.Invoices.GenerateInvoiceFromTrip(ctx, evt.TripID); err != nil {
+			s.log.Error("auto-invoice generation failed for completed trip", "trip_id", evt.TripID, "error", err)
+		}
 		return nil
 	})
 
@@ -221,8 +223,12 @@ func (s *Services) initEventHandlers() {
 		if !ok {
 			return nil
 		}
-		_, _ = s.Invoices.GenerateInvoiceFromTrip(ctx, tripID)
-		_, _ = s.Settlements.CreateSettlementForTrip(ctx, tripID, 1200.0, 200.0, 50.0)
+		if _, err := s.Invoices.GenerateInvoiceFromTrip(ctx, tripID); err != nil {
+			s.log.Error("auto-invoice generation failed for delivered trip", "trip_id", tripID, "error", err)
+		}
+		if _, err := s.Settlements.CreateSettlementForTrip(ctx, tripID, 1200.0, 200.0, 50.0); err != nil {
+			s.log.Error("auto-settlement creation failed for delivered trip", "trip_id", tripID, "error", err)
+		}
 		return nil
 	})
 }

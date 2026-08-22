@@ -68,7 +68,7 @@ func (h *UserHandlers) New(w http.ResponseWriter, r *http.Request) {
 
 func (h *UserHandlers) Create(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		h.failPage(w, r, err, http.StatusBadRequest, "Invalid Form Submission")
 		return
 	}
 
@@ -135,7 +135,7 @@ func (h *UserHandlers) Edit(w http.ResponseWriter, r *http.Request) {
 
 func (h *UserHandlers) Update(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		h.failPage(w, r, err, http.StatusBadRequest, "Invalid Form Submission")
 		return
 	}
 
@@ -151,7 +151,7 @@ func (h *UserHandlers) Update(w http.ResponseWriter, r *http.Request) {
 		domain.UserStatus(r.PostFormValue("status")),
 	)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		h.failPage(w, r, err, http.StatusBadRequest, "Could Not Save User")
 		return
 	}
 
@@ -179,7 +179,7 @@ func (h *UserHandlers) getRoleNameByID(ctx context.Context, roleID int64) string
 func (h *UserHandlers) Delete(w http.ResponseWriter, r *http.Request) {
 	id := domain.UserID(chi.URLParam(r, "id"))
 	if err := h.Services.Users.DeleteUser(r.Context(), id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		h.failPage(w, r, err, http.StatusInternalServerError, "Could Not Delete User")
 		return
 	}
 	http.Redirect(w, r, "/users", http.StatusSeeOther)
@@ -194,7 +194,7 @@ func (h *UserHandlers) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Users.ResetPassword(r.Context(), id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		h.failPage(w, r, err, http.StatusInternalServerError, "Could Not Reset Password")
 		return
 	}
 

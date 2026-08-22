@@ -14,7 +14,11 @@ import (
 	"transport-app/internal/shared/ports"
 )
 
-var ErrPaymentNotFound = errors.New("payment not found")
+var (
+	ErrPaymentNotFound        = errors.New("payment not found")
+	ErrMissingOriginalPayment = errors.New("original payment ID is required")
+	ErrMissingReversalReason  = errors.New("reversal reason is required")
+)
 
 type ReversePaymentCommand struct {
 	TenantID      shared.TenantID
@@ -34,10 +38,10 @@ func NewReversePaymentUseCase(uow ports.UnitOfWork, idGen ports.IDGenerator, clo
 
 func (uc *ReversePaymentUseCase) Execute(ctx context.Context, cmd ReversePaymentCommand) (paymentagg.PaymentID, error) {
 	if cmd.OriginalPayID == "" {
-		return "", errors.New("original payment ID is required")
+		return "", ErrMissingOriginalPayment
 	}
 	if cmd.Reason == "" {
-		return "", errors.New("reversal reason is required")
+		return "", ErrMissingReversalReason
 	}
 
 	var id paymentagg.PaymentID
@@ -60,6 +64,19 @@ func (uc *ReversePaymentUseCase) Execute(ctx context.Context, cmd ReversePayment
 		}
 
 		reversalRef := fmt.Sprintf("REVERSAL:%s", string(original.ID))
+
+		// Idempotency guard: if a reversal for this payment already exists,
+		// return its ID without touching the invoice again — a retried
+		// refund must not double-decrement paid_amount.
+		existingReversalID, err := payRepo.FindByReference(txCtx, reversalRef, cmd.TenantID)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+		if existingReversalID != "" {
+			id = existingReversalID
+			return nil
+		}
+
 		reversal := paymentagg.NewPaymentAggregate(
 			paymentagg.PaymentID(uc.idGen.GenerateUUID()),
 			cmd.TenantID,

@@ -28,5 +28,6 @@
   "common.loading": "Loading",
   "common.retry": "Retry",
   "common.offline": "Offline",
-  "common.save_offline": "Saved offline — will sync when back online"
+  "common.save_offline": "Saved offline — will sync when back online",
+  "expense.type.bhatta": "Bhatta (Daily Allowance)"
 }

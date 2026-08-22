@@ -1,35 +1,73 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LiveDriverTrackingMap } from './LiveDriverTrackingMap';
 import { Telemetry } from '../services/telemetry';
 import { Colors, Font, Radius, Spacing } from '../constants/theme';
+import { getApiBaseURL } from '../constants/network';
+import { useAuthStore } from '../stores/authStore';
+import { Trip } from '../types/api';
+import { deriveNavState } from '../utils/navState';
 
 interface ActiveNavigationScreenProps {
   tripId?: string;
+  trip?: Trip;
   onArriveAtStop: () => void;
   onMenuToggle?: () => void;
 }
 
 export function ActiveNavigationScreen({
-  tripId = '1',
+  tripId,
+  trip: initialTrip,
   onArriveAtStop,
   onMenuToggle,
 }: ActiveNavigationScreenProps) {
-  const [coords, setCoords] = React.useState<{ latitude: number; longitude: number }>({
+  const [trip, setTrip] = React.useState<Trip | undefined>(initialTrip);
+  const [startingTrip, setStartingTrip] = React.useState(false);
+  const [coords, setCoords] = React.useState<{ latitude: number; longitude: number; speedKmh: number | null }>({
     latitude: 18.5204,
     longitude: 73.8567,
+    speedKmh: null,
   });
 
   React.useEffect(() => {
-    Telemetry.startLiveLocationTracking((lat, lng) => {
-      setCoords({ latitude: lat, longitude: lng });
+    Telemetry.startLiveLocationTracking((lat, lng, speedKmh) => {
+      setCoords({ latitude: lat, longitude: lng, speedKmh: speedKmh ?? null });
     });
     return () => {
       Telemetry.stopLiveLocationTracking();
     };
   }, []);
+
+  const nav = deriveNavState(trip ?? (tripId ? ({ id: tripId } as Trip) : null), coords.speedKmh);
+
+  // Assigned trips must transition to `started` before the backend accepts an
+  // e-POD delivery ("only active/started/in_transit trips can be marked delivered").
+  const startTrip = async () => {
+    if (!tripId || startingTrip) return;
+    setStartingTrip(true);
+    try {
+      const token = useAuthStore.getState().token;
+      const res = await fetch(`${getApiBaseURL()}/api/v1/trips/${tripId}/start`, {
+        method: 'POST',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `HTTP ${res.status}`);
+      }
+      if (trip) {
+        setTrip({ ...trip, status: 'IN_TRANSIT' });
+      }
+    } catch (e: any) {
+      Alert.alert('Could Not Start Trip', e?.message || 'Failed to start trip.');
+    } finally {
+      setStartingTrip(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -40,6 +78,9 @@ export function ActiveNavigationScreen({
         <LiveDriverTrackingMap
           driverLatitude={coords.latitude}
           driverLongitude={coords.longitude}
+          pickupLabel={trip?.origin}
+          destinationLabel={trip?.destination}
+          vehicleLabel={trip?.vehiclePlate ? `Vehicle #${trip.vehiclePlate}` : undefined}
         />
       </View>
 
@@ -51,7 +92,7 @@ export function ActiveNavigationScreen({
 
         <View style={styles.brandBlock}>
           <Text style={styles.brandTitle}>NAV</Text>
-          <Text style={styles.brandSub}>TRIP #{tripId} · LIVE</Text>
+          <Text style={styles.brandSub}>{nav.statusLine}</Text>
         </View>
 
         <TouchableOpacity style={styles.iconBtn}>
@@ -59,28 +100,31 @@ export function ActiveNavigationScreen({
         </TouchableOpacity>
       </View>
 
-      {/* Turn instruction HUD card */}
+      {/* Leg instruction HUD card — real leg data only, no turn-by-turn fabrication */}
       <View style={styles.instructionContainer}>
         <View style={styles.turnCard}>
           <View style={styles.turnIconBox}>
-            <MaterialCommunityIcons name="arrow-top-left" size={28} color={Colors.textOnPrimary} />
+            <MaterialCommunityIcons
+              name={nav.hasTrip ? 'map-marker-right' : 'map-marker-question'}
+              size={28}
+              color={Colors.textOnPrimary}
+            />
           </View>
 
           <View style={styles.turnTextContainer}>
-            <Text style={styles.turnDistance}>0.5 MI</Text>
-            <Text style={styles.turnTitle}>LEFT TURN</Text>
-            <Text style={styles.turnSubtitle}>St Dunstan's Hill</Text>
+            <Text style={styles.turnDistance}>{nav.stepLabel}</Text>
+            <Text style={styles.turnTitle}>{nav.legTitle}</Text>
+            <Text style={styles.turnSubtitle} numberOfLines={1}>
+              {nav.nextStopAddress}
+            </Text>
           </View>
         </View>
 
-        {/* Speed HUD */}
+        {/* Speed HUD — real GPS speed only */}
         <View style={styles.speedRow}>
           <View style={styles.speedBadge}>
-            <Text style={styles.currentSpeed}>32</Text>
-            <Text style={styles.speedUnit}>MPH</Text>
-          </View>
-          <View style={styles.speedLimitCircle}>
-            <Text style={styles.speedLimitText}>30</Text>
+            <Text style={styles.currentSpeed}>{nav.speedKmh != null ? nav.speedKmh : '--'}</Text>
+            <Text style={styles.speedUnit}>KM/H</Text>
           </View>
         </View>
       </View>
@@ -92,33 +136,53 @@ export function ActiveNavigationScreen({
             <View style={styles.stopInfo}>
               <View style={styles.indicatorRow}>
                 <View style={styles.greenDot} />
-                <Text style={styles.stopLabel}>NEXT STOP · 02/04</Text>
+                <Text style={styles.stopLabel}>{nav.stepLabel}</Text>
               </View>
               <Text style={styles.stopAddress} numberOfLines={1}>
-                4 St Dunstan's Hill
+                {nav.nextStopAddress}
               </Text>
-              <Text style={styles.stopRef}>REF #ORD-7492-X</Text>
+              {nav.refLabel && <Text style={styles.stopRef}>{nav.refLabel}</Text>}
             </View>
 
             <View style={styles.etaContainer}>
-              <Text style={styles.etaLabel}>ETA</Text>
-              <Text style={styles.etaTime}>12m</Text>
-              <Text style={styles.etaDistance}>7.0 km</Text>
+              <Text style={styles.etaLabel}>DEPART</Text>
+              <Text style={styles.etaTime}>{trip?.startTime ? formatDeparture(trip.startTime) : '—'}</Text>
+              <Text style={styles.etaDistance}>{trip?.vehiclePlate || ''}</Text>
             </View>
           </View>
 
-          <TouchableOpacity
-            style={styles.arriveBtn}
-            activeOpacity={0.88}
-            onPress={onArriveAtStop}
-          >
-            <MaterialCommunityIcons name="map-marker-check" size={16} color={Colors.textOnPrimary} />
-            <Text style={styles.arriveBtnText}>ARRIVE AT STOP</Text>
-          </TouchableOpacity>
+          {trip && trip.status === 'PENDING' ? (
+            <TouchableOpacity
+              style={[styles.arriveBtn, styles.startBtn]}
+              activeOpacity={0.88}
+              onPress={startTrip}
+              disabled={startingTrip || !nav.hasTrip}
+            >
+              <MaterialCommunityIcons name="play-circle-outline" size={16} color={Colors.textOnPrimary} />
+              <Text style={styles.arriveBtnText}>{startingTrip ? 'STARTING…' : 'START TRIP'}</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[styles.arriveBtn, !nav.hasTrip && { opacity: 0.5 }]}
+              activeOpacity={0.88}
+              onPress={onArriveAtStop}
+              disabled={!nav.hasTrip}
+            >
+              <MaterialCommunityIcons name="map-marker-check" size={16} color={Colors.textOnPrimary} />
+              <Text style={styles.arriveBtnText}>ARRIVE AT STOP</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </View>
   );
+}
+
+/** Formats an ISO departure timestamp as HH:mm for the HUD. */
+function formatDeparture(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso.length <= 5 ? iso : '—';
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
 const styles = StyleSheet.create({
@@ -250,22 +314,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     fontFamily: Font.mono,
   },
-  speedLimitCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: Colors.danger,
-    backgroundColor: Colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  speedLimitText: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: Colors.danger,
-    fontFamily: Font.mono,
-  },
   bottomCardContainer: {
     position: 'absolute',
     bottom: Spacing.lg,
@@ -363,5 +411,8 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 1.5,
     fontFamily: Font.mono,
+  },
+  startBtn: {
+    backgroundColor: Colors.success,
   },
 });

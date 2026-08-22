@@ -78,7 +78,7 @@
                             {{end}}
                             <td class="px-4 py-2.5 text-sm text-right font-semibold text-on-surface tabular-nums" data-numeric>₹{{printf "%.2f" .Total}}</td>
                             <td class="px-4 py-2.5 text-center">
-                                <form method="POST" action="/invoices/{{$.Invoice.ID}}/line-items/{{.ID}}/delete" onsubmit="return confirm('Remove line item?');">
+                                <form method="POST" action="/invoices/{{$.Invoice.ID}}/line-items/{{.ID}}/delete" data-confirm="Are you sure? This cannot be undone." onsubmit="return confirm('Remove line item?');">
                                     <button type="submit" class="text-status-alert hover:text-status-alert/80 p-1 text-xs font-semibold cursor-pointer">
                                         Delete
                                     </button>

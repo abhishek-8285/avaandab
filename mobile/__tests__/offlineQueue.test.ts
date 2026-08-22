@@ -153,6 +153,53 @@ describe('OfflineQueue', () => {
     expect(await OfflineQueue.pendingExpenses()).toHaveLength(0);
   });
 
+  test('idempotency_key persists through queue and flush sends it', async () => {
+    const key = `exp-${Date.now()}-testkey`;
+    await OfflineQueue.enqueueExpense({
+      trip_id: 'trip_exp_idem',
+      expense_type: 'toll',
+      amount: 300,
+      idempotency_key: key,
+    });
+
+    const queued = await OfflineQueue.pendingExpenses();
+    const match = queued.find((e) => e.trip_id === 'trip_exp_idem');
+    expect(match?.idempotency_key).toBe(key);
+    await OfflineQueue.clearExpense(match!.id);
+
+    // Flush path: the queued key must reach the backend form data
+    await OfflineQueue.enqueueExpense({
+      trip_id: 'trip_exp_flush2',
+      expense_type: 'food',
+      amount: 90,
+      idempotency_key: key,
+    });
+
+    global.fetch = jest.fn().mockImplementation(async (url: string) => {
+      if (url.includes('/kharcha/expense')) {
+        return { ok: true, json: async () => ({}) };
+      }
+      return { ok: true, json: async () => ({}) };
+    }) as any;
+
+    // Spy on FormData appends — works across RN FormData implementations.
+    const appended: Record<string, unknown> = {};
+    const RealFD = global.FormData;
+    class SpyFormData extends RealFD {
+      append(name: string, value: any) {
+        appended[name] = value;
+        super.append(name, value);
+      }
+    }
+    global.FormData = SpyFormData as any;
+
+    await OfflineQueue.flush();
+    global.FormData = RealFD;
+
+    expect(appended.trip_id).toBe('trip_exp_flush2');
+    expect(appended.idempotency_key).toBe(key);
+  });
+
   test('clearExpenses removes many; empty array is a no-op', async () => {
     await OfflineQueue.enqueueExpense({ trip_id: 't1', expense_type: 'toll', amount: 100 });
     await OfflineQueue.enqueueExpense({ trip_id: 't2', expense_type: 'toll', amount: 200 });

@@ -51,5 +51,8 @@
         {{else}}
             {{template "btn.html" (dict "Label" "Return Home" "Href" "/" "Icon" "home")}}
         {{end}}
+        {{if .RequestID}}
+            {{template "btn.html" (dict "Label" "Contact Support" "Href" (printf "/contact-us?ref=%s&about=%s" .RequestID "error-page") "Variant" "secondary" "Icon" "support_agent")}}
+        {{end}}
     </div>
 </div>

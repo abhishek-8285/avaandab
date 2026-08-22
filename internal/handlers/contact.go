@@ -20,7 +20,9 @@ type ContactHandlers struct {
 
 func (h *ContactHandlers) Routes(r chi.Router) {
 	r.Get("/", h.Page)
-	r.With(middleware.RateLimit(10)).Post("/submit", h.Submit)
+	// Distributed limiter so the per-IP budget holds across replicas
+	// (in-memory counters multiply with replica count).
+	r.With(middleware.RateLimitDistributed(h.Cache, 10)).Post("/submit", h.Submit)
 	r.Get("/status", h.StatusCheck)
 }
 

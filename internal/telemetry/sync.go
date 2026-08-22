@@ -1,6 +1,7 @@
 package telemetry
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"github.com/google/uuid"
 
 	"transport-app/internal/eta"
+	"transport-app/internal/shared"
 	"transport-app/internal/telemetry/providers"
 )
 
@@ -20,6 +22,9 @@ type GPSLogPayload struct {
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
 	Timestamp string  `json:"timestamp"`
+	// AccuracyM is horizontal accuracy in metres (optional; mobile sends it
+	// when the platform reports it).
+	AccuracyM float64 `json:"accuracy_m,omitempty"`
 }
 
 // SyncBatchRequest is the mobile-app sync payload. DeviceID is the synthetic
@@ -63,6 +68,29 @@ func RegisterTelemetryRoutes(r chi.Router, ing *Ingestor, db *sql.DB, staleMin t
 	r.Get("/api/v1/telemetry/geofences", GeofencesHandler(db))
 }
 
+// ensureSyntheticDevice completes Decision D3: driver phones have no IMEI, so
+// the driver_id itself becomes the device identity. The ingest pipeline
+// quarantines unknown IMEIs, so a sync from an unregistered driver would be
+// silently dropped. We auto-provision an active `mobile_app` device on first
+// sync so the frame is accepted; admin tooling can still retire it later.
+func (ing *Ingestor) ensureSyntheticDevice(ctx context.Context, imei string) {
+	if imei == "" {
+		return
+	}
+	if existing, err := ing.deviceStore.GetByIMEI(ctx, imei); err == nil && existing != nil {
+		return
+	}
+	now := time.Now()
+	_ = ing.deviceStore.InsertDevice(ctx, Device{
+		ID:          uuid.NewString(),
+		TenantID:    string(shared.DefaultTenant),
+		IMEI:        imei,
+		DeviceType:  "mobile_app",
+		Status:      "active",
+		ActivatedAt: &now,
+	})
+}
+
 // HandleTelemetrySync processes a batch of GPS logs from the mobile app.
 // Each log becomes a RawFrame routed through the canonical pipeline. Only
 // frames that were Accepted (including deduped replays) contribute their
@@ -89,6 +117,7 @@ func HandleTelemetrySync(ing *Ingestor) http.HandlerFunc {
 			imei := req.DeviceID
 			if imei == "" {
 				imei = req.DriverID
+				ing.ensureSyntheticDevice(r.Context(), imei)
 			}
 
 			frame := providers.RawFrame{

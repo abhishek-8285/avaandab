@@ -13,6 +13,7 @@
     <link href="https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&display=swap" rel="stylesheet">
     <script src="/static/js/loader.js?v=20260818"></script>
     <script type="module" src="/static/js/datastar.js?v={{if .Version}}{{.Version}}{{else}}20260812{{end}}" defer></script>
+    <script src="/static/js/htmx.min.js?v={{if .Version}}{{.Version}}{{else}}20260822{{end}}" defer></script>
     <link rel="stylesheet" href="/static/css/tailwind.css?v={{if .Version}}{{.Version}}{{else}}20260821{{end}}">
     <link rel="stylesheet" href="/static/css/app.css?v={{if .Version}}{{.Version}}{{else}}20260821{{end}}">
     {{if .PWAEnabled}}
@@ -65,7 +66,7 @@
     </script>
     {{template "theme_head.html" .}}
 </head>
-<body class="bg-surface-container-low font-sans">
+<body class="bg-surface-container-low font-sans" data-authenticated="{{if .User}}true{{else}}false{{end}}">
     <div class="flex h-screen overflow-hidden bg-background">
         <div id="mobile-overlay" class="fixed inset-0 z-40 bg-black/50 opacity-0 invisible transition-opacity duration-300 md:hidden"></div>
 
@@ -81,186 +82,261 @@
                 </a>
             </div>
             <nav id="sidebar-nav" class="flex-1 py-2 flex flex-col overflow-y-auto px-2 pb-6">
-                <div class="nav-section-label">Overview</div>
+                <div class="nav-section-label">{{t "nav.overview"}}</div>
                 <a href="/dashboard" class="nav-item {{if eq .Title "Dashboard"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
-                    <span>Dashboard</span>
+                    <span>{{t "nav.dashboard"}}</span>
                 </a>
                 {{if can .User "trips" "read"}}
+                {{if and .Features (index .Features "telemetry")}}
                 <a href="/tracking" class="nav-item {{if eq .Title "Live Tracking"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" x2="9" y1="3" y2="18"/><line x1="15" x2="15" y1="6" y2="21"/></svg>
-                    <span>Live Tracking</span>
+                    <span>{{t "nav.tracking"}}</span>
                 </a>
+                {{else}}
+                <span class="nav-item opacity-45 cursor-not-allowed select-none" title="Add-on — contact to enable"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <span class="italic">{{t "nav.tracking"}}</span>
+                    <span class="ml-auto text-[9px] font-bold uppercase tracking-wider text-primary/70 border border-primary/20 rounded-full px-1.5 py-0.5">Add-on</span>
+                </span>
+                {{end}}
                 <a href="/map" class="nav-item {{if eq .Title "Live Fleet Map"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/></svg>
-                    <span>Live Map</span>
+                    <span>{{t "nav.map"}}</span>
                 </a>
                 {{end}}
-                <div class="nav-section-label">Operations</div>
+                <div class="nav-section-label">{{t "nav.operations"}}</div>
                 {{if can .User "bookings" "read"}}
                 <a href="/bookings" class="nav-item {{if eq .Title "Bookings"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><line x1="8" x2="16" y1="8" y2="8"/><line x1="8" x2="16" y1="12" y2="12"/><line x1="8" x2="12" y1="16" y2="16"/></svg>
-                    <span>Bookings</span>
+                    <span>{{t "nav.bookings"}}</span>
                 </a>
                 {{end}}
                 {{if can .User "trips" "read"}}
                 <a href="/trips" class="nav-item {{if eq .Title "Trips"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="3" rx="2"/><path d="M4 11h16"/><circle cx="8" cy="15" r="1"/><circle cx="16" cy="15" r="1"/></svg>
-                    <span>Trips</span>
+                    <span>{{t "nav.trips"}}</span>
                 </a>
                 {{end}}
                 {{if can .User "customer_portal" "read"}}
+                {{if and .Features (index .Features "customer_portal")}}
                 <a href="/customer/bookings" class="nav-item {{if eq .Title "My Shipments"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
-                    <span>My Shipments</span>
+                    <span>{{t "nav.shipments"}}</span>
                 </a>
                 {{end}}
-                {{if or (can .User "bookings" "read") (can .User "trips" "read") (can .User "customer_portal" "read")}}<div class="nav-section-label">Fleet &amp; Assets</div>{{end}}
+                {{end}}
+                {{if or (can .User "bookings" "read") (can .User "trips" "read") (can .User "customer_portal" "read")}}<div class="nav-section-label">{{t "nav.fleet"}}</div>{{end}}
                 {{if can .User "drivers" "read"}}
                 <a href="/drivers" class="nav-item {{if eq .Title "Drivers"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    <span>Drivers</span>
+                    <span>{{t "nav.drivers"}}</span>
                 </a>
                 {{end}}
                 {{if can .User "vehicles" "read"}}
                 <a href="/vehicles" class="nav-item {{if eq .Title "Vehicles"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
-                    <span>Vehicles</span>
+                    <span>{{t "nav.vehicles"}}</span>
                 </a>
                 {{end}}
                 {{if can .User "maintenance" "read"}}
                 <a href="/maintenance" class="nav-item {{if eq .Title "Maintenance"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-                    <span>Maintenance</span>
+                    <span>{{t "nav.maintenance"}}</span>
                 </a>
                 {{end}}
                 {{if can .User "geofences" "read"}}
+                {{if and .Features (index .Features "geofences")}}
                 <a href="/geofences" class="nav-item {{if eq .Title "Geofences"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-                    <span>Geofences</span>
+                    <span>{{t "nav.geofences"}}</span>
                 </a>
+                {{else}}
+                <span class="nav-item opacity-45 cursor-not-allowed select-none" title="Add-on — contact to enable"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <span class="italic">{{t "nav.geofences"}}</span>
+                    <span class="ml-auto text-[9px] font-bold uppercase tracking-wider text-primary/70 border border-primary/20 rounded-full px-1.5 py-0.5">Add-on</span>
+                </span>
+                {{end}}
                 {{end}}
                 {{if can .User "telemetry" "read"}}
+                {{if and .Features (index .Features "telemetry")}}
                 <a href="/telemetry/devices" class="nav-item {{if eq .Title "Telemetry Devices"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><path d="M19.1 4.9c3.9 3.9 3.9 10.2 0 14.1"/><path d="M4.9 19.1c-3.9-3.9-3.9-10.2 0-14.1"/></svg>
-                    <span>Telemetry Devices</span>
+                    <span>{{t "nav.telemetry"}}</span>
                 </a>
+                {{else}}
+                <span class="nav-item opacity-45 cursor-not-allowed select-none" title="Add-on — contact to enable"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <span class="italic">{{t "nav.telemetry"}}</span>
+                    <span class="ml-auto text-[9px] font-bold uppercase tracking-wider text-primary/70 border border-primary/20 rounded-full px-1.5 py-0.5">Add-on</span>
+                </span>
+                {{end}}
+                {{if and .Features (index .Features "telemetry")}}
                 <a href="/telemetry/quarantine" class="nav-item {{if eq .Title "Quarantine Queue"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
-                    <span>Quarantine</span>
+                    <span>{{t "nav.quarantine"}}</span>
                 </a>
+                {{else}}
+                <span class="nav-item opacity-45 cursor-not-allowed select-none" title="Add-on — contact to enable"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <span class="italic">{{t "nav.quarantine"}}</span>
+                    <span class="ml-auto text-[9px] font-bold uppercase tracking-wider text-primary/70 border border-primary/20 rounded-full px-1.5 py-0.5">Add-on</span>
+                </span>
                 {{end}}
-                {{if or (can .User "customers" "read") (can .User "routes" "read") (can .User "invoices" "read") (can .User "ewaybill" "read") (can .User "payments" "read") (can .User "settlements" "read")}}<div class="nav-section-label">Commerce &amp; Finance</div>{{end}}
+                {{end}}
+                {{if or (can .User "customers" "read") (can .User "routes" "read") (can .User "invoices" "read") (can .User "ewaybill" "read") (can .User "payments" "read") (can .User "settlements" "read")}}<div class="nav-section-label">{{t "nav.commerce"}}</div>{{end}}
                 {{if can .User "customers" "read"}}
                 <a href="/customers" class="nav-item {{if eq .Title "Customers"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><rect width="6" height="8" x="16" y="13" rx="1"/></svg>
-                    <span>Customers</span>
+                    <span>{{t "nav.customers"}}</span>
                 </a>
                 {{end}}
                 {{if can .User "routes" "read"}}
                 <a href="/routes" class="nav-item {{if eq .Title "Routes"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>
-                    <span>Routes</span>
+                    <span>{{t "nav.routes"}}</span>
                 </a>
                 {{end}}
                 {{if can .User "invoices" "read"}}
                 <a href="/invoices" class="nav-item {{if eq .Title "Invoices"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
-                    <span>Invoices</span>
+                    <span>{{t "nav.invoices"}}</span>
                 </a>
                 {{end}}
                 {{if can .User "ewaybill" "read"}}
+                {{if and .Features (index .Features "ewaybill")}}
                 <a href="/ewaybill" class="nav-item {{if eq .Title "E-Way Bills"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="10" x="2" y="7" rx="1"/><path d="M16 11h4l2 3v3h-6v-6Z"/><circle cx="6" cy="17" r="2"/><circle cx="18" cy="17" r="2"/></svg>
-                    <span>E-Way Bills</span>
+                    <span>{{t "nav.ewaybill"}}</span>
                 </a>
+                {{end}}
                 {{end}}
                 {{if can .User "payments" "read"}}
                 <a href="/payments" class="nav-item {{if eq .Title "Payments"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
-                    <span>Payments</span>
+                    <span>{{t "nav.payments"}}</span>
                 </a>
                 {{end}}
                 {{if or (can .User "trips" "read") (can .User "payments" "read")}}
                 <a href="/kharcha" class="nav-item {{if eq .Title "Kharcha Ledger"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>
-                    <span>Kharcha Ledger</span>
+                    <span>{{t "nav.kharcha"}}</span>
                 </a>
                 {{end}}
                 {{if can .User "settlements" "read"}}
                 <a href="/settlements" class="nav-item {{if eq .Title "Settlements"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M3 10h18"/><path d="M5 6l7-3 7 3"/><path d="M4 10v11"/><path d="M20 10v11"/><path d="M8 14v4"/><path d="M12 14v4"/><path d="M16 14v4"/></svg>
-                    <span>Settlements</span>
+                    <span>{{t "nav.settlements"}}</span>
                 </a>
                 {{end}}
-                {{if or (can .User "fuel" "read") (can .User "scorecard" "read") (can .User "reports" "read") (can .User "pnl" "read")}}<div class="nav-section-label">Insights</div>{{end}}
+                {{if or (can .User "fuel" "read") (can .User "scorecard" "read") (can .User "reports" "read") (can .User "pnl" "read")}}<div class="nav-section-label">{{t "nav.insights"}}</div>{{end}}
                 {{if can .User "fuel" "read"}}
+                {{if and .Features (index .Features "fuel_audit")}}
                 <a href="/fuel/audit" class="nav-item {{if eq .Title "Fuel Audit"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v17"/><path d="M15 10h2.5a2.5 2.5 0 0 1 2.5 2.5V17a2 2 0 0 1-2 2h-1"/><circle cx="9" cy="9" r="2"/><path d="M3 22h12"/></svg>
-                    <span>Fuel Audit</span>
+                    <span>{{t "nav.fuel"}}</span>
                 </a>
+                {{else}}
+                <span class="nav-item opacity-45 cursor-not-allowed select-none" title="Add-on — contact to enable"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <span class="italic">{{t "nav.fuel"}}</span>
+                    <span class="ml-auto text-[9px] font-bold uppercase tracking-wider text-primary/70 border border-primary/20 rounded-full px-1.5 py-0.5">Add-on</span>
+                </span>
+                {{end}}
                 {{end}}
                 {{if can .User "scorecard" "read"}}
+                {{if and .Features (index .Features "scorecard")}}
                 <a href="/scorecard" class="nav-item {{if eq .Title "Driver Scorecard"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/><line x1="2" x2="22" y1="20" y2="20"/></svg>
-                    <span>Driver Scorecard</span>
+                    <span>{{t "nav.scorecard"}}</span>
                 </a>
+                {{else}}
+                <span class="nav-item opacity-45 cursor-not-allowed select-none" title="Add-on — contact to enable"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <span class="italic">{{t "nav.scorecard"}}</span>
+                    <span class="ml-auto text-[9px] font-bold uppercase tracking-wider text-primary/70 border border-primary/20 rounded-full px-1.5 py-0.5">Add-on</span>
+                </span>
+                {{end}}
                 {{end}}
                 {{if can .User "reports" "read"}}
                 <a href="/reports" class="nav-item {{if eq .Title "Reports"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="18" y1="20" y2="4"/><line x1="12" x2="12" y1="20" y2="10"/><line x1="6" x2="6" y1="20" y2="16"/><line x1="2" x2="22" y1="20" y2="20"/></svg>
-                    <span>Reports</span>
+                    <span>{{t "nav.reports"}}</span>
                 </a>
                 {{end}}
                 {{if can .User "pnl" "read"}}
+                {{if and .Features (index .Features "pnl")}}
                 <a href="/pnl/dashboard" class="nav-item {{if eq .Title "Profit & Loss"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                    <span>P&amp;L</span>
+                    <span>{{t "nav.pnl"}}</span>
                 </a>
+                {{else}}
+                <span class="nav-item opacity-45 cursor-not-allowed select-none" title="Add-on — contact to enable"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <span class="italic">{{t "nav.pnl"}}</span>
+                    <span class="ml-auto text-[9px] font-bold uppercase tracking-wider text-primary/70 border border-primary/20 rounded-full px-1.5 py-0.5">Add-on</span>
+                </span>
                 {{end}}
-                {{if or (can .User "alerts" "read") (can .User "users" "read") (can .User "audit_logs" "read") (can .User "settings" "read") (can .User "founder" "read") (can .User "ops_alerts" "read") (can .User "experiments" "read")}}<div class="nav-section-label">Administration</div>{{end}}
+                {{end}}
+                {{if or (can .User "alerts" "read") (can .User "users" "read") (can .User "audit_logs" "read") (can .User "settings" "read") (can .User "founder" "read") (can .User "ops_alerts" "read") (can .User "experiments" "read") (can .User "errors" "read") (can .User "compliance" "read")}}<div class="nav-section-label">{{t "nav.administration"}}</div>{{end}}
                 {{if can .User "alerts" "read"}}
                 <a href="/alerts" class="nav-item {{if eq .Title "Operational Alerts"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><line x1="12" x2="12" y1="8" y2="12"/></svg>
-                    <span>Alerts</span>
+                    <span>{{t "nav.alerts"}}</span>
                     {{if .HasUnread}}<span class="nav-badge">{{.UnreadCount}}</span>{{end}}
                 </a>
                 {{end}}
                 {{if can .User "users" "read"}}
                 <a href="/users" class="nav-item {{if eq .Title "User Management"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></svg>
-                    <span>User Management</span>
+                    <span>{{t "nav.users"}}</span>
                 </a>
                 {{end}}
                 {{if can .User "audit_logs" "read"}}
                 <a href="/audit-logs" class="nav-item {{if eq .Title "Audit Logs"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><polyline points="12 7 12 12 15 15"/></svg>
-                    <span>Audit Logs</span>
+                    <span>{{t "nav.audit"}}</span>
                 </a>
                 {{end}}
                 {{if can .User "settings" "read"}}
                 <a href="/settings" class="nav-item {{if eq .Title "Settings"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                    <span>Settings</span>
+                    <span>{{t "nav.settings"}}</span>
                 </a>
                 {{end}}
                 {{if can .User "founder" "read"}}
+                {{if and .Features (index .Features "founder")}}
                 <a href="/founder/dashboard" class="nav-item {{if eq .Title "Founder Dashboard"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-                    <span>Founder</span>
+                    <span>{{t "nav.founder"}}</span>
                 </a>
+                {{end}}
                 {{end}}
                 {{if can .User "ops_alerts" "read"}}
                 <a href="/ops-alerts" class="nav-item {{if eq .Title "Ops Alerts"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
-                    <span>Ops Alerts</span>
+                    <span>{{t "nav.opsalerts"}}</span>
+                </a>
+                {{end}}
+                {{if can .User "errors" "read"}}
+                <a href="/ops/errors" class="nav-item {{if eq .Title "Error Reports"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                    <span>{{t "nav.errors"}}</span>
+                </a>
+                {{end}}
+                {{if can .User "settings" "update"}}
+                <a href="/settings/features" class="nav-item {{if eq .Title "Features"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v3"/><path d="M18.4 5.6 16 8"/><path d="M21 12h-3"/><path d="M18.4 18.4 16 16"/><path d="M12 21v-3"/><path d="M5.6 18.4 8 16"/><path d="M3 12h3"/><path d="M5.6 5.6 8 8"/></svg>
+                    <span>Features</span>
+                </a>
+                {{end}}
+                {{if can .User "compliance" "read"}}
+                <a href="/compliance" class="nav-item {{if eq .Title "Compliance Dashboard"}}active{{end}}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
+                    <span>{{t "nav.compliance"}}</span>
                 </a>
                 {{end}}
                 {{if can .User "experiments" "read"}}
+                {{if and .Features (index .Features "experiments")}}
                 <a href="/experiments" class="nav-item {{if eq .Title "A/B Experiments"}}active{{end}}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.31L4.62 18.27A2 2 0 0 0 6.34 21h11.32a2 2 0 0 0 1.72-2.73L14 9.31V2"/><line x1="8.5" x2="15.5" y1="2" y2="2"/><line x1="14" x2="7.5" y1="15" y2="15"/></svg>
-                    <span>Experiments</span>
+                    <span>{{t "nav.experiments"}}</span>
                 </a>
+                {{end}}
                 {{end}}
             </nav>
             <div class="sidebar-footer-block mt-auto p-3 flex flex-col gap-3 shrink-0">
@@ -293,10 +369,10 @@
                 </div>
 
                 <div class="flex items-center gap-4 sm:gap-6 ml-auto">
-                    <form method="GET" action="/audit-logs" class="relative hidden sm:block">
+                    <form method="GET" action="/search" class="relative hidden sm:block">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                        <label for="global-search-input" class="sr-only">Search logs, vehicles, drivers</label>
-                        <input id="global-search-input" type="text" name="q" value="{{.Query}}" class="bg-surface-container-low border border-border-subtle rounded-md py-2 pl-9 pr-4 text-sm text-on-surface placeholder-text-text-muted w-64 md:w-80 focus:outline-none focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Search logs, vehicles, drivers..." />
+                        <label for="global-search-input" class="sr-only">Search bookings, trips, vehicles, drivers, customers</label>
+                        <input id="global-search-input" type="text" name="q" value="{{.Query}}" class="bg-surface-container-low border border-border-subtle rounded-md py-2 pl-9 pr-4 text-sm text-on-surface placeholder-text-text-muted w-64 md:w-80 focus:outline-none focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" placeholder="{{t "topbar.search"}}" />
                     </form>
 
                     <!-- 3-Way Theme Switcher (Day / Night / System) -->
@@ -390,15 +466,15 @@
                         <div class="absolute right-0 top-full mt-2 w-56 bg-surface-container-lowest border border-border-subtle rounded-xl shadow-xl z-50 overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 py-1.5 text-on-surface-variant text-xs">
                             <a href="/contact-us" class="flex items-center gap-3 px-4 py-2 hover:bg-surface-container-low hover:text-primary transition-colors text-decoration-none">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-text-muted shrink-0"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
-                                <span>Help & Support</span>
+                                <span>{{t "topbar.help"}}</span>
                             </a>
                             <a href="/contact-us" class="flex items-center gap-3 px-4 py-2 hover:bg-surface-container-low hover:text-primary transition-colors text-decoration-none">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-text-muted shrink-0"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
-                                <span>Give Feedback</span>
+                                <span>{{t "topbar.feedback"}}</span>
                             </a>
                             <a href="/audit-logs" class="flex items-center gap-3 px-4 py-2 hover:bg-surface-container-low hover:text-primary transition-colors text-decoration-none">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-text-muted shrink-0"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><polyline points="12 7 12 12 15 15"/></svg>
-                                <span>Audit Trail</span>
+                                <span>{{t "topbar.audit_trail"}}</span>
                             </a>
                         </div>
                     </div>
@@ -431,11 +507,11 @@
                             </div>
                             <a href="/profile" class="flex items-center gap-3 px-4 py-2 hover:bg-surface-container-low hover:text-primary transition-colors text-decoration-none">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-text-muted shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                                <span>View Profile</span>
+                                <span>{{t "menu.profile"}}</span>
                             </a>
                             <a href="/change-password" class="flex items-center gap-3 px-4 py-2 hover:bg-surface-container-low hover:text-primary transition-colors text-decoration-none">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-text-muted shrink-0"><path d="m21 2-2 2m-6 6 2-2m-2 2a4 4 0 1 1-5.66-5.66l6-6a4 4 0 0 1 5.66 5.66l-2 2"/><circle cx="7.5" cy="16.5" r="4.5"/></svg>
-                                <span>Change Password</span>
+                                <span>{{t "menu.password"}}</span>
                             </a>
                             {{if can .User "settings" "read"}}
                             <a href="/settings" class="flex items-center gap-3 px-4 py-2 hover:bg-surface-container-low hover:text-primary transition-colors text-decoration-none">
@@ -444,10 +520,16 @@
                             </a>
                             {{end}}
                             <div class="border-t border-border-subtle mt-1 pt-1">
+                                <div class="flex items-center gap-3 px-4 py-2">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-text-muted shrink-0"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                                    <span class="flex-1">{{t "menu.language"}}</span>
+                                    <a href="/lang?to=en" onclick="event.preventDefault();location.href='/lang?to=en&next='+encodeURIComponent(location.pathname+location.search)" class="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors text-decoration-none">English</a>
+                                    <a href="/lang?to=hi" onclick="event.preventDefault();location.href='/lang?to=hi&next='+encodeURIComponent(location.pathname+location.search)" class="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors text-decoration-none">हिन्दी</a>
+                                </div>
                                 <form method="POST" action="/logout">
                                     <button type="submit" class="w-full flex items-center gap-3 px-4 py-2 text-status-alert hover:bg-status-alert/10 transition-colors bg-transparent border-0 cursor-pointer text-left font-medium">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-status-alert shrink-0"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
-                                        <span>Sign Out</span>
+                                        <span>{{t "menu.signout"}}</span>
                                     </button>
                                 </form>
                             </div>
@@ -537,6 +619,17 @@
                 }
             });
         })();
+
+        // Delete confirmation — forms carrying data-confirm must be explicitly OK'd
+        document.addEventListener('submit', function(e) {
+            var form = e.target;
+            if (form && form.hasAttribute && form.hasAttribute('data-confirm')) {
+                if (!window.confirm(form.getAttribute('data-confirm'))) {
+                    e.preventDefault();
+                    return;
+                }
+            }
+        }, true);
 
         // Form submit loading state — prevent double submission
         document.addEventListener('DOMContentLoaded', function() {
@@ -711,6 +804,10 @@
     <script src="/static/js/theme.js?v={{if .Version}}{{.Version}}{{else}}20260820{{end}}"></script>
     {{if .User}}
     <script src="/static/js/session-guard.js?v={{if .Version}}{{.Version}}{{else}}20260821{{end}}"></script>
+    {{end}}
+    <script src="/static/js/toast.js?v={{if .Version}}{{.Version}}{{else}}20260822{{end}}"></script>
+    {{if .User}}
+    <script src="/static/js/error-capture.js?v={{if .Version}}{{.Version}}{{else}}20260822{{end}}"></script>
     {{end}}
 </body>
 </html>

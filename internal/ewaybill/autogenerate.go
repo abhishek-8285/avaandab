@@ -82,7 +82,10 @@ func (s *EWayBillService) SubscribeTripEvents(bus events.EventBus) {
 
 func (s *EWayBillService) isAutoGenerateEnabled(ctx context.Context) bool {
 	var val string
-	err := s.db.QueryRowContext(ctx, `SELECT config_value FROM company_config WHERE config_key = 'ewaybill_auto_generate' LIMIT 1`).Scan(&val)
+	// company_config columns are `key`/`value` (migration 00042) — an earlier
+	// revision queried config_key/config_value, which always failed and fell
+	// back to "enabled".
+	err := s.db.QueryRowContext(ctx, `SELECT value FROM company_config WHERE key = 'ewaybill_auto_generate' LIMIT 1`).Scan(&val)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return true // default true per spec

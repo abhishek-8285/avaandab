@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, ActivityIndicator, Alert, Linking } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors, Font, Radius, Spacing } from '../constants/theme';
@@ -13,6 +13,7 @@ export function ForgotPasswordScreen({ onBackToLogin }: ForgotPasswordScreenProp
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [devResetLink, setDevResetLink] = useState<string | null>(null);
 
   const handleResetPassword = async () => {
     if (!email) {
@@ -23,19 +24,35 @@ export function ForgotPasswordScreen({ onBackToLogin }: ForgotPasswordScreenProp
     setLoading(true);
 
     try {
-      const targetUrl = `${getApiBaseURL()}/forgot-password`;
-      await fetch(targetUrl, {
+      const response = await fetch(`${getApiBaseURL()}/api/v1/auth/forgot-password`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `email=${encodeURIComponent(email)}`,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
       });
 
+      if (!response.ok) {
+        let msg = `Server returned HTTP ${response.status}.`;
+        try {
+          const errBody = await response.json();
+          if (errBody?.error) msg = errBody.error;
+        } catch {}
+        setLoading(false);
+        Alert.alert('Request Failed', msg);
+        return;
+      }
+
+      const data = await response.json();
+      // Development builds without a mailer get the link inline so the flow
+      // is completable end-to-end. Production responses never include it.
+      setDevResetLink(typeof data.reset_link === 'string' ? data.reset_link : null);
       setLoading(false);
       setSubmitted(true);
     } catch (err: any) {
-      console.log('[FORGOT PASSWORD FALLBACK]: Handled reset request:', err?.message || err);
       setLoading(false);
-      setSubmitted(true);
+      Alert.alert(
+        'Network Error',
+        err?.message || 'Could not reach the server. Check your connection and try again.'
+      );
     }
   };
 
@@ -71,6 +88,16 @@ export function ForgotPasswordScreen({ onBackToLogin }: ForgotPasswordScreenProp
             <Text style={styles.successMessage}>
               If an account exists for <Text style={{ fontWeight: '700', color: Colors.textPrimary }}>{email}</Text>, reset instructions have been dispatched.
             </Text>
+            {devResetLink && (
+              <TouchableOpacity
+                style={[styles.submitBtn, { backgroundColor: Colors.info, marginBottom: Spacing.md }]}
+                onPress={() => Linking.openURL(devResetLink).catch(() =>
+                  Alert.alert('Error', 'Could not open the reset link.')
+                )}
+              >
+                <Text style={styles.submitBtnText}>OPEN RESET LINK (DEV)</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity style={styles.submitBtn} onPress={onBackToLogin}>
               <Text style={styles.submitBtnText}>RETURN TO SIGN IN</Text>
             </TouchableOpacity>

@@ -35,7 +35,8 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Avandab requires location access to track active fleet trip routes and driver position."
+          "locationAlwaysAndWhenInUsePermission": "Avandab requires location access to track active fleet trip routes and driver position.",
+          "locationWhenInUsePermission": "Avandab requires location access to track your active trip while the app is open."
         }
       ],
       [

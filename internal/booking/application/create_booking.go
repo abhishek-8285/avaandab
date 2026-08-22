@@ -70,7 +70,7 @@ func (uc *CreateBookingUseCase) Execute(ctx context.Context, cmd CreateBookingCo
 
 	bookingID := aggregate.BookingID(uc.idGen.GenerateUUID())
 	bookingNumber := uc.idGen.GenerateDisplayID("BK")
-	priceMoney := shared.FloatToMoney(cmd.Price, "USD")
+	priceMoney := shared.FloatToMoney(cmd.Price, "INR")
 
 	booking := aggregate.NewBookingAggregate(
 		bookingID,

@@ -1,3 +1,5 @@
+<a href="/drivers" class="back-link inline-flex items-center gap-1 text-sm font-medium text-text-muted hover:text-on-surface transition-colors text-decoration-none mb-3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 shrink-0"><path d="m15 18-6-6 6-6"/></svg> Drivers</a>
+
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
     <div class="lg:col-span-2">
         <div class="bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm p-6">
@@ -7,8 +9,8 @@
                     <p class="text-sm text-text-muted mt-0.5">ID: {{.Driver.DriverID}}</p>
                 </div>
                 <div class="flex items-center gap-2">
-                    {{template "btn.html" (dict "Label" "Edit" "Href" "/drivers/{{.Driver.ID}}/edit" "Variant" "secondary" "Size" "sm" "Icon" "edit")}}
-                    <form method="POST" action="/drivers/{{.Driver.ID}}/delete" class="inline">
+                    {{template "btn.html" (dict "Label" "Edit" "Href" (printf "/drivers/%s/edit" .Driver.ID) "Variant" "secondary" "Size" "sm" "Icon" "edit")}}
+                    <form method="POST" action="/drivers/{{.Driver.ID}}/delete" data-confirm="Are you sure? This cannot be undone." class="inline">
                         {{template "btn.html" (dict "Label" "Delete" "Type" "submit" "Variant" "danger" "Size" "sm" "Icon" "delete")}}
                     </form>
                 </div>
@@ -59,7 +61,22 @@
     </div>
 
     <div>
-        <div class="bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm p-6">
+        <div class="bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm p-6 mb-6">
+            <h3 class="text-base font-semibold text-on-surface font-display mb-3">Safety Scorecard</h3>
+            {{if .Tier.Valid}}
+            <div class="flex items-center gap-4">
+                <div class="text-4xl font-black tabular-nums {{if eq .Tier.String "A"}}text-status-success{{else if eq .Tier.String "C"}}text-status-alert{{else}}text-status-warning{{end}}" data-numeric>{{if .Score.Valid}}{{printf "%.0f" .Score.Float64}}{{else}}–{{end}}</div>
+                <div>
+                    <span class="px-2 py-1 text-xs font-bold rounded-full border {{if eq .Tier.String "A"}}bg-status-success/10 text-status-success border-status-success/20{{else if eq .Tier.String "C"}}bg-status-alert/10 text-status-alert border-status-alert/20{{else}}bg-status-warning/10 text-status-warning border-status-warning/20{{end}}">TIER {{.Tier.String}}</span>
+                    <p class="text-xs text-text-muted mt-1.5"><a href="/scorecard" class="text-primary hover:underline">View leaderboard →</a></p>
+                </div>
+            </div>
+            {{else}}
+            <p class="text-sm text-text-muted">No score yet — computed nightly from behaviour events.</p>
+            {{end}}
+        </div>
+
+        <div class="bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm p-6 mb-6">
             <h3 class="text-base font-semibold text-on-surface font-display mb-3">Uploaded Documents</h3>
             {{if .Files}}
             <ul class="space-y-2">
@@ -75,6 +92,52 @@
             </ul>
             {{else}}
             <p class="text-sm text-text-muted">No documents uploaded.</p>
+            {{end}}
+        </div>
+    </div>
+
+    <div class="lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm p-6">
+            <h3 class="text-base font-semibold text-on-surface font-display mb-3">Recent Trips</h3>
+            {{if .RecentTrips}}
+            <div class="divide-y divide-border-subtle">
+                {{range .RecentTrips}}
+                <a href="/trips/{{.ID}}" class="flex items-center justify-between gap-3 py-2.5 hover:bg-surface-container-low/60 transition-colors text-decoration-none rounded px-2 -mx-2">
+                    <span class="text-sm font-semibold text-on-surface">{{.TripNumber}}</span>
+                    <span class="flex items-center gap-3">
+                        <span class="text-xs text-text-muted">{{if .CreatedAt.Valid}}{{.CreatedAt.Time.Format "02-01-2006"}}{{end}}</span>
+                        <span class="status-badge {{statusBadge .Status}}">{{.Status}}</span>
+                    </span>
+                </a>
+                {{end}}
+            </div>
+            {{else}}
+            <p class="text-sm text-text-muted">No trips assigned to this driver yet.</p>
+            {{end}}
+        </div>
+        <div class="bg-surface-container-lowest rounded-lg border border-border-subtle shadow-sm p-6">
+            <h3 class="text-base font-semibold text-on-surface font-display mb-3">Recent Behaviour Events</h3>
+            {{if .BehaviourEvents}}
+            <div class="divide-y divide-border-subtle">
+                {{range .BehaviourEvents}}
+                <div class="flex items-center justify-between gap-3 py-2.5">
+                    <div class="min-w-0">
+                        <p class="text-sm font-semibold text-on-surface capitalize">{{replace .EventType "_" " " -1}}</p>
+                        {{if .Description.Valid}}<p class="text-xs text-text-muted truncate">{{.Description.String}}</p>{{end}}
+                    </div>
+                    <span class="flex items-center gap-2 shrink-0">
+                        <span class="text-xs text-text-muted">{{if .CreatedAt.Valid}}{{.CreatedAt.Time.Format "02-01-2006"}}{{end}}</span>
+                        {{if .Resolved}}
+                        <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-status-success/10 text-status-success border border-status-success/20">resolved</span>
+                        {{else}}
+                        <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-status-warning/10 text-status-warning border border-status-warning/20">open</span>
+                        {{end}}
+                    </span>
+                </div>
+                {{end}}
+            </div>
+            {{else}}
+            <p class="text-sm text-text-muted">Clean record — no behaviour events.</p>
             {{end}}
         </div>
     </div>

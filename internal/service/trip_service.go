@@ -2,7 +2,12 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/subtle"
+	"database/sql"
+	"errors"
 	"fmt"
+	"math/big"
 	"time"
 
 	"transport-app/internal/domain"
@@ -238,6 +243,11 @@ func (s *TripService) AssignDriver(ctx context.Context, tripID domain.TripID, dr
 	}
 
 	s.log.Info("driver assigned to trip", "driver_id", driverID, "trip_id", tripID)
+	// Issue the delivery OTP at dispatch (best-effort — regenerable from the
+	// trip view).
+	if _, otpErr := s.EnsurePODOTP(ctx, string(tripID)); otpErr != nil {
+		s.log.Warn("pod otp issue failed at dispatch", "trip_id", string(tripID), "error", otpErr)
+	}
 	if s.events != nil {
 		s.events.Publish(ctx, events.Event{
 			Type: "TripAssignedEvent",
@@ -498,8 +508,13 @@ type DeliverWithPODRequest struct {
 	ConsigneeName  string
 	ConsigneePhone string
 	Notes          string
-	OTPVerified    bool
+	OTPCode        string // consignee-read-back code; verified server-side
+	OTPVerified    bool   // set by the server only — client values are ignored
 }
+
+// ErrPODOTPRequired is returned when a trip has an active delivery OTP but
+// the submission does not carry a matching code.
+var ErrPODOTPRequired = errors.New("delivery OTP required: get the code from the consignee (see trip view) and submit it with the delivery")
 
 // DeliverWithPOD marks a trip as delivered using e-POD metadata and returns the trip number.
 // This is the mobile driver entry-point; photo/signature URLs are pre-uploaded by the handler.
@@ -512,12 +527,15 @@ func (s *TripService) DeliverWithPOD(ctx context.Context, tripIDStr string, req 
 		podURL = req.SignatureURL
 	}
 
-	trip, err := s.store.GetTripByID(ctx, id)
-	if err != nil {
+	if _, err := s.store.GetTripByID(ctx, id); err != nil {
 		return "", domain.ErrTripNotFound
 	}
-	if trip.PODURL == nil {
-		req.OTPVerified = false
+	req.OTPVerified = false
+
+	// OTP gate: when the trip carries an active code, the delivery must
+	// repeat it back. Legacy trips without a code deliver unverified.
+	if err := s.verifyPODOTP(ctx, tripIDStr, req.OTPCode, &req.OTPVerified); err != nil {
+		return "", err
 	}
 
 	delivered, err := s.DeliverTripWithPOD(ctx, id, podURL)
@@ -531,6 +549,80 @@ func (s *TripService) DeliverWithPOD(ctx context.Context, tripIDStr string, req 
 	s.log.Info("e-POD delivered", "trip_id", tripIDStr, "consignee", req.ConsigneeName)
 
 	return delivered.TripNumber, nil
+}
+
+// podOTPTTL bounds how long a delivery code stays valid.
+const podOTPTTL = 48 * time.Hour
+
+func (s *TripService) tripDB() *sql.DB {
+	getter, ok := s.store.(repository.DBGetter)
+	if !ok || getter == nil {
+		return nil
+	}
+	return getter.DB()
+}
+
+// EnsurePODOTP returns the trip's active delivery code, generating (and
+// persisting) a fresh one when absent or expired. The operator sees this in
+// the trip view and relays it to the consignee until SMS is configured.
+func (s *TripService) EnsurePODOTP(ctx context.Context, tripID string) (string, error) {
+	db := s.tripDB()
+	if db == nil {
+		return "", nil
+	}
+	var otp, expires string
+	err := db.QueryRowContext(ctx,
+		`SELECT COALESCE(pod_otp,''), COALESCE(pod_otp_expires_at,'') FROM trips WHERE id = ?`, tripID).
+		Scan(&otp, &expires)
+	if err != nil {
+		return "", err
+	}
+	if otp != "" && expires != "" {
+		if exp, perr := time.Parse(time.RFC3339, expires); perr == nil && time.Now().Before(exp) {
+			return otp, nil
+		}
+	}
+
+	n, err := rand.Int(rand.Reader, big.NewInt(1000000))
+	if err != nil {
+		return "", err
+	}
+	code := fmt.Sprintf("%06d", n.Int64())
+	expiresAt := time.Now().Add(podOTPTTL).UTC().Format(time.RFC3339)
+	if _, err := db.ExecContext(ctx,
+		`UPDATE trips SET pod_otp = ?, pod_otp_expires_at = ? WHERE id = ?`, code, expiresAt, tripID); err != nil {
+		return "", err
+	}
+	s.logAudit(ctx, nil, "pod_otp_issued", "trips", tripID, nil, nil)
+	return code, nil
+}
+
+// verifyPODOTP enforces the read-back when the trip has an active code and
+// records pod_otp_verified on success.
+func (s *TripService) verifyPODOTP(ctx context.Context, tripID, code string, verified *bool) error {
+	db := s.tripDB()
+	if db == nil {
+		return nil
+	}
+	var otp, expires string
+	err := db.QueryRowContext(ctx,
+		`SELECT COALESCE(pod_otp,''), COALESCE(pod_otp_expires_at,'') FROM trips WHERE id = ?`, tripID).
+		Scan(&otp, &expires)
+	if err != nil || otp == "" {
+		return nil // legacy trip, no gate
+	}
+	if exp, perr := time.Parse(time.RFC3339, expires); perr != nil && !time.Now().Before(exp) {
+		return nil // expired → gate no longer enforceable by us; deliver unverified
+	}
+	if subtle.ConstantTimeCompare([]byte(code), []byte(otp)) != 1 {
+		return ErrPODOTPRequired
+	}
+	*verified = true
+	if _, err := db.ExecContext(ctx,
+		`UPDATE trips SET pod_otp_verified = 1, pod_otp = '' WHERE id = ?`, tripID); err != nil {
+		return err
+	}
+	return nil
 }
 
 // CancelTrip cancels a trip (cannot cancel completed trips).

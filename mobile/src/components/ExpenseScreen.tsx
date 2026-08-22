@@ -25,6 +25,7 @@ const EXPENSE_TYPES = [
   { id: 'toll', label: 'TOLL', icon: 'road-variant' },
   { id: 'rto', label: 'RTO', icon: 'file-document-outline' },
   { id: 'tyre', label: 'TYRE', icon: 'circle-outline' },
+  { id: 'bhatta', label: 'BHATTA', icon: 'wallet-outline' },
 ] as const;
 
 type ExpenseType = (typeof EXPENSE_TYPES)[number]['id'];
@@ -102,12 +103,17 @@ export function ExpenseScreen({ tripId = '1', onComplete, onBack }: ExpenseScree
       }
     } catch {}
 
+    // One key per logical expense: live attempt and any offline retries
+    // reuse it, so the backend's unique index dedupes duplicates.
+    const idempotencyKey = `exp-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
     const form = new FormData();
     form.append('trip_id', tripId);
     form.append('type', expenseType);
     form.append('expense_type', expenseType);
     form.append('amount', String(amt));
     form.append('notes', notes.trim());
+    form.append('idempotency_key', idempotencyKey);
     if (receiptUri) {
       form.append('receipt_photo', {
         uri: receiptUri,
@@ -150,6 +156,7 @@ export function ExpenseScreen({ tripId = '1', onComplete, onBack }: ExpenseScree
           notes: notes.trim(),
           latitude: gps.latitude,
           longitude: gps.longitude,
+          idempotency_key: idempotencyKey,
         });
         // Also cache in storage DB for offline viewing
         await DB.saveOfflineExpense({

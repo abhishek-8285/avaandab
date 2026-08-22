@@ -70,3 +70,4 @@ node_modules/
 mobile/reports/mutation/
 mobile/.stryker-tmp/
 stryker.log
+.env

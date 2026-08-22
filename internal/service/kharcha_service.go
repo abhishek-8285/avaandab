@@ -19,7 +19,7 @@ type KharchaExpense struct {
 	TripNumber     string
 	DriverID       string
 	DriverName     string
-	Category       string // advance | fuel | toll | food | repair | other
+	Category       string // advance | fuel | toll | food | repair | other | rto | tyre | bhatta
 	Amount         float64
 	Description    string
 	ReceiptURL     *string
@@ -327,15 +327,46 @@ func (s *KharchaService) fuelAuditEnforce(ctx context.Context, db interface {
 // CreateExpense logs a new driver kharcha claim. fuelLitres is persisted
 // only for fuel claims (Spec 03 §3.2 step 1; NULL elsewhere).
 // IdempotencyKey prevents duplicate offline sync (Spec 21.1 Seam 2); empty = no dedup.
+// CreateExpenseOpts carries everything needed to record a driver expense.
+// Zero-value optional fields are stored as NULL. Latitude/Longitude capture
+// the driver's GPS at claim time (Spec 13 mobile flow).
+type CreateExpenseOpts struct {
+	TripID         string
+	DriverID       string
+	Category       string
+	Amount         float64
+	Description    string
+	ReceiptURL     string
+	FuelLitres     float64
+	IdempotencyKey string
+	Latitude       *float64
+	Longitude      *float64
+}
+
 func (s *KharchaService) CreateExpense(ctx context.Context, tripID, driverID, category string, amount float64, description, receiptURL string, fuelLitres float64, idempotencyKey ...string) (string, error) {
-	if amount <= 0 {
+	opts := CreateExpenseOpts{
+		TripID: tripID, DriverID: driverID, Category: category,
+		Amount: amount, Description: description, ReceiptURL: receiptURL,
+		FuelLitres: fuelLitres,
+	}
+	if len(idempotencyKey) > 0 {
+		opts.IdempotencyKey = idempotencyKey[0]
+	}
+	return s.CreateExpenseWithOpts(ctx, opts)
+}
+
+// CreateExpenseWithOpts records a driver expense claim with full options
+// (geo capture, idempotency). See CreateExpense for the legacy shorthand.
+func (s *KharchaService) CreateExpenseWithOpts(ctx context.Context, o CreateExpenseOpts) (string, error) {
+	if o.Amount <= 0 {
 		return "", fmt.Errorf("amount must be greater than zero")
 	}
 	validCategories := map[string]bool{
 		"advance": true, "fuel": true, "toll": true, "food": true, "repair": true, "other": true,
+		"rto": true, "tyre": true, "bhatta": true,
 	}
-	if !validCategories[category] {
-		return "", fmt.Errorf("invalid category: %s", category)
+	if !validCategories[o.Category] {
+		return "", fmt.Errorf("invalid category: %s", o.Category)
 	}
 
 	getter, ok := s.store.(repository.DBGetter)
@@ -346,28 +377,28 @@ func (s *KharchaService) CreateExpense(ctx context.Context, tripID, driverID, ca
 
 	expID := generateID()
 	var recURL interface{} = nil
-	if receiptURL != "" {
-		recURL = receiptURL
+	if o.ReceiptURL != "" {
+		recURL = o.ReceiptURL
 	}
 	var desc interface{} = nil
-	if description != "" {
-		desc = description
+	if o.Description != "" {
+		desc = o.Description
 	}
 	var tID interface{} = nil
-	if tripID != "" {
-		tID = tripID
+	if o.TripID != "" {
+		tID = o.TripID
 	}
 	var dID interface{} = nil
-	if driverID != "" {
-		dID = driverID
+	if o.DriverID != "" {
+		dID = o.DriverID
 	}
 	var litres interface{} = nil
-	if category == "fuel" && fuelLitres > 0 {
-		litres = fuelLitres
+	if o.Category == "fuel" && o.FuelLitres > 0 {
+		litres = o.FuelLitres
 	}
 	var idemKey interface{} = nil
-	if len(idempotencyKey) > 0 && idempotencyKey[0] != "" {
-		idemKey = idempotencyKey[0]
+	if o.IdempotencyKey != "" {
+		idemKey = o.IdempotencyKey
 		// Idempotency check: if key exists, return existing ID (offline retry safe)
 		var existingID string
 		if err := db.QueryRowContext(ctx, `SELECT id FROM driver_expenses WHERE idempotency_key = ?`, idemKey).Scan(&existingID); err == nil && existingID != "" {
@@ -377,9 +408,9 @@ func (s *KharchaService) CreateExpense(ctx context.Context, tripID, driverID, ca
 
 	_, err := db.ExecContext(ctx,
 		`INSERT INTO driver_expenses
-		 (id, trip_id, driver_id, expense_type, category, amount, description, receipt_url, fuel_litres, status, created_at, idempotency_key)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
-		expID, tID, dID, category, category, amount, desc, recURL, litres, time.Now(), idemKey)
+		 (id, trip_id, driver_id, expense_type, category, amount, description, receipt_url, fuel_litres, status, created_at, idempotency_key, latitude, longitude)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)`,
+		expID, tID, dID, o.Category, o.Category, o.Amount, desc, recURL, litres, time.Now(), idemKey, o.Latitude, o.Longitude)
 	if err != nil {
 		// Handle race: unique index violation → return existing
 		if idemKey != nil {
@@ -392,7 +423,7 @@ func (s *KharchaService) CreateExpense(ctx context.Context, tripID, driverID, ca
 	}
 
 	s.logAudit(ctx, nil, "create_kharcha", "driver_expenses", expID, nil, nil)
-	s.log.Info("kharcha created", "expense_id", expID, "driver_id", driverID, "amount", amount)
+	s.log.Info("kharcha created", "expense_id", expID, "driver_id", o.DriverID, "amount", o.Amount)
 	return expID, nil
 }
 

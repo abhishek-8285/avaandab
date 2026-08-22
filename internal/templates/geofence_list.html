@@ -21,7 +21,7 @@
     </div>
 
     {{if .FlashSuccess}}
-    <div class="bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 rounded-xl px-4 py-3 text-sm flex items-center gap-2">
+    <div class="bg-status-success/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 rounded-xl px-4 py-3 text-sm flex items-center gap-2">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5 shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
         <span>{{.FlashSuccess}}</span>
     </div>
@@ -47,27 +47,27 @@
         <div class="bg-surface-container-lowest border border-border-subtle rounded-2xl p-4 shadow-sm flex items-center justify-between">
             <div>
                 <p class="text-[11px] font-bold uppercase tracking-wider text-text-muted m-0">Active Boundaries</p>
-                <p class="text-2xl font-black text-emerald-500 mt-1 mb-0 font-display" id="stat-active">-</p>
+                <p class="text-2xl font-black text-status-success mt-1 mb-0 font-display" id="stat-active">-</p>
             </div>
-            <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+            <div class="w-10 h-10 rounded-xl bg-status-success/10 text-status-success flex items-center justify-center">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             </div>
         </div>
         <div class="bg-surface-container-lowest border border-border-subtle rounded-2xl p-4 shadow-sm flex items-center justify-between">
             <div>
                 <p class="text-[11px] font-bold uppercase tracking-wider text-text-muted m-0">Pickup & Drop Hubs</p>
-                <p class="text-2xl font-black text-cyan-500 mt-1 mb-0 font-display" id="stat-trip">-</p>
+                <p class="text-2xl font-black text-status-info mt-1 mb-0 font-display" id="stat-trip">-</p>
             </div>
-            <div class="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center">
+            <div class="w-10 h-10 rounded-xl bg-status-info/10 text-status-info flex items-center justify-center">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
             </div>
         </div>
         <div class="bg-surface-container-lowest border border-border-subtle rounded-2xl p-4 shadow-sm flex items-center justify-between">
             <div>
                 <p class="text-[11px] font-bold uppercase tracking-wider text-text-muted m-0">Restricted & No-Entry</p>
-                <p class="text-2xl font-black text-rose-500 mt-1 mb-0 font-display" id="stat-restricted">-</p>
+                <p class="text-2xl font-black text-status-alert mt-1 mb-0 font-display" id="stat-restricted">-</p>
             </div>
-            <div class="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
+            <div class="w-10 h-10 rounded-xl bg-status-alert/10 text-status-alert flex items-center justify-center">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             </div>
         </div>
@@ -127,10 +127,10 @@
                         <td class="py-3.5 px-5">
                             <div class="flex items-center gap-3">
                                 <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 
-                                    {{if or (eq .Kind "pickup") (eq .Kind "drop")}}bg-emerald-500/10 text-emerald-500 border border-emerald-500/20
+                                    {{if or (eq .Kind "pickup") (eq .Kind "drop")}}bg-status-success/10 text-status-success border border-emerald-500/20
                                     {{else if eq .Kind "depot"}}bg-blue-500/10 text-blue-500 border border-blue-500/20
                                     {{else if eq .Kind "restricted"}}bg-amber-500/10 text-amber-500 border border-amber-500/20
-                                    {{else}}bg-rose-500/10 text-rose-500 border border-rose-500/20{{end}}">
+                                    {{else}}bg-status-alert/10 text-status-alert border border-rose-500/20{{end}}">
                                     {{if eq .Shape "circle"}}
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><circle cx="12" cy="12" r="9"/></svg>
                                     {{else}}
@@ -143,7 +143,7 @@
                                         {{if eq .Kind "restricted"}}
                                         <span class="text-[10px] px-1.5 py-0.2 rounded font-mono font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">ALERT</span>
                                         {{else if eq .Kind "no_entry"}}
-                                        <span class="text-[10px] px-1.5 py-0.2 rounded font-mono font-bold bg-rose-500/10 text-rose-500 border border-rose-500/20">NO ENTRY</span>
+                                        <span class="text-[10px] px-1.5 py-0.2 rounded font-mono font-bold bg-status-alert/10 text-status-alert border border-rose-500/20">NO ENTRY</span>
                                         {{end}}
                                     </div>
                                     <div class="text-[11px] text-text-muted">
@@ -161,12 +161,12 @@
                         <!-- Kind Badge -->
                         <td class="py-3.5 px-5">
                             {{if eq .Kind "pickup"}}
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-status-success/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                 Pickup
                             </span>
                             {{else if eq .Kind "drop"}}
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-status-info/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
                                 <span class="w-1.5 h-1.5 rounded-full bg-cyan-500"></span>
                                 Drop
                             </span>
@@ -181,7 +181,7 @@
                                 Restricted
                             </span>
                             {{else}}
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-status-alert/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
                                 <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
                                 No Entry
                             </span>
@@ -226,7 +226,7 @@
                         <!-- Status -->
                         <td class="py-3.5 px-5 text-center">
                             {{if .IsActive}}
-                            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-500">
+                            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-status-success/10 text-status-success">
                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                                 Active
                             </span>
@@ -247,7 +247,7 @@
                                 </a>
                                 {{end}}
                                 {{if can $.User "geofences" "delete"}}
-                                <form method="POST" action="/geofences/{{.ID}}/delete" class="inline-flex" onsubmit="return confirm('Delete geofence {{.Name}}?')">
+                                <form method="POST" action="/geofences/{{.ID}}/delete" data-confirm="Are you sure? This cannot be undone." class="inline-flex" onsubmit="return confirm('Delete geofence {{.Name}}?')">
                                     <button type="submit" class="p-1.5 rounded-lg text-secondary hover:text-red-500 hover:bg-surface-container transition-colors cursor-pointer border-0 bg-transparent" title="Delete Geofence">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                                     </button>

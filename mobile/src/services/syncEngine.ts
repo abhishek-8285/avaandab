@@ -116,7 +116,13 @@ class SyncEngineService {
             },
             body: JSON.stringify({
               driver_id: driverId,
-              logs: batch,
+              logs: batch.map((b: any) => ({
+                id: b.id, // echoed in synced_ids so the row gets marked synced
+                latitude: b.latitude,
+                longitude: b.longitude,
+                timestamp: b.timestamp,
+                ...(b.accuracy_m != null ? { accuracy_m: b.accuracy_m } : {}),
+              })),
             }),
           });
 

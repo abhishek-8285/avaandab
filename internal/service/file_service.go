@@ -102,7 +102,7 @@ func (s *FileService) UploadFile(ctx context.Context, header *multipart.FileHead
 	}
 
 	dir := filepath.Join(uploadDir(s), subdir)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return domain.File{}, fmt.Errorf("failed to create upload directory: %w", err)
 	}
 

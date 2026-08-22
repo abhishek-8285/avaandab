@@ -81,6 +81,7 @@ import (
 	// Shared infrastructure
 	"transport-app/internal/eta"
 	"transport-app/internal/events"
+	"transport-app/internal/features"
 	founder "transport-app/internal/founder"
 	founderAlerts "transport-app/internal/founder/alerts"
 	"transport-app/internal/founder/digest"
@@ -257,6 +258,15 @@ func main() {
 	// Initialize handlers app
 	resetTokens := auth.NewResetTokenStore(0)
 	app := handlers.NewApp(services, cfg, authStore, database, authSvc, resetTokens)
+	// Per-org feature gates (registry lives on App; shared by routes + workers).
+	featureGate := func(key string) func(http.Handler) http.Handler {
+		return features.Gate(app.Features, key)
+	}
+	// Worker-tick gate: skip a background sweep when its feature is off for
+	// the default org (workers are single-tenant today). Cached → cheap.
+	featureTick := func(key string) bool {
+		return app.Features.Enabled(context.Background(), string(shared.DefaultTenant), key)
+	}
 	app.Cache = appCache
 
 	// E-Way Bill and FASTag services (Spec 07)
@@ -289,12 +299,13 @@ func main() {
 
 	// ── Ops: error reporting, login audit, dashboard ─────────────────────
 	notifSvc := notifications.NewService()
-	reporter := opserrors.NewReporter(notifSvc, cfg.AppEnv, Version)
+	reporter := opserrors.NewReporter(notifSvc, opserrors.NewSQLiteStore(database), cfg.AppEnv, Version)
 	loginAuditSvc := audit.NewLoginAuditService(notifSvc, audit.SecurityPolicy{
 		NotifyOnNewDevice: true,
 		NotifyOnNewIP:     true,
 	})
 	dashboardHandler := dashboard.NewDashboardHandler(reporter, loginAuditSvc)
+	app.OpsErrors = handlers.NewOpsErrorsHandler(app, reporter)
 	healthChecker := health.NewChecker(database)
 
 	// ── Vertical-slice infrastructure ────────────────────────────────────
@@ -375,6 +386,9 @@ func main() {
 	// the Prometheus exposition mounted at GET /metrics below.
 	r.Use(metrics.Middleware)
 	r.Use(middleware.Logger)
+	// Panic safety net: converts panics into RFC7807-style problem+json 500s
+	// and reports them as CRITICAL errors to the ops reporter (Spec 16 §5.5).
+	r.Use(middleware.Recoverer(reporter))
 	// Exempt the SSE streams from the global 60s request timeout (Spec 04 §1.2, Spec 12 §5.1):
 	// long-lived EventSource connections must outlive the deadline. REST polling
 	// (/live) is unaffected and remains the source of truth in multi-instance.
@@ -409,10 +423,6 @@ func main() {
 	r.Get("/metrics", metrics.Handler().ServeHTTP)
 
 	// Direct SEO Endpoints
-	r.Get("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/plain")
-		_, _ = w.Write([]byte("User-agent: *\nAllow: /\nSitemap: https://avandab.com/sitemap.xml\n"))
-	})
 	r.Get("/sitemap.xml", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/xml")
 		sitemap := `<?xml version="1.0" encoding="UTF-8"?>
@@ -621,6 +631,10 @@ func main() {
 	// Public: token endpoint (no auth required) — rate-limited against brute force
 	authAPIHandler.Register(r.With(middleware.RateLimitDistributed(appCache, 10)))
 
+	// Public: mobile/API password reset (JSON, anti-enumeration generic response) — rate-limited
+	r.With(middleware.RateLimitDistributed(appCache, 10)).Post("/api/v1/auth/forgot-password", app.Auth.ForgotPasswordAPI)
+	r.With(middleware.RateLimitDistributed(appCache, 10)).Post("/api/v1/auth/reset-password", app.Auth.ResetPasswordAPI)
+
 	// ── AI Agent (operations assistant) — built after RAG below ─────────
 	var agentAPI *agent.Handler
 	var approvalSvc *agent.ApprovalService
@@ -649,21 +663,33 @@ func main() {
 	// Protected: Telemetry, and all /api/v1/* routes require a valid session or Bearer token
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.RequireAPIAuth(authStore, apiSecret, middleware.DefaultTenantResolver))
-		telemetry.RegisterTelemetryRoutes(r, ingestor, database, time.Duration(cfg.LiveMap.TelemetryStaleMin)*time.Minute, etaService)
+		r.With(featureGate("telemetry")).Group(func(r chi.Router) {
+			telemetry.RegisterTelemetryRoutes(r, ingestor, database, time.Duration(cfg.LiveMap.TelemetryStaleMin)*time.Minute, etaService)
+		})
 		r.Get("/api/v1/telemetry/stream", realtime.StreamHandler(sseHub, cfg.LiveMap.SSEEnabled))
-		pnl.RegisterRoutes(r, pnl.NewService(database), authSvc)
-		if app.PNL != nil {
-			app.PNL.RegisterRoutes(r)
-		}
+		r.With(featureGate("pnl")).Group(func(r chi.Router) {
+			pnl.RegisterRoutes(r, pnl.NewService(database), authSvc)
+			if app.PNL != nil {
+				app.PNL.RegisterRoutes(r)
+			}
+		})
 		if app.OpsAlerts != nil {
 			app.OpsAlerts.RegisterRoutes(r)
 		}
 		if app.ABExperiments != nil {
-			app.ABExperiments.RegisterRoutes(r)
+			r.With(featureGate("experiments")).Group(app.ABExperiments.RegisterRoutes)
 		}
 		if app.Founder != nil {
-			app.Founder.RegisterRoutes(r)
+			r.With(featureGate("founder")).Group(app.Founder.RegisterRoutes)
 		}
+		// Ops error reports API (Spec 16 §4) — errors:read / errors:update
+		// permissions seeded by migration 00083.
+		r.With(middleware.ResourcePermission(authSvc, "errors", "read")).Get("/api/v1/errors", app.OpsErrors.APIList)
+		r.With(middleware.ResourcePermission(authSvc, "errors", "read")).Get("/api/v1/errors/{fingerprint}", app.OpsErrors.APIGetError)
+		r.With(middleware.ResourcePermission(authSvc, "errors", "read")).Get("/api/v1/errors/incidents", app.OpsErrors.APIListIncidents)
+		r.With(middleware.ResourcePermission(authSvc, "errors", "update")).Post("/api/v1/errors/incidents/{incidentID}/resolve", app.OpsErrors.APIResolveIncident)
+		// Client-side error capture (breadcrumbs + window.onerror reports).
+		r.Post("/api/v1/errors/client", app.OpsErrors.APIClientReport)
 		bookingAPIHandler.Register(r)
 		tripAPIHandler.Register(r)
 		invoiceAPIHandler.Register(r)
@@ -676,12 +702,18 @@ func main() {
 		r.With(middleware.ResourcePermission(authSvc, "routes", "read")).Get("/api/v1/routes/optimize/jobs/{jobID}", app.Routes.OptimizeJobStatus)
 		r.Get("/api/v1/hsn-sac/search", app.Invoices.SearchHSNSAC)
 		r.Get("/api/v1/drivers/me", app.Drivers.GetMe)
+		r.Post("/api/v1/drivers/me/status", app.Drivers.UpdateMyStatus)
+		r.Get("/api/v1/drivers/me/issues", app.Drivers.ListMyIssues)
+		r.Post("/api/v1/drivers/me/issues", app.Drivers.ReportIssue)
 		r.Post("/api/v1/trips/{id}/deliver-pod", app.Kharcha.DeliverWithPOD)
+		// Driver expense claims from mobile (Spec 13) — same trips:update
+		// gate as the web /kharcha/create form.
+		r.With(middleware.ResourcePermission(authSvc, "trips", "update")).Post("/api/v1/kharcha/expense", app.Kharcha.CreateExpenseAPI)
 		r.Get("/api/v1/users/me/preferences", app.Users.GetMyPreferences)
 		r.Patch("/api/v1/users/me/preferences", app.Users.UpdateMyPreferences)
 		r.Post("/api/v1/users/me/preferences", app.Users.UpdateMyPreferences)
 		if ragHandler != nil {
-			ragHandler.RegisterRoutes(r)
+			r.With(featureGate("rag")).Group(ragHandler.RegisterRoutes)
 		}
 	})
 
@@ -691,8 +723,13 @@ func main() {
 	apiversion.MountV2(r, middleware.RequireAPIAuth(authStore, apiSecret, middleware.DefaultTenantResolver), http.HandlerFunc(healthChecker.HealthHandler), bookingAPIHandler, tripAPIHandler, invoiceAPIHandler, paymentAPIHandler)
 
 	// ── AI Agent: multi-agent orchestrator + RL learning + approvals ────
-	if cfg.Agent.Enabled && cfg.Agent.APIKey != "" {
+	if cfg.Agent.Enabled {
 		client := agent.NewClient(cfg.Agent.APIKey, cfg.Agent.BaseURL, cfg.Agent.Model)
+		if cfg.Agent.APIKey == "" {
+			// Keyless mode: routes fall back to keywords and chats return a
+			// clear "not configured" answer — the assistant stays reachable.
+			logger.Warn("AGENT_ENABLED=true but AGENT_API_KEY not set; running keyless (keyword routing only)")
+		}
 
 		var rlSvc *rl.Service
 		var err error
@@ -745,8 +782,6 @@ func main() {
 				agent.NewApprovalHandler(approvalSvc).RegisterRoutes(r)
 			}
 		})
-	} else if cfg.Agent.Enabled {
-		logger.Warn("AGENT_ENABLED=true but AGENT_API_KEY not set; agent disabled")
 	}
 
 	// Static files with Cache-Control headers
@@ -942,26 +977,37 @@ func main() {
 			// User Setup & Onboarding
 			r.Get("/user/onboard", app.Auth.UserOnboardingPage)
 
+			// Global cross-entity search (topbar)
+			r.Get("/search", app.SearchPage)
+
+			// Web UI language switch (English / हिन्दी) — cookie + redirect back
+			r.Get("/lang", app.SetLang)
+
 			// Dashboard
 			r.Get("/dashboard", app.Dashboard.Index)
 			r.Get("/dashboard/stream", app.Dashboard.Stream)
 			r.Post("/dashboard/event", app.Dashboard.Event)
 			r.Get("/files/{id}", app.DownloadFile)
 
-			// Founder visibility layer web UI (Spec 16 §8)
+			// Founder visibility layer web UI (Spec 16 §8) — gated to match
+			// the JSON APIs (founder/ops_alerts/pnl/experiments read perms).
 			if app.Founder != nil {
-				r.Get("/founder/dashboard", app.Founder.DashboardPage)
-				r.Get("/ops-alerts", app.Founder.OpsAlertsPage)
-				r.Get("/pnl/dashboard", app.Founder.PNLDashboardPage)
-				r.Get("/experiments", app.Founder.ExperimentsPage)
+				r.With(featureGate("founder"), middleware.ResourcePermission(authSvc, "founder", "read")).Get("/founder/dashboard", app.Founder.DashboardPage)
+				r.With(middleware.ResourcePermission(authSvc, "ops_alerts", "read")).Get("/ops-alerts", app.Founder.OpsAlertsPage)
+				r.With(featureGate("pnl"), middleware.ResourcePermission(authSvc, "pnl", "read")).Get("/pnl/dashboard", app.Founder.PNLDashboardPage)
+				r.With(featureGate("experiments"), middleware.ResourcePermission(authSvc, "experiments", "read")).Get("/experiments", app.Founder.ExperimentsPage)
 			}
 
 			// Live Fleet Map (Spec 12 §2.2, §4.3)
-			r.Get("/map", app.Map.Page)
+			// /map superseded by /tracking (FlyFleet live surveillance) — redirect stragglers.
+			r.Get("/map", http.RedirectHandler("/tracking", http.StatusSeeOther).ServeHTTP)
 			r.Get("/map/stream", app.Map.Stream)
 
 			// Ops dashboard (errors & incidents, login audit) - Admin only
 			r.With(middleware.RoleRequired(domain.DefaultRoleID(domain.RoleAdmin))).Get("/ops/dashboard", dashboardHandler.ServeHTTP)
+			// Ops error triage page (Spec 16 §4) — gated by errors:read,
+			// matching the sidebar link visibility (migration 00083 seeds it).
+			r.With(middleware.ResourcePermission(authSvc, "errors", "read")).Get("/ops/errors", app.OpsErrors.Page)
 
 			// Users (Admin only)
 			r.Route("/users", app.Users.Routes)
@@ -1002,21 +1048,21 @@ func main() {
 
 			// Telemetry device registry / provisioning / quarantine admin
 			if cfg.Telemetry.Enabled {
-				r.Route("/telemetry/devices", app.TelemetryDevices.Routes)
+				r.With(featureGate("telemetry")).Route("/telemetry/devices", app.TelemetryDevices.Routes)
 				r.Route("/telemetry/quarantine", app.TelemetryDevices.QuarantineRoutes)
 			}
 
 			// Geofence CRUD + drawing UI (Spec 02 §8)
-			r.Route("/geofences", app.Geofences.Routes)
+			r.With(featureGate("geofences")).Route("/geofences", app.Geofences.Routes)
 
 			// Kharcha Ledger (driver expense approvals)
 			r.Route("/kharcha", app.Kharcha.Routes)
 
 			// Fuel claim audit queue + review (Spec 03 §6.1)
-			r.Route("/fuel", app.FuelAudit.Routes)
+			r.With(featureGate("fuel_audit")).Route("/fuel", app.FuelAudit.Routes)
 
 			// Driver scorecard leaderboard + fraud resolve (Spec 03 §6.1)
-			r.Route("/scorecard", app.Scorecard.Routes)
+			r.With(featureGate("scorecard")).Route("/scorecard", app.Scorecard.Routes)
 
 			// Live fleet tracking map (Spec 04 §1.3) & Preventive Maintenance (Spec 04 §6, §12) with opt-in CSP (Spec 04 §2)
 			r.Group(func(r chi.Router) {
@@ -1035,13 +1081,13 @@ func main() {
 
 			// E-Way Bill & FASTag routes (Spec 07)
 			if app.EWayBill != nil {
-				app.EWayBill.Mount(r)
+				r.With(featureGate("ewaybill")).Group(app.EWayBill.Mount)
 			}
 			if app.FASTag != nil {
-				app.FASTag.Mount(r)
+				r.With(featureGate("fastag")).Group(app.FASTag.Mount)
 			}
 			if app.Accounting != nil {
-				app.Accounting.Mount(r)
+				r.With(featureGate("accounting_sync")).Group(app.Accounting.Mount)
 			}
 			if app.Settlements != nil {
 				app.Settlements.Mount(r)
@@ -1057,7 +1103,7 @@ func main() {
 			}
 
 			// AI Operations Assistant
-			r.Route("/assistant", app.Assistant.Routes)
+			r.With(featureGate("agent")).Route("/assistant", app.Assistant.Routes)
 			if agentAPI != nil {
 				r.Group(func(r chi.Router) {
 					r.Use(agentRequestTimeout(5 * time.Minute))
@@ -1084,7 +1130,9 @@ func main() {
 			r.Get("/profile", app.Auth.ProfilePage)
 			r.Post("/profile", app.Auth.UpdateProfile)
 			r.Get("/change-password", app.Auth.ChangePasswordPage)
-			r.Post("/change-password", app.Auth.ChangePassword)
+			// Rate-limited: prevents unlimited old-password guessing inside
+			// an active session window.
+			r.With(middleware.RateLimitDistributed(appCache, 10)).Post("/change-password", app.Auth.ChangePassword)
 		})
 	})
 
@@ -1139,14 +1187,24 @@ func main() {
 	founderSvc := founder.NewFounderService(newFounderNotifier(logger))
 	founderSvc.RegisterEventHandlers(eventBus)
 	if founderConfigured() {
-		runLeadered("founder_digest", func(ctx context.Context) { runDailyDigest(ctx, founderSvc, logger) })
+		runLeadered("founder_digest", func(ctx context.Context) {
+			if !featureTick("founder") {
+				return
+			}
+			runDailyDigest(ctx, founderSvc, logger)
+		})
 	}
 	outboxRelay := outbox.NewRelay(database, eventBus, logger)
 	runLeadered("outbox_relay", outboxRelay.Run)
 	go sseHub.Run(ctx) // per-replica: SSE fan-out must live where connections are
 
 	if dwellWorker != nil {
-		runLeadered("geofence_dwell", dwellWorker.Run)
+		runLeadered("geofence_dwell", func(ctx context.Context) {
+			if !featureTick("geofences") {
+				return
+			}
+			dwellWorker.Run(ctx)
+		})
 	}
 	if fuelEngine != nil {
 		// Incremental scorecard trigger (Spec 03 §4.3): after each engine
@@ -1174,7 +1232,12 @@ func main() {
 				}
 			})
 		}
-		runLeadered("fuel_engine", fuelEngine.Run)
+		runLeadered("fuel_engine", func(ctx context.Context) {
+			if !featureTick("fuel_audit") {
+				return
+			}
+			fuelEngine.Run(ctx)
+		})
 	}
 
 	// Nightly scorecard sweep (Spec 03 §4.3): recompute every driver with
@@ -1182,6 +1245,9 @@ func main() {
 	// no new engine events arrive.
 	if services.Scorecard != nil {
 		runLeadered("scorecard_sweep", func(ctx context.Context) {
+			if !featureTick("scorecard") {
+				return
+			}
 			ticker := time.NewTicker(24 * time.Hour)
 			defer ticker.Stop()
 			if err := services.Scorecard.RecomputeAllDrivers(ctx); err != nil && !errors.Is(err, context.Canceled) {
@@ -1205,6 +1271,9 @@ func main() {
 	// all active tenants. Idempotent — safe to re-run.
 	if services.PNL != nil {
 		runLeadered("pnl_snapshot", func(ctx context.Context) {
+			if !featureTick("pnl") {
+				return
+			}
 			// Fire once shortly after boot (catches a missed cron on restarts).
 			select {
 			case <-ctx.Done():
@@ -1245,6 +1314,9 @@ func main() {
 	// independent of the anomaly engine (and avoids an internal/fuel →
 	// internal/service import cycle).
 	runLeadered("fuel_audit_pass", func(ctx context.Context) {
+		if !featureTick("fuel_audit") {
+			return
+		}
 		ticker := time.NewTicker(5 * time.Minute)
 		defer ticker.Stop()
 		if _, err := services.FuelAudit.AuditPendingClaims(ctx); err != nil && !errors.Is(err, context.Canceled) {
@@ -1285,7 +1357,12 @@ func main() {
 			ExtensionLeadSeconds: cfg.EWayBill.ExtensionLeadSeconds,
 			MinInvoiceValue:      cfg.EWayBill.MinInvoiceValue,
 		})
-		runLeadered("ewaybill_worker", ewbWorker.Run)
+		runLeadered("ewaybill_worker", func(ctx context.Context) {
+			if !featureTick("ewaybill") {
+				return
+			}
+			ewbWorker.Run(ctx)
+		})
 	}
 
 	// E-Way Bill expiry monitor (Spec 07 §2.8)

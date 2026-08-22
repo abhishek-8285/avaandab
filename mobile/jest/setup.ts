@@ -28,13 +28,24 @@ jest.mock('expo-secure-store', () => ({
 
 // Mock expo-location (native module)
 jest.mock('expo-location', () => ({
-  requestForegroundPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
-  getForegroundPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
+  requestForegroundPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true }),
+  getForegroundPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true }),
+  requestBackgroundPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true }),
   hasServicesEnabledAsync: jest.fn().mockResolvedValue(true),
   getLastKnownPositionAsync: jest.fn().mockResolvedValue(null),
   getCurrentPositionAsync: jest.fn().mockResolvedValue({ coords: { latitude: 19.076, longitude: 72.8777 } }),
   watchPositionAsync: jest.fn(),
+  startLocationUpdatesAsync: jest.fn().mockResolvedValue(undefined),
+  stopLocationUpdatesAsync: jest.fn().mockResolvedValue(undefined),
+  hasStartedLocationUpdatesAsync: jest.fn().mockResolvedValue(false),
   Accuracy: { Balanced: 3, High: 4, Low: 1 },
+}));
+
+// Mock expo-task-manager (native module)
+jest.mock('expo-task-manager', () => ({
+  __esModule: true,
+  default: { defineTask: jest.fn() },
+  defineTask: jest.fn(),
 }));
 
 // Mock expo-camera (native module)
@@ -128,7 +139,12 @@ jest.mock('expo-sqlite', () => ({
         return [...sqliteMockState.trips];
       }
       if (query.includes('offline_gps_logs')) {
-        return [...sqliteMockState.offline_gps_logs];
+        const rows = sqliteMockState.offline_gps_logs.map((l) =>
+          query.includes('accuracy AS accuracy_m')
+            ? { ...l, accuracy_m: l.accuracy ?? null }
+            : { ...l }
+        );
+        return query.includes('WHERE synced = 0') ? rows.filter((l) => l.synced === 0) : rows;
       }
       if (query.includes('offline_expenses')) {
         return [...sqliteMockState.offline_expenses];
@@ -201,6 +217,7 @@ jest.mock('expo-sqlite', () => ({
           notes: params[4],
           latitude: params[5],
           longitude: params[6],
+          idempotency_key: params[7] ?? null,
           created_at: new Date().toISOString(),
         };
         sqliteMockState.offline_expenses.push(exp);
@@ -229,6 +246,7 @@ jest.mock('expo-sqlite', () => ({
           latitude: params[0],
           longitude: params[1],
           timestamp: params[2],
+          accuracy: params[3] ?? null,
           synced: 0,
         };
         sqliteMockState.offline_gps_logs.push(log);

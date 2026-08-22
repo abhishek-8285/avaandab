@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"strings"
 )
 
@@ -103,7 +103,9 @@ func (a *Agent) Run(ctx context.Context, history []Message) (string, int, error)
 				a.tracer(call.Function.Name, err == nil, err)
 			}
 			if err != nil {
-				log.Printf("agent: tool %s error: %v", call.Function.Name, err)
+				slog.Warn("agent: tool error",
+					slog.String("tool", call.Function.Name),
+					slog.Any("error", err))
 				result = "error: " + sanitizeToolError(err)
 			}
 			messages = append(messages, Message{
@@ -112,7 +114,9 @@ func (a *Agent) Run(ctx context.Context, history []Message) (string, int, error)
 				Name:       call.Function.Name,
 				Content:    result,
 			})
-			log.Printf("agent: tool %s -> %s", call.Function.Name, truncate(result, 200))
+			slog.Debug("agent: tool result",
+				slog.String("tool", call.Function.Name),
+				slog.String("result", truncate(result, 200)))
 		}
 
 		// Last permitted turn produced tool calls: give the model one final

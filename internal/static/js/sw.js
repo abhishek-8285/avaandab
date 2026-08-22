@@ -6,6 +6,7 @@ const PRECACHE_ASSETS = [
   '/static/css/tailwind.css',
   '/static/js/datastar.js',
   '/static/js/router.js',
+  '/static/js/toast.js',
   '/static/icons/icon-192.png',
   '/static/icons/icon-512.png',
 ];

@@ -88,6 +88,9 @@ func NewClient(apiKey, baseURL, model string) *Client {
 
 // Complete sends messages + tools and returns the model's reply.
 func (c *Client) Complete(ctx context.Context, messages []Message, tools []Tool) (Message, error) {
+	if c.apiKey == "" {
+		return Message{}, fmt.Errorf("agent LLM not configured: set AGENT_API_KEY to enable model calls")
+	}
 	body, err := json.Marshal(chatRequest{
 		Model:    c.model,
 		Messages: messages,

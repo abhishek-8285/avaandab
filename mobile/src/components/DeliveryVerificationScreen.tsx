@@ -36,7 +36,7 @@ interface DeliveryVerificationScreenProps {
 }
 
 export function DeliveryVerificationScreen({
-  tripId = '1',
+  tripId,
   onComplete,
   onBack,
 }: DeliveryVerificationScreenProps) {
@@ -47,12 +47,15 @@ export function DeliveryVerificationScreen({
 
   const [consigneeName, setConsigneeName] = useState('');
   const [consigneePhone, setConsigneePhone] = useState('');
+  const [otp, setOtp] = useState('');
   const [notes, setNotes] = useState('');
   const [quantityShort, setQuantityShort] = useState('');
   const [damageQty, setDamageQty] = useState('');
   const [refusalReason, setRefusalReason] = useState('');
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [showSignaturePad, setShowSignaturePad] = useState(false);
+  const [scanValue, setScanValue] = useState<string | null>(null);
+  const [scanMode, setScanMode] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const signatureRef = useRef<any>(null);
 
@@ -103,6 +106,10 @@ export function DeliveryVerificationScreen({
   };
 
   const submit = async () => {
+    if (!tripId) {
+      Alert.alert('No Trip Selected', 'Open a trip from the trip list before submitting proof of delivery.');
+      return;
+    }
     if (!capturedPhoto && !consigneeName.trim() && !signatureData) {
       Alert.alert('Missing Fields', 'Please add a consignee name, signature or capture a photo proof.');
       return;
@@ -118,6 +125,9 @@ export function DeliveryVerificationScreen({
     if (consigneePhone.trim()) {
       form.append('consignee_phone', consigneePhone.trim());
     }
+    if (otp.trim()) {
+      form.append('otp', otp.trim());
+    }
     if (notes.trim()) {
       form.append('notes', notes.trim());
     }
@@ -131,6 +141,9 @@ export function DeliveryVerificationScreen({
     if (signatureData) {
       form.append('pod_signature_data', signatureData);
       form.append('signature_dataurl', signatureData);
+    }
+    if (scanValue) {
+      form.append('pod_scan_value', scanValue);
     }
     if (!isNaN(shortVal) && shortVal > 0) {
       form.append('quantity_short', String(shortVal));
@@ -206,7 +219,27 @@ export function DeliveryVerificationScreen({
         </TouchableOpacity>
       </View>
 
-      {cameraActive ? (
+      {scanMode ? (
+        <View style={styles.cameraContainer}>
+          <CameraView
+            style={styles.cameraView}
+            barcodeScannerSettings={{ barcodeTypes: ['qr', 'code128', 'ean13', 'itf14'] }}
+            onBarcodeScanned={({ data }: any) => {
+              setScanValue(data);
+              setScanMode(false);
+            }}
+          >
+            <View style={styles.cameraOverlay}>
+              <View style={styles.scannerFrame} />
+              <Text style={styles.cameraGuideText}>SCAN PARCEL BARCODE / QR</Text>
+              {scanValue && <Text style={styles.scanValueText}>{scanValue}</Text>}
+            </View>
+          </CameraView>
+          <TouchableOpacity style={styles.closeScanBtn} onPress={() => setScanMode(false)}>
+            <Text style={styles.closeScanBtnText}>CANCEL SCAN</Text>
+          </TouchableOpacity>
+        </View>
+      ) : cameraActive ?(
         <View style={styles.cameraContainer}>
           {!permission?.granted ? (
             <View style={styles.permissionBox}>
@@ -253,10 +286,9 @@ export function DeliveryVerificationScreen({
             />
           ) : (
             <View style={styles.signatureFallback}>
-              <Text style={styles.cardSubtitle}>Signature pad not available in this environment.</Text>
-              <TouchableOpacity style={styles.permissionBtn} onPress={() => handleSignatureOK('data:image/png;base64,mock_signature_data')}>
-                <Text style={styles.permissionBtnText}>MOCK SIGN</Text>
-              </TouchableOpacity>
+              <Text style={styles.cardSubtitle}>
+                Signature pad is unavailable on this device. Continue with a photo proof or consignee name instead.
+              </Text>
             </View>
           )}
           <View style={styles.signatureActions}>
@@ -273,7 +305,19 @@ export function DeliveryVerificationScreen({
           <View style={styles.titleSection}>
             <Text style={styles.title}>COMPLETE DELIVERY</Text>
             <View style={styles.titleUnderline} />
-            <Text style={styles.subtitle}>TRIP REF · #{tripId}</Text>
+            <Text style={styles.subtitle}>{tripId ? `TRIP REF · #${tripId}` : 'NO TRIP SELECTED'}</Text>
+            <View style={styles.scanRow}>
+              <TouchableOpacity style={styles.scanChip} onPress={() => setScanMode(true)}>
+                <MaterialCommunityIcons name="barcode-scan" size={13} color={Colors.textOnPrimary} />
+                <Text style={styles.scanChipText}>SCAN BARCODE / QR</Text>
+              </TouchableOpacity>
+              {scanValue && (
+                <TouchableOpacity style={styles.scanChipClear} onPress={() => setScanValue(null)}>
+                  <MaterialCommunityIcons name="close-circle" size={16} color={Colors.danger} />
+                  <Text style={styles.scanValueLabel} numberOfLines={1}>{scanValue}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           {/* Consignee Details Input Form */}
@@ -303,6 +347,19 @@ export function DeliveryVerificationScreen({
                 value={consigneePhone}
                 onChangeText={setConsigneePhone}
                 keyboardType="phone-pad"
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>DELIVERY OTP (FROM CONSIGNEE)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="6-digit code"
+                placeholderTextColor={Colors.textMuted}
+                value={otp}
+                onChangeText={setOtp}
+                keyboardType="number-pad"
+                maxLength={6}
               />
             </View>
 
@@ -471,6 +528,58 @@ export function DeliveryVerificationScreen({
 }
 
 const styles = StyleSheet.create({
+  scanRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: Spacing.md,
+  },
+  scanChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.chrome,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: Radius.sm,
+  },
+  scanChipText: {
+    color: Colors.textOnChrome,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+    fontFamily: Font.mono,
+  },
+  scanChipClear: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flexShrink: 1,
+  },
+  scanValueLabel: {
+    fontSize: 10,
+    color: Colors.textSecondary,
+    fontFamily: Font.mono,
+  },
+  closeScanBtn: {
+    backgroundColor: Colors.danger,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  closeScanBtnText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    fontFamily: Font.mono,
+  },
+  scanValueText: {
+    color: Colors.success,
+    fontSize: 12,
+    fontWeight: '800',
+    marginTop: 10,
+    fontFamily: Font.mono,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.background,

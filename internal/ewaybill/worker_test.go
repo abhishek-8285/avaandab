@@ -184,3 +184,32 @@ func TestEWayBillWorker_FullLifecycleWith00047(t *testing.T) {
 	assert.Equal(t, "cancelled", cancelStatus)
 	assert.Equal(t, "Trip Cancelled", cancelReason)
 }
+
+func TestIsAutoGenerateEnabled_ReadsCompanyConfig(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	_, err := db.Exec(`CREATE TABLE company_config (
+		tenant_id TEXT NOT NULL DEFAULT '1',
+		key TEXT NOT NULL,
+		value TEXT,
+		updated_at DATETIME,
+		PRIMARY KEY (tenant_id, key))`)
+	require.NoError(t, err)
+
+	svc := NewEWayBillService(db, nil, nil, nil, Config{})
+	ctx := context.Background()
+
+	// No row → spec default: enabled
+	assert.True(t, svc.isAutoGenerateEnabled(ctx), "missing config row must default to true")
+
+	// Explicit false must be honoured (regression: old query read wrong column
+	// names and always fell through to the default)
+	_, err = db.Exec(`INSERT INTO company_config (tenant_id, key, value) VALUES ('1', 'ewaybill_auto_generate', 'false')`)
+	require.NoError(t, err)
+	assert.False(t, svc.isAutoGenerateEnabled(ctx), "config value 'false' must disable auto-generate")
+
+	_, err = db.Exec(`UPDATE company_config SET value = 'true' WHERE key = 'ewaybill_auto_generate'`)
+	require.NoError(t, err)
+	assert.True(t, svc.isAutoGenerateEnabled(ctx))
+}

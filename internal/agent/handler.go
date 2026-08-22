@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -80,7 +80,10 @@ func (h *Handler) handleChat(w http.ResponseWriter, r *http.Request) {
 	answer, episodeID, err := h.orch.Handle(ctx, req.Messages, userID, operatorName)
 	if err != nil {
 		// Never leak provider/DB internals to the client.
-		log.Printf("assistant: request failed (episode=%s): %v", episodeID, err)
+		slog.ErrorContext(ctx, "assistant: request failed",
+			slog.String("episode_id", episodeID),
+			slog.String("user_id", userID),
+			slog.Any("error", err))
 		writeErr(w, http.StatusInternalServerError, "assistant request failed, please try again")
 		return
 	}
