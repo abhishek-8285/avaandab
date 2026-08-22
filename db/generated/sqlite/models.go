@@ -566,6 +566,14 @@ type FastagTransaction struct {
 	CreatedAt     sql.NullTime   `json:"created_at"`
 }
 
+type FeatureFlag struct {
+	TenantID  string `json:"tenant_id"`
+	Feature   string `json:"feature"`
+	Enabled   int64  `json:"enabled"`
+	UpdatedBy string `json:"updated_by"`
+	UpdatedAt string `json:"updated_at"`
+}
+
 type File struct {
 	ID             string         `json:"id"`
 	Filename       string         `json:"filename"`
@@ -1160,6 +1168,8 @@ type Trip struct {
 	PodDamageQty          sql.NullFloat64 `json:"pod_damage_qty"`
 	PodRefusalReason      sql.NullString  `json:"pod_refusal_reason"`
 	PodScanValue          sql.NullString  `json:"pod_scan_value"`
+	PodOtp                sql.NullString  `json:"pod_otp"`
+	PodOtpExpiresAt       sql.NullString  `json:"pod_otp_expires_at"`
 }
 
 type TripDetention struct {

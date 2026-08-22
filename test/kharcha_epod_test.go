@@ -257,12 +257,13 @@ func TestEPOD_POD1_HappyPath(t *testing.T) {
 	ctx := context.Background()
 
 	tripID := setupInTransitTrip(t, svcs, ctx)
+	otpCode, _ := svcs.Trips.EnsurePODOTP(ctx, string(tripID))
 	tripNum, err := svcs.Trips.DeliverWithPOD(ctx, string(tripID), service.DeliverWithPODRequest{
 		PODPhotoURL:    "https://avandab.com/pods/trip1.jpg",
 		ConsigneeName:  "Mahesh Kumar",
 		ConsigneePhone: "9876543210",
 		Notes:          "Left at reception",
-		OTPVerified:    true,
+		OTPCode:        otpCode,
 	})
 	require.NoError(t, err)
 	assert.NotEmpty(t, tripNum)
@@ -279,10 +280,12 @@ func TestEPOD_POD2_SignatureFallback(t *testing.T) {
 	ctx := context.Background()
 
 	tripID := setupInTransitTrip(t, svcs, ctx)
+	otpCode, _ := svcs.Trips.EnsurePODOTP(ctx, string(tripID))
 	_, err := svcs.Trips.DeliverWithPOD(ctx, string(tripID), service.DeliverWithPODRequest{
 		PODPhotoURL:   "",
 		SignatureURL:  "https://avandab.com/sigs/trip-sig.png",
 		ConsigneeName: "Ravi Teja",
+		OTPCode:       otpCode,
 	})
 	require.NoError(t, err, "signature fallback should work")
 }
@@ -328,14 +331,17 @@ func TestEPOD_POD5_DoubleDeliver_SecondFails(t *testing.T) {
 	ctx := context.Background()
 
 	tripID := setupInTransitTrip(t, svcs, ctx)
+	otpCode, _ := svcs.Trips.EnsurePODOTP(ctx, string(tripID))
 
 	_, err := svcs.Trips.DeliverWithPOD(ctx, string(tripID), service.DeliverWithPODRequest{
 		PODPhotoURL: "https://avandab.com/pod1.jpg",
+		OTPCode:     otpCode,
 	})
 	require.NoError(t, err)
 
 	_, err = svcs.Trips.DeliverWithPOD(ctx, string(tripID), service.DeliverWithPODRequest{
 		PODPhotoURL: "https://avandab.com/pod2.jpg",
+		OTPCode:     otpCode,
 	})
 	assert.Error(t, err, "second delivery on delivered trip must fail")
 }
@@ -347,9 +353,10 @@ func TestEPOD_POD6_EventFiring(t *testing.T) {
 	ctx := context.Background()
 
 	tripID := setupInTransitTrip(t, svcs, ctx)
+	otpCode, _ := svcs.Trips.EnsurePODOTP(ctx, string(tripID))
 	_, err := svcs.Trips.DeliverWithPOD(ctx, string(tripID), service.DeliverWithPODRequest{
 		PODPhotoURL: "https://avandab.com/pod-event.jpg",
-		OTPVerified: true,
+		OTPCode:     otpCode,
 	})
 	require.NoError(t, err)
 
@@ -373,11 +380,12 @@ func TestKharcha_INT1_FullWorkflow(t *testing.T) {
 
 	require.NoError(t, svcs.Kharcha.ApproveExpense(ctx, expID, "owner-int1"))
 
+	otpCode, _ := svcs.Trips.EnsurePODOTP(ctx, string(tripID))
 	tripNum, err := svcs.Trips.DeliverWithPOD(ctx, string(tripID), service.DeliverWithPODRequest{
 		PODPhotoURL:    "https://avandab.com/int1-pod.jpg",
 		ConsigneeName:  "Rajendra Prasad",
 		ConsigneePhone: "9812345678",
-		OTPVerified:    true,
+		OTPCode:        otpCode,
 	})
 	require.NoError(t, err)
 	assert.NotEmpty(t, tripNum)
