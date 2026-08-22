@@ -59,7 +59,8 @@ Single source of truth for `db/migrations/` version numbers. Repo head is
 | 00077 | Files: generic polymorphic upload types (trip_pod, expense_receipt, logo, general) + entity index | Fleetbase-style files API |
 | 00078 | RBAC: rag:read / rag:write permissions for /api/rag/* gating | Security audit fix M2 |
 | 00079 | Worker leader-election lease table (worker_leases) | Multi-instance safety |
-| 00080+ | future specs (AIS-140/VLT, ERP) | reserved |
+| 00080 | Backfill: legacy POD photos company_logo → trip_pod (uploadable_id ∈ trips) | POD privacy fix |
+| 00081+ | future specs (AIS-140/VLT, ERP) | reserved |
 
 ## Implementation rule
 Pick the number from this table for your feature and update the spec's §3 to

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -15,6 +16,73 @@ import (
 // AuthHandlers handles authentication-related HTTP requests.
 type AuthHandlers struct {
 	*App
+}
+
+// ForgotPasswordAPI handles JSON password-reset requests from API clients
+// (mobile driver app). The response is identical whether or not the account
+// exists, to prevent enumeration. In development the reset link is returned
+// so the flow is usable without a mailer (mirrors SubmitForgotPassword).
+func (h *AuthHandlers) ForgotPasswordAPI(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Email string `json:"email"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Email == "" {
+		writeJSONError(w, http.StatusBadRequest, "email is required")
+		return
+	}
+
+	resp := map[string]interface{}{
+		"ok":      true,
+		"message": "If an account exists for " + req.Email + ", password reset instructions have been sent.",
+	}
+
+	if user, err := h.Services.Users.GetUserByEmail(r.Context(), req.Email); err == nil && user.Status == domain.UserStatusActive {
+		if token, err := h.App.ResetTokens.Create(req.Email); err == nil {
+			link := fmt.Sprintf("%s://%s/reset-password?token=%s", requestScheme(r), r.Host, token)
+			slog.Info("password reset link generated (api)", "email", req.Email)
+			if h.Config.IsDevelopment() {
+				resp["reset_link"] = link
+			}
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(resp)
+}
+
+// ResetPasswordAPI redeems a single-use reset token and sets a new password
+// (JSON API counterpart of SubmitResetPassword).
+func (h *AuthHandlers) ResetPasswordAPI(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Token    string `json:"token"`
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Token == "" {
+		writeJSONError(w, http.StatusBadRequest, "token and password are required")
+		return
+	}
+
+	email, ok := h.App.ResetTokens.Consume(req.Token)
+	if !ok {
+		writeJSONError(w, http.StatusBadRequest, "this reset link is invalid or has expired")
+		return
+	}
+
+	if err := h.Services.Users.SetPasswordByEmail(r.Context(), email, req.Password); err != nil {
+		writeJSONError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{"ok": true})
+}
+
+func writeJSONError(w http.ResponseWriter, status int, msg string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(map[string]string{"error": msg})
 }
 
 // NewAuthHandlers creates auth handlers.
@@ -65,6 +133,15 @@ func (h *AuthHandlers) RegisterPage(w http.ResponseWriter, r *http.Request) {
 	}
 	pd := PageData{Title: "Create Account"}
 	if cookie, err := r.Cookie("flash_error"); err == nil {
+		http.SetCookie(w, &http.Cookie{
+			Name:     "flash_error",
+			Value:    "",
+			Path:     "/",
+			HttpOnly: true,
+			Secure:   h.Config.CookieSecure,
+			SameSite: http.SameSiteLaxMode,
+			MaxAge:   -1,
+		})
 		if pd.Extra == nil {
 			pd.Extra = map[string]interface{}{}
 		}
